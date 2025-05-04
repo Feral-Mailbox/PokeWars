@@ -1,0 +1,20 @@
+# Include everything from production
+-r requirements.txt
+
+# Dev-only tools
+black
+pytest
+mypy
+watchfiles
+uvloop
+platformdirs
+iniconfig
+pluggy
+pathspec
+click
+shellingham
+rich
+Pygments
+markdown-it-py
+mdurl
+PyYAML

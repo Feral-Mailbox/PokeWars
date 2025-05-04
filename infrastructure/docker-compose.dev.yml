@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile.dev
+    container_name: backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../apps/backend/.env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../apps/backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ../apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - ../apps/frontend/.env
+    depends_on:
+      - backend
+    volumes:
+      - ../apps/frontend:/app
+    command: ["npm", "run", "dev"]

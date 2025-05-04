@@ -1,0 +1,29 @@
+# Ignore environment variables
+*.env
+.venv/
+infrastructure/.env.*
+!infrastructure/.env.*.example
+
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Vite + React
+.vite/
+.vscode/
+
+# OS
+.DS_Store
+
+# Docker
+volumes/
+*.pid

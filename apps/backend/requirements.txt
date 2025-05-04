@@ -1,0 +1,16 @@
+alembic
+argon2-cffi
+email_validator
+fastapi
+passlib[bcrypt]
+psycopg2-binary
+PyJWT
+python-dotenv
+python-multipart
+pydantic
+pydantic-settings
+pydantic-core
+pydantic-extra-types
+redis
+sqlalchemy
+uvicorn[standard]
