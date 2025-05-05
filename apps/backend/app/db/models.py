@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Table, create_engine
+from fastapi import Request, HTTPException
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import enum
@@ -7,7 +8,9 @@ import os
 
 Base = declarative_base()
 
-# Enums for friend status and tournament status
+# ======================
+# ENUMS
+# ======================
 class FriendStatus(str, enum.Enum):
     pending = "pending"
     accepted = "accepted"
@@ -17,7 +20,25 @@ class TournamentStatus(str, enum.Enum):
     ongoing = "ongoing"
     completed = "completed"
 
-# Users table
+class GameStatus(str, enum.Enum):
+    open = "open"
+    in_progress = "in_progress"
+    completed = "completed"
+
+# ======================
+# JOIN TABLE
+# ======================
+game_players_association = Table(
+    "game_players",
+    Base.metadata,
+    Column("game_id", Integer, ForeignKey("games.id"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("joined_at", DateTime(timezone=True), server_default=func.now())
+)
+
+# ======================
+# USER
+# ======================
 class User(Base):
     __tablename__ = "users"
 
@@ -28,8 +49,13 @@ class User(Base):
     avatar = Column(String, default="default.png")
     elo = Column(Integer, default=1000)
     currency = Column(Integer, default=0)
+    
+    hosted_matches = relationship("Game", back_populates="host", foreign_keys="Game.host_id")
+    games = relationship("Game", secondary=game_players_association, back_populates="players")
 
-# Friendships
+# ======================
+# FRIENDS
+# ======================
 class Friend(Base):
     __tablename__ = "friends"
 
@@ -38,19 +64,30 @@ class Friend(Base):
     friend_user_id = Column(Integer, ForeignKey("users.id"))
     status = Column(Enum(FriendStatus), default=FriendStatus.pending)
 
-# Matches
-class Match(Base):
-    __tablename__ = "matches"
+# ======================
+# GAMES
+# ======================
+class Game(Base):
+    __tablename__ = "games"
 
     id = Column(Integer, primary_key=True)
-    player1_id = Column(Integer, ForeignKey("users.id"))
-    player2_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(Enum(GameStatus), default=GameStatus.open, nullable=False)
+    is_private = Column(Boolean, default=True)
+    game_name = Column(String, nullable=False)
+    map_name = Column(String, nullable=False)
+    max_players = Column(Integer, default=2)
+    host_id = Column(Integer, ForeignKey("users.id"))
     winner_id = Column(Integer, ForeignKey("users.id"))
     turns = Column(Integer)
     replay_log = Column(JSON)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    
+    host = relationship("User", back_populates="hosted_matches", foreign_keys=[host_id])
+    players = relationship("User", secondary=game_players_association, back_populates="games")
 
-# Units
+# ======================
+# UNITS
+# ======================
 class Unit(Base):
     __tablename__ = "units"
 
@@ -60,7 +97,9 @@ class Unit(Base):
     typing = Column(String)
     cost = Column(Integer, default=0)
 
-# User-Unlocked Units
+# ======================
+# USER-UNIT RELATION
+# ======================
 class UserUnit(Base):
     __tablename__ = "user_units"
 
@@ -69,7 +108,9 @@ class UserUnit(Base):
     unit_id = Column(Integer, ForeignKey("units.id"))
     loadout_info = Column(JSON)
 
-# Tournaments
+# ======================
+# TOURNAMENT
+# ======================
 class Tournament(Base):
     __tablename__ = "tournaments"
 
@@ -80,8 +121,10 @@ class Tournament(Base):
     participants = Column(JSON)
     status = Column(Enum(TournamentStatus), default=TournamentStatus.upcoming)
 
+# ======================
+# DB INIT
+# =====================
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
-
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in .env")

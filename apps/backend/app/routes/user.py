@@ -1,16 +1,10 @@
 from fastapi import APIRouter, Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from app.db.models import User, SessionLocal
+from app.db.models import User
 from app.schemas.auth import UserResponse
+from app.dependencies import get_db
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user(request: Request, db: Session = Depends(get_db)):

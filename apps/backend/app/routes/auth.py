@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
+
 from app.db.models import User, SessionLocal
 from app.schemas.auth import RegisterRequest, LoginRequest, UserResponse
+from app.dependencies import get_db
 from app.utils.security import hash_password, verify_password
 from datetime import timedelta
 import os
@@ -10,16 +12,9 @@ import os
 router = APIRouter()
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
 
-SESSION_EXPIRATION = timedelta(
+SESSION_EXPIRATION = int(timedelta(
     hours=int(os.getenv("SESSION_EXPIRE_HOURS", "24"))
-).total_seconds()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+).total_seconds())
 
 @router.post("/register", response_model=UserResponse)
 def register(req: RegisterRequest, response: Response, db: Session = Depends(get_db)):
@@ -42,7 +37,11 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
         key="session_user",
         value=str(user.id),
         httponly=True,
+        samesite="lax",
         max_age=SESSION_EXPIRATION,
+        path="/",
+        secure=False,
+        domain="localhost", 
     )
 
     return user
@@ -57,7 +56,11 @@ def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
         key="session_user",
         value=str(user.id),
         httponly=True,
+        samesite="lax",
         max_age=SESSION_EXPIRATION,
+        path="/",
+        secure=False,
+        domain="localhost",  
     )
     
     return user

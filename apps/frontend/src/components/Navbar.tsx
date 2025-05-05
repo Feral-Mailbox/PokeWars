@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../state/auth';
 import { useNavigate } from 'react-router-dom';
+import { secureFetch } from '@/utils/secureFetch';
 import logo from '../assets/react.svg';
 
 const Navbar = () => {
-  const { user, setUser, logout } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [showGamesMenu, setShowGamesMenu] = useState(false);
@@ -12,6 +13,15 @@ const Navbar = () => {
   const gamesRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  type User = {
+    id: number;
+    username: string;
+    email: string;
+    avatar: string;
+    elo: number;
+    currency: number;
+  };
 
   const [form, setForm] = useState({
     username: '',
@@ -23,10 +33,10 @@ const Navbar = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/me', { credentials: 'include' });
-        if (res.ok) {
+        const res = await secureFetch<User>('/api/me');
+        if (res?.ok) {
           const data = await res.json();
-          setUser(data.username);
+          setUser(data);
         }
       } catch (err) {
         console.error('Session check failed', err);
@@ -61,16 +71,15 @@ const Navbar = () => {
       ? { username: form.username, password: form.password, email: form.email }
       : { username: form.username, password: form.password };
 
-    const res = await fetch(endpoint, {
+    const res = await secureFetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify(payload),
     });
 
-    if (res.ok) {
+    if (res?.ok) {
       const data = await res.json();
-      setUser(data.username);
+      setUser(data);
       setShowDropdown(false);
     } else {
       alert(isRegister ? 'Registration failed' : 'Login failed');
@@ -78,9 +87,8 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/logout', {
+    await secureFetch('/api/logout', {
       method: 'POST',
-      credentials: 'include',
     });
     logout();
   };
@@ -100,7 +108,7 @@ const Navbar = () => {
       </button>
 
       <div className="flex flex-row items-center gap-4 relative">
-        {/* Games dropdown with hover + click support */}
+        {/* Games dropdown */}
         <div
           ref={gamesRef}
           className="relative"
@@ -169,7 +177,7 @@ const Navbar = () => {
         {/* Auth controls */}
         {user ? (
           <>
-            <span className="text-sm text-gray-300">Welcome, {user}</span>
+            <span className="text-sm text-gray-300">Welcome, {user.username}</span>
             <button
               onClick={handleLogout}
               className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
