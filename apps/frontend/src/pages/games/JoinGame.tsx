@@ -79,7 +79,7 @@ export default function JoinGame() {
       <ul className="space-y-4">
         {filteredGames.map((game: any) => (
           <li key={game.id} className="border p-4 rounded shadow">
-            <p className="text-lg font-bold mb-2">{game.game_name}</p>
+            <p className="text-lg font-bold mb-2">{game.game_name || "Untitled Game"}</p>
             <p>
               <strong>Host:</strong> {game.host?.username ?? "Unknown"}
             </p>
