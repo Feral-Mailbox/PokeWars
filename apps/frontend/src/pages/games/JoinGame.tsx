@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 
 export default function JoinGame() {
@@ -6,6 +7,8 @@ export default function JoinGame() {
   const [games, setGames] = useState([]);
   const [playerFilter, setPlayerFilter] = useState("All");
   const [mapFilter, setMapFilter] = useState("All");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchGames = async () => {
@@ -47,6 +50,21 @@ export default function JoinGame() {
   const isUserInGame = (game: any) => {
     if (!userId || !Array.isArray(game.players)) return false;
     return game.players.some((p: any) => p.id === userId);
+  };
+
+  const handleJoinGame = async (gameId: number) => {
+    try {
+      const res = await secureFetch(`/api/games/join/${gameId}`, { method: "POST" });
+      if (res.ok) {
+        const updatedGame = await res.json();
+        navigate(`/games/${updatedGame.link}`);
+      } else {
+        alert("Failed to join game");
+      }
+    } catch (err) {
+      console.error("Error joining game:", err);
+      alert("An error occurred while trying to join the game.");
+    }
   };  
 
   return (
@@ -92,8 +110,15 @@ export default function JoinGame() {
             <button
               className="mt-2 px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
               disabled={isUserInGame(game)}
+              onClick={() => handleJoinGame(game.id)}
             >
               Join
+            </button>
+            <button
+              className="px-4 py-2 bg-gray-500 text-white rounded"
+              onClick={() => navigate(`/games/${game.link}`)}
+            >
+              Spectate
             </button>
           </li>
         ))}

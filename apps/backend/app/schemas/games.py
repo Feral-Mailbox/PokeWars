@@ -34,6 +34,7 @@ class GameResponse(BaseModel):
     winner_id: Optional[int]
     turns: Optional[int]
     replay_log: Optional[Any]
+    link: str
     timestamp: datetime
 
     class Config:

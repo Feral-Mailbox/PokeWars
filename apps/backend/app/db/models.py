@@ -80,6 +80,7 @@ class Game(Base):
     winner_id = Column(Integer, ForeignKey("users.id"))
     turns = Column(Integer)
     replay_log = Column(JSON)
+    link = Column(String, unique=True, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     
     host = relationship("User", back_populates="hosted_matches", foreign_keys=[host_id])

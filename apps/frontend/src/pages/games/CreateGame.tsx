@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 
 const CreateGame = () => {
@@ -7,6 +8,8 @@ const CreateGame = () => {
   const [isPrivate, setIsPrivate] = useState(false);
   const [gameName, setGameName] = useState("");
   const [userId, setUserId] = useState<number | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -42,10 +45,11 @@ const CreateGame = () => {
     console.log(res)
 
     if (res?.ok) {
-      alert("Game created!");
+      const game = await res.json();
+      navigate(`/games/${game.link}`);
     } else {
       console.error("Failed to create game");
-    }
+    }    
   };
 
   return (

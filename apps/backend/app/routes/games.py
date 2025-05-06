@@ -1,3 +1,5 @@
+import hashlib
+from http.client import HTTPException
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List
@@ -23,6 +25,35 @@ def get_open_games(
     )
     return games
 
+@router.get("/in_progress", response_model=List[GameResponse])
+def get_in_progress_games(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    games = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.status == GameStatus.in_progress, Game.is_private == False)
+        .limit(10)
+        .all()
+    )
+    return games
+
+
+@router.get("/completed", response_model=List[GameResponse])
+def get_completed_games(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    games = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.status == GameStatus.completed, Game.is_private == False)
+        .limit(10)
+        .all()
+    )
+    return games
+
 @router.post("/create", response_model=GameResponse)
 def create_game(
     data: GameCreateRequest,
@@ -35,10 +66,60 @@ def create_game(
         map_name=data.map_name,
         max_players=data.max_players,
         is_private=data.is_private,
-        status="open"
+        status="open",
+        link="temp"
     )
     new_game.players.append(user)
     db.add(new_game)
+    db.flush()
+    
+    hash_value = hashlib.sha256(str(new_game.id).encode()).hexdigest()
+    new_game.link = hash_value
+    
     db.commit()
     db.refresh(new_game)
     return new_game
+
+@router.post("/join/{game_id}", response_model=GameResponse)
+def join_game(
+    game_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    game = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.id == game_id)
+        .first()
+    )
+
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if user in game.players:
+        raise HTTPException(status_code=400, detail="User already in game")
+
+    if game.status != GameStatus.open:
+        raise HTTPException(status_code=400, detail="Game not open")
+
+    game.players.append(user)
+
+    if len(game.players) >= game.max_players:
+        game.status = GameStatus.in_progress
+
+    db.commit()
+    db.refresh(game)
+    return game
+
+
+@router.get("/{link}", response_model=GameResponse)
+def get_game_by_link(link: str, db: Session = Depends(get_db)):
+    game = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.link == link)
+        .first()
+    )
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return game
