@@ -52,6 +52,7 @@ class User(Base):
     
     hosted_matches = relationship("Game", back_populates="host", foreign_keys="Game.host_id")
     games = relationship("Game", secondary=game_players_association, back_populates="players")
+    maps = relationship("Map", back_populates="creator")
 
 # ======================
 # FRIENDS
@@ -74,6 +75,7 @@ class Game(Base):
     status = Column(Enum(GameStatus), default=GameStatus.open, nullable=False)
     is_private = Column(Boolean, default=True)
     game_name = Column(String, nullable=False)
+    map_id = Column(Integer, ForeignKey("maps.id"), nullable=False)
     map_name = Column(String, nullable=False)
     max_players = Column(Integer, default=2)
     host_id = Column(Integer, ForeignKey("users.id"))
@@ -85,6 +87,28 @@ class Game(Base):
     
     host = relationship("User", back_populates="hosted_matches", foreign_keys=[host_id])
     players = relationship("User", secondary=game_players_association, back_populates="games")
+    map = relationship("Map", back_populates="games")
+
+# ======================
+# MAPS
+# ======================
+class Map(Base):
+    __tablename__ = "maps"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_official = Column(Boolean, default=False, nullable=False)
+    width = Column(Integer, nullable=False)
+    height = Column(Integer, nullable=False)
+    tileset_name = Column(String, nullable=False)
+    tile_data = Column(JSON, nullable=False)
+    preview_image = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    creator = relationship("User", back_populates="maps")
+    games = relationship("Game", back_populates="map")
 
 # ======================
 # UNITS

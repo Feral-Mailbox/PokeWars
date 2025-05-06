@@ -1,3 +1,4 @@
+from app.schemas.maps import MapDetail
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional, Any
@@ -27,6 +28,7 @@ class GameResponse(BaseModel):
     is_private: bool
     game_name: str
     map_name: str
+    map: MapDetail
     max_players: int
     host_id: int
     host: HostInfo

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 
 const CreateGame = () => {
-  const [mapName, setMapName] = useState("Route 224");
+  const [availableMaps, setAvailableMaps] = useState<{ id: number; name: string; width: number; height: number; }[]>([]);
+  const [mapName, setMapName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [isPrivate, setIsPrivate] = useState(false);
   const [gameName, setGameName] = useState("");
@@ -22,6 +23,21 @@ const CreateGame = () => {
     };
     fetchMe();
   }, []);
+
+  useEffect(() => {
+    const fetchMaps = async () => {
+      try {
+        const res = await secureFetch("/api/maps/official");
+        const data = await res.json();
+        setAvailableMaps(data);
+        if (data.length > 0) setMapName(data[0].name);
+      } catch (err) {
+        console.error("Failed to fetch maps", err);
+      }
+    };
+    fetchMaps();
+  }, []);
+  
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,8 +111,11 @@ const CreateGame = () => {
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
           >
             <option value="" disabled>-- Select a Map --</option>
-            <option value="Route 224">Route 224</option>
-            {/* Add more tilemaps when needed */}
+            {availableMaps.map((map) => (
+              <option key={map.id} value={map.name}>
+                {map.name} ({map.width}×{map.height})
+              </option>
+            ))}
           </select>
         </div>
 

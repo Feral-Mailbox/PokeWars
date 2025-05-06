@@ -1,11 +1,10 @@
 import hashlib
-from http.client import HTTPException
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
 
-from app.db.models import Game, User, GameStatus
+from app.db.models import Game, User, Map, GameStatus
 from app.schemas.games import GameResponse, GameCreateRequest
 from app.dependencies import get_db, get_current_user
 
@@ -60,9 +59,14 @@ def create_game(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    selected_map = db.query(Map).filter(Map.name == data.map_name).first()
+    if not selected_map:
+        raise HTTPException(status_code=404, detail="Selected map not found")
+    
     new_game = Game(
         host_id=user.id,
         game_name=data.game_name,
+        map_id=selected_map.id,
         map_name=data.map_name,
         max_players=data.max_players,
         is_private=data.is_private,
@@ -88,7 +92,7 @@ def join_game(
 ):
     game = (
         db.query(Game)
-        .options(joinedload(Game.players), joinedload(Game.host))
+        .options(joinedload(Game.map), joinedload(Game.players), joinedload(Game.host))
         .filter(Game.id == game_id)
         .first()
     )
@@ -116,7 +120,7 @@ def join_game(
 def get_game_by_link(link: str, db: Session = Depends(get_db)):
     game = (
         db.query(Game)
-        .options(joinedload(Game.players), joinedload(Game.host))
+        .options(joinedload(Game.map), joinedload(Game.players), joinedload(Game.host))
         .filter(Game.link == link)
         .first()
     )

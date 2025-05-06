@@ -1,0 +1,25 @@
+{
+    "name": "Grass Box",
+    "is_official": true,
+    "tileset_name": "Route 224.png",
+    "width": 5,
+    "height": 5,
+    "tile_data": {
+        "base": [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        "overlay": [
+            [null, null, null, null, null],
+            [null, null, 85, null, null],
+            [null, null, 93, null, null],
+            [null, null, null, null, null],
+            [null, null, null, null, null]
+        ]
+    },
+    "preview_image": "previews/grass_box.png"
+}
+  
