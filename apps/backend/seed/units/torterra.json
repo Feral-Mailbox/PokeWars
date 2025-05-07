@@ -1,0 +1,22 @@
+{
+  "id": 3,
+  "name": "Torterra",
+  "asset_folder": "torterra",
+  "types": ["Grass", "Ground"],
+  "base_stats": {
+    "hp": 95,
+    "attack": 109,
+    "defense": 105,
+    "sp_attack": 75,
+    "sp_defense": 85,
+    "speed": 56
+  },
+  "move_ids": [],
+  "ability_ids": [],
+  "cost": 1600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Ancient people imagined that beneath the ground dwelt a gigantic Torterra."
+}
+  

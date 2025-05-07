@@ -1,0 +1,22 @@
+{
+    "id": 8,
+    "name": "Brionne",
+    "asset_folder": "brionne",
+    "types": ["Water"],
+    "base_stats": {
+        "hp": 60,
+        "attack": 69,
+        "defense": 69,
+        "sp_attack": 91,
+        "sp_defense": 81,
+        "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": 1600,
+    "evolves_into": [9],
+    "is_legendary": false,
+    "description": "It cares deeply for its companions. When its Trainer is feeling down, it performs a cheery dance to try to help."
+}
+  

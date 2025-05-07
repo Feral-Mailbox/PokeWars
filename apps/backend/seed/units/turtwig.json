@@ -1,0 +1,22 @@
+{
+  "id": 1,
+  "name": "Turtwig",
+  "asset_folder": "turtwig",
+  "types": ["Grass"],
+  "base_stats": {
+    "hp": 55,
+    "attack": 68,
+    "defense": 64,
+    "sp_attack": 45,
+    "sp_defense": 55,
+    "speed": 31
+  },
+  "move_ids": [],
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [1],
+  "is_legendary": false,
+  "description": "It uses its whole body to photosynthesize when exposed to sunlight. Its shell is made from hardened soil."
+}
+  

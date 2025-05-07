@@ -118,9 +118,16 @@ class Unit(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
-    stats = Column(JSON, nullable=False)
-    typing = Column(String)
+    asset_folder = Column(String, nullable=False)
+    types = Column(JSON, nullable=False)
+    base_stats = Column(JSON, nullable=False)
+    move_ids = Column(JSON, nullable=False, default=list)
+    ability_ids = Column(JSON, nullable=False, default=list)
     cost = Column(Integer, default=0)
+    evolution_cost = Column(JSON, nullable=True, default=0)
+    evolves_into = Column(JSON, nullable=True)
+    is_legendary = Column(Boolean, default=False)
+    description = Column(String, nullable=True)
 
 # ======================
 # USER-UNIT RELATION
@@ -132,6 +139,32 @@ class UserUnit(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     unit_id = Column(Integer, ForeignKey("units.id"))
     loadout_info = Column(JSON)
+
+# ======================
+# MOVES
+# ======================
+class Move(Base):
+    __tablename__ = "moves"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    type = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    power = Column(Integer, nullable=True)
+    accuracy = Column(Integer, nullable=True)
+    pp = Column(Integer, nullable=True)
+    description = Column(String, nullable=True)
+
+# ======================
+# ABILITIES
+# ======================
+class Ability(Base):
+    __tablename__ = "abilities"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
+    effect = Column(JSON, nullable=True)
 
 # ======================
 # TOURNAMENT

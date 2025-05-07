@@ -1,0 +1,22 @@
+{
+    "id": 5,
+    "name": "Combusken",
+    "asset_folder": "combusken",
+    "types": ["Fire", "Fighting"],
+    "base_stats": {
+        "hp": 60,
+        "attack": 85,
+        "defense": 60,
+        "sp_attack": 85,
+        "sp_defense": 60,
+        "speed": 55
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": 1600,
+    "evolves_into": [6],
+    "is_legendary": false,
+    "description": "It boosts its concentration by emitting harsh cries. Its kicks have outstanding destructive power."
+}
+  

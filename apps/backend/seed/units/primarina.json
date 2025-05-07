@@ -1,0 +1,22 @@
+{
+    "id": 9,
+    "name": "Primarina",
+    "asset_folder": "primarina",
+    "types": ["Water", "Fairy"],
+    "base_stats": {
+        "hp": 80,
+        "attack": 74,
+        "defense": 74,
+        "sp_attack": 126,
+        "sp_defense": 116,
+        "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Also known as a songstress, it is a sight to behold on moonlit nights when it sings in front of the colony it leads."
+}
+  

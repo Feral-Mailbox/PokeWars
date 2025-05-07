@@ -1,0 +1,22 @@
+{
+    "id": 4,
+    "name": "Torchic",
+    "asset_folder": "torchic",
+    "types": ["Fire"],
+    "base_stats": {
+        "hp": 45,
+        "attack": 60,
+        "defense": 40,
+        "sp_attack": 70,
+        "sp_defense": 50,
+        "speed": 45
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 800,
+    "evolves_into": [5],
+    "is_legendary": false,
+    "description": "In its belly, it has a sac filled with burning fire, meaning that Torchic feels as warm as a hot-water bottle if you hug it."
+}
+  
