@@ -3,6 +3,7 @@
 .venv/
 infrastructure/.env.*
 !infrastructure/.env.*.example
+infrastructure/certs/
 
 
 # Node

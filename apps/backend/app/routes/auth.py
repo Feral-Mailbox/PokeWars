@@ -40,7 +40,7 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
         samesite="lax",
         max_age=SESSION_EXPIRATION,
         path="/",
-        secure=False,
+        secure=True,
         domain="localhost", 
     )
 
@@ -59,7 +59,7 @@ def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
         samesite="lax",
         max_age=SESSION_EXPIRATION,
         path="/",
-        secure=False,
+        secure=True,
         domain="localhost",  
     )
     

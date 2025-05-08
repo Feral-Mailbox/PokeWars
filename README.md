@@ -6,6 +6,33 @@ A browser-based multiplayer strategy game inspired by **Advance Wars** and **Pok
 
 ## 🚀 Quick Start (First Time Setup)
 
+### 1. Generate Local Certificates
+
+Use [`mkcert`](https://github.com/FiloSottile/mkcert):
+
+```bash
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+mv localhost+2.pem fullchain.pem
+mv localhost+2-key.pem privkey.pem
+mkdir -p infrastructure/certs
+mv fullchain.pem privkey.pem infrastructure/certs/
+```
+
+### 2. Create Environment Files
+
+All sensitive config is handled through `.env` files:
+
+| File                             | Purpose                      |
+|----------------------------------|------------------------------|
+| `.env` (in `/apps/frontend`)	   | Vite + API endpoint config   |
+| `.env` (in `/apps/backend`)      | App-level secrets & DB URI   |
+| `.env.db` (in `/infrastructure`) | Postgres user/pass/db name   |
+
+Utilize the example `.env` files in the listed directories to aid in your setup
+
+### 3. Launch Containers And Update Tables
+
 ```bash
 make first-launch
 ```
@@ -74,20 +101,6 @@ apps/
 
 infrastructure/   ← Docker config + .env files + Compose files
 ```
-
----
-
-## 🧬 Env Configuration
-
-All sensitive config is handled through `.env` files:
-
-| File                             | Purpose                      |
-|----------------------------------|------------------------------|
-| `.env` (in `/apps/frontend`)	   | Vite + API endpoint config   |
-| `.env` (in `/apps/backend`)      | App-level secrets & DB URI   |
-| `.env.db` (in `/infrastructure`) | Postgres user/pass/db name   |
-
-> You don’t need to edit these unless you’re debugging or deploying
 
 ---
 

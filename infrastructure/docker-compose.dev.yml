@@ -29,6 +29,7 @@ services:
     volumes:
       - ../apps/frontend:/app:cached
       - /app/node_modules
+      - ../infrastructure/certs:/app/certs:ro 
     environment:
       - CHOKIDAR_USEPOLLING=true
     command: ["npm", "run", "dev"]
