@@ -21,27 +21,13 @@ def get_open_games(
         db.query(Game)
         .options(joinedload(Game.players), joinedload(Game.host))
         .filter(Game.status == GameStatus.open, Game.is_private == False)
-        .limit(10)
-        .all()
-    )
-    return games
-
-@router.get("/in_progress", response_model=List[GameResponse])
-def get_in_progress_games(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
-    games = (
-        db.query(Game)
-        .options(joinedload(Game.players), joinedload(Game.host))
-        .filter(Game.status == GameStatus.in_progress, Game.is_private == False)
-        .limit(10)
+        .order_by(Game.timestamp.desc())
         .all()
     )
     return games
 
 @router.get("/closed", response_model=List[GameResponse])
-def get_closed_games(
+def get_open_games(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
@@ -49,14 +35,27 @@ def get_closed_games(
         db.query(Game)
         .options(joinedload(Game.players), joinedload(Game.host))
         .filter(Game.status == GameStatus.closed, Game.is_private == False)
-        .limit(10)
+        .order_by(Game.timestamp.desc())
         .all()
     )
     return games
 
+@router.get("/in_progress", response_model=List[GameResponse])
+def get_open_games(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    games = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.status == GameStatus.in_progress, Game.is_private == False)
+        .order_by(Game.timestamp.desc())
+        .all()
+    )
+    return games
 
 @router.get("/completed", response_model=List[GameResponse])
-def get_completed_games(
+def get_open_games(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
@@ -64,7 +63,7 @@ def get_completed_games(
         db.query(Game)
         .options(joinedload(Game.players), joinedload(Game.host))
         .filter(Game.status == GameStatus.completed, Game.is_private == False)
-        .limit(10)
+        .order_by(Game.timestamp.desc())
         .all()
     )
     return games

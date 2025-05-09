@@ -7,19 +7,22 @@ export default function CompletedGames() {
   const [games, setGames] = useState([]);
   const [playerFilter, setPlayerFilter] = useState("All");
   const [mapFilter, setMapFilter] = useState("All");
+  const [page, setPage] = useState(1);
 
   const navigate = useNavigate();
 
+  const fetchGames = async () => {
+    try {
+      const res = await secureFetch(`/api/games/completed`);
+      const data = await res.json();
+      setGames(data);
+      setPage(1);
+    } catch (err) {
+      console.error("Failed to fetch games:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const res = await secureFetch("/api/games/completed");
-        const data = await res.json();
-        setGames(data);
-      } catch (err) {
-        console.error("Failed to fetch games:", err);
-      }
-    };
     fetchGames();
   }, []);
 
@@ -44,8 +47,10 @@ export default function CompletedGames() {
       mapFilter === "All" || game.map_name.toLowerCase() === mapFilter.toLowerCase();
     return playerMatch && mapMatch;
   })
-  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-  .slice(0, 10);
+  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  const totalPages = Math.ceil(filteredGames.length / 10);
+  const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
 
   return (
     <div>
@@ -72,8 +77,23 @@ export default function CompletedGames() {
           onChange={(e) => setMapFilter(e.target.value)}
           className="border p-2 rounded"
         />
+        <button
+          onClick={() => fetchGames(page)}
+          title="Reload games"
+          className="flex items-center gap-1 border p-2 rounded bg-gray-700 hover:bg-gray-600 text-white"
+        >
+          Reload
+        </button>
       </div>
-
+      {displayedGames.length > 0 && (
+        <div className="flex justify-center items-center gap-4 mb-4">
+          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
+          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
+          <span>Page {page}</span>
+          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
+          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
+        </div>
+      )}
       <ul className="space-y-4">
         {filteredGames.map((game: any) => (
           <li key={game.id} className="border p-4 rounded shadow">
@@ -96,6 +116,15 @@ export default function CompletedGames() {
           </li>
         ))}
       </ul>
+      {displayedGames.length > 0 && (
+        <div className="flex justify-center items-center gap-4 mb-4">
+          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
+          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
+          <span>Page {page}</span>
+          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
+          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
+        </div>
+      )}
     </div>
   );
 }
