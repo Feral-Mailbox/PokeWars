@@ -1,14 +1,16 @@
-import hashlib
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
+import hashlib
+import redis
 
 from app.db.models import Game, User, Map, GameStatus
 from app.schemas.games import GameResponse, GameCreateRequest
 from app.dependencies import get_db, get_current_user
 
 router = APIRouter(prefix="/games", tags=["games"])
+redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
 
 @router.get("/open", response_model=List[GameResponse])
 def get_open_games(
@@ -33,6 +35,20 @@ def get_in_progress_games(
         db.query(Game)
         .options(joinedload(Game.players), joinedload(Game.host))
         .filter(Game.status == GameStatus.in_progress, Game.is_private == False)
+        .limit(10)
+        .all()
+    )
+    return games
+
+@router.get("/closed", response_model=List[GameResponse])
+def get_closed_games(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    games = (
+        db.query(Game)
+        .options(joinedload(Game.players), joinedload(Game.host))
+        .filter(Game.status == GameStatus.closed, Game.is_private == False)
         .limit(10)
         .all()
     )
@@ -107,14 +123,30 @@ def join_game(
         raise HTTPException(status_code=400, detail="Game not open")
 
     game.players.append(user)
-
-    if len(game.players) >= game.max_players:
-        game.status = GameStatus.in_progress
-
     db.commit()
+    
+    if len(game.players) >= game.max_players:
+        game.status = GameStatus.closed
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "player_joined")
+    
     db.refresh(game)
     return game
 
+@router.post("/start/{game_id}")
+def start_game(game_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if user.id != game.host_id:
+        raise HTTPException(status_code=403, detail="Only the host can start the game")
+    if len(game.players) < game.max_players:
+        raise HTTPException(status_code=400, detail="Game not full")
+
+    game.status = GameStatus.in_progress
+    db.commit()
+    redis_client.publish(f"game_updates:{game.link}", "game_started")
+    return {"detail": "Game started"}
 
 @router.get("/{link}", response_model=GameResponse)
 def get_game_by_link(link: str, db: Session = Depends(get_db)):
