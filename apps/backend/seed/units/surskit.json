@@ -1,0 +1,24 @@
+{
+    "id": 149,
+    "species_id": 134,
+    "form_id": null,
+    "name": "Surskit",
+    "species": "Pond Skater Pokémon",
+    "asset_folder": "134_surskit",
+    "types": ["Bug", "Water"],
+    "base_stats": {
+      "hp": 40,
+      "attack": 30,
+      "defense": 32,
+      "sp_attack": 50,
+      "sp_defense": 52,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [135],
+    "is_legendary": false,
+    "description": "They usually live on ponds, but after an evening shower, they may appear on puddles in towns."
+}

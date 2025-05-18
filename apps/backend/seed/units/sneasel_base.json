@@ -1,0 +1,24 @@
+{
+    "id": 117,
+    "species_id": 103,
+    "form_id": 1,
+    "name": "Sneasel",
+    "species": "Sharp Claw Pokémon",
+    "asset_folder": "103a_sneasel_base",
+    "types": ["Dark", "Ice"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 95,
+      "defense": 55,
+      "sp_attack": 35,
+      "sp_defense": 75,
+      "speed": 115
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 800,
+    "evolves_into": [104],
+    "is_legendary": false,
+    "description": "This is a smart and sneaky Pokémon. A pair may work together to steal eggs by having one lure the parents away."
+}

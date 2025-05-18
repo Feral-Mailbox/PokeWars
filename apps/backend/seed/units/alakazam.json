@@ -1,0 +1,24 @@
+{
+    "id": 23,
+    "species_id": 21,
+    "form_id": null,
+    "name": "Alakazam",
+    "species": "Psi Pokémon",
+    "asset_folder": "021_alakazam",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 50,
+      "defense": 45,
+      "sp_attack": 135,
+      "sp_defense": 95,
+      "speed": 120
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1200,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Its highly developed brain is on par with a supercomputer. It can use all forms of psychic abilities."
+  }

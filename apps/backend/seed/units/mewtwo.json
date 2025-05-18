@@ -1,0 +1,24 @@
+{
+    "id": 161,
+    "species_id": 146,
+    "form_id": null,
+    "name": "Mewtwo",
+    "species": "Genetic Pokemon",
+    "asset_folder": "146_mewtwo",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 106,
+      "attack": 110,
+      "defense": 90,
+      "sp_attack": 154,
+      "sp_defense": 90,
+      "speed": 130
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 2000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": true,
+    "description": "Created from the DNA of Mew, this Pokémon is a dangerous combination of overwhelming power and a savage heart."
+}

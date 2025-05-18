@@ -1,0 +1,24 @@
+{
+    "id": 116,
+    "species_id": 102,
+    "form_id": null,
+    "name": "Cyclizar",
+    "species": "Mount Pokémon",
+    "asset_folder": "102_cyclizar",
+    "types": ["Dragon", "Normal"],
+    "base_stats": {
+      "hp": 70,
+      "attack": 95,
+      "defense": 65,
+      "sp_attack": 85,
+      "sp_defense": 65,
+      "speed": 121
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 500,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It can sprint at over 70 mph while carrying a human. The rider’s body heat warms Cyclizar’s back and lifts the Pokémon’s spirit."
+}

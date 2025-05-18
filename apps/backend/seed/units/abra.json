@@ -1,0 +1,24 @@
+{
+    "id": 21,
+    "species_id": 19,
+    "form_id": null,
+    "name": "Abra",
+    "species": "Psi Pokémon",
+    "asset_folder": "019_abra",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 25,
+      "attack": 20,
+      "defense": 15,
+      "sp_attack": 105,
+      "sp_defense": 55,
+      "speed": 90
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [20],
+    "is_legendary": false,
+    "description": "Abra can teleport in its sleep. Apparently the more deeply Abra sleeps, the farther its teleportations go."
+  }

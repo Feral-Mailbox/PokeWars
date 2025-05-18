@@ -1,0 +1,24 @@
+{
+    "id": 84,
+    "species_id": 74,
+    "form_id": null,
+    "name": "Swablu",
+    "species": "Cotton Bird Pokémon",
+    "asset_folder": "074_swablu",
+    "types": ["Normal", "Flying"],
+    "base_stats": {
+      "hp": 45,
+      "attack": 40,
+      "defense": 60,
+      "sp_attack": 40,
+      "sp_defense": 75,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [75],
+    "is_legendary": false,
+    "description": "It constantly grooms its cotton-like wings. It takes a shower to clean itself if it becomes dirty."
+}

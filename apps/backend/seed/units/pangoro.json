@@ -1,0 +1,24 @@
+{
+    "id": 25,
+    "species_id": 23,
+    "form_id": null,
+    "name": "Pangoro",
+    "species": "Daunting Pokémon",
+    "asset_folder": "023_pangoro",
+    "types": ["Fighting", "Dark"],
+    "base_stats": {
+      "hp": 95,
+      "attack": 124,
+      "defense": 78,
+      "sp_attack": 69,
+      "sp_defense": 71,
+      "speed": 58
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Using its leaf, Pangoro can predict the moves of its opponents. It strikes with punches that can turn a dump truck into scrap with just one hit."
+  }

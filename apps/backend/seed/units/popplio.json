@@ -1,7 +1,10 @@
 {
     "id": 7,
+    "species_id": 7,
+    "form_id": null,
     "name": "Popplio",
-    "asset_folder": "popplio",
+    "species": "Sea Lion Pokémon",
+    "asset_folder": "007_popplio",
     "types": ["Water"],
     "base_stats": {
         "hp": 50,

@@ -1,0 +1,24 @@
+{
+    "id": 112,
+    "species_id": 98,
+    "form_id": null,
+    "name": "Lanturn",
+    "species": "Light Pokémon",
+    "asset_folder": "098_lanturn",
+    "types": ["Water", "Electric"],
+    "base_stats": {
+      "hp": 125,
+      "attack": 58,
+      "defense": 58,
+      "sp_attack": 76,
+      "sp_defense": 76,
+      "speed": 67
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon flashes a bright light that blinds its prey. This creates an opening for it to deliver an electrical attack."
+}

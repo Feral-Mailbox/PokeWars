@@ -1,0 +1,24 @@
+{
+    "id": 162,
+    "species_id": 147,
+    "form_id": null,
+    "name": "Mew",
+    "species": "New Species Pokemon",
+    "asset_folder": "147_mew",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 100,
+      "sp_attack": 100,
+      "sp_defense": 100,
+      "speed": 100
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": true,
+    "description": "It’s very intelligent and can use an incredible variety of moves. Many believe that all other Pokémon are descendants of this one."
+}

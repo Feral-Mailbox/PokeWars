@@ -1,0 +1,24 @@
+{
+    "id": 108,
+    "species_id": 94,
+    "form_id": null,
+    "name": "Flygon",
+    "species": "Mystic Pokémon",
+    "asset_folder": "094_flygon",
+    "types": ["Ground", "Dragon"],
+    "base_stats": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 80,
+      "sp_attack": 80,
+      "sp_defense": 80,
+      "speed": 100
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon hides in the heart of sandstorms it creates and seldom appears where people can see it."
+}

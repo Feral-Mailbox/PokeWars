@@ -1,0 +1,24 @@
+{
+    "id": 122,
+    "species_id": 107,
+    "form_id": null,
+    "name": "Clefairy",
+    "species": "Fairy Pokémon",
+    "asset_folder": "107_clefairy",
+    "types": ["Fairy"],
+    "base_stats": {
+      "hp": 70,
+      "attack": 45,
+      "defense": 48,
+      "sp_attack": 60,
+      "sp_defense": 65,
+      "speed": 35
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 1000,
+    "evolves_into": [108],
+    "is_legendary": false,
+    "description": "It is said that happiness will come to those who see a gathering of Clefairy dancing under a full moon."
+}

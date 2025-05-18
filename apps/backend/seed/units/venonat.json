@@ -1,0 +1,24 @@
+{
+    "id": 75,
+    "species_id": 65,
+    "form_id": null,
+    "name": "Venonat",
+    "species": "Insect Pokémon",
+    "asset_folder": "065_venonat",
+    "types": ["Bug", "Poison"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 55,
+      "defense": 50,
+      "sp_attack": 40,
+      "sp_defense": 55,
+      "speed": 45
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Its eyes act as radar, enabling it to be active in darkness. The eyes can also shoot powerful beams."
+}

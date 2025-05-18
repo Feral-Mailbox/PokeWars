@@ -1,0 +1,24 @@
+{
+    "id": 26,
+    "species_id": 24,
+    "form_id": 1,
+    "name": "Deerling",
+    "species": "Season Pokémon",
+    "asset_folder": "024a_deerling_spring",
+    "types": ["Normal", "Grass"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 50,
+      "sp_attack": 40,
+      "sp_defense": 50,
+      "speed": 75
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [25],
+    "is_legendary": false,
+    "description": "Deerling have different scents depending on the season. In early spring, these Pokémon give off a delicate, sweet, and calming scent."
+  }

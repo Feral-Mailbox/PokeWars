@@ -1,0 +1,24 @@
+{
+    "id": 30,
+    "species_id": 25,
+    "form_id": 1,
+    "name": "Sawsbuck",
+    "species": "Season Pokémon",
+    "asset_folder": "025a_sawsbuck_spring",
+    "types": ["Normal", "Grass"],
+    "base_stats": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 70,
+      "sp_attack": 60,
+      "sp_defense": 70,
+      "speed": 95
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "There are many Sawsbuck enthusiasts. The paler the pink flowers that bloom on its antlers, the more beautiful the Sawsbuck is considered to be."
+}

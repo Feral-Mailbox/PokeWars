@@ -1,0 +1,24 @@
+{
+    "id": 78,
+    "species_id": 68,
+    "form_id": null,
+    "name": "Mienshao",
+    "species": "Martial Arts Pokémon",
+    "asset_folder": "068_mienshao",
+    "types": ["Fighting"],
+    "base_stats": {
+      "hp": 65,
+      "attack": 125,
+      "defense": 60,
+      "sp_attack": 95,
+      "sp_defense": 60,
+      "speed": 105
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Using the long fur on its arms like whips, it launches into combo attacks that, once started, no one can stop."
+}

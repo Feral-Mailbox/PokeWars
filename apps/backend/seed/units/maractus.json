@@ -1,0 +1,24 @@
+{
+    "id": 83,
+    "species_id": 73,
+    "form_id": null,
+    "name": "Maractus",
+    "species": "Cactus Pokémon",
+    "asset_folder": "073_maractus",
+    "types": ["Grass"],
+    "base_stats": {
+      "hp": 75,
+      "attack": 86,
+      "defense": 67,
+      "sp_attack": 106,
+      "sp_defense": 67,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "With noises that could be mistaken for the rattles of maracas, it creates an upbeat rhythm, startling bird Pokémon and making them fly off in a hurry."
+}

@@ -1,7 +1,10 @@
 {
     "id": 5,
+    "species_id": 5,
+    "form_id": null,
     "name": "Combusken",
-    "asset_folder": "combusken",
+    "species": "Young Fowl Pokémon",
+    "asset_folder": "005_combusken",
     "types": ["Fire", "Fighting"],
     "base_stats": {
         "hp": 60,

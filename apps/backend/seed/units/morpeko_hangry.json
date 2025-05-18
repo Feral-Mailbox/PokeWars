@@ -1,0 +1,24 @@
+{
+    "id": 42,
+    "species_id": 33,
+    "form_id": 2,
+    "name": "Morpeko",
+    "species": "Two-Sided Pokémon",
+    "asset_folder": "033b_morpeko_hangry",
+    "types": ["Electric", "Dark"],
+    "base_stats": {
+      "hp": 58,
+      "attack": 95,
+      "defense": 58,
+      "sp_attack": 70,
+      "sp_defense": 58,
+      "speed": 97
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Hunger has disrupted this Pokémon's hormonal balance. The Electric-type energy stored in its cheek sacs has turned into Dark-type energy."
+}

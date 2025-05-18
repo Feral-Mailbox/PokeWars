@@ -1,7 +1,10 @@
 {
     "id": 4,
+    "species_id": 4,
+    "form_id": null,
     "name": "Torchic",
-    "asset_folder": "torchic",
+    "species": "Chick Pokémon",
+    "asset_folder": "004_torchic",
     "types": ["Fire"],
     "base_stats": {
         "hp": 45,

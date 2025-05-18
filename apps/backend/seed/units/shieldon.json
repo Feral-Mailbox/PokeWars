@@ -1,0 +1,24 @@
+{
+    "id": 134,
+    "species_id": 119,
+    "form_id": null,
+    "name": "Shieldon",
+    "species": "Shield Pokémon",
+    "asset_folder": "119_shieldon",
+    "types": ["Rock", "Steel"],
+    "base_stats": {
+      "hp": 30,
+      "attack": 42,
+      "defense": 118,
+      "sp_attack": 42,
+      "sp_defense": 88,
+      "speed": 30
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 800,
+    "evolves_into": [120],
+    "is_legendary": false,
+    "description": "It habitually polishes its face by rubbing it against tree trunks. It is weak to attacks from behind."
+}

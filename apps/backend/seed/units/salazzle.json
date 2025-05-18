@@ -1,0 +1,24 @@
+{
+    "id": 103,
+    "species_id": 89,
+    "form_id": null,
+    "name": "Salazzle",
+    "species": "Toxic Lizard Pokémon",
+    "asset_folder": "089_salazzle",
+    "types": ["Poison", "Fire"],
+    "base_stats": {
+      "hp": 68,
+      "attack": 64,
+      "defense": 60,
+      "sp_attack": 111,
+      "sp_defense": 60,
+      "speed": 117
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Salazzle makes its opponents light-headed with poisonous gas, then captivates them with alluring movements to turn them into loyal servants."
+}

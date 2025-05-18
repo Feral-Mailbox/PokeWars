@@ -1,0 +1,24 @@
+{
+    "id": 49,
+    "species_id": 40,
+    "form_id": null,
+    "name": "Dachsbun",
+    "species": "Dog Pokémon",
+    "asset_folder": "040_dachsbun",
+    "types": ["Fairy"],
+    "base_stats": {
+      "hp": 57,
+      "attack": 80,
+      "defense": 115,
+      "sp_attack": 50,
+      "sp_defense": 80,
+      "speed": 95
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "The surface of this Pokémon's skin hardens when exposed to intense heat, and its body has an appetizing aroma."
+}

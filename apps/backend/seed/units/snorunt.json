@@ -1,0 +1,24 @@
+{
+    "id": 72,
+    "species_id": 62,
+    "form_id": null,
+    "name": "Snorunt",
+    "species": "Snow Hat Pokémon",
+    "asset_folder": "062_snorunt",
+    "types": ["Ice"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 50,
+      "defense": 50,
+      "sp_attack": 50,
+      "sp_defense": 50,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [63, 64],
+    "is_legendary": false,
+    "description": "It is said that a home visited by a Snorunt will prosper. It can withstand cold of −150 degrees Fahrenheit."
+}

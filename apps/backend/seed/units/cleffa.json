@@ -1,0 +1,24 @@
+{
+    "id": 121,
+    "species_id": 106,
+    "form_id": null,
+    "name": "Cleffa",
+    "species": "Star Shape Pokémon",
+    "asset_folder": "106_cleffa",
+    "types": ["Fairy"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 25,
+      "defense": 28,
+      "sp_attack": 45,
+      "sp_defense": 55,
+      "speed": 15
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 100,
+    "evolution_cost": 400,
+    "evolves_into": [107],
+    "is_legendary": false,
+    "description": "Because of its unusual, starlike silhouette, people believe that it came here on a meteor."
+}

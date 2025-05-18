@@ -1,0 +1,24 @@
+{
+    "id": 62,
+    "species_id": 52,
+    "form_id": null,
+    "name": "Flareon",
+    "species": "Flame Pokémon",
+    "asset_folder": "052_flareon",
+    "types": ["Fire"],
+    "base_stats": {
+      "hp": 65,
+      "attack": 130,
+      "defense": 60,
+      "sp_attack": 95,
+      "sp_defense": 110,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Inhaled air is carried to its flame sac, heated, and exhaled as fire that reaches over 3,000 degrees Fahrenheit."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 87,
+    "species_id": 77,
+    "form_id": null,
+    "name": "Pikachu",
+    "species": "Mouse Pokémon",
+    "asset_folder": "077_pikachu",
+    "types": ["Electric"],
+    "base_stats": {
+      "hp": 35,
+      "attack": 55,
+      "defense": 40,
+      "sp_attack": 50,
+      "sp_defense": 50,
+      "speed": 90
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 800,
+    "evolves_into": [78],
+    "is_legendary": false,
+    "description": "When several of these Pokémon gather, their electricity can build and cause lightning storms."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 39,
+    "species_id": 31,
+    "form_id": null,
+    "name": "Grumpig",
+    "species": "Manipulate Pokémon",
+    "asset_folder": "031_grumpig",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 80,
+      "attack": 45,
+      "defense": 65,
+      "sp_attack": 90,
+      "sp_defense": 110,
+      "speed": 80
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds."
+}

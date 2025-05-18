@@ -1,0 +1,24 @@
+{
+    "id": 54,
+    "species_id": 44,
+    "form_id": null,
+    "name": "Houndoom",
+    "species": "Dark Pokémon",
+    "asset_folder": "044_houndoom",
+    "types": ["Dark", "Fire"],
+    "base_stats": {
+      "hp": 75,
+      "attack": 90,
+      "defense": 50,
+      "sp_attack": 110,
+      "sp_defense": 80,
+      "speed": 95
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Upon hearing its eerie howls, other Pokémon get the shivers and head straight back to their nests."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 64,
+    "species_id": 54,
+    "form_id": null,
+    "name": "Umbeon",
+    "species": "Moonlight Pokémon",
+    "asset_folder": "054_umbreon",
+    "types": ["Dark"],
+    "base_stats": {
+      "hp": 95,
+      "attack": 65,
+      "defense": 110,
+      "sp_attack": 60,
+      "sp_defense": 130,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "When exposed to the moon’s aura, the rings on its body glow faintly and it gains a mysterious power."
+}

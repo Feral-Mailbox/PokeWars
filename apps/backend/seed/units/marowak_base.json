@@ -1,0 +1,24 @@
+{
+    "id": 51,
+    "species_id": 42,
+    "form_id": 1,
+    "name": "Marowak",
+    "species": "Bone Keeper Pokémon",
+    "asset_folder": "042a_marowak_base",
+    "types": ["Ground"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 80,
+      "defense": 110,
+      "sp_attack": 50,
+      "sp_defense": 80,
+      "speed": 45
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "When this Pokémon evolved, the skull of its mother fused to it. Marowak's temperament also turned vicious at the same time."
+}

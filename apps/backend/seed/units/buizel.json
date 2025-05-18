@@ -1,0 +1,24 @@
+{
+    "id": 151,
+    "species_id": 136,
+    "form_id": null,
+    "name": "Buizel",
+    "species": "Sea Weasel Pokémon",
+    "asset_folder": "136_buizel",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 65,
+      "defense": 35,
+      "sp_attack": 60,
+      "sp_defense": 30,
+      "speed": 85
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [137],
+    "is_legendary": false,
+    "description": "It spins its two tails like a screw to propel itself through water. The tails also slice clinging seaweed."
+}

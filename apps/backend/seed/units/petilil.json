@@ -1,0 +1,24 @@
+{
+    "id": 46,
+    "species_id": 37,
+    "form_id": null,
+    "name": "Petilil",
+    "species": "Bulb Pokémon",
+    "asset_folder": "037_petilil",
+    "types": ["Grass"],
+    "base_stats": {
+      "hp": 45,
+      "attack": 35,
+      "defense": 50,
+      "sp_attack": 70,
+      "sp_defense": 50,
+      "speed": 30
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [38],
+    "is_legendary": false,
+    "description": "The leaves on its head grow right back even if they fall out. These bitter leaves refresh those who eat them."
+}

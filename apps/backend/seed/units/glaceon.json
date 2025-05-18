@@ -1,0 +1,24 @@
+{
+    "id": 66,
+    "species_id": 56,
+    "form_id": null,
+    "name": "Glaceon",
+    "species": "Fresh Snow Pokémon",
+    "asset_folder": "056_glaceon",
+    "types": ["Ice"],
+    "base_stats": {
+      "hp": 65,
+      "attack": 60,
+      "defense": 110,
+      "sp_attack": 130,
+      "sp_defense": 95,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It can control its body temperature at will. This enables it to freeze the moisture in the atmosphere, creating flurries of diamond dust."
+}

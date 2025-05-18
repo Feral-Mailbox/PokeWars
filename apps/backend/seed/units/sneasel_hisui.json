@@ -1,0 +1,24 @@
+{
+    "id": 118,
+    "species_id": 103,
+    "form_id": 2,
+    "name": "Sneasel",
+    "species": "Sharp Claw Pokémon",
+    "asset_folder": "103b_sneasel_hisui",
+    "types": ["Fighting", "Poison"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 95,
+      "defense": 55,
+      "sp_attack": 35,
+      "sp_defense": 75,
+      "speed": 115
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 800,
+    "evolves_into": [105],
+    "is_legendary": false,
+    "description": "Its sturdy, curved claws are ideal for traversing precipitous cliffs. From the tips of these claws drips a venom that infiltrates the nerves of any prey caught in Sneasel’s grasp."
+}

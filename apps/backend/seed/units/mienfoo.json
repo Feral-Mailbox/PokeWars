@@ -1,0 +1,24 @@
+{
+    "id": 77,
+    "species_id": 67,
+    "form_id": null,
+    "name": "Mienfoo",
+    "species": "Martial Arts Pokémon",
+    "asset_folder": "067_mienfoo",
+    "types": ["Fighting"],
+    "base_stats": {
+      "hp": 45,
+      "attack": 85,
+      "defense": 50,
+      "sp_attack": 55,
+      "sp_defense": 50,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [68],
+    "is_legendary": false,
+    "description": "They seclude themselves in the mountains and devote themselves to training. The form of their kicks and chops differs from pack to pack."
+}

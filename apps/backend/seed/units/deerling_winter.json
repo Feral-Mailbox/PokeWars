@@ -1,0 +1,24 @@
+{
+    "id": 29,
+    "species_id": 24,
+    "form_id": 4,
+    "name": "Deerling",
+    "species": "Season Pokémon",
+    "asset_folder": "024d_deerling_winter",
+    "types": ["Normal", "Grass"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 50,
+      "sp_attack": 40,
+      "sp_defense": 50,
+      "speed": 75
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [25],
+    "is_legendary": false,
+    "description": "Deerling’s scent changes with the seasons, but when the Pokémon is in its Winter Form, it has hardly any scent at all."
+}

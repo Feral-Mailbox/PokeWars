@@ -1,0 +1,24 @@
+{
+    "id": 36,
+    "species_id": 28,
+    "form_id": null,
+    "name": "Magikarp",
+    "species": "Fish Pokémon",
+    "asset_folder": "028_magikarp",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 20,
+      "attack": 10,
+      "defense": 55,
+      "sp_attack": 15,
+      "sp_defense": 20,
+      "speed": 80
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 100,
+    "evolution_cost": 1000,
+    "evolves_into": [29],
+    "is_legendary": false,
+    "description": "An underpowered, pathetic Pokémon. It may jump high on rare occasions but never more than seven feet."
+}

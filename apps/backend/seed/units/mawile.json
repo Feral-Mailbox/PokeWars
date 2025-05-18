@@ -1,0 +1,24 @@
+{
+    "id": 55,
+    "species_id": 45,
+    "form_id": null,
+    "name": "Mawile",
+    "species": "Deceiver Pokémon",
+    "asset_folder": "045_mawile",
+    "types": ["Steel", "Fairy"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 85,
+      "defense": 85,
+      "sp_attack": 55,
+      "sp_defense": 55,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It uses its docile-looking face to lull foes into complacency, then bites with its huge, relentless jaws."
+}

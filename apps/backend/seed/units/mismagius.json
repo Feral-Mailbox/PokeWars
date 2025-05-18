@@ -1,0 +1,24 @@
+{
+    "id": 143,
+    "species_id": 128,
+    "form_id": null,
+    "name": "Mismagius",
+    "species": "Magical Pokémon",
+    "asset_folder": "128_mismagius",
+    "types": ["Ghost"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 60,
+      "defense": 60,
+      "sp_attack": 105,
+      "sp_defense": 105,
+      "speed": 105
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Its cry sounds like an incantation. It is said the cry may rarely be imbued with happiness-giving power."
+}

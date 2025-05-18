@@ -1,0 +1,24 @@
+{
+    "id": 52,
+    "species_id": 42,
+    "form_id": 2,
+    "name": "Marowak",
+    "species": "Bone Keeper Pokémon",
+    "asset_folder": "042b_marowak_alola",
+    "types": ["Fire", "Ghost"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 80,
+      "defense": 110,
+      "sp_attack": 50,
+      "sp_defense": 80,
+      "speed": 45
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon sets the bone it holds on fire and dances through the night as a way to mourn its fallen allies."
+}

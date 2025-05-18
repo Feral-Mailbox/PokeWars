@@ -1,0 +1,24 @@
+{
+    "id": 141,
+    "species_id": 126,
+    "form_id": null,
+    "name": "Ferrothorn",
+    "species": "Thorn Pod Pokémon",
+    "asset_folder": "126_ferrothorn",
+    "types": ["Grass", "Steel"],
+    "base_stats": {
+      "hp": 74,
+      "attack": 94,
+      "defense": 131,
+      "sp_attack": 54,
+      "sp_defense": 116,
+      "speed": 20
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Its spikes are harder than steel. This Pokémon crawls across rock walls by stabbing the spikes on its feelers into the stone."
+}

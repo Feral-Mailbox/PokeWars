@@ -1,0 +1,24 @@
+{
+    "id": 114,
+    "species_id": 100,
+    "form_id": null,
+    "name": "Huntail",
+    "species": "Deep Sea Pokémon",
+    "asset_folder": "100_huntail",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 104,
+      "defense": 105,
+      "sp_attack": 94,
+      "sp_defense": 75,
+      "speed": 52
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It’s not the strongest swimmer. It wags its tail to lure in its prey and then gulps them down as soon as they get close."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 150,
+    "species_id": 135,
+    "form_id": null,
+    "name": "Masquerain",
+    "species": "Eyeball Pokémon",
+    "asset_folder": "135_masquerain",
+    "types": ["Bug", "Water"],
+    "base_stats": {
+      "hp": 70,
+      "attack": 60,
+      "defense": 62,
+      "sp_attack": 100,
+      "sp_defense": 82,
+      "speed": 80
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "The antennae have distinctive patterns that look like eyes. When it rains, they grow heavy, making flight impossible."
+}

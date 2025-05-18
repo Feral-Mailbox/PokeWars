@@ -1,0 +1,24 @@
+{
+    "id": 152,
+    "species_id": 137,
+    "form_id": null,
+    "name": "Floatzel",
+    "species": "Sea Weasel Pokémon",
+    "asset_folder": "137_floatzel",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 85,
+      "attack": 105,
+      "defense": 55,
+      "sp_attack": 85,
+      "sp_defense": 50,
+      "speed": 115
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "With its flotation sac inflated, it can carry people on its back. It deflates the sac before it dives."
+}

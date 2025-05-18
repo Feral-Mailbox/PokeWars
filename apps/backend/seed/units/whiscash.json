@@ -1,0 +1,24 @@
+{
+    "id": 71,
+    "species_id": 61,
+    "form_id": null,
+    "name": "Whiscash",
+    "species": "Whiskers Pokémon",
+    "asset_folder": "061_whiscash",
+    "types": ["Water", "Ground"],
+    "base_stats": {
+      "hp": 110,
+      "attack": 78,
+      "defense": 73,
+      "sp_attack": 76,
+      "sp_defense": 71,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It is extremely protective of its territory. If any foe approaches, it attacks using vicious tremors."
+}

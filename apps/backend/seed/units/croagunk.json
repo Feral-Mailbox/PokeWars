@@ -1,0 +1,24 @@
+{
+    "id": 68,
+    "species_id": 58,
+    "form_id": null,
+    "name": "Croagunk",
+    "species": "Toxic Mouth Pokémon",
+    "asset_folder": "058_croagunk",
+    "types": ["Poison", "Fighting"],
+    "base_stats": {
+      "hp": 48,
+      "attack": 61,
+      "defense": 40,
+      "sp_attack": 61,
+      "sp_defense": 40,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [59],
+    "is_legendary": false,
+    "description": "Inflating its poison sacs, it fills the area with an odd sound and hits flinching opponents with a poison jab."
+}

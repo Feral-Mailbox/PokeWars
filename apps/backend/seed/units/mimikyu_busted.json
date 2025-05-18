@@ -1,0 +1,24 @@
+{
+    "id": 91,
+    "species_id": 79,
+    "form_id": 2,
+    "name": "Mimikyu",
+    "species": "Disguise Pokémon",
+    "asset_folder": "079b_mimikyu_busted",
+    "types": ["Ghost", "Fairy"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 90,
+      "defense": 80,
+      "sp_attack": 50,
+      "sp_defense": 105,
+      "speed": 96
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": null,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It has taken damage and can no longer hold the head of its cloth disguise upright. For as long as it lives, Mimikyu will never forget its attacker."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 93,
+    "species_id": 80,
+    "form_id": 2,
+    "name": "Shellos",
+    "species": "Sea Slug Pokémon",
+    "asset_folder": "080b_shellos_east",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 76,
+      "attack": 48,
+      "defense": 48,
+      "sp_attack": 57,
+      "sp_defense": 62,
+      "speed": 34
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [81],
+    "is_legendary": false,
+    "description": "This Pokémon can often be seen along seashores. It’s capable of spending a limited amount of time on land."
+}

@@ -1,7 +1,10 @@
 {
   "id": 3,
+  "species_id": 3,
+  "form_id": null,
   "name": "Torterra",
-  "asset_folder": "torterra",
+  "species": "Continent Pokémon",
+  "asset_folder": "003_torterra",
   "types": ["Grass", "Ground"],
   "base_stats": {
     "hp": 95,

@@ -1,0 +1,24 @@
+{
+    "id": 148,
+    "species_id": 133,
+    "form_id": null,
+    "name": "Arbok",
+    "species": "Cobra Pokémon",
+    "asset_folder": "133_arbok",
+    "types": ["Poison"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 95,
+      "defense": 69,
+      "sp_attack": 65,
+      "sp_defense": 79,
+      "speed": 80
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "The pattern on its belly is for intimidation. It constricts foes while they are frozen in fear."
+}

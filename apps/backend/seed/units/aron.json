@@ -1,0 +1,24 @@
+{
+    "id": 127,
+    "species_id": 112,
+    "form_id": null,
+    "name": "Aron",
+    "species": "Iron Armor Pokémon",
+    "asset_folder": "112_aron",
+    "types": ["Steel", "Rock"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 70,
+      "defense": 100,
+      "sp_attack": 40,
+      "sp_defense": 40,
+      "speed": 30
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [113],
+    "is_legendary": false,
+    "description": "It eats iron ore—and sometimes railroad tracks—to build up the steel armor that protects its body."
+}

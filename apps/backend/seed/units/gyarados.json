@@ -1,0 +1,24 @@
+{
+    "id": 37,
+    "species_id": 29,
+    "form_id": null,
+    "name": "Gyarados",
+    "species": "Atrocious Pokémon",
+    "asset_folder": "029_gyarados",
+    "types": ["Water", "Flying"],
+    "base_stats": {
+      "hp": 95,
+      "attack": 125,
+      "defense": 79,
+      "sp_attack": 60,
+      "sp_defense": 100,
+      "speed": 81
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Once it appears, it goes on a rampage. It remains enraged until it demolishes everything around it."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 154,
+    "species_id": 139,
+    "form_id": null,
+    "name": "Dragonair",
+    "species": "Dragon Pokémon",
+    "asset_folder": "139_dragonair",
+    "types": ["Dragon"],
+    "base_stats": {
+      "hp": 61,
+      "attack": 84,
+      "defense": 65,
+      "sp_attack": 70,
+      "sp_defense": 70,
+      "speed": 70
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": 1400,
+    "evolves_into": [140],
+    "is_legendary": false,
+    "description": "It is called the divine Pokémon. When its entire body brightens slightly, the weather changes."
+}

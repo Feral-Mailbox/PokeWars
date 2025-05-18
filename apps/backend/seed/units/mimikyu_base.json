@@ -1,0 +1,24 @@
+{
+    "id": 90,
+    "species_id": 79,
+    "form_id": 1,
+    "name": "Mimikyu",
+    "species": "Disguise Pokémon",
+    "asset_folder": "079a_mimikyu_base",
+    "types": ["Ghost", "Fairy"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 90,
+      "defense": 80,
+      "sp_attack": 50,
+      "sp_defense": 105,
+      "speed": 96
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon lives in dark places untouched by sunlight. When it appears before humans, it hides itself under a cloth that resembles a Pikachu."
+}

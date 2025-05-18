@@ -1,0 +1,24 @@
+{
+    "id": 119,
+    "species_id": 104,
+    "form_id": null,
+    "name": "Weavile",
+    "species": "Sharp Claw Pokémon",
+    "asset_folder": "104_weavile",
+    "types": ["Dark", "Ice"],
+    "base_stats": {
+      "hp": 70,
+      "attack": 120,
+      "defense": 65,
+      "sp_attack": 45,
+      "sp_defense": 85,
+      "speed": 125
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Evolution made it even more devious. It communicates by clawing signs in boulders."
+}

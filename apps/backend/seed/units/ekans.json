@@ -1,0 +1,24 @@
+{
+    "id": 147,
+    "species_id": 132,
+    "form_id": null,
+    "name": "Ekans",
+    "species": "Snake Pokémon",
+    "asset_folder": "132_ekans",
+    "types": ["Poison"],
+    "base_stats": {
+      "hp": 35,
+      "attack": 60,
+      "defense": 44,
+      "sp_attack": 40,
+      "sp_defense": 54,
+      "speed": 55
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [133],
+    "is_legendary": false,
+    "description": "By dislocating its jaw, it can swallow prey larger than itself. After a meal, it curls up and rests."
+}

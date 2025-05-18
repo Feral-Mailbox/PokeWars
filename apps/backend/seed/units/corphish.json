@@ -1,0 +1,24 @@
+{
+    "id": 138,
+    "species_id": 123,
+    "form_id": null,
+    "name": "Corphish",
+    "species": "Ruffian Pokémon",
+    "asset_folder": "123_corphish",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 43,
+      "attack": 80,
+      "defense": 65,
+      "sp_attack": 50,
+      "sp_defense": 35,
+      "speed": 35
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [124],
+    "is_legendary": false,
+    "description": "It was originally a Pokémon from afar that escaped to the wild. It can adapt to the dirtiest river."
+}

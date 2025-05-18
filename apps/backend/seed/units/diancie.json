@@ -1,0 +1,24 @@
+{
+    "id": 164,
+    "species_id": 149,
+    "form_id": null,
+    "name": "Diancie",
+    "species": "Jewel Pokemon",
+    "asset_folder": "148_marshadow",
+    "types": ["Rock", "Fairy"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 100,
+      "defense": 150,
+      "sp_attack": 100,
+      "sp_defense": 150,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": true,
+    "description": "It can instantly create many diamonds by compressing the carbon in the air between its hands."
+}

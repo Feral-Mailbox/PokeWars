@@ -1,0 +1,24 @@
+{
+    "id": 56,
+    "species_id": 46,
+    "form_id": null,
+    "name": "Bounsweet",
+    "species": "Fruit Pokémon",
+    "asset_folder": "046_bounsweet",
+    "types": ["Grass"],
+    "base_stats": {
+      "hp": 42,
+      "attack": 30,
+      "defense": 38,
+      "sp_attack": 30,
+      "sp_defense": 38,
+      "speed": 32
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 100,
+    "evolution_cost": 400,
+    "evolves_into": [47],
+    "is_legendary": false,
+    "description": "Its sweat is sweet, like syrup made from boiled-down fruit. Because of this, Bounsweet was highly valued in the past, when sweeteners were scarce."
+}

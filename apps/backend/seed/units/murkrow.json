@@ -1,0 +1,24 @@
+{
+    "id": 145,
+    "species_id": 130,
+    "form_id": null,
+    "name": "Murkrow",
+    "species": "Darkness Pokémon",
+    "asset_folder": "130_murkrow",
+    "types": ["Dark", "Flying"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 85,
+      "defense": 42,
+      "sp_attack": 85,
+      "sp_defense": 42,
+      "speed": 91
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 400,
+    "evolution_cost": 800,
+    "evolves_into": [131],
+    "is_legendary": false,
+    "description": "Feared and loathed by many, it is believed to bring misfortune to all those who see it at night."
+}

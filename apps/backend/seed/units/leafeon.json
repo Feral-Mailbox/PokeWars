@@ -1,0 +1,24 @@
+{
+    "id": 65,
+    "species_id": 55,
+    "form_id": null,
+    "name": "Leafeon",
+    "species": "Verdant Pokémon",
+    "asset_folder": "055_leafeon",
+    "types": ["Grass"],
+    "base_stats": {
+      "hp": 65,
+      "attack": 110,
+      "defense": 130,
+      "sp_attack": 60,
+      "sp_defense": 65,
+      "speed": 95
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "When you see Leafeon asleep in a patch of sunshine, you’ll know it is using photosynthesis to produce clean air."
+}

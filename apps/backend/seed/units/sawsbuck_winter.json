@@ -1,0 +1,24 @@
+{
+    "id": 33,
+    "species_id": 25,
+    "form_id": 4,
+    "name": "Sawsbuck",
+    "species": "Season Pokémon",
+    "asset_folder": "025d_sawsbuck_winter",
+    "types": ["Normal", "Grass"],
+    "base_stats": {
+      "hp": 80,
+      "attack": 100,
+      "defense": 70,
+      "sp_attack": 60,
+      "sp_defense": 70,
+      "speed": 95
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Though there are many enthusiasts for Sawsbuck as a species, this seasonal form in particular is not very popular. "
+}

@@ -1,0 +1,24 @@
+{
+    "id": 159,
+    "species_id": 144,
+    "form_id": null,
+    "name": "Lugia",
+    "species": "Diving Pokemon",
+    "asset_folder": "144_lugia",
+    "types": ["Psychic", "Flying"],
+    "base_stats": {
+      "hp": 106,
+      "attack": 90,
+      "defense": 130,
+      "sp_attack": 90,
+      "sp_defense": 154,
+      "speed": 110
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 2000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": true,
+    "description": "It sleeps in a deep-sea trench. If it flaps its wings, it is said to cause a 40-day storm."
+}

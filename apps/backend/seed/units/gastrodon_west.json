@@ -1,0 +1,24 @@
+{
+    "id": 94,
+    "species_id": 81,
+    "form_id": 1,
+    "name": "Gastrodon",
+    "species": "Sea Slug Pokémon",
+    "asset_folder": "081a_gastrodon_west",
+    "types": ["Water", "Ground"],
+    "base_stats": {
+      "hp": 111,
+      "attack": 83,
+      "defense": 68,
+      "sp_attack": 92,
+      "sp_defense": 82,
+      "speed": 39
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It appears on beaches where the waters are shallow. Once it catches prey, it will slowly melt them with its mucus before slurping them up."
+}

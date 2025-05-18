@@ -1,0 +1,24 @@
+{
+    "id": 98,
+    "species_id": 84,
+    "form_id": null,
+    "name": "Reuniclus",
+    "species": "Multiplying Pokémon",
+    "asset_folder": "084_reuniclus",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 110,
+      "attack": 65,
+      "defense": 75,
+      "sp_attack": 125,
+      "sp_defense": 85,
+      "speed": 30
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "While it could use its psychic abilities in battle, this Pokémon prefers to swing its powerful arms around to beat opponents into submission."
+}

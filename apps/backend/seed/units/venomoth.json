@@ -1,0 +1,24 @@
+{
+    "id": 76,
+    "species_id": 66,
+    "form_id": null,
+    "name": "Venomoth",
+    "species": "Poison Moth Pokémon",
+    "asset_folder": "066_venomoth",
+    "types": ["Bug", "Poison"],
+    "base_stats": {
+      "hp": 70,
+      "attack": 65,
+      "defense": 60,
+      "sp_attack": 90,
+      "sp_defense": 75,
+      "speed": 90
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust."
+}

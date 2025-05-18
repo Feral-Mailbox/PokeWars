@@ -1,0 +1,24 @@
+{
+    "id": 125,
+    "species_id": 110,
+    "form_id": null,
+    "name": "Krokorok",
+    "species": "Desert Croc Pokémon",
+    "asset_folder": "110_krokorok",
+    "types": ["Ground", "Dark"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 82,
+      "defense": 45,
+      "sp_attack": 45,
+      "sp_defense": 45,
+      "speed": 74
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": 1000,
+    "evolves_into": [111],
+    "is_legendary": false,
+    "description": "Thanks to the special membrane covering its eyes, it can see its surroundings clearly, even in the middle of the night."
+}

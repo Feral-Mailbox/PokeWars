@@ -1,0 +1,24 @@
+{
+    "id": 0,
+    "species_id": 0,
+    "form_id": null,
+    "name": "Victini",
+    "species": "Victory Pokemon",
+    "asset_folder": "0_victini",
+    "types": ["Psychic", "Fire"],
+    "base_stats": {
+      "hp": 100,
+      "attack": 100,
+      "defense": 100,
+      "sp_attack": 100,
+      "sp_defense": 100,
+      "speed": 100
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": true,
+    "description": "When it shares the infinite energy it creates, that being’s entire body will be overflowing with power."
+}

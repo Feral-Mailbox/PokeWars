@@ -1,0 +1,24 @@
+{
+    "id": 69,
+    "species_id": 59,
+    "form_id": null,
+    "name": "Toxicroak",
+    "species": "Toxic Mouth Pokémon",
+    "asset_folder": "059_toxicroak",
+    "types": ["Poison", "Fighting"],
+    "base_stats": {
+      "hp": 83,
+      "attack": 106,
+      "defense": 65,
+      "sp_attack": 86,
+      "sp_defense": 65,
+      "speed": 85
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Swaying and dodging the attacks of its foes, it weaves its flexible body in close, then lunges out with its poisonous claws."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 19,
+    "species_id": 17,
+    "form_id": 3,
+    "name": "Lycanroc",
+    "species": "Wolf Pokémon",
+    "asset_folder": "017c_lycanroc_dusk",
+    "types": ["Rock"],
+    "base_stats": {
+      "hp": 75,
+      "attack": 117,
+      "defense": 65,
+      "sp_attack": 55,
+      "sp_defense": 65,
+      "speed": 110
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner."
+  }

@@ -1,0 +1,24 @@
+{
+    "id": 110,
+    "species_id": 96,
+    "form_id": null,
+    "name": "Golurk",
+    "species": "Automaton Pokémon",
+    "asset_folder": "096_golurk",
+    "types": ["Ground", "Ghost"],
+    "base_stats": {
+      "hp": 99,
+      "attack": 124,
+      "defense": 80,
+      "sp_attack": 55,
+      "sp_defense": 80,
+      "speed": 55
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "Artillery platforms built into the walls of ancient castles served as perches from which Golurk could fire energy beams."
+}

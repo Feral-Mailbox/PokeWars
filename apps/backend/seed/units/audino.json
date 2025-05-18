@@ -1,0 +1,24 @@
+{
+    "id": 144,
+    "species_id": 129,
+    "form_id": null,
+    "name": "Audino",
+    "species": "Hearing Pokémon",
+    "asset_folder": "129_audino",
+    "types": ["Normal"],
+    "base_stats": {
+      "hp": 103,
+      "attack": 60,
+      "defense": 86,
+      "sp_attack": 60,
+      "sp_defense": 86,
+      "speed": 50
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon has a kind heart. By touching with its feelers, Audino can gauge other creatures’ feelings and physical conditions."
+}

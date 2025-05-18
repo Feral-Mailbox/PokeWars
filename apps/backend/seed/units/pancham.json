@@ -1,0 +1,24 @@
+{
+    "id": 24,
+    "species_id": 22,
+    "form_id": null,
+    "name": "Pancham",
+    "species": "Playful Pokémon",
+    "asset_folder": "022_pancham",
+    "types": ["Fighting"],
+    "base_stats": {
+      "hp": 67,
+      "attack": 82,
+      "defense": 62,
+      "sp_attack": 46,
+      "sp_defense": 48,
+      "speed": 43
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 800,
+    "evolves_into": [23],
+    "is_legendary": false,
+    "description": "It's desperate to intimidate its opponents. Be nice and pretend to be scared if you catch it glaring at you intensely."
+  }

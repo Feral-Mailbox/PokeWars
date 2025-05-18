@@ -1,0 +1,24 @@
+{
+    "id": 18,
+    "species_id": 17,
+    "form_id": 2,
+    "name": "Lycanroc",
+    "species": "Wolf Pokémon",
+    "asset_folder": "017b_lycanroc_midnight",
+    "types": ["Rock"],
+    "base_stats": {
+      "hp": 85,
+      "attack": 115,
+      "defense": 75,
+      "sp_attack": 55,
+      "sp_defense": 75,
+      "speed": 82
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon uses its rocky mane to slash any who approach. It will even disobey its Trainer if it dislikes the orders it was given."
+  }

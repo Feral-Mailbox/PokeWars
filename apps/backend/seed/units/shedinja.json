@@ -1,0 +1,24 @@
+{
+    "id": 101,
+    "species_id": 87,
+    "form_id": null,
+    "name": "Shedinja",
+    "species": "Shed Pokémon",
+    "asset_folder": "087_shedinja",
+    "types": ["Bug", "Ghost"],
+    "base_stats": {
+      "hp": 1,
+      "attack": 90,
+      "defense": 45,
+      "sp_attack": 30,
+      "sp_defense": 30,
+      "speed": 40
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It is a discarded bug shell that came to life. Peering into the crack on its back is said to steal one’s spirit."
+}

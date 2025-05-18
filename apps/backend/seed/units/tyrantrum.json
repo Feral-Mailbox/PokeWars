@@ -1,0 +1,24 @@
+{
+    "id": 137,
+    "species_id": 122,
+    "form_id": null,
+    "name": "Tyrantrum",
+    "species": "Despot Pokémon",
+    "asset_folder": "122_tyrantrum",
+    "types": ["Rock", "Dragon"],
+    "base_stats": {
+      "hp": 82,
+      "attack": 121,
+      "defense": 119,
+      "sp_attack": 69,
+      "sp_defense": 59,
+      "speed": 71
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "A single bite of Tyrantrum’s massive jaws will demolish a car. This Pokémon was the king of the ancient world."
+}

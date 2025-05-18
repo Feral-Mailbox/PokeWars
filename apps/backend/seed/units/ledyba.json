@@ -1,0 +1,25 @@
+{
+    "id": 12,
+    "species_id": 12,
+    "form_id": null,
+    "name": "Ledyba",
+    "species": "Five Star Pokémon",
+    "asset_folder": "012_ledyba",
+    "types": ["Bug", "Flying"],
+    "base_stats": {
+      "hp": 40,
+      "attack": 20,
+      "defense": 30,
+      "sp_attack": 40,
+      "sp_defense": 80,
+      "speed": 55
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 100,
+    "evolution_cost": 400,
+    "evolves_into": [13],
+    "is_legendary": false,
+    "description": "They communicate with one another using bodily fluids that give off odors. When they're angry, their odor smells sour."
+  }
+    

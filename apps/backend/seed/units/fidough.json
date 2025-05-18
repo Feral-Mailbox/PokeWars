@@ -1,0 +1,24 @@
+{
+    "id": 48,
+    "species_id": 39,
+    "form_id": null,
+    "name": "Fidough",
+    "species": "Puppy Pokémon",
+    "asset_folder": "039_fidough",
+    "types": ["Fairy"],
+    "base_stats": {
+      "hp": 37,
+      "attack": 55,
+      "defense": 70,
+      "sp_attack": 30,
+      "sp_defense": 55,
+      "speed": 65
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [40],
+    "is_legendary": false,
+    "description": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity."
+}

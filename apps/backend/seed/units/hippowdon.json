@@ -1,0 +1,24 @@
+{
+    "id": 35,
+    "species_id": 27,
+    "form_id": null,
+    "name": "Hippowdon",
+    "species": "Heavyweight Pokémon",
+    "asset_folder": "027_hippowdon",
+    "types": ["Ground"],
+    "base_stats": {
+      "hp": 108,
+      "attack": 112,
+      "defense": 118,
+      "sp_attack": 68,
+      "sp_defense": 72,
+      "speed": 47
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": " It shrouds itself in sand to ward off germs. It travels easily through the sands of the desert."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 85,
+    "species_id": 75,
+    "form_id": null,
+    "name": "Altaria",
+    "species": "Humming Pokémon",
+    "asset_folder": "075_altaria",
+    "types": ["Dragon", "Flying"],
+    "base_stats": {
+      "hp": 75,
+      "attack": 70,
+      "defense": 90,
+      "sp_attack": 70,
+      "sp_defense": 105,
+      "speed": 80
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "On sunny days, it flies freely through the sky and blends into the clouds. It sings in a beautiful soprano."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 50,
+    "species_id": 41,
+    "form_id": null,
+    "name": "Cubone",
+    "species": "Lonely Pokémon",
+    "asset_folder": "041_cubone",
+    "types": ["Ground"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 50,
+      "defense": 95,
+      "sp_attack": 40,
+      "sp_defense": 50,
+      "speed": 35
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [42],
+    "is_legendary": false,
+    "description": "The skull it wears on its head is that of its dead mother. According to some, it will evolve when it comes to terms with the pain of her death."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 133,
+    "species_id": 118,
+    "form_id": null,
+    "name": "Lapras",
+    "species": "Transport Pokémon",
+    "asset_folder": "118_lapras",
+    "types": ["Water", "Ice"],
+    "base_stats": {
+      "hp": 130,
+      "attack": 85,
+      "defense": 80,
+      "sp_attack": 85,
+      "sp_defense": 95,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "A smart and kindhearted Pokémon, it glides across the surface of the sea while its beautiful song echoes around it."
+}

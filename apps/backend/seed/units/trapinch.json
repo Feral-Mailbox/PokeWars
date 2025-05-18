@@ -1,0 +1,24 @@
+{
+    "id": 106,
+    "species_id": 92,
+    "form_id": null,
+    "name": "Trapinch",
+    "species": "Ant Pit Pokémon",
+    "asset_folder": "092_trapinch",
+    "types": ["Ground"],
+    "base_stats": {
+      "hp": 45,
+      "attack": 100,
+      "defense": 45,
+      "sp_attack": 45,
+      "sp_defense": 45,
+      "speed": 10
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": [600],
+    "evolves_into": [93],
+    "is_legendary": false,
+    "description": "It makes an inescapable conical pit and lies in wait at the bottom for prey to come tumbling down."
+}

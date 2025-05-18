@@ -1,0 +1,24 @@
+{
+    "id": 88,
+    "species_id": 78,
+    "form_id": 1,
+    "name": "Raichu",
+    "species": "Mouse Pokémon",
+    "asset_folder": "078a_raichu_base",
+    "types": ["Electric"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 90,
+      "defense": 55,
+      "sp_attack": 90,
+      "sp_defense": 80,
+      "speed": 110
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 800,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It can loose 100,000-volt bursts of electricity, instantly downing foes several times its size."
+}

@@ -1,7 +1,10 @@
 {
   "id": 1,
+  "species_id": 1,
+  "form_id": null,
   "name": "Turtwig",
-  "asset_folder": "turtwig",
+  "species": "Tiny Leaf Pokémon",
+  "asset_folder": "001_turtwig",
   "types": ["Grass"],
   "base_stats": {
     "hp": 55,

@@ -1,0 +1,24 @@
+{
+    "id": 70,
+    "species_id": 60,
+    "form_id": null,
+    "name": "Barboach",
+    "species": "Whiskers Pokémon",
+    "asset_folder": "060_barboach",
+    "types": ["Water", "Ground"],
+    "base_stats": {
+      "hp": 50,
+      "attack": 48,
+      "defense": 43,
+      "sp_attack": 46,
+      "sp_defense": 41,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [61],
+    "is_legendary": false,
+    "description": "Its two whiskers provide a sensitive radar. Even in muddy waters, it can detect its prey’s location."
+}

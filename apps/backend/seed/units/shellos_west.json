@@ -1,0 +1,24 @@
+{
+    "id": 92,
+    "species_id": 80,
+    "form_id": 1,
+    "name": "Shellos",
+    "species": "Sea Slug Pokémon",
+    "asset_folder": "080a_shellos_west",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 76,
+      "attack": 48,
+      "defense": 48,
+      "sp_attack": 57,
+      "sp_defense": 62,
+      "speed": 34
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [81],
+    "is_legendary": false,
+    "description": "It oozes a purple fluid to deter enemies. Apparently, there are more West Sea Shellos now than there were in the past."
+}

@@ -1,0 +1,24 @@
+{
+    "id": 115,
+    "species_id": 101,
+    "form_id": null,
+    "name": "Gorebyss",
+    "species": "South Sea Pokémon",
+    "asset_folder": "101_gorebyss",
+    "types": ["Water"],
+    "base_stats": {
+      "hp": 55,
+      "attack": 84,
+      "defense": 105,
+      "sp_attack": 114,
+      "sp_defense": 75,
+      "speed": 52
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "It sucks bodily fluids out of its prey. The leftover meat sinks to the seafloor, where it becomes food for other Pokémon."
+}

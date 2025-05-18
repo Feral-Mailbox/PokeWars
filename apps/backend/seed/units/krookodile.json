@@ -1,0 +1,24 @@
+{
+    "id": 126,
+    "species_id": 111,
+    "form_id": null,
+    "name": "Krokorok",
+    "species": "Intimidation Pokémon",
+    "asset_folder": "111_krookodile",
+    "types": ["Ground", "Dark"],
+    "base_stats": {
+      "hp": 95,
+      "attack": 117,
+      "defense": 80,
+      "sp_attack": 65,
+      "sp_defense": 70,
+      "speed": 92
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 1000,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "After clamping down with its powerful jaws, it twists its body around to rip its prey in half."
+}

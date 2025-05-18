@@ -1,0 +1,24 @@
+{
+    "id": 67,
+    "species_id": 57,
+    "form_id": null,
+    "name": "Sylveon",
+    "species": "Intertwining Pokémon",
+    "asset_folder": "057_sylveon",
+    "types": ["Fairy"],
+    "base_stats": {
+      "hp": 95,
+      "attack": 65,
+      "defense": 65,
+      "sp_attack": 110,
+      "sp_defense": 130,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 600,
+    "evolution_cost": null,
+    "evolves_into": null,
+    "is_legendary": false,
+    "description": "This Pokémon uses its ribbonlike feelers to send a soothing aura into its opponents, erasing their hostility."
+}

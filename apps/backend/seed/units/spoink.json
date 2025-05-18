@@ -1,0 +1,24 @@
+{
+    "id": 38,
+    "species_id": 30,
+    "form_id": null,
+    "name": "Spoink",
+    "species": "Bounce Pokémon",
+    "asset_folder": "030_spoink",
+    "types": ["Psychic"],
+    "base_stats": {
+      "hp": 60,
+      "attack": 25,
+      "defense": 35,
+      "sp_attack": 70,
+      "sp_defense": 80,
+      "speed": 60
+    },
+    "move_ids": [],
+    "ability_ids": [],
+    "cost": 200,
+    "evolution_cost": 600,
+    "evolves_into": [31],
+    "is_legendary": false,
+    "description": "Using its tail like a spring, it keeps its heart beating by bouncing constantly. If it stops, it dies."
+}
