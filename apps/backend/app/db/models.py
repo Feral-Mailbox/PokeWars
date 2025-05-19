@@ -118,9 +118,10 @@ class Unit(Base):
     __tablename__ = "units"
 
     id = Column(Integer, primary_key=True)
-    species_id = Column(Integer, nullable=True)
+    species_id = Column(Integer, nullable=False)
     form_id = Column(Integer, nullable=True)
-    name = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    species = Column(String, nullable=False)
     asset_folder = Column(String, nullable=False)
     types = Column(JSON, nullable=False)
     base_stats = Column(JSON, nullable=False)

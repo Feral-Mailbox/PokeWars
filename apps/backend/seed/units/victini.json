@@ -4,7 +4,7 @@
     "form_id": null,
     "name": "Victini",
     "species": "Victory Pokemon",
-    "asset_folder": "0_victini",
+    "asset_folder": "000_victini",
     "types": ["Psychic", "Fire"],
     "base_stats": {
       "hp": 100,

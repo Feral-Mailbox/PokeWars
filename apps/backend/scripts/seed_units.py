@@ -21,7 +21,10 @@ def load_units():
 
             new_unit = Unit(
                 id=data["id"],
+                species_id=data["species_id"],
+                form_id=data["form_id"],
                 name=data["name"],
+                species=data["species"],
                 asset_folder=data["asset_folder"],
                 types=data["types"],
                 base_stats=data["base_stats"],

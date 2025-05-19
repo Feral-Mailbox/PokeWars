@@ -1,8 +1,8 @@
 """init
 
-Revision ID: f4782bdf0e03
+Revision ID: 6b8a61f604e7
 Revises: 
-Create Date: 2025-05-10 22:54:10.191418
+Create Date: 2025-05-19 16:02:51.377267
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f4782bdf0e03'
+revision: str = '6b8a61f604e7'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -51,7 +51,10 @@ def upgrade() -> None:
     )
     op.create_table('units',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('species_id', sa.Integer(), nullable=False),
+    sa.Column('form_id', sa.Integer(), nullable=True),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('species', sa.String(), nullable=False),
     sa.Column('asset_folder', sa.String(), nullable=False),
     sa.Column('types', sa.JSON(), nullable=False),
     sa.Column('base_stats', sa.JSON(), nullable=False),
@@ -62,8 +65,7 @@ def upgrade() -> None:
     sa.Column('evolves_into', sa.JSON(), nullable=True),
     sa.Column('is_legendary', sa.Boolean(), nullable=True),
     sa.Column('description', sa.String(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
