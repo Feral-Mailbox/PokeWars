@@ -3,6 +3,7 @@
     "is_official": true,
     "tileset_name": "Route 224.png",
     "allowed_modes": ["Conquest", "War"],
+    "allowed_player_counts": [2, 4],
     "width": 12,
     "height": 8,
     "tile_data": {

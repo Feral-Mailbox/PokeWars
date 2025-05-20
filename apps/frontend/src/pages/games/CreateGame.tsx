@@ -49,8 +49,15 @@ const CreateGame = () => {
     }
   }, [mapName]);
 
+  useEffect(() => {
+    if (selectedMap && !selectedMap.allowed_player_counts.includes(maxPlayers)) {
+      setMaxPlayers(selectedMap.allowed_player_counts[0]);
+    }
+  }, [mapName]);
+
   const selectedMap = availableMaps.find((map) => map.name === mapName);
-  const availableModes = selectedMap?.allowed_modes ?? []; 
+  const availableModes = selectedMap?.allowed_modes ?? [];
+  const allowedPlayerCounts = selectedMap?.allowed_player_counts ?? [2, 3, 4, 5, 6, 7, 8];
 
   const applyGamemodeDefaults = (selected: string) => {
     setGamemode(selected);
@@ -159,9 +166,9 @@ const CreateGame = () => {
             onChange={(e) => setMaxPlayers(Number(e.target.value))}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
           >
-            {[...Array(7)].map((_, i) => (
-              <option key={i + 2} value={i + 2}>
-                {i + 2} Players
+            {allowedPlayerCounts.map((count) => (
+              <option key={count} value={count}>
+                {count} Players
               </option>
             ))}
           </select>

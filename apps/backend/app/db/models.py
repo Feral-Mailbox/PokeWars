@@ -115,6 +115,7 @@ class Map(Base):
     tileset_name = Column(String, nullable=False)
     tile_data = Column(JSON, nullable=False)
     allowed_modes = Column(JSON, nullable=False, default=list)
+    allowed_player_counts = Column(JSON, nullable=False, default=[2])
     preview_image = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

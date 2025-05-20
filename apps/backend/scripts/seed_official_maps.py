@@ -24,6 +24,7 @@ def load_maps():
                     height=data["height"],
                     tileset_name=data["tileset_name"],
                     allowed_modes=data["allowed_modes"],
+                    allowed_player_counts=data["allowed_player_counts"],
                     tile_data=data["tile_data"],
                     preview_image=data.get("preview_image")
                 )

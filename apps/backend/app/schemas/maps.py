@@ -5,6 +5,7 @@ class MapDetail(BaseModel):
     id: int
     name: str
     allowed_modes: List[str]
+    allowed_player_counts: List[int]
     width: int
     height: int
     tileset_name: str
