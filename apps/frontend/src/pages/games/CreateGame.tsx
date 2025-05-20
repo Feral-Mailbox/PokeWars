@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 
 const CreateGame = () => {
-  const [availableMaps, setAvailableMaps] = useState<{ id: number; name: string; width: number; height: number; }[]>([]);
+  const [availableMaps, setAvailableMaps] = useState<{ id: number; name: string; width: number; height: number; allowed_modes: string[]; }[]>([]);
+  const [gamemode, setGamemode] = useState("conquest");
   const [mapName, setMapName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -37,7 +38,15 @@ const CreateGame = () => {
     };
     fetchMaps();
   }, []);
-  
+
+  useEffect(() => {
+    if (selectedMap && !selectedMap.allowed_modes.includes(gamemode)) {
+      setGamemode(selectedMap.allowed_modes[0]);
+    }
+  }, [mapName]);
+
+  const selectedMap = availableMaps.find((map) => map.name === mapName);
+  const availableModes = selectedMap?.allowed_modes ?? []; 
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +54,7 @@ const CreateGame = () => {
     const payload = {
       game_name: gameName,
       map_name: mapName,
+      gamemode: gamemode,
       max_players: maxPlayers,
       is_private: isPrivate
     };
@@ -86,22 +96,6 @@ const CreateGame = () => {
           />
         </div>
 
-        {/* Player Count */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Number of Players</label>
-          <select
-            value={maxPlayers}
-            onChange={(e) => setMaxPlayers(Number(e.target.value))}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
-          >
-            {[...Array(7)].map((_, i) => (
-              <option key={i + 2} value={i + 2}>
-                {i + 2} Players
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Tileset Selector */}
         <div>
           <label className="block text-sm font-medium mb-1">Map Name</label>
@@ -114,6 +108,38 @@ const CreateGame = () => {
             {availableMaps.map((map) => (
               <option key={map.id} value={map.name}>
                 {map.name} ({map.width}×{map.height})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Game Mode Selector */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Game Mode</label>
+          <select
+            value={gamemode}
+            onChange={(e) => setGamemode(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+          >
+            {availableModes.map((mode) => (
+              <option key={mode} value={mode}>
+                {mode.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Player Count */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Number of Players</label>
+          <select
+            value={maxPlayers}
+            onChange={(e) => setMaxPlayers(Number(e.target.value))}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+          >
+            {[...Array(7)].map((_, i) => (
+              <option key={i + 2} value={i + 2}>
+                {i + 2} Players
               </option>
             ))}
           </select>

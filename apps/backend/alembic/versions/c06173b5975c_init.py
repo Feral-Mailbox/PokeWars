@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 0eb1b72d62ad
+Revision ID: c06173b5975c
 Revises: 
-Create Date: 2025-05-20 00:44:04.977414
+Create Date: 2025-05-20 03:56:31.808400
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0eb1b72d62ad'
+revision: str = 'c06173b5975c'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -98,6 +98,7 @@ def upgrade() -> None:
     sa.Column('height', sa.Integer(), nullable=False),
     sa.Column('tileset_name', sa.String(), nullable=False),
     sa.Column('tile_data', sa.JSON(), nullable=False),
+    sa.Column('allowed_modes', sa.JSON(), nullable=False),
     sa.Column('preview_image', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
@@ -123,6 +124,7 @@ def upgrade() -> None:
     sa.Column('max_players', sa.Integer(), nullable=True),
     sa.Column('host_id', sa.Integer(), nullable=True),
     sa.Column('winner_id', sa.Integer(), nullable=True),
+    sa.Column('gamemode', sa.Enum('conquest', 'war', 'capture_the_flag', name='gamemode'), nullable=False),
     sa.Column('turns', sa.Integer(), nullable=True),
     sa.Column('replay_log', sa.JSON(), nullable=True),
     sa.Column('link', sa.String(), nullable=False),

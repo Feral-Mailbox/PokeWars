@@ -8,6 +8,7 @@ class GameCreateRequest(BaseModel):
     map_name: str
     max_players: int
     is_private: bool
+    gamemode: str
 
 class PlayerInfo(BaseModel):
     id: int
@@ -34,6 +35,7 @@ class GameResponse(BaseModel):
     host: HostInfo
     players: List[PlayerInfo]
     winner_id: Optional[int]
+    gamemode: str
     turns: Optional[int]
     replay_log: Optional[Any]
     link: str

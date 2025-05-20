@@ -26,6 +26,11 @@ class GameStatus(str, enum.Enum):
     in_progress = "in_progress"
     completed = "completed"
 
+class GameMode(str, enum.Enum):
+    conquest = "Conquest"
+    war = "War"
+    capture_the_flag = "Capture The Flag"
+
 # ======================
 # JOIN TABLE
 # ======================
@@ -81,6 +86,7 @@ class Game(Base):
     max_players = Column(Integer, default=2)
     host_id = Column(Integer, ForeignKey("users.id"))
     winner_id = Column(Integer, ForeignKey("users.id"))
+    gamemode = Column(Enum(GameMode), default=GameMode.conquest, nullable=False)
     turns = Column(Integer)
     replay_log = Column(JSON)
     link = Column(String, unique=True, nullable=False)
@@ -104,6 +110,7 @@ class Map(Base):
     height = Column(Integer, nullable=False)
     tileset_name = Column(String, nullable=False)
     tile_data = Column(JSON, nullable=False)
+    allowed_modes = Column(JSON, nullable=False, default=list)
     preview_image = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

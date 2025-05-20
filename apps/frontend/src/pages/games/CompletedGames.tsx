@@ -102,6 +102,9 @@ export default function CompletedGames() {
               <strong>Host:</strong> {game.host?.username ?? "Unknown"}
             </p>
             <p>
+              <strong>Game Mode:</strong> {game.gamemode}
+            </p>
+            <p>
               <strong>Players:</strong> {game.players.length}/{game.max_players}
             </p>
             <p>

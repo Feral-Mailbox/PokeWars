@@ -23,6 +23,7 @@ def load_maps():
                     width=data["width"],
                     height=data["height"],
                     tileset_name=data["tileset_name"],
+                    allowed_modes=data["allowed_modes"],
                     tile_data=data["tile_data"],
                     preview_image=data.get("preview_image")
                 )

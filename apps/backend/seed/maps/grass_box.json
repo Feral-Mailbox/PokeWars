@@ -2,6 +2,7 @@
     "name": "Grass Box",
     "is_official": true,
     "tileset_name": "Route 224.png",
+    "allowed_modes": ["Conquest"],
     "width": 5,
     "height": 5,
     "tile_data": {

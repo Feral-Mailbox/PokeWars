@@ -141,7 +141,10 @@ export default function GamePage() {
 
   return (
     <div className="p-8 text-white">
-      <h1 className="text-3xl font-bold mb-4">{gameData.game_name || "Untitled Game"}</h1>
+      <h1 className="text-3xl font-bold mb-4">
+        {gameData.game_name || "Untitled Game"}{" "}
+        <span className="text-sm text-gray-400">({gameData.gamemode})</span>
+      </h1>
       <p className="text-lg font-semibold mb-2 text-yellow-400">{statusMessage}</p>
       {isHost && gameData.status !== "in_progress" && (
         <button
