@@ -1,8 +1,8 @@
 """init
 
-Revision ID: c06173b5975c
+Revision ID: 3369de2bcacb
 Revises: 
-Create Date: 2025-05-20 03:56:31.808400
+Create Date: 2025-05-20 15:41:58.925694
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c06173b5975c'
+revision: str = '3369de2bcacb'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -125,7 +125,11 @@ def upgrade() -> None:
     sa.Column('host_id', sa.Integer(), nullable=True),
     sa.Column('winner_id', sa.Integer(), nullable=True),
     sa.Column('gamemode', sa.Enum('conquest', 'war', 'capture_the_flag', name='gamemode'), nullable=False),
-    sa.Column('turns', sa.Integer(), nullable=True),
+    sa.Column('current_turn', sa.Integer(), nullable=True),
+    sa.Column('starting_cash', sa.Integer(), nullable=True),
+    sa.Column('cash_per_turn', sa.Integer(), nullable=True),
+    sa.Column('max_turns', sa.Integer(), nullable=True),
+    sa.Column('unit_limit', sa.Integer(), nullable=True),
     sa.Column('replay_log', sa.JSON(), nullable=True),
     sa.Column('link', sa.String(), nullable=False),
     sa.Column('timestamp', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),

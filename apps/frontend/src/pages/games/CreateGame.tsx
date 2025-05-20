@@ -7,6 +7,10 @@ const CreateGame = () => {
   const [gamemode, setGamemode] = useState("conquest");
   const [mapName, setMapName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(2);
+  const [startingCash, setStartingCash] = useState<number>(3000);
+  const [cashPerTurn, setCashPerTurn] = useState<number>(100);
+  const [maxTurns, setMaxTurns] = useState<number>(99);
+  const [unitLimit, setUnitLimit] = useState<number>(30);
   const [isPrivate, setIsPrivate] = useState(false);
   const [gameName, setGameName] = useState("");
   const [userId, setUserId] = useState<number | null>(null);
@@ -41,12 +45,27 @@ const CreateGame = () => {
 
   useEffect(() => {
     if (selectedMap && !selectedMap.allowed_modes.includes(gamemode)) {
-      setGamemode(selectedMap.allowed_modes[0]);
+      applyGamemodeDefaults(selectedMap.allowed_modes[0]);
     }
   }, [mapName]);
 
   const selectedMap = availableMaps.find((map) => map.name === mapName);
   const availableModes = selectedMap?.allowed_modes ?? []; 
+
+  const applyGamemodeDefaults = (selected: string) => {
+    setGamemode(selected);
+    if (selected === "War") {
+      setStartingCash(100);
+      setCashPerTurn(100);
+      setMaxTurns(99);
+      setUnitLimit(30);
+    } else {
+      setStartingCash(3000);
+      setCashPerTurn(undefined);
+      setUnitLimit(undefined);
+      setMaxTurns(selected === "Capture The Flag" ? 99 : undefined);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +73,14 @@ const CreateGame = () => {
     const payload = {
       game_name: gameName,
       map_name: mapName,
-      gamemode: gamemode,
+      gamemode,
       max_players: maxPlayers,
-      is_private: isPrivate
+      is_private: isPrivate,
+      starting_cash: startingCash,
+      cash_per_turn: cashPerTurn,
+      max_turns: maxTurns,
+      unit_limit: unitLimit,
     };
-    console.log(payload)
 
     const res = await secureFetch("/api/games/create", {
       method: "POST",
@@ -118,7 +140,7 @@ const CreateGame = () => {
           <label className="block text-sm font-medium mb-1">Game Mode</label>
           <select
             value={gamemode}
-            onChange={(e) => setGamemode(e.target.value)}
+            onChange={(e) => applyGamemodeDefaults(e.target.value)}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
           >
             {availableModes.map((mode) => (
@@ -144,6 +166,70 @@ const CreateGame = () => {
             ))}
           </select>
         </div>
+
+        {(gamemode === "War" || gamemode === "Conquest" || gamemode === "Capture The Flag") && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Starting Cash</label>
+            <select
+              value={startingCash}
+              onChange={(e) => setStartingCash(Number(e.target.value))}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+            >
+              {[...Array(51)].map((_, i) => {
+                const val = i * 100;
+                return <option key={val} value={val}>{val}</option>;
+              })}
+            </select>
+          </div>
+        )}
+
+        {gamemode === "War" && (
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">Cash Per Turn</label>
+              <select
+                value={cashPerTurn}
+                onChange={(e) => setCashPerTurn(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+              >
+                {[...Array(11)].map((_, i) => {
+                  const val = i * 50;
+                  return <option key={val} value={val}>{val}</option>;
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Unit Limit</label>
+              <select
+                value={unitLimit}
+                onChange={(e) => setUnitLimit(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+              >
+                {[...Array(18)].map((_, i) => {
+                  const val = 15 + i * 5;
+                  return <option key={val} value={val}>{val}</option>;
+                })}
+              </select>
+            </div>
+          </>
+        )}
+
+        {(gamemode === "War" || gamemode === "Capture The Flag") && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Max Turns</label>
+            <select
+              value={maxTurns}
+              onChange={(e) => setMaxTurns(Number(e.target.value))}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+            >
+              {[...Array(95)].map((_, i) => {
+                const val = i + 5;
+                return <option key={val} value={val}>{val}</option>;
+              })}
+            </select>
+          </div>
+        )}
 
         {/* Private Game Option */}
         <div className="flex items-center">

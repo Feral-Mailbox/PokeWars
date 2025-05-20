@@ -85,9 +85,13 @@ def create_game(
         map_name=data.map_name,
         max_players=data.max_players,
         is_private=data.is_private,
-        gamemode=data.gamemode,
         status="open",
         link="temp",
+        gamemode=data.gamemode,
+        starting_cash=data.starting_cash,
+        cash_per_turn=data.cash_per_turn,
+        max_turns=data.max_turns,
+        unit_limit=data.unit_limit,
     )
     new_game.players.append(user)
     db.add(new_game)

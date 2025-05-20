@@ -9,6 +9,10 @@ class GameCreateRequest(BaseModel):
     max_players: int
     is_private: bool
     gamemode: str
+    starting_cash: Optional[int] = None
+    cash_per_turn: Optional[int] = None
+    max_turns: Optional[int] = None
+    unit_limit: Optional[int] = None
 
 class PlayerInfo(BaseModel):
     id: int
@@ -36,7 +40,11 @@ class GameResponse(BaseModel):
     players: List[PlayerInfo]
     winner_id: Optional[int]
     gamemode: str
-    turns: Optional[int]
+    current_turn: Optional[int]
+    starting_cash: Optional[int]
+    cash_per_turn: Optional[int]
+    max_turns: Optional[int]
+    unit_limit: Optional[int]
     replay_log: Optional[Any]
     link: str
     timestamp: datetime
