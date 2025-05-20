@@ -1,6 +1,9 @@
+public/*
+!public/vite.svg
 node_modules
+.git
+certs
 dist
+build
 .env
-.vscode
-.idea
 *.log

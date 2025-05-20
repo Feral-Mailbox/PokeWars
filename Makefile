@@ -32,6 +32,8 @@ logs:
 
 nuke:
 	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) down -v --remove-orphans
+# sudo pkill -f docker-proxy || true
+	docker volume prune -f
 	rm -rf apps/backend/alembic/versions/*
 	docker volume rm infrastructure_pgdata || true
 

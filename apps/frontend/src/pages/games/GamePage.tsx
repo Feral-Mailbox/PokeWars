@@ -86,7 +86,8 @@ export default function GamePage() {
     if (!ctx) return;
 
     const tileset = new Image();
-    tileset.src = `/tilesets/${gameData.map.tileset_name}`;
+    console.log(gameData.map.tileset_name)
+    tileset.src = `${window.location.origin.replace(":5173", "")}/assets/tilesets/${gameData.map.tileset_name}`;
 
     tileset.onload = () => {
       const { base, overlay } = gameData.map.tile_data;
@@ -111,6 +112,11 @@ export default function GamePage() {
           drawTile(overlay[y][x]);
         }
       }
+    };
+
+    tileset.onerror = () => {
+      console.error("Failed to load tileset:", tileset.src);
+      setError("Tileset could not be loaded.");
     };
   }, [gameData]);
 

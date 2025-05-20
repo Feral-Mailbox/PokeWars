@@ -27,7 +27,9 @@ services:
     depends_on:
       - backend
     volumes:
-      - ../apps/frontend:/app:cached
+      - ../apps/frontend:/app:cached   
+      - ./apps/frontend/assets/sprites:/app/assets/sprites
+      - ./apps/frontend/assets/tilesets:/app/assets/tilesets
       - /app/node_modules
       - ../infrastructure/certs:/app/certs:ro 
     environment:
