@@ -79,45 +79,66 @@ export default function GamePage() {
 
   // Map rendering
   useEffect(() => {
-    if (!gameData?.map?.tile_data) return;
+    if (!gameData?.map?.tile_data || !gameData.map.tileset_names) return;
 
     const canvas = document.getElementById("mapCanvas") as HTMLCanvasElement;
     const ctx = canvas?.getContext("2d");
     if (!ctx) return;
 
-    const tileset = new Image();
-    console.log(gameData.map.tileset_name)
-    tileset.src = `${window.location.origin.replace(":5173", "")}/assets/tilesets/${gameData.map.tileset_name}`;
+    const TILE_SIZE = 16;
+    const TILE_SCALE = 2;
 
-    tileset.onload = () => {
-      const { base, overlay } = gameData.map.tile_data;
+    const { base, overlay } = gameData.map.tile_data;
+    const tilesetPaths: string[] = gameData.map.tileset_names.map(name =>
+      `${window.location.origin.replace(":5173", "")}/assets/tilesets/${name}`
+    );
+
+    const tilesets: HTMLImageElement[] = tilesetPaths.map(src => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+
+    let loadedCount = 0;
+
+    tilesets.forEach(img => {
+      img.onload = () => {
+        loadedCount++;
+        if (loadedCount === tilesets.length) drawAll();
+      };
+      img.onerror = () => {
+        console.error("Failed to load tileset:", img.src);
+        setError("Tileset could not be loaded.");
+      };
+    });
+
+    function drawTile(tile: any, x: number, y: number) {
+      if (!tile || !Array.isArray(tile)) return;
+      const [tileIndex, tilesetIndex] = tile;
+      if (tileIndex == null || tileIndex < 0 || tilesetIndex == null) return;
+
+      const tileset = tilesets[tilesetIndex];
       const tilesPerRow = Math.floor(tileset.width / TILE_SIZE);
 
+      const sx = (tileIndex % tilesPerRow) * TILE_SIZE;
+      const sy = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
+      ctx.drawImage(
+        tileset,
+        sx, sy,
+        TILE_SIZE, TILE_SIZE,
+        x * TILE_SIZE * TILE_SCALE, y * TILE_SIZE * TILE_SCALE,
+        TILE_SIZE * TILE_SCALE, TILE_SIZE * TILE_SCALE
+      );
+    }
+
+    function drawAll() {
       for (let y = 0; y < gameData.map.height; y++) {
         for (let x = 0; x < gameData.map.width; x++) {
-          const drawTile = (tileIndex: number | null) => {
-            if (tileIndex == null || tileIndex < 0) return;
-            const sx = (tileIndex % tilesPerRow) * TILE_SIZE;
-            const sy = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
-            ctx.drawImage(
-              tileset,
-              sx, sy,
-              TILE_SIZE, TILE_SIZE,
-              x * TILE_SIZE * TILE_SCALE, y * TILE_SIZE * TILE_SCALE,
-              TILE_SIZE * TILE_SCALE, TILE_SIZE * TILE_SCALE
-            );
-          };
-
-          drawTile(base[y][x]);
-          drawTile(overlay[y][x]);
+          drawTile(base[y][x], x, y);
+          drawTile(overlay[y][x], x, y);
         }
       }
-    };
-
-    tileset.onerror = () => {
-      console.error("Failed to load tileset:", tileset.src);
-      setError("Tileset could not be loaded.");
-    };
+    }
   }, [gameData]);
 
   if (error) return <div className="p-8 text-red-500">Error: {error}</div>;

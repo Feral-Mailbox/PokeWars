@@ -112,7 +112,7 @@ class Map(Base):
     is_official = Column(Boolean, default=False, nullable=False)
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
-    tileset_name = Column(String, nullable=False)
+    tileset_names = Column(JSON, nullable=False, default=list)
     tile_data = Column(JSON, nullable=False)
     allowed_modes = Column(JSON, nullable=False, default=list)
     allowed_player_counts = Column(JSON, nullable=False, default=[2])

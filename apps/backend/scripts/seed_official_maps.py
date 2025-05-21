@@ -22,7 +22,7 @@ def load_maps():
                     is_official=data["is_official"],
                     width=data["width"],
                     height=data["height"],
-                    tileset_name=data["tileset_name"],
+                    tileset_names=data["tileset_names"],
                     allowed_modes=data["allowed_modes"],
                     allowed_player_counts=data["allowed_player_counts"],
                     tile_data=data["tile_data"],

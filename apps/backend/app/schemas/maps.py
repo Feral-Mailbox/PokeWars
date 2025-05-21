@@ -8,7 +8,7 @@ class MapDetail(BaseModel):
     allowed_player_counts: List[int]
     width: int
     height: int
-    tileset_name: str
+    tileset_names: List[str]
     tile_data: dict
 
     class Config:
