@@ -147,7 +147,11 @@ def start_game(game_id: int, db: Session = Depends(get_db), user: User = Depends
     if len(game.players) < game.max_players:
         raise HTTPException(status_code=400, detail="Game not full")
 
-    game.status = GameStatus.in_progress
+    if game.gamemode in ["Conquest", "Capture The Flag"]:
+        game.status = GameStatus.preparation
+    else:
+        game.status = GameStatus.in_progress
+
     db.commit()
     redis_client.publish(f"game_updates:{game.link}", "game_started")
     return {"detail": "Game started"}

@@ -4,7 +4,7 @@
     "form_id": null,
     "name": "Diancie",
     "species": "Jewel Pokemon",
-    "asset_folder": "148_marshadow",
+    "asset_folder": "149_diancie",
     "types": ["Rock", "Fairy"],
     "base_stats": {
       "hp": 50,

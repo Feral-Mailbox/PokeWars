@@ -42,6 +42,11 @@ export default defineConfig({
         rewrite: path => path.replace(/^\/api/, ''),
         cookieDomainRewrite: process.env.VITE_HOST || 'localhost', 
       },
+      '/assets': {
+        target: 'https://localhost', // Nginx https
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
   css: {

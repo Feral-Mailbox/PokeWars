@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 2d6a7609ba64
+Revision ID: e2699ea393ed
 Revises: 
-Create Date: 2025-05-21 15:20:47.194370
+Create Date: 2025-05-22 18:32:11.424821
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2d6a7609ba64'
+revision: str = 'e2699ea393ed'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -117,7 +117,7 @@ def upgrade() -> None:
     )
     op.create_table('games',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('open', 'closed', 'in_progress', 'completed', name='gamestatus'), nullable=False),
+    sa.Column('status', sa.Enum('open', 'closed', 'preparation', 'in_progress', 'completed', name='gamestatus'), nullable=False),
     sa.Column('is_private', sa.Boolean(), nullable=True),
     sa.Column('game_name', sa.String(), nullable=False),
     sa.Column('map_id', sa.Integer(), nullable=False),

@@ -23,6 +23,7 @@ class TournamentStatus(str, enum.Enum):
 class GameStatus(str, enum.Enum):
     open = "open" 
     closed = "closed"
+    preparation = "preparation"
     in_progress = "in_progress"
     completed = "completed"
 
