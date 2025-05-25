@@ -18,4 +18,4 @@ class UserResponse(BaseModel):
     currency: int
 
     class Config:
-        from_attributes = True  # Required for SQLAlchemy integration in Pydantic v2
+        from_attributes = True

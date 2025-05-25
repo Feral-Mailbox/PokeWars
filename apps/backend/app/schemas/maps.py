@@ -12,4 +12,4 @@ class MapDetail(BaseModel):
     tile_data: dict
 
     class Config:
-        orm_mode = True
+        from_attributes = True

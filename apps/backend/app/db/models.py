@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from fastapi import Request, HTTPException
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import enum
@@ -33,17 +34,6 @@ class GameMode(str, enum.Enum):
     capture_the_flag = "Capture The Flag"
 
 # ======================
-# JOIN TABLE
-# ======================
-game_players_association = Table(
-    "game_players",
-    Base.metadata,
-    Column("game_id", Integer, ForeignKey("games.id"), primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("joined_at", DateTime(timezone=True), server_default=func.now())
-)
-
-# ======================
 # USER
 # ======================
 class User(Base):
@@ -57,9 +47,9 @@ class User(Base):
     elo = Column(Integer, default=1000)
     currency = Column(Integer, default=0)
     
-    hosted_matches = relationship("Game", back_populates="host", foreign_keys="Game.host_id")
-    games = relationship("Game", secondary=game_players_association, back_populates="players")
     maps = relationship("Map", back_populates="creator")
+    game_states = relationship("GamePlayer", back_populates="player")
+    game_units = relationship("GameUnit", back_populates="owner")
 
 # ======================
 # FRIENDS
@@ -79,27 +69,60 @@ class Game(Base):
     __tablename__ = "games"
 
     id = Column(Integer, primary_key=True)
-    status = Column(Enum(GameStatus), default=GameStatus.open, nullable=False)
-    is_private = Column(Boolean, default=True)
     game_name = Column(String, nullable=False)
     map_id = Column(Integer, ForeignKey("maps.id"), nullable=False)
     map_name = Column(String, nullable=False)
     max_players = Column(Integer, default=2)
-    host_id = Column(Integer, ForeignKey("users.id"))
-    winner_id = Column(Integer, ForeignKey("users.id"))
     gamemode = Column(Enum(GameMode), default=GameMode.conquest, nullable=False)
-    current_turn = Column(Integer)
     starting_cash = Column(Integer, nullable=True)
     cash_per_turn = Column(Integer, nullable=True)
     max_turns = Column(Integer, nullable=True)
     unit_limit = Column(Integer, nullable=True)
-    replay_log = Column(JSON)
+    is_private = Column(Boolean, default=True)
+    host_id = Column(Integer, ForeignKey("users.id"))
     link = Column(String, unique=True, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
-    
-    host = relationship("User", back_populates="hosted_matches", foreign_keys=[host_id])
-    players = relationship("User", secondary=game_players_association, back_populates="games")
+
     map = relationship("Map", back_populates="games")
+    player_states = relationship("GamePlayer", back_populates="game")
+    game_units = relationship("GameUnit", back_populates="game")
+
+
+# ======================
+# GAME STATE
+# ======================
+class GameState(Base):
+    __tablename__ = "game_status"
+
+    id = Column(Integer, primary_key=True)
+    game_id = Column(Integer, ForeignKey("games.id"), unique=True)
+    current_turn = Column(Integer)
+    status = Column(Enum(GameStatus), default=GameStatus.open, nullable=False)
+    players = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    replay_log = Column(MutableList.as_mutable(JSON), nullable=True, default=list)
+
+    # Relationships
+    game = relationship("Game")
+    winner = relationship("User")
+
+# ======================
+# GAME PLAYER STATE
+# ======================
+class GamePlayer(Base):
+    __tablename__ = "game_players"
+
+    id = Column(Integer, primary_key=True)
+    game_id = Column(Integer, ForeignKey("games.id"))
+    player_id = Column(Integer, ForeignKey("users.id"))
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    cash_remaining = Column(Integer, default=0)
+    game_units = Column(MutableList.as_mutable(JSON), default=list)
+
+    game = relationship("Game", back_populates="player_states")
+    player = relationship("User", back_populates="game_states")
+
 
 # ======================
 # MAPS
@@ -145,6 +168,29 @@ class Unit(Base):
     evolves_into = Column(JSON, nullable=True)
     is_legendary = Column(Boolean, default=False)
     description = Column(String, nullable=True)
+
+    game_units = relationship("GameUnit", back_populates="unit")
+
+# ======================
+# GAME UNIT
+# ======================
+class GameUnit(Base):
+    __tablename__ = "game_units"
+
+    id = Column(Integer, primary_key=True)
+    game_id = Column(Integer, ForeignKey("games.id"))
+    unit_id = Column(Integer, ForeignKey("units.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    x = Column(Integer, nullable=False)
+    y = Column(Integer, nullable=False)
+    current_hp = Column(Integer, nullable=False)
+    stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
+    status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
+    fainted = Column(Boolean, default=False)
+
+    game = relationship("Game", back_populates="game_units")
+    unit = relationship("Unit", back_populates="game_units")
+    owner = relationship("User", back_populates="game_units")
 
 # ======================
 # USER-UNIT RELATION

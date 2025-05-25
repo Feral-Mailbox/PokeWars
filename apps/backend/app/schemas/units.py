@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Dict, Optional
 
 class UnitSummary(BaseModel):
     id: int
@@ -9,9 +9,10 @@ class UnitSummary(BaseModel):
     asset_folder: str
     types: List[str]
     cost: int
+    base_stats: Dict[str, int]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UnitDetail(BaseModel):
     id: int
@@ -21,7 +22,7 @@ class UnitDetail(BaseModel):
     species: str
     asset_folder: str
     types: List[str]
-    base_stats: dict
+    base_stats: Dict[str, int]
     cost: int
     evolution_cost: Optional[int]
     evolves_into: Optional[List[int]]
@@ -29,4 +30,29 @@ class UnitDetail(BaseModel):
     description: Optional[str]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class GameUnitCreateRequest(BaseModel):
+    unit_id: int
+    x: int
+    y: int
+    current_hp: int
+    stat_boosts: Dict[str, int]
+    status_effects: List[str]
+    fainted: bool
+
+class GameUnitSchema(BaseModel):
+    id: int
+    game_id: int
+    unit_id: int
+    user_id: int
+    x: int
+    y: int
+    current_hp: int
+    stat_boosts: Dict[str, int]
+    status_effects: List[str]
+    fainted: bool
+    unit: UnitSummary
+
+    class Config:
+        from_attributes = True

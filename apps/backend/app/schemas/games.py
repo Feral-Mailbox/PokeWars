@@ -16,30 +16,32 @@ class GameCreateRequest(BaseModel):
 
 class PlayerInfo(BaseModel):
     id: int
+    player_id: int
+    username: str
+    cash_remaining: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class HostInfo(BaseModel):
     id: int
     username: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class GameResponse(BaseModel):
     id: int
-    status: str
     is_private: bool
     game_name: str
     map_name: str
     map: MapDetail
     max_players: int
     host_id: int
-    host: HostInfo
     players: List[PlayerInfo]
     winner_id: Optional[int]
     gamemode: str
+    status: str
     current_turn: Optional[int]
     starting_cash: Optional[int]
     cash_per_turn: Optional[int]
@@ -50,4 +52,16 @@ class GameResponse(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class GameStateSchema(BaseModel):
+    id: int
+    game_id: int
+    player_id: int
+    status: str
+    game_units: List[dict]
+    cash_remaining: int
+
+    class Config:
+        from_attributes = True
+        from_attributes = True
