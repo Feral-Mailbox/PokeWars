@@ -39,7 +39,7 @@ class GameUnitCreateRequest(BaseModel):
     current_hp: int
     stat_boosts: Dict[str, int]
     status_effects: List[str]
-    fainted: bool
+    is_fainted: bool
 
 class GameUnitSchema(BaseModel):
     id: int
@@ -51,7 +51,7 @@ class GameUnitSchema(BaseModel):
     current_hp: int
     stat_boosts: Dict[str, int]
     status_effects: List[str]
-    fainted: bool
+    is_fainted: bool
     unit: UnitSummary
 
     class Config:

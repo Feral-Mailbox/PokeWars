@@ -119,6 +119,7 @@ class GamePlayer(Base):
 
     cash_remaining = Column(Integer, default=0)
     game_units = Column(MutableList.as_mutable(JSON), default=list)
+    is_ready = Column(Boolean, default=False, nullable=True)
 
     game = relationship("Game", back_populates="player_states")
     player = relationship("User", back_populates="game_states")
@@ -186,7 +187,7 @@ class GameUnit(Base):
     current_hp = Column(Integer, nullable=False)
     stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
-    fainted = Column(Boolean, default=False)
+    is_fainted = Column(Boolean, default=False)
 
     game = relationship("Game", back_populates="game_units")
     unit = relationship("Unit", back_populates="game_units")

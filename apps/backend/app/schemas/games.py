@@ -19,6 +19,7 @@ class PlayerInfo(BaseModel):
     player_id: int
     username: str
     cash_remaining: int
+    is_ready: bool
 
     class Config:
         from_attributes = True

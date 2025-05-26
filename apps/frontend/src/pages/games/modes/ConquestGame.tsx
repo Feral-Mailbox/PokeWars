@@ -11,6 +11,7 @@ export default function ConquestGame({
   selectedTile,
   selectedUnit,
   occupiedTile,
+  isReady,
 }: {
   gameData: any;
   userId: number;
@@ -18,6 +19,7 @@ export default function ConquestGame({
   selectedTile: [number, number] | null;
   selectedUnit: any | null;
   occupiedTile: [number, number] | null;
+  isReady: boolean;
 }) {
   const isPreparationPhase = gameData.status === "preparation";
   const sortedPlayers = [...gameData.players].sort((a, b) => a.id - b.id);
@@ -26,7 +28,7 @@ export default function ConquestGame({
   const spawnGrid = gameData.map.tile_data?.spawn_points;
 
   useEffect(() => {
-    if (!isPreparationPhase) return;
+    if (!isPreparationPhase || isReady) return;
     const canvas = document.getElementById("mapCanvas") as HTMLCanvasElement;
     if (!canvas || !spawnGrid) return;
 
@@ -43,10 +45,11 @@ export default function ConquestGame({
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [spawnGrid, playerNumber, isPreparationPhase]);
+  }, [spawnGrid, playerNumber, isPreparationPhase, isReady]);
+
 
   const drawOverlay = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!isPreparationPhase || !spawnGrid) return;
+    if (!isPreparationPhase || isReady || !spawnGrid) return;
 
     for (let y = 0; y < spawnGrid.length; y++) {
       for (let x = 0; x < spawnGrid[y].length; x++) {
@@ -62,7 +65,7 @@ export default function ConquestGame({
         }
       }
     }
-  }, [spawnGrid, playerNumber, isPreparationPhase, occupiedTile]);
+  }, [spawnGrid, playerNumber, isPreparationPhase, occupiedTile, isReady]);
 
   useMapRenderer("mapCanvas", gameData, drawOverlay);
   return null;

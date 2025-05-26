@@ -1,8 +1,8 @@
 """init
 
-Revision ID: e1c11e1be343
+Revision ID: 0f943a0c79e0
 Revises: 
-Create Date: 2025-05-25 19:38:28.004699
+Create Date: 2025-05-25 21:50:02.363258
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e1c11e1be343'
+revision: str = '0f943a0c79e0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -142,6 +142,7 @@ def upgrade() -> None:
     sa.Column('joined_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('cash_remaining', sa.Integer(), nullable=True),
     sa.Column('game_units', sa.JSON(), nullable=True),
+    sa.Column('is_ready', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['game_id'], ['games.id'], ),
     sa.ForeignKeyConstraint(['player_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -169,7 +170,7 @@ def upgrade() -> None:
     sa.Column('current_hp', sa.Integer(), nullable=False),
     sa.Column('stat_boosts', sa.JSON(), nullable=True),
     sa.Column('status_effects', sa.JSON(), nullable=True),
-    sa.Column('fainted', sa.Boolean(), nullable=True),
+    sa.Column('is_fainted', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['game_id'], ['games.id'], ),
     sa.ForeignKeyConstraint(['unit_id'], ['units.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),

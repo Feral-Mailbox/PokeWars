@@ -19,6 +19,7 @@ export default function GamePage() {
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number] }[]>([]);
   const [cash, setCash] = useState<number>(0);
+  const [isReady, setIsReady] = useState<boolean>(false);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export default function GamePage() {
         if (playerRes.ok) {
           const player = await playerRes.json();
           setCash(player.cash_remaining);
+          setIsReady(player.is_ready);
         }
 
         const unitsRes = await secureFetch(`/api/games/${gameId}/units`);
@@ -69,10 +71,11 @@ export default function GamePage() {
               playerUnitIds = player.game_units ?? [];
             }
           }
-          
+
           const visibleUnits = data.status === "preparation"
-            ? backendUnits.filter((u: any) => playerUnitIds.includes(u.id))
-            : backendUnits;
+          ? backendUnits.filter((u: any) => playerUnitIds.includes(u.id))
+          : backendUnits;
+
 
           const mapped = visibleUnits.map((u: any) => ({
             id: u.id,
@@ -147,6 +150,12 @@ export default function GamePage() {
   }, [isPreparationPhase]);
 
   useEffect(() => {
+    if (isReady) {
+      setSelectedTile(null);
+    }
+  }, [isReady]);
+
+  useEffect(() => {
     if (!gameData?.link) return;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const hostname = window.location.hostname;
@@ -157,12 +166,44 @@ export default function GamePage() {
     ws.onerror = (e) => console.error("[Game WS] Error", e);
 
     ws.onmessage = (event) => {
-      if (["player_joined", "game_started"].includes(event.data)) {
-        secureFetch(`/api/games/${gameData.link}`).then(async (res) => {
-          if (res.ok) setGameData(await res.json());
-        });
+      if (["player_joined", "game_started", "player_ready", "game_preparation"].includes(event.data)) {
+        (async () => {
+          const res = await secureFetch(`/api/games/${gameData.link}`);
+          if (!res.ok) return;
+          const updatedGame = await res.json();
+          setGameData(updatedGame);
+
+          const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
+          if (!unitsRes.ok) return;
+          const backendUnits = await unitsRes.json();
+
+          let visibleUnits;
+          if (updatedGame.status === "preparation") {
+            const playerRes = await secureFetch(`/api/games/${updatedGame.link}/player`);
+            const player = await playerRes.json();
+            const playerUnitIds = player.game_units ?? [];
+            visibleUnits = backendUnits.filter((u: any) => playerUnitIds.includes(u.id));
+          } else {
+            visibleUnits = backendUnits;
+          }
+
+          const mapped = visibleUnits.map((u: any) => ({
+            id: u.id,
+            unit: {
+              id: u.unit_id,
+              asset_folder: u.unit.asset_folder,
+              name: u.unit.name,
+              types: u.unit.types,
+              cost: u.unit.cost,
+            },
+            tile: [u.x, u.y],
+          }));
+
+          setPlacedUnits(mapped);
+        })();
       }
     };
+
 
     return () => ws.close();
   }, [gameData?.link]);
@@ -177,6 +218,18 @@ export default function GamePage() {
       return () => clearTimeout(timeout);
     }
   }, [toastMessage]);
+
+  const handleToggleReady = async () => {
+    const res = await secureFetch(`/api/games/${gameData.link}/player/ready`, {
+      method: "POST",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setIsReady(data.ready);
+    } else {
+      setToastMessage("Unable to toggle readiness.");
+    }
+  };
 
   const handleTileSelect = (tile: [number, number] | null) => {
     const liveUnits = placedUnitsRef.current;
@@ -204,6 +257,7 @@ export default function GamePage() {
   const isHost = userId === gameData?.host_id;
   const isFull = gameData?.players?.length >= gameData?.max_players;
   const hostPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.host_id);
+  const allPlayersReady = gameData?.players?.every((p: any) => p.is_ready === true);
 
   return (
     <div className="p-8 text-white flex flex-row items-start gap-6">
@@ -219,32 +273,64 @@ export default function GamePage() {
         </h1>
 
         <p className="text-lg font-semibold mb-2 text-yellow-400">
-          {gameData?.status === "in_progress"
-            ? "Game in progress..."
-            : gameData?.status === "preparation"
-            ? "Preparation phase — pick your team!" 
-            : gameData?.status === "closed" && isHost
-            ? "Players have been found!"
-            : !isFull
-            ? "Waiting for players..."
-            : "Waiting for host to start the match..."}
+          {gameData?.status === "in_progress" ? (
+            "Game in progress..."
+          ) : gameData?.status === "preparation" ? (
+            allPlayersReady ? (
+              isHost
+                ? "All players are ready. Start the game when you're ready!"
+                : "All players are ready. Waiting for the host to start the game…"
+            ) : isReady ? (
+              "You're ready! Waiting on other players..."
+            ) : (
+              "Preparation phase — pick your team!"
+            )
+          ) : gameData?.status === "closed" && isHost ? (
+            "Players have been found!"
+          ) : !isFull ? (
+            "Waiting for players..."
+          ) : (
+            "Waiting for host to start the match..."
+          )}
         </p>
 
         {isHost && gameData?.status !== "in_progress" && gameData?.status !== "preparation" && (
-          <button className="mt-2 mb-4 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50" disabled={!isFull} onClick={handleStartGame}>
+          <button
+            className="mt-2 mb-4 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            disabled={!isFull}
+            onClick={handleStartGame}
+          >
+            Start Game
+          </button>
+        )}
+        {isHost && isPreparationPhase && (
+          <button
+            className="mt-2 mb-4 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            disabled={!allPlayersReady}
+            onClick={handleStartGame}
+          >
             Start Game
           </button>
         )}
 
-        {gameData && ["preparation", "in_progress"].includes(gameData.status) && (
+        {gameData?.status === "preparation" && (
           <div className="flex items-center justify-start gap-8 mb-2">
             <div className="text-white font-semibold">
               Cash: <span className="text-green-400">${cash}</span>
             </div>
-            <div className="text-white font-semibold">
+            <div className="flex items-center gap-4 text-white font-semibold">
               Units: <span className={placedUnits.length >= unitLimit ? "text-red-400" : "text-yellow-300"}>
                 {placedUnits.length}/{unitLimit}
               </span>
+              <button
+                onClick={handleToggleReady}
+                disabled={placedUnits.length === 0}
+                className={`px-3 py-1 text-sm rounded ${
+                  placedUnits.length === 0 ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                Ready
+              </button>
             </div>
           </div>
         )}
@@ -256,6 +342,8 @@ export default function GamePage() {
             <div
               key={idx}
               onClick={async () => {
+                if (isReady) return;
+                
                 const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${id}`, { method: "DELETE" });
                 if (res.ok) {
                   setPlacedUnits((prev) => prev.filter((_, i) => i !== idx));
@@ -290,10 +378,11 @@ export default function GamePage() {
           <ConquestGame
             gameData={gameData}
             userId={userId!}
-            onTileSelect={handleTileSelect}
+            onTileSelect={isReady ? () => {} : handleTileSelect}
             selectedTile={selectedTile}
             selectedUnit={null}
             occupiedTile={null}
+            isReady={isReady}
           />
         )}
         {gameData?.gamemode === "War" && <WarGame gameData={gameData} userId={userId!} />}
@@ -322,7 +411,7 @@ export default function GamePage() {
                     current_hp: unit.base_stats.hp || 100,
                     stat_boosts: {},
                     status_effects: [],
-                    fainted: false,
+                    is_fainted: false,
                   };
 
                   const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {

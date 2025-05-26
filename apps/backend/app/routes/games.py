@@ -27,7 +27,8 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
             id=ps.id,
             player_id=ps.player_id,
             cash_remaining=ps.cash_remaining,
-            username=u.username
+            username=u.username,
+            is_ready=ps.is_ready
         ))
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
@@ -173,7 +174,8 @@ def create_game(
             id=player_state.id,
             player_id=user.id,
             cash_remaining=player_state.cash_remaining,
-            username=user.username  # ✅ add username
+            username=user.username,
+            is_ready=player_state.is_ready
         )],
         winner_id=game_state.winner_id,
         gamemode=new_game.gamemode,
@@ -235,7 +237,8 @@ def join_game(
             id=ps.id,
             player_id=ps.player_id,
             cash_remaining=ps.cash_remaining,
-            username=user_obj.username  # ✅ add username
+            username=user_obj.username,
+            is_ready=ps.is_ready
         ))
 
     return GameResponse(
@@ -280,15 +283,25 @@ def start_game(
     if len(game_state.players) < game.max_players:
         raise HTTPException(status_code=400, detail="Game not full")
 
-    game_state.status = (
-        GameStatus.preparation
-        if game.gamemode in ["Conquest", "Capture The Flag"]
-        else GameStatus.in_progress
-    )
-
-    db.commit()
-    redis_client.publish(f"game_updates:{game.link}", "game_started")
-    return {"detail": "Game started"}
+    # Consolidated logic for all modes
+    if game.gamemode in ["Conquest", "Capture The Flag"]:
+        if game_state.status == GameStatus.closed:
+            game_state.status = GameStatus.preparation
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "game_preparation")
+            return {"detail": "Game moved to preparation phase"}
+        elif game_state.status == GameStatus.preparation:
+            game_state.status = GameStatus.in_progress
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "game_started")
+            return {"detail": "Game started"}
+        else:
+            raise HTTPException(status_code=400, detail="Game already in progress or completed")
+    else:
+        game_state.status = GameStatus.in_progress
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_started")
+        return {"detail": "Game started"}
 
 @router.get("/{link}", response_model=GameResponse)
 def get_game_by_link(
@@ -313,7 +326,8 @@ def get_game_by_link(
             id=ps.id,
             player_id=ps.player_id,
             cash_remaining=ps.cash_remaining,
-            username=user_obj.username  # ✅ add username
+            username=user_obj.username,
+            is_ready=ps.is_ready
         ))
 
     return GameResponse(
@@ -353,9 +367,37 @@ def get_player_state(
 
     return {
         "cash_remaining": state.cash_remaining,
-        "game_units": state.game_units
+        "game_units": state.game_units,
+        "is_ready": state.is_ready
     }
 
+@router.post("/{link}/player/ready")
+def toggle_ready_state(
+    link: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter_by(link=link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if game.gamemode not in ["Conquest", "Capture The Flag"]:
+        raise HTTPException(status_code=400, detail="This game mode does not support readiness toggling")
+
+    game_state = db.query(GameState).filter_by(game_id=game.id).first()
+    if game_state.status != GameStatus.preparation:
+        raise HTTPException(status_code=400, detail="You may only toggle readiness during the preparation phase")
+
+    player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player_state:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Toggle the boolean
+    player_state.is_ready = not player_state.is_ready
+    db.commit()
+
+    redis_client.publish(f"game_updates:{game.link}", "player_ready")
+    return {"ready": player_state.is_ready}
 
 @router.get("/{link}/units", response_model=List[GameUnitSchema])
 def get_game_units(
@@ -402,7 +444,7 @@ def place_unit(
         current_hp=unit_data.current_hp,
         stat_boosts=unit_data.stat_boosts,
         status_effects=unit_data.status_effects,
-        fainted=unit_data.fainted,
+        is_fainted=unit_data.is_fainted,
     )
     db.add(new_unit)
     db.flush()  # Get new_unit.id before assigning
