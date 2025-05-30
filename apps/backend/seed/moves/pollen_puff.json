@@ -1,0 +1,20 @@
+{
+  "id": 676,
+  "name": "Pollen Puff",
+  "description": "The user attacks the enemy with a pollen puff that explodes. If the target is an ally, it gives the ally a pollen puff that restores its HP instead.",
+  "type": "Bug",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["conditional_replace_with_heal:target_is_ally:0.5:max_hp"]
+}

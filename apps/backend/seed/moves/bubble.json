@@ -1,0 +1,20 @@
+{
+  "id": 145,
+  "name": "Bubble",
+  "description": "A spray of countless bubbles is jetted at the opposing team. It may also lower the targets' Speed stats.",
+  "type": "Water",
+  "category": "Special",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 30,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:speed:-1:3:10"]
+}

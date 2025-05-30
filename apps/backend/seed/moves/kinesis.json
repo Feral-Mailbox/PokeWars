@@ -1,0 +1,19 @@
+{
+  "id": 134,
+  "name": "Kinesis",
+  "description": "The user distracts the target by bending a spoon. It sharply lowers the target's accuracy.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 15,
+  "accuracy": 80,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:accuracy:-2:3"]
+}

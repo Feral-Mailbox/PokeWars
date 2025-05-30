@@ -1,0 +1,20 @@
+{
+  "id": 172,
+  "name": "Flame Wheel",
+  "description": "The user cloaks itself in fire and charges at the target. It may also leave the target with a burn.",
+  "type": "Fire",
+  "category": "Physical",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 25,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:burn:10", "self:thaw_if_frozen"]
+}

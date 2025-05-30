@@ -1,0 +1,20 @@
+{
+  "id": 91,
+  "name": "Dig",
+  "description": "The user burrows, then attacks on the second turn.",
+  "type": "Ground",
+  "category": "Physical",
+  "power": 160,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["delayed_hit:1", "self:apply_state:underground:1"]
+}

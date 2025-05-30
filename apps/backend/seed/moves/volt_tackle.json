@@ -1,0 +1,25 @@
+{
+  "id": 344,
+  "name": "Volt Tackle",
+  "description": "The user electrifies itself, then charges, which may leave its targets with paralysis. This also lowers the user's range and defenses until its next turn.",
+  "type": "Electric",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "dash_attack_sweep",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:paralysis:10",
+    "self:defense:-1:1",
+    "self:sp_defense:-1:1",
+    "self:range:1:1"
+  ]
+}

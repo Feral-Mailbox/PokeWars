@@ -1,0 +1,20 @@
+{
+  "id": 510,
+  "name": "Incinerate",
+  "description": "The user attacks the target with fire. If the target is holding a Berry, the Berry becomes burnt up and unusable.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:destroy_item:type:berry"]
+}

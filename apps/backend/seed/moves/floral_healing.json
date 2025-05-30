@@ -1,0 +1,18 @@
+{
+  "id": 666,
+  "name": "Floral Healing",
+  "description": "The user restores its own HP. The amount of HP regained varies with the weather, and restores even more during the night.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "ally",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:heal:0.5:max_hp"]
+}

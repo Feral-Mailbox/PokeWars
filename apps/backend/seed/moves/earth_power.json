@@ -1,0 +1,20 @@
+{
+  "id": 414,
+  "name": "Earth Power",
+  "description": "The user makes the ground under the target erupt with power. It may also lower the target's Sp. Def.",
+  "type": "Ground",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "bomb:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:special_defense:-1:3:10"]
+}

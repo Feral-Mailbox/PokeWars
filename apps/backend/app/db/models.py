@@ -194,6 +194,25 @@ class GameUnit(Base):
     owner = relationship("User", back_populates="game_units")
 
 # ======================
+# TEMPORARY STATE
+# ======================
+class TemporaryState(Base):
+    __tablename__ = "temporary_states"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)  # e.g. "airborne"
+    description = Column(String, nullable=True)
+
+    default_duration = Column(Integer, nullable=True)
+
+    vulnerable_to = Column(MutableList.as_mutable(JSON), default=list)
+
+    immune_to_damage = Column(Boolean, default=False)
+    immune_to_status = Column(Boolean, default=False)
+    disables_targeting = Column(Boolean, default=False)
+    can_collide = Column(Boolean, default=False)
+
+# ======================
 # USER-UNIT RELATION
 # ======================
 class UserUnit(Base):
@@ -211,13 +230,36 @@ class Move(Base):
     __tablename__ = "moves"
 
     id = Column(Integer, primary_key=True)
+    
+    # Core move details
     name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
     type = Column(String, nullable=False)
     category = Column(String, nullable=False)
+
+    # Gameplay mechanics
     power = Column(Integer, nullable=True)
     accuracy = Column(Integer, nullable=True)
     pp = Column(Integer, nullable=True)
-    description = Column(String, nullable=True)
+
+    # Move effects
+    makes_contact = Column(Boolean, nullable=True, default=False)
+    affected_by_protect = Column(Boolean, nullable=True, default=False)
+    affected_by_magic_coat = Column(Boolean, nullable=True, default=False)
+    affected_by_snatch = Column(Boolean, nullable=True, default=False)
+    affected_by_mirror_move = Column(Boolean, nullable=True, default=False)
+    affected_by_kings_rock = Column(Boolean, nullable=True, default=False)
+
+    # Tactical attributes
+    range = Column(String, nullable=True)
+    targeting = Column(String, nullable=True, default="enemy")
+    cooldown = Column(Integer, nullable=True)
+
+    # Special effects
+    effects = Column(MutableList.as_mutable(JSON), default=list)  # e.g. ["burn", "lower_defense"]
+
+    def __repr__(self):
+        return f"<Move(name={self.name}, type={self.type}, power={self.power})>"
 
 # ======================
 # ABILITIES

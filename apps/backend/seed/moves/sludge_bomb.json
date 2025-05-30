@@ -1,0 +1,20 @@
+{
+  "id": 188,
+  "name": "Sludge Bomb",
+  "description": "Unsanitary sludge is hurled at the target. It may also poison the target.",
+  "type": "Poison",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "x_attack:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:poison:30"]
+}

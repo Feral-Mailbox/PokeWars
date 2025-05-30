@@ -1,0 +1,20 @@
+{
+  "id": 452,
+  "name": "Wood Hammer",
+  "description": "The user slams its rugged body into the target to attack. The user also sustains serious damage.",
+  "type": "Grass",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:recoil:0.33"]
+}

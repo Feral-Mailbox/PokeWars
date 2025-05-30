@@ -1,0 +1,20 @@
+{
+  "id": 348,
+  "name": "Leaf Blade",
+  "description": "The user handles a sharp leaf like a sword and attacks by cutting its target. Critical hits land more easily.",
+  "type": "Grass",
+  "category": "Physical",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["high_crit_rate"]
+}

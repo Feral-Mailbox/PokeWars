@@ -1,0 +1,18 @@
+{
+  "id": 18,
+  "name": "Whirlwind",
+  "description": "The target is blown away. If it collides with another Pokémon, both will be dealt a miniscule amount of damage.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:knockback:10"]
+}

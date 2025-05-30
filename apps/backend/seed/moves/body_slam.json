@@ -1,0 +1,20 @@
+{
+  "id": 34,
+  "name": "Body Slam",
+  "description": "The user drops onto the target with its full body weight. It may also leave the target with paralysis.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 85,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:paralysis:30"]
+}

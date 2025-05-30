@@ -1,0 +1,18 @@
+{
+  "id": 95,
+  "name": "Hypnosis",
+  "description": "The user employs hypnotic suggestion to make the target fall into a deep sleep.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 20,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": []
+}

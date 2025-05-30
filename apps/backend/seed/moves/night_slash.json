@@ -1,0 +1,20 @@
+{
+  "id": 400,
+  "name": "Night Slash",
+  "description": "The user slashes the target the instant an opportunity arises. Critical hits land more easily.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["high_crit_rate"]
+}

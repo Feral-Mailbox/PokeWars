@@ -1,0 +1,20 @@
+{
+  "id": 529,
+  "name": "Drill Run",
+  "description": "The user crashes into its target while rotating its body like a drill. Critical hits land more easily.",
+  "type": "Ground",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 95,
+  "pp": 10,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["high_crit_rate"]
+}

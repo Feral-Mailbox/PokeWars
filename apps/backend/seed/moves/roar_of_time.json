@@ -1,0 +1,22 @@
+{
+  "id": 459,
+  "name": "Roar of Time",
+  "description": "The user blasts the target with power that distorts even time. The user cannot move on the next turn.",
+  "type": "Dragon",
+  "category": "Special",
+  "power": 150,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "blast:1",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:range:0:1"
+  ]
+}

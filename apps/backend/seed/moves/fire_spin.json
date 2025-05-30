@@ -1,0 +1,22 @@
+{
+  "id": 83,
+  "name": "Fire Spin",
+  "description": "The targets becomes trapped within a fierce vortex of fire. Hits 4 to 5 times in one turn and may prevent the targets from moving during their next turn.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 20,
+  "accuracy": 85,
+  "pp": 15,
+  "range": "ranged_pulse",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:4:5",
+    "target:trap:1:20"]
+}

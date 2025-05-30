@@ -1,0 +1,23 @@
+{
+  "id": 41,
+  "name": "Twineedle",
+  "description": "The user damages the target twice in succession by jabbing it with two spikes. It may also poison the target.",
+  "type": "Bug",
+  "category": "Physical",
+  "power": 25,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:2",
+    "target:poison:20"
+  ]
+}

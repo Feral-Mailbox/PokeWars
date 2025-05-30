@@ -1,0 +1,20 @@
+{
+  "id": 425,
+  "name": "Shadow Sneak",
+  "description": "The user extends its shadow and attacks the target from behind. This move also raises the user's speed.",
+  "type": "Ghost",
+  "category": "Physical",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 30,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:speed:+1:3"]
+}

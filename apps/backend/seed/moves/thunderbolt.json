@@ -1,0 +1,22 @@
+{
+  "id": 85,
+  "name": "Thunderbolt",
+  "description": "A strong electric blast is loosed at the target. It may also leave the target with paralysis.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "sweep:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:paralysis:10"
+  ]
+}

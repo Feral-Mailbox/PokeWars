@@ -1,0 +1,20 @@
+{
+  "id": 591,
+  "name": "Diamond Storm",
+  "description": "The user whips up a storm of diamonds to damage opposing Pokémon. This may also sharply raise the user's Defense stat.",
+  "type": "Rock",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:defense:+2:3:50"]
+}

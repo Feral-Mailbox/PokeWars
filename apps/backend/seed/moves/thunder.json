@@ -1,0 +1,23 @@
+{
+  "id": 87,
+  "name": "Thunder",
+  "description": "A wicked thunderbolt is dropped on the target to inflict damage. It may also leave the target with paralysis.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 110,
+  "accuracy": 70,
+  "pp": 10,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "weather_effect:accuracy:100",
+    "target:paralysis:30"
+  ]
+}

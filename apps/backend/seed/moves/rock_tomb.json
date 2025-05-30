@@ -1,0 +1,20 @@
+{
+  "id": 317,
+  "name": "Rock Tomb",
+  "description": "Boulders are hurled at the target. It also lowers the target's range by one tile.",
+  "type": "Rock",
+  "category": "Physical",
+  "power": 60,
+  "accuracy": 95,
+  "pp": 15,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:range:-1:1"]
+}

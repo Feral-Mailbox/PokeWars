@@ -1,0 +1,20 @@
+{
+  "id": 449,
+  "name": "Judgment",
+  "description": "The user releases countless shots of light at the target. Its type varies with the kind of Plate the user is holding.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "pulse:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:modify_move_type_by_held_item:plate"]
+}

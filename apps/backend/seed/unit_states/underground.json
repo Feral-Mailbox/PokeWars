@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "name": "underground",
+  "description": "The unit is digging underground and cannot be hit by most moves. Vulnerable only to certain seismic attacks.",
+  "default_duration": 1,
+  "vulnerable_to": {
+    "Earthquake": 2,
+    "Magnitude": 2,
+    "Fissure": 1
+  },
+  "immune_to_damage": true,
+  "immune_to_status": true,
+  "disables_targeting": true,
+  "can_collide": false
+}

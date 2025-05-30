@@ -1,0 +1,19 @@
+{
+  "id": 486,
+  "name": "Electro Ball",
+  "description": "The user hurls an electric orb at the target. The faster the user is than the target, the greater the damage.",
+  "type": "Electric",
+  "category": "Special",
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["conditional_power:speed_ratio:scaling:1"]
+}

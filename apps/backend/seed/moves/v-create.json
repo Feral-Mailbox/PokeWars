@@ -1,0 +1,24 @@
+{
+  "id": 557,
+  "name": "V-Create",
+  "description": "With a hot flame on its forehead, the user hurls itself at its target. It lowers the user's Defense, Sp. Def, and Speed stats.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 180,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "dash_attack_sides",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:defense:-1:1",
+    "self:sp_defense:-1:1",
+    "self:range:1:1"
+  ]
+}

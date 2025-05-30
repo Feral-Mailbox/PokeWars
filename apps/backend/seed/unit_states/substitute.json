@@ -1,0 +1,11 @@
+{
+  "id": 4,
+  "name": "substitute",
+  "description": "The unit has created a decoy that absorbs damage and prevents status effects.",
+  "default_duration": null,
+  "immune_to_damage": false,
+  "immune_to_status": true,
+  "vulnerable_to": {},
+  "disables_targeting": false,
+  "can_collide": true
+}

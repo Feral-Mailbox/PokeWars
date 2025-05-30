@@ -1,8 +1,8 @@
 """init
 
-Revision ID: 0f943a0c79e0
+Revision ID: bb8959373700
 Revises: 
-Create Date: 2025-05-25 21:50:02.363258
+Create Date: 2025-05-30 05:15:05.331216
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0f943a0c79e0'
+revision: str = 'bb8959373700'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,12 +31,35 @@ def upgrade() -> None:
     op.create_table('moves',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('description', sa.String(), nullable=True),
     sa.Column('type', sa.String(), nullable=False),
     sa.Column('category', sa.String(), nullable=False),
     sa.Column('power', sa.Integer(), nullable=True),
     sa.Column('accuracy', sa.Integer(), nullable=True),
     sa.Column('pp', sa.Integer(), nullable=True),
+    sa.Column('makes_contact', sa.Boolean(), nullable=True),
+    sa.Column('affected_by_protect', sa.Boolean(), nullable=True),
+    sa.Column('affected_by_magic_coat', sa.Boolean(), nullable=True),
+    sa.Column('affected_by_snatch', sa.Boolean(), nullable=True),
+    sa.Column('affected_by_mirror_move', sa.Boolean(), nullable=True),
+    sa.Column('affected_by_kings_rock', sa.Boolean(), nullable=True),
+    sa.Column('range', sa.String(), nullable=True),
+    sa.Column('targeting', sa.String(), nullable=True),
+    sa.Column('cooldown', sa.Integer(), nullable=True),
+    sa.Column('effects', sa.JSON(), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
+    )
+    op.create_table('temporary_states',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=True),
+    sa.Column('default_duration', sa.Integer(), nullable=True),
+    sa.Column('vulnerable_to', sa.JSON(), nullable=True),
+    sa.Column('immune_to_damage', sa.Boolean(), nullable=True),
+    sa.Column('immune_to_status', sa.Boolean(), nullable=True),
+    sa.Column('disables_targeting', sa.Boolean(), nullable=True),
+    sa.Column('can_collide', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
@@ -194,6 +217,7 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_table('units')
     op.drop_table('tournaments')
+    op.drop_table('temporary_states')
     op.drop_table('moves')
     op.drop_table('abilities')
     # ### end Alembic commands ###

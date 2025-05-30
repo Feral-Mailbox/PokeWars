@@ -1,0 +1,20 @@
+{
+  "id": 362,
+  "name": "Brine",
+  "description": "If the target's HP is down to about half, this attack will hit with double the power.",
+  "type": "Water",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["conditional_power:target_below_50_percent_hp:2"]
+}

@@ -1,0 +1,23 @@
+{
+  "id": 301,
+  "name": "Ice Ball",
+  "description": "The user continually rolls into the target over five turns. It becomes stronger each time it hits.",
+  "type": "Ice",
+  "category": "Physical",
+  "power": 30,
+  "accuracy": 90,
+  "pp": 20,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "stacking_power:condition:successive_hits:base:30:mode:double:max:150",
+    "self:power_multiplier_if_state:defense_curl:2"
+  ]
+}

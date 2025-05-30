@@ -1,0 +1,21 @@
+{
+  "id": 248,
+  "name": "Future Sight",
+  "description": "Two turns after this move is used, a hunk of psychic energy attacks the target.",
+  "type": "Psychic",
+  "category": "Special",
+  "accuracy": 100,
+  "pp": 10,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "delayed_attack:2:type:Psychic:category:Special:power:120"
+  ]
+}

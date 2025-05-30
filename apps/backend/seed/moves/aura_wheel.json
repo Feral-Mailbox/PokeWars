@@ -1,0 +1,24 @@
+{
+  "id": 783,
+  "name": "Aura Wheel",
+  "description": "The user attacks and boosts its Speed stat with the energy stored in its cheeks. This move's type changes depending on the user's form.",
+  "type": "Electric",
+  "category": "Physical",
+  "power": 110,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:speed:+1:3",
+    "self:modify_move_type_by_form",
+    "self:switch_form:alternate"
+  ]
+}

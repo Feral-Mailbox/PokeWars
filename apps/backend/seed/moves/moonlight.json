@@ -1,0 +1,22 @@
+{
+  "id": 236,
+  "name": "Moonlight",
+  "description": "The user restores its own HP. The amount of HP regained varies with the weather, and restores even more during the night.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 5,
+  "targeting": "self",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:conditional_heal:weather:sun:0.5:max_hp",
+    "self:conditional_heal:weather:none:0.25:max_hp",
+    "self:conditional_heal:weather:other:0.125:max_hp",
+    "self:conditional_heal:time:night:0.5:max_hp"
+  ]
+}

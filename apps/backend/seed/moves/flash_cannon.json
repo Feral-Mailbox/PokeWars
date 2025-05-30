@@ -1,0 +1,20 @@
+{
+  "id": 430,
+  "name": "Flash Cannon",
+  "description": "The user gathers all its light energy and releases it at once. It may also lower the target's Sp. Def stat.",
+  "type": "Steel",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "bomb:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:burn:10", "self:thaw_if_frozen"]
+}

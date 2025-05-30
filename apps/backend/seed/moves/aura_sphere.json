@@ -1,0 +1,19 @@
+{
+  "id": 396,
+  "name": "Aura Sphere",
+  "description": "The user looses a blast of aura power from deep within its body at the target. This move is certain to hit, and knocks the target back.",
+  "type": "Fighting",
+  "category": "Special",
+  "power": 80,
+  "pp": 20,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:knockback:1"]
+}

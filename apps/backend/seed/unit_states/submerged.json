@@ -1,0 +1,15 @@
+{
+  "id": 3,
+  "name": "submerged",
+  "description": "The unit dives underwater and avoids most attacks. Can still be hit by certain water-based moves.",
+  "default_duration": 1,
+  "immune_to_damage": true,
+  "immune_to_status": true,
+  "vulnerable_to": {
+    "Surf": 1,
+    "Whirlpool": 1,
+    "Dive": 1
+  },
+  "disables_targeting": true,
+  "can_collide": false
+}

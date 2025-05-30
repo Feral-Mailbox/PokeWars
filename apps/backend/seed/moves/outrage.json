@@ -1,0 +1,24 @@
+{
+  "id": 200,
+  "name": "Outrage",
+  "description": "The user rampages and attacks two to three times. It cannot move on the next turn, and has a chance to become confused.",
+  "type": "Dragon",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:2:3",
+    "self:range:0:1",
+    "self:confuse:50"
+  ]
+}

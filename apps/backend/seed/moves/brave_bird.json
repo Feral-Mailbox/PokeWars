@@ -1,0 +1,24 @@
+{
+  "id": 413,
+  "name": "Brave Bird",
+  "description": "The user tucks in its wings and charges from a low altitude. Lowers the user's range and defenses until its next turn.",
+  "type": "Flying",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "dash_attack_sides",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:defense:-1:1",
+    "self:sp_defense:-1:1",
+    "self:range:1:1"
+  ]
+}

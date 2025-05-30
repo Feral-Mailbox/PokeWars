@@ -1,0 +1,20 @@
+{
+  "id": 539,
+  "name": "Night Daze",
+  "description": "The user lets loose a pitch-black shock wave at its target. It may also lower the target's accuracy.",
+  "type": "Dark",
+  "category": "Special",
+  "power": 85,
+  "accuracy": 95,
+  "pp": 10,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:accuracy:-1:3:40"]
+}

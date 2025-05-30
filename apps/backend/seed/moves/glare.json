@@ -1,0 +1,18 @@
+{
+  "id": 137,
+  "name": "Glare",
+  "description": "The user intimidates the target with the pattern on its belly to cause paralysis.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:paralysis:100"]
+}

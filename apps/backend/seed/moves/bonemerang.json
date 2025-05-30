@@ -1,0 +1,20 @@
+{
+  "id": 155,
+  "name": "Bonemerang",
+  "description": "The user throws the bone it holds. The bone loops to hit the target twice, coming and going.",
+  "type": "Ground",
+  "category": "Physical",
+  "power": 50,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "bomb:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["multi_hit:2"]
+}

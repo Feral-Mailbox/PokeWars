@@ -1,0 +1,20 @@
+{
+  "id": 221,
+  "name": "Sacred Fire",
+  "description": "The target is razed with a mystical fire of great intensity. It may also leave the target with a burn.",
+  "type": "Fire",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "inverted_cone:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:burn:50"]
+}

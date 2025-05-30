@@ -16,6 +16,7 @@ first-launch:
 	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) run --rm backend alembic upgrade head
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_official_maps.py
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_units.py
+	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_moves.py
 
 # === Lifecycle ===
 up:

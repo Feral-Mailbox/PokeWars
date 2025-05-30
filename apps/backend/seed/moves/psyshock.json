@@ -1,0 +1,20 @@
+{
+  "id": 473,
+  "name": "Psyshock",
+  "description": "The user materializes an odd psychic wave to attack the target. This attack does physical damage.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:use_stat:defense"]
+}

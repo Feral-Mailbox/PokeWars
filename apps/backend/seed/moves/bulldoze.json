@@ -1,0 +1,20 @@
+{
+  "id": 523,
+  "name": "Bulldoze",
+  "description": "The user stomps down on the ground and attacks everything in the area. Hit Pokémon's range is reduced by one tile.",
+  "type": "Ground",
+  "category": "Physical",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:range:-1:1"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 5,
+  "name": "Mega Punch",
+  "description": "The target is slugged by a punch thrown with muscle-packed power.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 85,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": []
+}

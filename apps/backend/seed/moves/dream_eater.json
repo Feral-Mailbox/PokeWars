@@ -1,0 +1,20 @@
+{
+  "id": 138,
+  "name": "Dream Eater",
+  "description": "An attack that works only on a sleeping foe. It absorbs half the damage caused to heal the user's HP.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:drain:1:condition:asleep"]
+}

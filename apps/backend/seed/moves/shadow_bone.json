@@ -1,0 +1,20 @@
+{
+  "id": 708,
+  "name": "Shadow Bone",
+  "description": "The user attacks by beating the target with a bone that contains a spirit. This may also lower the target's Defense stat.",
+  "type": "Ghost",
+  "category": "Physical",
+  "power": 85,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:defense:-1:3:20"]
+}

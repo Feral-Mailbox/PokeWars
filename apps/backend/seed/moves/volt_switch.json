@@ -1,0 +1,23 @@
+{
+  "id": 521,
+  "name": "Volt Switch",
+  "description": "After making its attack, the user rushes back to switch places with the Pokémon behind it.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:knockback:1",
+    "self:swap_with_behind"
+  ]
+}

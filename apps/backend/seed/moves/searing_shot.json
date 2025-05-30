@@ -1,0 +1,20 @@
+{
+  "id": 545,
+  "name": "Searing Shot",
+  "description": "An inferno of scarlet flames torches everything around the user. It may leave the target with a burn.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "pulse:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:burn:30"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 61,
+  "name": "Bubble Beam",
+  "description": "A spray of bubbles is forcefully ejected at the opposing team. It may also lower their Speed stats.",
+  "type": "Water",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "line:2:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:speed:-1:3:10"]
+}

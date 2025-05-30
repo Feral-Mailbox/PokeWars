@@ -1,0 +1,20 @@
+{
+  "id": 439,
+  "name": "Rock Wrecker",
+  "description": "The user launches a huge boulder at the target to attack. It must rest on the next turn, however.",
+  "type": "Rock",
+  "category": "Physical",
+  "power": 150,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": []
+}

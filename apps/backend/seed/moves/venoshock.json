@@ -1,0 +1,20 @@
+{
+  "id": 474,
+  "name": "Venoshock",
+  "description": "The user drenches the target in a special poisonous liquid. Its power is doubled if the target is poisoned.",
+  "type": "Poison",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "sweep:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["conditional_power:target_status:poison:2"]
+}

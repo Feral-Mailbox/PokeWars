@@ -1,0 +1,20 @@
+{
+  "id": 1,
+  "name": "airborne",
+  "description": "The unit is flying in the air and may avoid most attacks. Vulnerable to specific anti-air moves.",
+  "default_duration": 1,
+  "vulnerable_to": {
+    "Swift": 1,
+    "Gust": 2,
+    "Thunder": 1,
+    "Twister": 2,
+    "Whirlwind": 1,
+    "Sky Uppercut": 1,
+    "Hurricane": 1,
+    "Smack Down": 1
+  },
+  "immune_to_damage": true,
+  "immune_to_status": true,
+  "disables_targeting": true,
+  "can_collide": false
+}
