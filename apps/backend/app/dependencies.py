@@ -2,14 +2,11 @@
 from fastapi import Depends, Cookie, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db.models import User, SessionLocal
+from app.db.models import User
+from app.db.database import get_db as _get_db
 
 def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    yield from _get_db()
 
 def get_current_user(session_user: str = Cookie(default=None), db: Session = Depends(get_db)) -> User:
     if session_user is None:

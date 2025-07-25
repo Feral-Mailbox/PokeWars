@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Dict, Optional
 
 class UnitSummary(BaseModel):
@@ -11,8 +11,7 @@ class UnitSummary(BaseModel):
     cost: int
     base_stats: Dict[str, int]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UnitDetail(BaseModel):
     id: int
@@ -29,8 +28,7 @@ class UnitDetail(BaseModel):
     is_legendary: bool
     description: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GameUnitCreateRequest(BaseModel):
     unit_id: int
@@ -54,5 +52,4 @@ class GameUnitSchema(BaseModel):
     is_fainted: bool
     unit: UnitSummary
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

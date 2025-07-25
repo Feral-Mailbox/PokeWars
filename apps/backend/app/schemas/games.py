@@ -1,5 +1,5 @@
 from app.schemas.maps import MapDetail
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional, Any
 
@@ -21,15 +21,13 @@ class PlayerInfo(BaseModel):
     cash_remaining: int
     is_ready: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
 class HostInfo(BaseModel):
     id: int
     username: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GameResponse(BaseModel):
     id: int
@@ -52,8 +50,7 @@ class GameResponse(BaseModel):
     link: str
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GameStateSchema(BaseModel):
     id: int
@@ -63,6 +60,4 @@ class GameStateSchema(BaseModel):
     game_units: List[dict]
     cash_remaining: int
 
-    class Config:
-        from_attributes = True
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,7 +1,15 @@
 {
+  "compilerOptions": {
+    "types": ["vitest/globals", "vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  "include": ["src", "tests"]
 }

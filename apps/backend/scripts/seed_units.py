@@ -1,12 +1,15 @@
 import os
 import json
-from app.db.models import Unit, init_db, SessionLocal
+from app.db.models import Unit
+from app.db.database import get_sessionmaker
 from sqlalchemy.exc import IntegrityError
 
 UNITS_DIR = os.path.join(os.path.dirname(__file__), "../seed/units")
 
 def load_units():
+    SessionLocal = get_sessionmaker()
     db = SessionLocal()
+
     for filename in os.listdir(UNITS_DIR):
         if filename.endswith(".json"):
             path = os.path.join(UNITS_DIR, filename)

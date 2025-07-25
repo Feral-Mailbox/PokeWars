@@ -76,14 +76,13 @@ export default function UnitIdleSprite({
       return true;
     };
 
-    const fileExistsSilently = (url: string): Promise<boolean> => {
-      return new Promise((resolve) => {
+    const fileExistsSilently = (url: string): Promise<boolean> =>
+      new Promise((resolve) => {
         const img = new Image();
-        img.src = url;
         img.onload = () => resolve(true);
         img.onerror = () => resolve(false);
+        img.src = url;
       });
-    };
 
     const loadAssets = async () => {
       const origin = window.location.origin.replace(":5173", "");

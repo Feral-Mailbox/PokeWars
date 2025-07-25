@@ -114,8 +114,9 @@ const CreateGame = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Game Name */}
         <div>
-          <label className="block text-sm font-medium mb-1">Game Name</label>
+          <label htmlFor="gameName" className="block text-sm font-medium mb-1">Game Name</label>
           <input
+            id="gameName"
             type="text"
             value={gameName}
             onChange={(e) => setGameName(e.target.value)}

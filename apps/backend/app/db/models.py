@@ -5,7 +5,6 @@ from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import enum
-import os
 
 Base = declarative_base()
 
@@ -284,17 +283,3 @@ class Tournament(Base):
     bracket_info = Column(JSON)
     participants = Column(JSON)
     status = Column(Enum(TournamentStatus), default=TournamentStatus.upcoming)
-
-# ======================
-# DB INIT
-# =====================
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../.env"))
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set in .env")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def init_db():
-    Base.metadata.create_all(bind=engine)

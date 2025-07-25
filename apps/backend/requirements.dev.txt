@@ -4,6 +4,10 @@
 # Dev-only tools
 black
 pytest
+pytest-cov
+httpx
+pytest-mock
+testcontainers
 mypy
 watchfiles
 uvloop

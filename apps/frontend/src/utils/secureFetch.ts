@@ -1,24 +1,16 @@
-export async function secureFetch(
-  input: RequestInfo,
-  init?: RequestInit,
-  timeout: number = 5000
-): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  
-  try {
-    const res = await fetch(input, {
-      ...init,
-      credentials: "include", // super important for cookies
-    });
+export async function secureFetch(input: string | Request, init?: RequestInit) {
+  const isNode = typeof window === "undefined";
+  let finalInput: string | Request = input;
 
-    return res; // always return the raw response object
-  } catch (error) {
-    console.error("secureFetch error:", error);
-
-    // Return a fake response with ok=false so frontend doesn’t crash
-    return new Response(null, { status: 500, statusText: "Network Error" });
-  } finally {
-    clearTimeout(id);
+  if (typeof input === "string" && input.startsWith("/") && isNode) {
+    finalInput = "http://localhost:3000" + input;
   }
+
+  if (input instanceof Request && isNode && input.url.startsWith("/")) {
+    finalInput = new Request("http://localhost:3000" + input.url, input);
+  }
+
+  const res = await fetch(finalInput, init);
+
+  return res;
 }

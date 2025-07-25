@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 
-from app.db.models import User, SessionLocal
+from app.db.models import User
 from app.schemas.auth import RegisterRequest, LoginRequest, UserResponse
 from app.dependencies import get_db
 from app.utils.security import hash_password, verify_password

@@ -14,7 +14,7 @@
       "sp_defense": 80,
       "speed": 120
     },
-    "move_ids": [],
+    "move_ids": [827, 370],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,

@@ -1,11 +1,13 @@
 import os
 import json
-from app.db.models import Move, init_db, SessionLocal
+from app.db.models import Move
+from app.db.database import get_sessionmaker
 from sqlalchemy.exc import IntegrityError
 
 MOVES_DIR = os.path.join(os.path.dirname(__file__), "../seed/moves")
 
 def load_moves():
+    SessionLocal = get_sessionmaker()
     db = SessionLocal()
 
     for filename in os.listdir(MOVES_DIR):

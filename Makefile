@@ -17,6 +17,11 @@ first-launch:
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_official_maps.py
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_units.py
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_moves.py
+	@if [ "$$RUN_TESTS" = "1" ]; then \
+		$(MAKE) test; \
+	else \
+		echo "Skipping tests (set RUN_TESTS=1 to enable)"; \
+	fi
 
 # === Lifecycle ===
 up:
@@ -60,4 +65,16 @@ shell:
 dev-shell:
 	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) exec backend /bin/sh
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db
+# === Tests ===
+test: test-backend test-frontend test-infrastructure 
+
+test-backend:
+	PYTHONPATH=apps/backend pytest tests/backend --cov=app
+
+test-frontend:
+	cd apps/frontend && npx vitest run --coverage
+
+test-infrastructure:
+	pytest tests/infrastructure
+
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db test test-backend test-frontend

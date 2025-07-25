@@ -1,12 +1,15 @@
 import os
 import json
-from app.db.models import Map, init_db, SessionLocal
+from app.db.models import Map
+from app.db.database import get_sessionmaker
 from sqlalchemy.exc import IntegrityError
 
 MAPS_DIR = os.path.join(os.path.dirname(__file__), "../seed/maps")
 
 def load_maps():
+    SessionLocal = get_sessionmaker()
     db = SessionLocal()
+    
     for filename in os.listdir(MAPS_DIR):
         if filename.endswith(".json"):
             with open(os.path.join(MAPS_DIR, filename), "r") as f:
