@@ -32,6 +32,23 @@ export default function GamePage() {
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
 
+  const PLAYER_COLORS: string[] = [
+    "#0000FF80", // Blue
+    "#FF000080", // Red
+    "#FFFF0080", // Yellow
+    "#00FF0080", // Green
+    "#88888880", // Gray
+    "#80008080", // Purple
+    "#FF00FF80", // Magenta
+    "#00FFFF80", // Cyan
+  ];
+
+  function getPlayerColor(playerId: number): string {
+    const index = gameData?.players?.findIndex((p: any) => p.player_id === playerId);
+    return index !== -1 && index < PLAYER_COLORS.length ? PLAYER_COLORS[index] : "#00000000";
+  }
+
+
   const handleStartGame = async () => {
     const res = await secureFetch(`/api/games/start/${gameData.id}`, { method: "POST" });
     if (res.ok) {
@@ -86,8 +103,9 @@ export default function GamePage() {
               types: u.unit.types,
               cost: u.unit.cost,
             },
-            current_hp: u.current_hp,
             tile: [u.x, u.y],
+            current_hp: u.current_hp,
+            user_id: u.user_id,
           }));
 
           setPlacedUnits(mapped);
@@ -339,7 +357,7 @@ export default function GamePage() {
         <div className="relative" style={{ width: mapWidth, height: mapHeight }}>
           <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
 
-          {placedUnits.map(({ id, unit, tile, current_hp }, idx) => (
+          {placedUnits.map(({ id, unit, tile, current_hp, user_id }, idx) => (
             <div
               key={idx}
               onClick={async () => {
@@ -361,8 +379,26 @@ export default function GamePage() {
                 cursor: "pointer",
               }}
             >
-              <div style={{ position: "relative", width: "100%", height: "100%" }}>
-                <UnitIdleSprite assetFolder={unit.asset_folder} onFrameSize={([, h]) => setSpriteHeight(h)} isMapPlacement />
+              <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "flex-end",
+                    justifyContent: "center",
+                    pointerEvents: "none",
+                  }}
+                >
+                </div>
+
+                <UnitIdleSprite
+                  assetFolder={unit.asset_folder}
+                  onFrameSize={([, h]) => setSpriteHeight(h)}
+                  isMapPlacement                  
+                  overlayColor={getPlayerColor(user_id)}
+                />
+
                 <div
                   style={{
                     position: "absolute",
@@ -370,14 +406,15 @@ export default function GamePage() {
                     right: 2,
                     fontSize: "10px",
                     color: "white",
+                    fontWeight: 600,
+                    zIndex: 2,
+                    pointerEvents: "none",
                     textShadow: `
-                      -1px -1px 0 #000, 
-                      1px -1px 0 #000, 
-                      -1px  1px 0 #000, 
+                      -1px -1px 0 #000,
+                      1px -1px 0 #000,
+                      -1px  1px 0 #000,
                       1px  1px 0 #000
                     `,
-                    pointerEvents: "none",
-                    fontWeight: 600,
                   }}
                 >
                   {current_hp ?? "?"}

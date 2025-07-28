@@ -4,12 +4,14 @@ interface UnitIdleSpriteProps {
   assetFolder: string;
   onFrameSize?: (size: [number, number]) => void;
   isMapPlacement?: boolean;
+  overlayColor?: string;
 }
 
 export default function UnitIdleSprite({
   assetFolder,
   onFrameSize,
   isMapPlacement,
+  overlayColor,
 }: UnitIdleSpriteProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [spriteImage, setSpriteImage] = useState<HTMLImageElement | null>(null);
@@ -145,6 +147,31 @@ export default function UnitIdleSprite({
       }
 
       ctx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
+
+      if (overlayColor) {
+        const frameCanvas = document.createElement("canvas");
+        frameCanvas.width = fw;
+        frameCanvas.height = fh;
+        const frameCtx = frameCanvas.getContext("2d")!;
+        frameCtx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
+
+        const imageData = frameCtx.getImageData(0, 0, fw, fh);
+        const data = imageData.data;
+
+        // Fill only parts of the overlay which are not transparent
+        for (let y = 0; y < fh; y++) {
+          for (let x = 0; x < fw; x++) {
+            const i = (y * fw + x) * 4;
+            const alpha = data[i + 3];
+            if (alpha > 0) {
+              ctx.fillStyle = overlayColor!;
+              ctx.globalAlpha = 0.7;
+              ctx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+        ctx.globalAlpha = 1.0;
+      }
 
       ctx.restore();
 
