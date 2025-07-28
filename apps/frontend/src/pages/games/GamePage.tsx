@@ -86,6 +86,7 @@ export default function GamePage() {
               types: u.unit.types,
               cost: u.unit.cost,
             },
+            current_hp: u.current_hp,
             tile: [u.x, u.y],
           }));
 
@@ -338,12 +339,11 @@ export default function GamePage() {
         <div className="relative" style={{ width: mapWidth, height: mapHeight }}>
           <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
 
-          {placedUnits.map(({ id, unit, tile }, idx) => (
+          {placedUnits.map(({ id, unit, tile, current_hp }, idx) => (
             <div
               key={idx}
               onClick={async () => {
                 if (isReady) return;
-                
                 const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${id}`, { method: "DELETE" });
                 if (res.ok) {
                   setPlacedUnits((prev) => prev.filter((_, i) => i !== idx));
@@ -361,7 +361,28 @@ export default function GamePage() {
                 cursor: "pointer",
               }}
             >
-              <UnitIdleSprite assetFolder={unit.asset_folder} onFrameSize={([, h]) => setSpriteHeight(h)} isMapPlacement />
+              <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                <UnitIdleSprite assetFolder={unit.asset_folder} onFrameSize={([, h]) => setSpriteHeight(h)} isMapPlacement />
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 1,
+                    right: 2,
+                    fontSize: "10px",
+                    color: "white",
+                    textShadow: `
+                      -1px -1px 0 #000, 
+                      1px -1px 0 #000, 
+                      -1px  1px 0 #000, 
+                      1px  1px 0 #000
+                    `,
+                    pointerEvents: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  {current_hp ?? "?"}
+                </div>
+              </div>
             </div>
           ))}
         </div>
