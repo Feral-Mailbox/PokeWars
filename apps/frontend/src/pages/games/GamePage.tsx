@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
+import UnitPortrait from "@/components/units/UnitPortrait";
 import UnitIdleSprite from "@/components/units/UnitIdleSprite";
 import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
@@ -22,6 +23,8 @@ export default function GamePage() {
   const [isReady, setIsReady] = useState<boolean>(false);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const placedUnitsRef = useRef(placedUnits);
@@ -43,11 +46,32 @@ export default function GamePage() {
     "#00FFFF80", // Cyan
   ];
 
+  const TYPE_COLORS: { [key: string]: string } = {
+    Normal: "#A8A77A",
+    Fire: "#EE8130",
+    Water: "#6390F0",
+    Electric: "#F7D02C",
+    Grass: "#7AC74C",
+    Ice: "#96D9D6",
+    Fighting: "#C22E28",
+    Poison: "#A33EA1",
+    Ground: "#E2BF65",
+    Flying: "#A98FF3",
+    Psychic: "#F95587",
+    Bug: "#A6B91A",
+    Rock: "#B6A136",
+    Ghost: "#735797",
+    Dragon: "#6F35FC",
+    Dark: "#705746",
+    Steel: "#B7B7CE",
+    Fairy: "#D685AD",
+  };
+
+
   function getPlayerColor(playerId: number): string {
     const index = gameData?.players?.findIndex((p: any) => p.player_id === playerId);
     return index !== -1 && index < PLAYER_COLORS.length ? PLAYER_COLORS[index] : "#00000000";
   }
-
 
   const handleStartGame = async () => {
     const res = await secureFetch(`/api/games/start/${gameData.id}`, { method: "POST" });
@@ -494,18 +518,25 @@ export default function GamePage() {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <UnitIdleSprite assetFolder={unit.asset_folder} />
-                  <div>
-                    <span>{unit.name}</span>{" "}
+                  <UnitPortrait assetFolder={unit.asset_folder} />
+                  <div className="leading-tight">
+                    <div className="font-semibold">{unit.name}</div>
                     {unit.types?.length > 0 && (
-                      <span>(
+                      <div className="text-sm text-gray-300">
+                        (
                         {unit.types.map((type: string, idx: number) => (
                           <span key={idx}>
-                            <span style={{ color: "#fff", fontWeight: 500 }}>{type}</span>
-                            {idx < unit.types.length - 1 && <span style={{ color: "#fff" }}>/</span>}
+                            <span
+                              className="font-medium"
+                              style={{ color: TYPE_COLORS[type] || "#fff" }}
+                            >
+                              {type}
+                            </span>
+                            {idx < unit.types.length - 1 && <span className="text-white">/</span>}
                           </span>
                         ))}
-                      )</span>
+                        )
+                      </div>
                     )}
                   </div>
                 </div>
