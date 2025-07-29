@@ -15,6 +15,7 @@ export default function GamePage() {
   const { gameId } = useParams();
   const [userId, setUserId] = useState<number | null>(null);
   const [gameData, setGameData] = useState<any>(null);
+  const [gamePlayers, setGamePlayers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
@@ -67,9 +68,9 @@ export default function GamePage() {
     Fairy: "#D685AD",
   };
 
-
   function getPlayerColor(playerId: number): string {
-    const index = gameData?.players?.findIndex((p: any) => p.player_id === playerId);
+    const playerOrder = gameData?.players.map(p => p.player_id) ?? [];
+    const index = playerOrder.indexOf(playerId);
     return index !== -1 && index < PLAYER_COLORS.length ? PLAYER_COLORS[index] : "#00000000";
   }
 
@@ -240,6 +241,8 @@ export default function GamePage() {
               cost: u.unit.cost,
             },
             tile: [u.x, u.y],
+            current_hp: u.current_hp,
+            user_id: u.user_id,
           }));
 
           setPlacedUnits(mapped);
@@ -508,11 +511,16 @@ export default function GamePage() {
                   }
 
                   const placedUnit = await res.json();
-                  setPlacedUnits((prev) => [...prev, {
-                    id: placedUnit.id,
-                    unit: placedUnit.unit,
-                    tile: [placedUnit.x, placedUnit.y],
-                  }]);
+                  setPlacedUnits((prev) => [
+                    ...prev,
+                    {
+                      id: placedUnit.id,
+                      unit: placedUnit.unit,
+                      tile: [placedUnit.x, placedUnit.y],
+                      current_hp: placedUnit.current_hp,
+                      user_id: placedUnit.user_id,
+                    }
+                  ]);
                   setCash((prev) => prev - unit.cost);
                   setSelectedTile(null);
                 }}
