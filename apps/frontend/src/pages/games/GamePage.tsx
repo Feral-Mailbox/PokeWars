@@ -15,17 +15,16 @@ export default function GamePage() {
   const { gameId } = useParams();
   const [userId, setUserId] = useState<number | null>(null);
   const [gameData, setGameData] = useState<any>(null);
-  const [gamePlayers, setGamePlayers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
+  const [activeUnit, setActiveUnit] = useState<any | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number] }[]>([]);
+  const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
-  const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const placedUnitsRef = useRef(placedUnits);
@@ -127,6 +126,8 @@ export default function GamePage() {
               name: u.unit.name,
               types: u.unit.types,
               cost: u.unit.cost,
+              base_stats: u.unit.base_stats,
+              move_ids: u.unit.move_ids,
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -194,6 +195,21 @@ export default function GamePage() {
   }, [isPreparationPhase]);
 
   useEffect(() => {
+    const fetchMoves = async () => {
+      const res = await secureFetch("/api/moves/all");
+      if (res.ok) {
+        const moves = await res.json();
+        const mapped: Record<number, any> = {};
+        for (const move of moves) {
+          mapped[move.id] = move;
+        }
+        setMoveMap(mapped);
+      }
+    };
+    fetchMoves();
+  }, []);
+
+  useEffect(() => {
     if (isReady) {
       setSelectedTile(null);
     }
@@ -239,6 +255,8 @@ export default function GamePage() {
               name: u.unit.name,
               types: u.unit.types,
               cost: u.unit.cost,
+              base_stats: u.unit.base_stats,
+              move_ids: u.unit.move_ids,
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -304,6 +322,12 @@ export default function GamePage() {
   const isFull = gameData?.players?.length >= gameData?.max_players;
   const hostPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.host_id);
   const allPlayersReady = gameData?.players?.every((p: any) => p.is_ready === true);
+
+  const placedUnitAtTile = selectedTile
+  ? placedUnits.find(
+      (u) => u.tile[0] === selectedTile[0] && u.tile[1] === selectedTile[1]
+    )
+  : null;
 
   return (
     <div className="p-8 text-white flex flex-row items-start gap-6">
@@ -388,12 +412,11 @@ export default function GamePage() {
             <div
               key={idx}
               onClick={async () => {
-                if (isReady) return;
-                const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${id}`, { method: "DELETE" });
-                if (res.ok) {
-                  setPlacedUnits((prev) => prev.filter((_, i) => i !== idx));
-                  setCash((prev) => prev + unit.cost);
-                  setSelectedTile(null);
+                if (gameData.status === "preparation") {
+                  if (isReady) return;
+                  setSelectedTile(tile);
+                } else if (gameData.status === "in_progress") {
+                  setActiveUnit(unit);
                 }
               }}
               style={{
@@ -474,84 +497,149 @@ export default function GamePage() {
         {gameData?.gamemode === "Capture The Flag" && <CaptureTheFlagGame gameData={gameData} userId={userId!} />}
       </div>
 
-      {isPreparationPhase && selectedTile && placedUnits.length < unitLimit && (
-        <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg">
-          <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
-          <ul className="max-h-64 overflow-y-auto space-y-1">
-            {availableUnits.map((unit) => (
-              <li
-                key={unit.id}
-                className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
-                onClick={async () => {
-                  if (!selectedTile) return;
-                  if (unit.cost > cash) {
-                    setToastMessage("You don't have enough cash to buy this unit!");
-                    return;
-                  }
-
-                  const payload = {
-                    unit_id: unit.id,
-                    x: selectedTile[0],
-                    y: selectedTile[1],
-                    current_hp: unit.base_stats.hp || 100,
-                    stat_boosts: {},
-                    status_effects: [],
-                    is_fainted: false,
-                  };
-
-                  const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                  });
-
-                  if (!res.ok) {
-                    setToastMessage("Failed to place unit.");
-                    return;
-                  }
-
-                  const placedUnit = await res.json();
-                  setPlacedUnits((prev) => [
-                    ...prev,
-                    {
-                      id: placedUnit.id,
-                      unit: placedUnit.unit,
-                      tile: [placedUnit.x, placedUnit.y],
-                      current_hp: placedUnit.current_hp,
-                      user_id: placedUnit.user_id,
-                    }
-                  ]);
-                  setCash((prev) => prev - unit.cost);
-                  setSelectedTile(null);
-                }}
-              >
+      {isPreparationPhase && selectedTile && (
+        <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
+          {placedUnits.some((u) => u.tile[0] === selectedTile[0] && u.tile[1] === selectedTile[1]) ? (
+            <>
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <UnitPortrait assetFolder={unit.asset_folder} />
-                  <div className="leading-tight">
-                    <div className="font-semibold">{unit.name}</div>
-                    {unit.types?.length > 0 && (
-                      <div className="text-sm text-gray-300">
-                        (
-                        {unit.types.map((type: string, idx: number) => (
-                          <span key={idx}>
-                            <span
-                              className="font-medium"
-                              style={{ color: TYPE_COLORS[type] || "#fff" }}
-                            >
-                              {type}
-                            </span>
-                            {idx < unit.types.length - 1 && <span className="text-white">/</span>}
-                          </span>
-                        ))}
-                        )
-                      </div>
-                    )}
-                  </div>
+                  <UnitPortrait assetFolder={placedUnitAtTile.unit.asset_folder} />
+                  <div className="font-semibold text-lg">{placedUnitAtTile.unit.name}</div>
                 </div>
-                <span>${unit.cost}</span>
-              </li>
-            ))}
-          </ul>
+                <div className="text-sm text-gray-300 font-medium">
+                  {placedUnitAtTile.current_hp ?? "?"}/{placedUnitAtTile.unit.base_stats?.hp ?? "?"}
+                </div>
+              </div>
+
+              {placedUnitAtTile.unit.types.map((type: string, idx: number) => (
+                <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
+                  {type}
+                  {idx < placedUnitAtTile.unit.types.length - 1 && <span className="text-white">/</span>}
+                </span>
+              ))}
+
+              {/* <div className="mb-2">
+                <span className="font-semibold">Status:</span>{" "}
+                {placedUnitAtTile?.status_effects?.length > 0
+                  ? placedUnitAtTile.status_effects.join(", ")
+                  : "None"}
+              </div> */}
+
+              <div className="grid grid-cols-2 gap-y-1 text-sm">
+                <div><span className="font-semibold">HP:</span> {placedUnitAtTile?.unit.base_stats?.hp ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {placedUnitAtTile?.unit.base_stats?.sp_attack ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {placedUnitAtTile?.unit.base_stats?.attack ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Def:</span> {placedUnitAtTile?.unit.base_stats?.sp_defense ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {placedUnitAtTile?.unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Speed:</span> {placedUnitAtTile?.unit.base_stats?.speed ?? "?"}</div>
+              </div>
+
+              {placedUnitAtTile?.unit.move_ids?.length > 0 && (
+                <div className="mt-3">
+                  <h3 className="text-md font-semibold mb-1">Moves:</h3>
+                  <ul className="space-y-2 text-sm">
+                    {placedUnitAtTile.unit.move_ids.map((id: number) => {
+                      const move = moveMap[id];
+                      if (!move) return null;
+                      return (
+                        <li key={id} className="border border-gray-600 p-2 rounded">
+                          <div className="flex justify-between font-bold">
+                            <span>{move.name}</span>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}>
+                              {move.type}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Power: {move.power ?? "—"}</span>
+                            <span>PP: {move.pp ?? "—"}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
+              <ul className="max-h-64 overflow-y-auto space-y-1">
+                {availableUnits.map((unit) => (
+                  <li
+                    key={unit.id}
+                    className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
+                    onClick={async () => {
+                      if (!selectedTile) return;
+                      if (unit.cost > cash) {
+                        setToastMessage("You don't have enough cash to buy this unit!");
+                        return;
+                      }
+
+                      const payload = {
+                        unit_id: unit.id,
+                        x: selectedTile[0],
+                        y: selectedTile[1],
+                        current_hp: unit.base_stats.hp || 100,
+                        stat_boosts: {},
+                        status_effects: [],
+                        is_fainted: false,
+                      };
+
+                      const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                      });
+
+                      if (!res.ok) {
+                        setToastMessage("Failed to place unit.");
+                        return;
+                      }
+
+                      const placedUnit = await res.json();
+                      setPlacedUnits((prev) => [
+                        ...prev,
+                        {
+                          id: placedUnit.id,
+                          unit: placedUnit.unit,
+                          tile: [placedUnit.x, placedUnit.y],
+                          current_hp: placedUnit.current_hp,
+                          user_id: placedUnit.user_id,
+                        }
+                      ]);
+                      setCash((prev) => prev - unit.cost);
+                      setSelectedTile(null);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <UnitPortrait assetFolder={unit.asset_folder} />
+                      <div className="leading-tight">
+                        <div className="font-semibold">{unit.name}</div>
+                        {unit.types?.length > 0 && (
+                          <div className="text-sm text-gray-300">
+                            (
+                            {unit.types.map((type: string, idx: number) => (
+                              <span key={idx}>
+                                <span
+                                  className="font-medium"
+                                  style={{ color: TYPE_COLORS[type] || "#fff" }}
+                                >
+                                  {type}
+                                </span>
+                                {idx < unit.types.length - 1 && <span className="text-white">/</span>}
+                              </span>
+                            ))}
+                            )
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span>${unit.cost}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
     </div>
