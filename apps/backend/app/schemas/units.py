@@ -10,6 +10,7 @@ class UnitSummary(BaseModel):
     types: List[str]
     cost: int
     base_stats: Dict[str, int]
+    move_ids: List[int]
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,6 +24,7 @@ class UnitDetail(BaseModel):
     types: List[str]
     base_stats: Dict[str, int]
     cost: int
+    move_ids: List[int]
     evolution_cost: Optional[int]
     evolves_into: Optional[List[int]]
     is_legendary: bool
