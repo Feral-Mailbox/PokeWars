@@ -17,17 +17,20 @@ export default function GamePage() {
   const [gameData, setGameData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
-  const [activeUnit, setActiveUnit] = useState<any | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number] }[]>([]);
+  const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
+  const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
+  const [lockedUnit, setLockedUnit] = useState<any | null>(null);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const placedUnitsRef = useRef(placedUnits);
+  const activeUnit = lockedUnit ?? hoveredUnit;
 
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
@@ -68,9 +71,7 @@ export default function GamePage() {
   };
 
   function getPlayerColor(playerId: number): string {
-    const playerOrder = gameData?.players.map(p => p.player_id) ?? [];
-    const index = playerOrder.indexOf(playerId);
-    return index !== -1 && index < PLAYER_COLORS.length ? PLAYER_COLORS[index] : "#00000000";
+    return playerColorMap[playerId] ?? "#00000000";
   }
 
   const handleStartGame = async () => {
@@ -91,6 +92,13 @@ export default function GamePage() {
         const data = await res.json();
         setGameData(data);
         setCash(data.starting_cash ?? 0);
+
+        const sorted = [...data.players].sort((a, b) => a.id - b.id);
+        const colorMap: Record<number, string> = {};
+        sorted.forEach((p, i) => {
+          colorMap[p.player_id] = PLAYER_COLORS[i] ?? "#00000000";
+        });
+        setPlayerColorMap(colorMap);
 
         const playerRes = await secureFetch(`/api/games/${data.link}/player`);
         if (playerRes.ok) {
@@ -214,6 +222,25 @@ export default function GamePage() {
       setSelectedTile(null);
     }
   }, [isReady]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const clickedEl = e.target as HTMLElement;
+      const clickedUnit = clickedEl.closest("[data-unit]");
+      const clickedMenu = clickedEl.closest("[data-unit-info]");
+
+      // If the click is NOT on a unit or on the menu, clear both
+      if (!clickedUnit && !clickedMenu) {
+        setLockedUnit(null);
+        setHoveredUnit(null); // ✅ hide if hovered only
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (!gameData?.link) return;
@@ -411,12 +438,27 @@ export default function GamePage() {
           {placedUnits.map(({ id, unit, tile, current_hp, user_id }, idx) => (
             <div
               key={idx}
-              onClick={async () => {
+              data-unit
+              onMouseEnter={() => {
+                if (gameData.status === "in_progress" && !lockedUnit) {
+                  setHoveredUnit({ ...unit, user_id, current_hp });
+                }
+              }}
+              onMouseLeave={() => {
+                if (gameData.status === "in_progress" && !lockedUnit) {
+                  setHoveredUnit(null);
+                }
+              }}
+              onClick={() => {
                 if (gameData.status === "preparation") {
                   if (isReady) return;
                   setSelectedTile(tile);
                 } else if (gameData.status === "in_progress") {
-                  setActiveUnit(unit);
+                  setLockedUnit(prev => {
+                    // Clicking again toggles off the lock
+                    const isSame = prev?.id === unit.id;
+                    return isSame ? null : { ...unit, user_id, current_hp };
+                  });
                 }
               }}
               style={{
@@ -497,48 +539,52 @@ export default function GamePage() {
         {gameData?.gamemode === "Capture The Flag" && <CaptureTheFlagGame gameData={gameData} userId={userId!} />}
       </div>
 
-      {isPreparationPhase && selectedTile && (
-        <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
-          {placedUnits.some((u) => u.tile[0] === selectedTile[0] && u.tile[1] === selectedTile[1]) ? (
-            <>
+      {(() => {
+        // Case 1: Preparation phase + tile has a unit = show Unit Info
+        if (isPreparationPhase && selectedTile && placedUnitAtTile !== undefined) {
+          const unit = placedUnitAtTile.unit;
+          const currentHp = placedUnitAtTile.current_hp;
+          const statusEffects = placedUnitAtTile.status_effects ?? [];
+
+          return (
+            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
+              <h2 className="text-lg font-bold mb-2">Unit Info</h2>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <UnitPortrait assetFolder={placedUnitAtTile.unit.asset_folder} />
-                  <div className="font-semibold text-lg">{placedUnitAtTile.unit.name}</div>
+                  <UnitPortrait assetFolder={unit.asset_folder} />
+                  <div className="font-semibold text-lg">{unit.name}</div>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">
-                  {placedUnitAtTile.current_hp ?? "?"}/{placedUnitAtTile.unit.base_stats?.hp ?? "?"}
+                  {currentHp ?? "?"}/{unit.base_stats?.hp ?? "?"}
                 </div>
               </div>
 
-              {placedUnitAtTile.unit.types.map((type: string, idx: number) => (
-                <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
-                  {type}
-                  {idx < placedUnitAtTile.unit.types.length - 1 && <span className="text-white">/</span>}
-                </span>
-              ))}
+              {unit.types?.length > 0 && (
+                <div className="text-sm mb-2">
+                  {" "}
+                  {unit.types.map((type: string, idx: number) => (
+                    <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
+                      {type}
+                      {idx < unit.types.length - 1 && <span className="text-white">/</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-              {/* <div className="mb-2">
-                <span className="font-semibold">Status:</span>{" "}
-                {placedUnitAtTile?.status_effects?.length > 0
-                  ? placedUnitAtTile.status_effects.join(", ")
-                  : "None"}
-              </div> */}
-
-              <div className="grid grid-cols-2 gap-y-1 text-sm">
-                <div><span className="font-semibold">HP:</span> {placedUnitAtTile?.unit.base_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {placedUnitAtTile?.unit.base_stats?.sp_attack ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {placedUnitAtTile?.unit.base_stats?.attack ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Def:</span> {placedUnitAtTile?.unit.base_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {placedUnitAtTile?.unit.base_stats?.defense ?? "?"}</div>
-                <div><span className="font-semibold">Speed:</span> {placedUnitAtTile?.unit.base_stats?.speed ?? "?"}</div>
+              <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
+                <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
               </div>
 
-              {placedUnitAtTile?.unit.move_ids?.length > 0 && (
+              {unit.move_ids?.length > 0 && (
                 <div className="mt-3">
                   <h3 className="text-md font-semibold mb-1">Moves:</h3>
                   <ul className="space-y-2 text-sm">
-                    {placedUnitAtTile.unit.move_ids.map((id: number) => {
+                    {unit.move_ids.map((id: number) => {
                       const move = moveMap[id];
                       if (!move) return null;
                       return (
@@ -559,11 +605,16 @@ export default function GamePage() {
                   </ul>
                 </div>
               )}
-            </>
-          ) : (
-            <>
+            </div>
+          );
+        }
+
+        // Case 2: Preparation phase + empty tile = Select Unit Menu
+        if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
+          return (
+            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
               <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
-              <ul className="max-h-64 overflow-y-auto space-y-1">
+              <ul className="space-y-2 text-sm">
                 {availableUnits.map((unit) => (
                   <li
                     key={unit.id}
@@ -620,10 +671,7 @@ export default function GamePage() {
                             (
                             {unit.types.map((type: string, idx: number) => (
                               <span key={idx}>
-                                <span
-                                  className="font-medium"
-                                  style={{ color: TYPE_COLORS[type] || "#fff" }}
-                                >
+                                <span className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
                                   {type}
                                 </span>
                                 {idx < unit.types.length - 1 && <span className="text-white">/</span>}
@@ -638,10 +686,85 @@ export default function GamePage() {
                   </li>
                 ))}
               </ul>
-            </>
-          )}
-        </div>
-      )}
+            </div>
+          );
+        }
+
+        // Case 3: In Progress = Unit Info (via click)
+        if (gameData?.status === "in_progress" && activeUnit) {
+          const unit = activeUnit;
+          const currentHp = activeUnit.current_hp;
+          const statusEffects = activeUnit.status_effects ?? [];
+
+          return (
+            <div
+              data-unit-info
+              className="w-72 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto"
+              style={{ border: `2px solid ${getPlayerColor(activeUnit.user_id)}` }}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <UnitPortrait assetFolder={unit.asset_folder} />
+                  <div className="font-semibold text-lg">{unit.name}</div>
+                </div>
+                <div className="text-sm text-gray-300 font-medium">
+                  {currentHp ?? "?"}/{unit.base_stats?.hp ?? "?"}
+                </div>
+              </div>
+
+              {unit.types?.length > 0 && (
+                <div className="text-sm mb-2">
+                  {" "}
+                  {unit.types.map((type: string, idx: number) => (
+                    <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
+                      {type}
+                      {idx < unit.types.length - 1 && <span className="text-white">/</span>}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
+                <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
+              </div>
+
+              {unit.move_ids?.length > 0 && (
+                <div className="mt-3">
+                  <h3 className="text-md font-semibold mb-1">Moves:</h3>
+                  <ul className="space-y-2 text-sm">
+                    {unit.move_ids.map((id: number) => {
+                      const move = moveMap[id];
+                      if (!move) return null;
+                      return (
+                        <li key={id} className="border border-gray-600 p-2 rounded">
+                          <div className="flex justify-between font-bold">
+                            <span>{move.name}</span>
+                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}>
+                              {move.type}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Power: {move.power ?? "—"}</span>
+                            <span>PP: {move.pp ?? "—"}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        return null;
+      })()}
+
     </div>
   );
 }
