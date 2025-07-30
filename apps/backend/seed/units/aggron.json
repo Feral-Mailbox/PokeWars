@@ -12,7 +12,8 @@
       "defense": 180,
       "sp_attack": 60,
       "sp_defense": 60,
-      "speed": 50
+      "speed": 50,
+      "range": 2
     },
     "move_ids": [231, 457, 475],
     "ability_ids": [],
