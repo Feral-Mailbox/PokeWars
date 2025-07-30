@@ -5,7 +5,7 @@
     "name": "Masquerain",
     "species": "Eyeball Pokémon",
     "asset_folder": "135_masquerain",
-    "types": ["Bug", "Water"],
+    "types": ["Bug", "Flying"],
     "base_stats": {
       "hp": 70,
       "attack": 60,

@@ -16,7 +16,7 @@
     },
     "move_ids": [],
     "ability_ids": [],
-    "cost": 200,
+    "cost": 500,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
