@@ -56,6 +56,16 @@
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null]
+        ],
+        "movement_cost": [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         ]
     },
     "preview_image": "previews/grassy_field.png"
