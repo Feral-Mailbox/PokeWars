@@ -21,7 +21,7 @@ describe("WebSocketContext", () => {
       onmessage: null,
       onerror: null,
       close: vi.fn(),
-      url: "ws://localhost/api/ws/global",
+      url: "ws://poketactics/api/ws/global",
     };
     global.WebSocket = vi.fn(() => mockSocket);
   });

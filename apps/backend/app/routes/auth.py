@@ -41,7 +41,7 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
         max_age=SESSION_EXPIRATION,
         path="/",
         secure=True,
-        domain="localhost", 
+        domain="poketactics", 
     )
 
     return user
@@ -60,7 +60,7 @@ def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
         max_age=SESSION_EXPIRATION,
         path="/",
         secure=True,
-        domain="localhost",  
+        domain="poketactics",  
     )
     
     return user

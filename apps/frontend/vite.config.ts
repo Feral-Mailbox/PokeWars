@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
 import dotenv from 'dotenv';
@@ -6,8 +6,6 @@ import fs from 'fs';
 import path from 'path';
 
 dotenv.config();
-
-let httpsConfig: undefined | { key: Buffer; cert: Buffer } = undefined;
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -46,36 +44,31 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
     host: true,
-    open: true,
+    port: 5173,
     strictPort: true,
+    https: false,
+    allowedHosts: ['poketactics.net', 'www.poketactics.net'],
     watch: {
       usePolling: true, // 🔥 Windows + WSL fix
     },
-    https: httpsConfig,
     hmr: {
-      host: process.env.VITE_HOST || 'localhost',
       protocol: 'wss',
-      port: Number(process.env.VITE_DEV_PORT) || 5173,
+      host: 'poketactics.net',
+      port: 443,
     },
     cors: {
-      origin: 'http://localhost:8000',
+      origin: ['https://poketactics.net', 'https://www.poketactics.net'],
       credentials: true,
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'http://backend:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
         secure: false,
         rewrite: path => path.replace(/^\/api/, ''),
-        cookieDomainRewrite: process.env.VITE_HOST || 'localhost', 
+        cookieDomainRewrite: 'poketactics.net', 
       },
-      '/assets': {
-        target: 'https://localhost', // Nginx https
-        changeOrigin: true,
-        secure: false,
-      }
     },
   },
   css: {

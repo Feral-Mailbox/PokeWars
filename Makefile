@@ -4,16 +4,23 @@
 ENV ?= dev
 
 # Docker Compose file paths
-INFRA_DIR = infrastructure
-COMPOSE_BASE = $(INFRA_DIR)/docker-compose.yml
-COMPOSE_DEV = $(INFRA_DIR)/docker-compose.dev.yml
+PROJECT = poketactics
+COMPOSE_BASE = infrastructure/docker-compose.yml
+COMPOSE_DEV = infrastructure/docker-compose.dev.yml
+DC_NON_DEV = docker compose -p $(PROJECT) -f $(COMPOSE_BASE)
+DC = docker compose -p $(PROJECT) -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
 
 # === Startup ===
 first-launch:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) down -v --remove-orphans
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) up -d --build
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) run --rm backend alembic revision --autogenerate -m "init"
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) run --rm backend alembic upgrade head
+	mkdir -p infrastructure/certs infrastructure/assets infrastructure/nginx
+	@echo "Make sure your certs exist at infrastructure/certs/{fullchain.pem,privkey.pem}"
+	$(DC) up -d
+	
+first-launch:
+	$(DC) down
+	$(DC) up -d
+	$(DC) run --rm backend alembic revision --autogenerate -m "init"
+	$(DC) run --rm backend alembic upgrade head
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_official_maps.py
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_units.py
 	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_moves.py
@@ -25,45 +32,51 @@ first-launch:
 
 # === Lifecycle ===
 up:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) up -d
+	$(DC) up -d
 
 down:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) down -v --remove-orphans
+	$(DC) down
+
+restart:
+	$(DC) down
+	$(DC) up -d
+
+build:
+	$(DC) build
 
 rebuild:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) up -d --build
+	DOCKER_BUILDKIT=1 $(DC) build --no-cache
+	$(DC) up -d
 
 logs:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) logs -f
+	$(DC) logs -f --tail=200
+
+ps:
+	$(DC) ps
 
 nuke:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) down -v --remove-orphans
-# sudo pkill -f docker-proxy || true
-	docker volume prune -f
-	rm -rf apps/backend/alembic/versions/*
+	$(DC) down -v --remove-orphans
+	docker image prune -f
 	docker volume rm infrastructure_pgdata || true
-
-status:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) ps
 
 # === DB ===
 migrate:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) run --rm backend alembic revision --autogenerate -m "$(m)"
+	$(DC) run --rm backend alembic revision --autogenerate -m "$(m)"
 
 upgrade:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) run --rm backend alembic upgrade head
+	$(DC) run --rm backend alembic upgrade head
 
 reset-db: down nuke first-launch
 
 psql:
-	docker compose -f $(COMPOSE_BASE) exec postgres psql -U gameuser -d game_db
+	$(DC_NON_DEV) exec postgres psql -U gameuser -d game_db
 
 # === Shell ===
 shell:
-	docker compose -f $(COMPOSE_BASE) exec backend /bin/sh
+	$(DC_NON_DEV) exec backend /bin/sh
 
 dev-shell:
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV) exec backend /bin/sh
+	$(DC) exec backend /bin/sh
 
 # === Tests ===
 test: test-backend test-frontend test-infrastructure 
