@@ -7,23 +7,27 @@ ENV ?= dev
 PROJECT = poketactics
 COMPOSE_BASE = infrastructure/docker-compose.yml
 COMPOSE_DEV = infrastructure/docker-compose.dev.yml
-DC_NON_DEV = docker compose -p $(PROJECT) -f $(COMPOSE_BASE)
-DC = docker compose -p $(PROJECT) -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
 
-# === Startup ===
+# Pick which docker compose invocation to use
+ifeq ($(ENV),prod)
+DC_USED = docker compose -p $(PROJECT) -f $(COMPOSE_BASE)
+else
+DC_USED = docker compose -p $(PROJECT) -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
+endif
+
+# === Startup ===	
 first-launch:
-	mkdir -p infrastructure/certs infrastructure/assets infrastructure/nginx
-	@echo "Make sure your certs exist at infrastructure/certs/{fullchain.pem,privkey.pem}"
-	$(DC) up -d
-	
-first-launch:
-	$(DC) down
-	$(DC) up -d
-	$(DC) run --rm backend alembic revision --autogenerate -m "init"
-	$(DC) run --rm backend alembic upgrade head
-	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_official_maps.py
-	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_units.py
-	docker exec -e PYTHONPATH=/app -it backend python scripts/seed_moves.py
+	$(DC_USED) down
+	$(DC_USED) up -d
+	# If there are *no* version files, generate the initial migration
+	@test -n "$$(ls -A apps/backend/alembic/versions 2>/dev/null)" || \
+		$(DC_USED) run --rm backend alembic revision --autogenerate -m "init"
+	# Always bring DB up to latest
+	$(DC_USED) run --rm backend alembic upgrade head
+	# Seed data
+	$(DC_USED) exec -e PYTHONPATH=/app backend python scripts/seed_official_maps.py
+	$(DC_USED) exec -e PYTHONPATH=/app backend python scripts/seed_units.py
+	$(DC_USED) exec -e PYTHONPATH=/app backend python scripts/seed_moves.py
 	@if [ "$$RUN_TESTS" = "1" ]; then \
 		$(MAKE) test; \
 	else \
@@ -32,51 +36,51 @@ first-launch:
 
 # === Lifecycle ===
 up:
-	$(DC) up -d
+	$(DC_USED) up -d
 
 down:
-	$(DC) down
+	$(DC_USED) down
 
 restart:
-	$(DC) down
-	$(DC) up -d
+	$(DC_USED) down
+	$(DC_USED) up -d
 
 build:
-	$(DC) build
+	$(DC_USED) build
 
 rebuild:
-	DOCKER_BUILDKIT=1 $(DC) build --no-cache
-	$(DC) up -d
+	DOCKER_BUILDKIT=1 $(DC_USED) build --no-cache
+	$(DC_USED) up -d
 
 logs:
-	$(DC) logs -f --tail=200
+	$(DC_USED) logs -f --tail=200
 
 ps:
-	$(DC) ps
+	$(DC_USED) ps
 
 nuke:
-	$(DC) down -v --remove-orphans
+	$(DC_USED) down -v --remove-orphans
 	docker image prune -f
 	docker volume rm infrastructure_pgdata || true
 
 # === DB ===
 migrate:
-	$(DC) run --rm backend alembic revision --autogenerate -m "$(m)"
+	$(DC_USED) run --rm backend alembic revision --autogenerate -m "$(m)"
 
 upgrade:
-	$(DC) run --rm backend alembic upgrade head
+	$(DC_USED) run --rm backend alembic upgrade head
 
 reset-db: down nuke first-launch
 
 psql:
-	$(DC_NON_DEV) exec postgres psql -U gameuser -d game_db
+	$(DC_USED) exec postgres psql -U gameuser -d game_db
 
 # === Shell ===
 shell:
-	$(DC_NON_DEV) exec backend /bin/sh
+	$(DC) exec backend /bin/sh
 
 dev-shell:
-	$(DC) exec backend /bin/sh
+	$(DC_USED) exec backend /bin/sh
 
 # === Tests ===
 test: test-backend test-frontend test-infrastructure 

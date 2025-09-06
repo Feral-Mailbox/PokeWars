@@ -72,6 +72,8 @@ export default function JoinGame() {
   const totalPages = Math.ceil(filteredGames.length / 10);
   const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
 
+  console.log(games)
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Join Game</h1>

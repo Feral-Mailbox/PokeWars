@@ -16,6 +16,8 @@ SESSION_EXPIRATION = int(timedelta(
     hours=int(os.getenv("SESSION_EXPIRE_HOURS", "24"))
 ).total_seconds())
 
+COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN", None)
+
 @router.post("/register", response_model=UserResponse)
 def register(req: RegisterRequest, response: Response, db: Session = Depends(get_db)):
     if db.query(User).filter((User.username == req.username) | (User.email == req.email)).first():
@@ -37,11 +39,11 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
         key="session_user",
         value=str(user.id),
         httponly=True,
-        samesite="lax",
+        samesite="none",
         max_age=SESSION_EXPIRATION,
         path="/",
         secure=True,
-        domain="poketactics", 
+        domain=COOKIE_DOMAIN if COOKIE_DOMAIN else None, 
     )
 
     return user
@@ -49,23 +51,23 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
 @router.post("/login", response_model=UserResponse)
 def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
-    if not user or not verify_password(user.hashed_password, req.password):
+    if not user or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     response.set_cookie(
         key="session_user",
         value=str(user.id),
         httponly=True,
-        samesite="lax",
+        samesite="none",
         max_age=SESSION_EXPIRATION,
         path="/",
         secure=True,
-        domain="poketactics",  
+        domain=COOKIE_DOMAIN if COOKIE_DOMAIN else None,  
     )
     
     return user
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie("session_user")
+    response.delete_cookie("session_user", path="/")
     return {"detail": "Logged out"}

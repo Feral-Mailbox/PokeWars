@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-  
+import { useAuth } from './auth.ts';
+
   type WebSocketContextType = {
     socket: WebSocket | null;
   };
@@ -12,11 +13,14 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
   
   export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
+    const { user, loading } = useAuth();
   
     useEffect(() => {
+        if (loading || !user) return; 
+
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        const hostname = window.location.hostname;
-        const ws = new WebSocket(`${protocol}://${hostname}/api/ws/global`);
+        const host = window.location.host;
+        const ws = new WebSocket(`${protocol}://${host}/api/ws/global`);
       
         console.log("[WebSocket] Attempting connection to", ws.url);
       
@@ -42,7 +46,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
           console.log("[WebSocket] Closing socket...");
           ws.close();
         };
-    }, []);      
+    }, [user, loading]);      
   
     return (
       <WebSocketContext.Provider value={{ socket }}>
