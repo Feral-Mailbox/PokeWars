@@ -41,7 +41,7 @@ export default function JoinGame() {
 
   const isUserInGame = (game: any) => {
     if (!userId || !Array.isArray(game.players)) return false;
-    return game.players.some((p: any) => p.id === userId);
+    return game.players.some((p: any) => p.player_id === userId);
   };
 
   const handleJoinGame = async (gameId: number) => {
@@ -121,7 +121,9 @@ export default function JoinGame() {
           <li key={game.id} className="border p-4 rounded shadow">
             <p className="text-lg font-bold mb-2">{game.game_name || "Untitled Game"}</p>
             <p>
-              <strong>Host:</strong> {game.host?.username ?? "Unknown"}
+              <strong>Host:</strong> {
+                game.players.find((p: any) => p.player_id === game.host_id)?.username ?? "Unknown"
+              }
             </p>
             <p>
               <strong>Game Mode:</strong> {game.gamemode}
