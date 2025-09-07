@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Artillery platforms built into the walls of ancient castles served as perches from which Golurk could fire energy beams."
+    "description": "Artillery platforms built into the walls of ancient castles served as perches from which Golurk could fire energy beams.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron"]
 }

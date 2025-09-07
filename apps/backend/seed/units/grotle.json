@@ -21,6 +21,8 @@
   "evolution_cost": 1600,
   "evolves_into": [2],
   "is_legendary": false,
-  "description": "Grotle live in the forest. Each is said to have its own secret place for getting clean springwater."
+  "description": "Grotle live in the forest. Each is said to have its own secret place for getting clean springwater.",
+    "portrait_credits": ["CHUNSOFT", "Emboarger"],
+    "sprite_credits": ["CHUNSOFT", "Caitemis"]
 }
   

@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [135],
     "is_legendary": false,
-    "description": "They usually live on ponds, but after an evening shower, they may appear on puddles in towns."
+    "description": "They usually live on ponds, but after an evening shower, they may appear on puddles in towns.",
+    "portrait_credits": ["CHUNSOFT", "JFain", "Fearless-Quit"],
+    "sprite_credits": ["CHUNSOFT"]
 }

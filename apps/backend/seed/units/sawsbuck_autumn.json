@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "There are many Sawsbuck enthusiasts. The darker the red of the foliage that hangs from its antlers, the more stylish the Sawsbuck is thought to be."
+    "description": "There are many Sawsbuck enthusiasts. The darker the red of the foliage that hangs from its antlers, the more stylish the Sawsbuck is thought to be.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron"]
 }

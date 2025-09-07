@@ -21,5 +21,7 @@
     "evolution_cost": 1000,
     "evolves_into": [117],
     "is_legendary": false,
-    "description": "It seeks drifting will-o’-the-wisps and sucks them into its empty body. What happens inside is a mystery."
+    "description": "It seeks drifting will-o’-the-wisps and sucks them into its empty body. What happens inside is a mystery.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron", "Garbage"],
+    "sprite_credits": ["CHUNSOFT"]
 }

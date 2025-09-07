@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "Its feathers are in seven colors. It is said that anyone seeing it is promised eternal happiness."
+    "description": "Its feathers are in seven colors. It is said that anyone seeing it is promised eternal happiness.",
+    "portrait_credits": ["CHUNSOFT", "CamusZekeSirius"],
+    "sprite_credits": ["CHUNSOFT"]
 }

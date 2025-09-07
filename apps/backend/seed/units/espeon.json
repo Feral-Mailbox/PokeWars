@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It uses the fine hair that covers its body to sense air currents and predict its enemy's actions."
+    "description": "It uses the fine hair that covers its body to sense air currents and predict its enemy's actions.",
+    "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

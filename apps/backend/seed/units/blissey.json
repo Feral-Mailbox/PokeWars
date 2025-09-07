@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Anyone who takes even one taste of Blissey’s egg becomes unfailingly caring and pleasant to everyone."
+    "description": "Anyone who takes even one taste of Blissey’s egg becomes unfailingly caring and pleasant to everyone.",
+    "portrait_credits": ["CHUNSOFT", "JFain"],
+    "sprite_credits": ["CHUNSOFT"]
 }

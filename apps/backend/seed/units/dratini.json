@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [139],
     "is_legendary": false,
-    "description": "It sheds many layers of skin as it grows larger. During this process, it is protected by a rapid waterfall."
+    "description": "It sheds many layers of skin as it grows larger. During this process, it is protected by a rapid waterfall.",
+    "portrait_credits": ["CHUNSOFT", "Gust"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

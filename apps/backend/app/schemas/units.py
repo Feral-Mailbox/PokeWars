@@ -11,6 +11,8 @@ class UnitSummary(BaseModel):
     cost: int
     base_stats: Dict[str, int]
     move_ids: List[int]
+    portrait_credits: List[str]
+    sprite_credits: List[str]
 
     model_config = ConfigDict(from_attributes=True)
 

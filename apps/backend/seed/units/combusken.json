@@ -21,6 +21,8 @@
     "evolution_cost": 1600,
     "evolves_into": [6],
     "is_legendary": false,
-    "description": "It boosts its concentration by emitting harsh cries. Its kicks have outstanding destructive power."
+    "description": "It boosts its concentration by emitting harsh cries. Its kicks have outstanding destructive power.",
+    "portrait_credits": ["CHUNSOFT", "JFain", "Blanky"],
+    "sprite_credits": ["CHUNSOFT"]
 }
   

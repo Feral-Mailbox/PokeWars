@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [120],
     "is_legendary": false,
-    "description": "It habitually polishes its face by rubbing it against tree trunks. It is weak to attacks from behind."
+    "description": "It habitually polishes its face by rubbing it against tree trunks. It is weak to attacks from behind.",
+    "portrait_credits": ["CHUNSOFT", "A_Lettuce"],
+    "sprite_credits": ["CHUNSOFT"]
 }

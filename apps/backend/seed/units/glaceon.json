@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It can control its body temperature at will. This enables it to freeze the moisture in the atmosphere, creating flurries of diamond dust."
+    "description": "It can control its body temperature at will. This enables it to freeze the moisture in the atmosphere, creating flurries of diamond dust.",
+    "portrait_credits": ["CHUNSOFT", "PhillipsYoung"],
+    "sprite_credits": ["CHUNSOFT", "JFain", "baronessfaron"]
 }

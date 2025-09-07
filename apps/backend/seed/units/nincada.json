@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [86],
     "is_legendary": false,
-    "description": "It grows underground, sensing its surroundings using antennae instead of its virtually blind eyes."
+    "description": "It grows underground, sensing its surroundings using antennae instead of its virtually blind eyes.",
+    "portrait_credits": ["CHUNSOFT", "Caitemis"],
+    "sprite_credits": ["CHUNSOFT"]
 }

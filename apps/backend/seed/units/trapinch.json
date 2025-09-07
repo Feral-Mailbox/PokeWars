@@ -21,5 +21,7 @@
     "evolution_cost": [600],
     "evolves_into": [93],
     "is_legendary": false,
-    "description": "It makes an inescapable conical pit and lies in wait at the bottom for prey to come tumbling down."
+    "description": "It makes an inescapable conical pit and lies in wait at the bottom for prey to come tumbling down.",
+    "portrait_credits": ["CHUNSOFT", "JFain", "Caitemis"],
+    "sprite_credits": ["CHUNSOFT", "Caitemis"]
 }

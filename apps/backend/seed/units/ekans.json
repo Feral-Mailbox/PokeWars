@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [133],
     "is_legendary": false,
-    "description": "By dislocating its jaw, it can swallow prey larger than itself. After a meal, it curls up and rests."
+    "description": "By dislocating its jaw, it can swallow prey larger than itself. After a meal, it curls up and rests.",
+    "portrait_credits": ["CHUNSOFT", "Fearless-Quit", "TawnySoup"],
+    "sprite_credits": ["CHUNSOFT"]
 }

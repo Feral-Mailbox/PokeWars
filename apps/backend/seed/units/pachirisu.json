@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "A pair may be seen rubbing their cheek pouches together in an effort to share stored electricity."
+    "description": "A pair may be seen rubbing their cheek pouches together in an effort to share stored electricity.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT", "JFain", "baronessfaron"]
 }

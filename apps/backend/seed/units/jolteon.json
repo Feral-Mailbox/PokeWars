@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It concentrates the weak electric charges emitted by its cells and launches wicked lightning bolts."
+    "description": "It concentrates the weak electric charges emitted by its cells and launches wicked lightning bolts.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron", "ShyStarryRain"],
+    "sprite_credits": ["CHUNSOFT", "dmDash"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": " It shrouds itself in sand to ward off germs. It travels easily through the sands of the desert."
+    "description": " It shrouds itself in sand to ward off germs. It travels easily through the sands of the desert.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

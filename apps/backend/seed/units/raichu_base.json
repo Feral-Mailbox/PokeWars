@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It can loose 100,000-volt bursts of electricity, instantly downing foes several times its size."
+    "description": "It can loose 100,000-volt bursts of electricity, instantly downing foes several times its size.",
+    "portrait_credits": ["CHUNSOFT", "Garbage"],
+    "sprite_credits": ["CHUNSOFT"]
 }

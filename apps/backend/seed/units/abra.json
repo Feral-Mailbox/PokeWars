@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [20],
     "is_legendary": false,
-    "description": "Abra can teleport in its sleep. Apparently the more deeply Abra sleeps, the farther its teleportations go."
+    "description": "Abra can teleport in its sleep. Apparently the more deeply Abra sleeps, the farther its teleportations go.",
+    "portrait_credits": ["CHUNSOFT", "JFain", "cosmosully"],
+    "sprite_credits": ["CHUNSOFT", "Emmuffin"]
   }

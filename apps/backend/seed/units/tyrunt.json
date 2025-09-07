@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [122],
     "is_legendary": false,
-    "description": "This is an ancient Pokémon, revived in modern times. It has a violent disposition, and it’ll tear apart anything it gets between its hefty jaws."
+    "description": "This is an ancient Pokémon, revived in modern times. It has a violent disposition, and it’ll tear apart anything it gets between its hefty jaws.",
+    "portrait_credits": ["NeroIntruder"],
+    "sprite_credits": ["NeroIntruder", "baronessfaron", "Tainted#3886"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust."
+    "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust.",
+    "portrait_credits": ["CHUNSOFT", "skygummi", "Mooncaller"],
+    "sprite_credits": ["CHUNSOFT"]
 }

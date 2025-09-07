@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [81],
     "is_legendary": false,
-    "description": "This Pokémon can often be seen along seashores. It’s capable of spending a limited amount of time on land."
+    "description": "This Pokémon can often be seen along seashores. It’s capable of spending a limited amount of time on land.",
+    "portrait_credits": ["CHUNSOFT", "chikorene"],
+    "sprite_credits": ["CHUNSOFT"]
 }

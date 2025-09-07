@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "This Pokémon uses its ribbonlike feelers to send a soothing aura into its opponents, erasing their hostility."
+    "description": "This Pokémon uses its ribbonlike feelers to send a soothing aura into its opponents, erasing their hostility.",
+    "portrait_credits": ["Emmuffin", "NeonCityRain"],
+    "sprite_credits": ["baronessfaron"]
 }

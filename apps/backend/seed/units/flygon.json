@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "This Pokémon hides in the heart of sandstorms it creates and seldom appears where people can see it."
+    "description": "This Pokémon hides in the heart of sandstorms it creates and seldom appears where people can see it.",
+    "portrait_credits": ["CHUNSOFT", "Top_Kec"],
+    "sprite_credits": ["CHUNSOFT"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "A single bite of Tyrantrum’s massive jaws will demolish a car. This Pokémon was the king of the ancient world."
+    "description": "A single bite of Tyrantrum’s massive jaws will demolish a car. This Pokémon was the king of the ancient world.",
+    "portrait_credits": ["NeroIntruder", "Soulja"],
+    "sprite_credits": ["Jhony-Rex", "Soulja"]
 }

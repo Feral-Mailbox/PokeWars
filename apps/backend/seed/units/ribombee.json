@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Pollen puffs created by skilled Ribombee can relieve fatigue, making the puffs a popular commodity."
+    "description": "Pollen puffs created by skilled Ribombee can relieve fatigue, making the puffs a popular commodity.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["baronessfaron"]
 }

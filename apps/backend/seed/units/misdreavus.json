@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [128],
     "is_legendary": false,
-    "description": "It loves to bite and yank people’s hair from behind without warning, just to see their shocked reactions."
+    "description": "It loves to bite and yank people’s hair from behind without warning, just to see their shocked reactions.",
+    "portrait_credits": ["CHUNSOFT", "RoyalRust", "Murpi"],
+    "sprite_credits": ["CHUNSOFT", "Emboarger"]
 }

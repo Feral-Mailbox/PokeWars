@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "When attacked, they form a wall with their shield-like faces to protect their young."
+    "description": "When attacked, they form a wall with their shield-like faces to protect their young.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

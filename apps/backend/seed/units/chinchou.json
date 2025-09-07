@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [98],
     "is_legendary": false,
-    "description": "Its antennae, which evolved from a fin, have both positive and negative charges flowing through them."
+    "description": "Its antennae, which evolved from a fin, have both positive and negative charges flowing through them.",
+    "portrait_credits": ["CHUNSOFT", "JFain"],
+    "sprite_credits": ["CHUNSOFT"]
 }

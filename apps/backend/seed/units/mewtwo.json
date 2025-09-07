@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "Created from the DNA of Mew, this Pokémon is a dangerous combination of overwhelming power and a savage heart."
+    "description": "Created from the DNA of Mew, this Pokémon is a dangerous combination of overwhelming power and a savage heart.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

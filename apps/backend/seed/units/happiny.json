@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [35],
     "is_legendary": false,
-    "description": "It carries a round, white rock in its belly pouch. If it gets along well with someone, it will sometimes give that person the rock."
+    "description": "It carries a round, white rock in its belly pouch. If it gets along well with someone, it will sometimes give that person the rock.",
+    "portrait_credits": ["CHUNSOFT", "Mojo"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

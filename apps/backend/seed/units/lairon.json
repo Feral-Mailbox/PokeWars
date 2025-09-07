@@ -21,5 +21,7 @@
     "evolution_cost": 1000,
     "evolves_into": [114],
     "is_legendary": false,
-    "description": "During territorial disputes, Lairon fight by slamming into each other. Close inspection of their steel armor reveals scratches and dents."
+    "description": "During territorial disputes, Lairon fight by slamming into each other. Close inspection of their steel armor reveals scratches and dents.",
+    "portrait_credits": ["CHUNSOFT", "Magu"],
+    "sprite_credits": ["CHUNSOFT"]
 }

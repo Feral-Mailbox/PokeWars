@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [31],
     "is_legendary": false,
-    "description": "Using its tail like a spring, it keeps its heart beating by bouncing constantly. If it stops, it dies."
+    "description": "Using its tail like a spring, it keeps its heart beating by bouncing constantly. If it stops, it dies.",
+    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT"]
 }

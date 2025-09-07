@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [23],
     "is_legendary": false,
-    "description": "It's desperate to intimidate its opponents. Be nice and pretend to be scared if you catch it glaring at you intensely."
+    "description": "It's desperate to intimidate its opponents. Be nice and pretend to be scared if you catch it glaring at you intensely.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["baronessfaron"]
   }

@@ -168,6 +168,8 @@ class Unit(Base):
     evolves_into = Column(JSON, nullable=True)
     is_legendary = Column(Boolean, default=False)
     description = Column(String, nullable=True)
+    portrait_credits = Column(JSON, nullable=False, default=list)
+    sprite_credits = Column(JSON, nullable=False, default=list)
 
     game_units = relationship("GameUnit", back_populates="unit")
 

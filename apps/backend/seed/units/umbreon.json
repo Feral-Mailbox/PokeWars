@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "When exposed to the moon’s aura, the rings on its body glow faintly and it gains a mysterious power."
+    "description": "When exposed to the moon’s aura, the rings on its body glow faintly and it gains a mysterious power.",
+    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT", "Emmuffin"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner."
+    "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["Emmuffin"]
   }

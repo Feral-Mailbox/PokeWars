@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [137],
     "is_legendary": false,
-    "description": "It spins its two tails like a screw to propel itself through water. The tails also slice clinging seaweed."
+    "description": "It spins its two tails like a screw to propel itself through water. The tails also slice clinging seaweed.",
+    "portrait_credits": ["CHUNSOFT", "C_Pariah"],
+    "sprite_credits": ["CHUNSOFT", "Reimu\_needs\_$$$"]
 }

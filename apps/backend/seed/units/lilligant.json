@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "The fragrance of the garland on its head has a relaxing effect, but taking care of it is very difficult."
+    "description": "The fragrance of the garland on its head has a relaxing effect, but taking care of it is very difficult.",
+    "portrait_credits": ["Garbage"],
+    "sprite_credits": ["powercristal", "baronessfaron", "Garbage"]
 }

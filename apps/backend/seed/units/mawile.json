@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It uses its docile-looking face to lull foes into complacency, then bites with its huge, relentless jaws."
+    "description": "It uses its docile-looking face to lull foes into complacency, then bites with its huge, relentless jaws.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT"]
 }

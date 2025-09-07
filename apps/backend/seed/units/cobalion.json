@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "From the moment it’s born, this Pokémon radiates the air of a leader. Its presence will calm even vicious foes."
+    "description": "From the moment it’s born, this Pokémon radiates the air of a leader. Its presence will calm even vicious foes.",
+    "portrait_credits": ["Deeshura"],
+    "sprite_credits": ["powercristal", "Noo", "Deeshura"]
 }

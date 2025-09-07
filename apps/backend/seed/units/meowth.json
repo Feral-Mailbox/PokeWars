@@ -21,6 +21,8 @@
     "evolution_cost": 600,
     "evolves_into": [11],
     "is_legendary": false,
-    "description": "It loves things that sparkle. When it sees a shiny object, the gold coin on its head shines, too."
+    "description": "It loves things that sparkle. When it sees a shiny object, the gold coin on its head shines, too.",
+    "portrait_credits": ["CHUNSOFT", "PhillipsYoung"],
+    "sprite_credits": ["CHUNSOFT"]
   }
     

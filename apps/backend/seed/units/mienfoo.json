@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [68],
     "is_legendary": false,
-    "description": "They seclude themselves in the mountains and devote themselves to training. The form of their kicks and chops differs from pack to pack."
+    "description": "They seclude themselves in the mountains and devote themselves to training. The form of their kicks and chops differs from pack to pack.",
+    "portrait_credits": ["mucrush", "JFain", "Garbage"],
+    "sprite_credits": ["JFain"]
 }

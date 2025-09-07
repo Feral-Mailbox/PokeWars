@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "It sleeps in a deep-sea trench. If it flaps its wings, it is said to cause a 40-day storm."
+    "description": "It sleeps in a deep-sea trench. If it flaps its wings, it is said to cause a 40-day storm.",
+    "portrait_credits": ["CHUNSOFT", "Murpi"],
+    "sprite_credits": ["CHUNSOFT"]
 }

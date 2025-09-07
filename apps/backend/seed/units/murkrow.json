@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [131],
     "is_legendary": false,
-    "description": "Feared and loathed by many, it is believed to bring misfortune to all those who see it at night."
+    "description": "Feared and loathed by many, it is believed to bring misfortune to all those who see it at night.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT", "Smalusion", "Caitemis"]
 }

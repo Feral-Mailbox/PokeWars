@@ -21,5 +21,7 @@
     "evolution_cost": 1000,
     "evolves_into": [48],
     "is_legendary": false,
-    "description": "Steenee bounces energetically through forests. If the rind that peels off its body is pulverized, it can be used to treat stomach pains."
+    "description": "Steenee bounces energetically through forests. If the rind that peels off its body is pulverized, it can be used to treat stomach pains.",
+    "portrait_credits": ["JFain", "Murpi", "Garbage"],
+    "sprite_credits": ["JFain"]
 }

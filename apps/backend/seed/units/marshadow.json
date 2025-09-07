@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "By slipping into the shadow of a martial arts master and copying their movements, this Pokémon learned the ultimate techniques."
+    "description": "By slipping into the shadow of a martial arts master and copying their movements, this Pokémon learned the ultimate techniques.",
+    "portrait_credits": ["Top_Kec"],
+    "sprite_credits": ["Dejais"]
 }

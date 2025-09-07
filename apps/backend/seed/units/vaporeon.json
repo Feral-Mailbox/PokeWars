@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Its cell composition is similar to water molecules. As a result, it can't be seen when it melts away into water."
+    "description": "Its cell composition is similar to water molecules. As a result, it can't be seen when it melts away into water.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

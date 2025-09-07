@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [126],
     "is_legendary": false,
-    "description": "It defends itself by launching spikes, but its aim isn’t very good at first. Only after a lot of practice will it improve."
+    "description": "It defends itself by launching spikes, but its aim isn’t very good at first. Only after a lot of practice will it improve.",
+    "portrait_credits": ["Garbage"],
+    "sprite_credits": ["Emmuffin"]
 }

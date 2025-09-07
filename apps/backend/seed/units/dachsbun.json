@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "The surface of this Pokémon's skin hardens when exposed to intense heat, and its body has an appetizing aroma."
+    "description": "The surface of this Pokémon's skin hardens when exposed to intense heat, and its body has an appetizing aroma.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["baronessfaron"]
 }

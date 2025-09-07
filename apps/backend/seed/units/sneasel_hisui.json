@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [105],
     "is_legendary": false,
-    "description": "Its sturdy, curved claws are ideal for traversing precipitous cliffs. From the tips of these claws drips a venom that infiltrates the nerves of any prey caught in Sneasel’s grasp."
+    "description": "Its sturdy, curved claws are ideal for traversing precipitous cliffs. From the tips of these claws drips a venom that infiltrates the nerves of any prey caught in Sneasel’s grasp.",
+    "portrait_credits": ["Emmuffin", "TawnySoup"],
+    "sprite_credits": ["ShyStarryRain"]
 }

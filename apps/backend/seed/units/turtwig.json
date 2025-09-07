@@ -21,6 +21,8 @@
   "evolution_cost": 600,
   "evolves_into": [1],
   "is_legendary": false,
-  "description": "It uses its whole body to photosynthesize when exposed to sunlight. Its shell is made from hardened soil."
+  "description": "It uses its whole body to photosynthesize when exposed to sunlight. Its shell is made from hardened soil.",
+    "portrait_credits": ["CHUNSOFT"],
+    "sprite_credits": ["CHUNSOFT"]
 }
   

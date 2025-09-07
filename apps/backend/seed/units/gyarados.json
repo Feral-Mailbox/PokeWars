@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Once it appears, it goes on a rampage. It remains enraged until it demolishes everything around it."
+    "description": "Once it appears, it goes on a rampage. It remains enraged until it demolishes everything around it.",
+    "portrait_credits": ["CHUNSOFT"],
+    "sprite_credits": ["baronessfaron"]
 }

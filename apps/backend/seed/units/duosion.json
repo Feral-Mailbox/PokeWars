@@ -21,5 +21,7 @@
     "evolution_cost": [1000],
     "evolves_into": [84],
     "is_legendary": false,
-    "description": "Its brain has split into two, and the two halves rarely think alike. Its actions are utterly unpredictable."
+    "description": "Its brain has split into two, and the two halves rarely think alike. Its actions are utterly unpredictable.",
+    "portrait_credits": ["Anonymous", "Magu"],
+    "sprite_credits": ["powercristal", "baronessfaron", "Emmuffin"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": 1000,
     "evolves_into": [36],
     "is_legendary": false,
-    "description": "This kindly Pokémon lays highly nutritious eggs and shares them with injured Pokémon or people."
+    "description": "This kindly Pokémon lays highly nutritious eggs and shares them with injured Pokémon or people.",
+    "portrait_credits": ["CHUNSOFT", "Mojo"],
+    "sprite_credits": ["CHUNSOFT"]
 }

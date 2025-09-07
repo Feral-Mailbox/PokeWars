@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "After clamping down with its powerful jaws, it twists its body around to rip its prey in half."
+    "description": "After clamping down with its powerful jaws, it twists its body around to rip its prey in half.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["Soulja"]
 }

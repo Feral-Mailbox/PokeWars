@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It carries food all day long. There are tales about lost people who were saved by the food it had."
+    "description": "It carries food all day long. There are tales about lost people who were saved by the food it had.",
+    "portrait_credits": ["CHUNSOFT", "C_Pariah"],
+    "sprite_credits": ["CHUNSOFT", "Garbage"]
 }

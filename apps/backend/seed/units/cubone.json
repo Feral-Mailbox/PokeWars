@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [42],
     "is_legendary": false,
-    "description": "The skull it wears on its head is that of its dead mother. According to some, it will evolve when it comes to terms with the pain of her death."
+    "description": "The skull it wears on its head is that of its dead mother. According to some, it will evolve when it comes to terms with the pain of her death.",
+    "portrait_credits": ["CHUNSOFT", "felis_licht", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT", "Emmuffin", "Sceptile"]
 }

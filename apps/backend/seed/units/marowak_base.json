@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "When this Pokémon evolved, the skull of its mother fused to it. Marowak's temperament also turned vicious at the same time."
+    "description": "When this Pokémon evolved, the skull of its mother fused to it. Marowak's temperament also turned vicious at the same time.",
+    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT"]
 }

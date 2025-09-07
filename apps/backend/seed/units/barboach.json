@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [61],
     "is_legendary": false,
-    "description": "Its two whiskers provide a sensitive radar. Even in muddy waters, it can detect its prey’s location."
+    "description": "Its two whiskers provide a sensitive radar. Even in muddy waters, it can detect its prey’s location.",
+    "portrait_credits": ["CHUNSOFT", "chikorene"],
+    "sprite_credits": ["CHUNSOFT"]
 }

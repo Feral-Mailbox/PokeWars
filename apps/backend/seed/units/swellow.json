@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey."
+    "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey.",
+    "portrait_credits": ["CHUNSOFT", "Caitemis"],
+    "sprite_credits": ["CHUNSOFT", "Emmuffin"]
   }

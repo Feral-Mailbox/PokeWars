@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [72],
     "is_legendary": false,
-    "description": "It slams foes by sharply uncoiling its rolled ears. It stings enough to make a grown-up cry in pain."
+    "description": "It slams foes by sharply uncoiling its rolled ears. It stings enough to make a grown-up cry in pain.",
+    "portrait_credits": ["CHUNSOFT", "Gust"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It has a calm and collected demeanor. It swiftly closes in on its prey, then slices them with the rocks in its mane."
+    "description": "It has a calm and collected demeanor. It swiftly closes in on its prey, then slices them with the rocks in its mane.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["baronessfaron", "Emmuffin"]
   }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Hunger has disrupted this Pokémon's hormonal balance. The Electric-type energy stored in its cheek sacs has turned into Dark-type energy."
+    "description": "Hunger has disrupted this Pokémon's hormonal balance. The Electric-type energy stored in its cheek sacs has turned into Dark-type energy.",
+    "portrait_credits": ["Emmuffin", "Garbage"],
+    "sprite_credits": ["Emmuffin", "JFain"]
 }

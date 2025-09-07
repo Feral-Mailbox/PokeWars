@@ -21,5 +21,7 @@
     "evolution_cost": [1000],
     "evolves_into": [94],
     "is_legendary": false,
-    "description": "The ultrasonic waves it generates by rubbing its two wings together cause severe headaches."
+    "description": "The ultrasonic waves it generates by rubbing its two wings together cause severe headaches.",
+    "portrait_credits": ["CHUNSOFT", "Frostdrop1"],
+    "sprite_credits": ["CHUNSOFT"]
 }

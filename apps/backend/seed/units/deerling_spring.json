@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [25],
     "is_legendary": false,
-    "description": "Deerling have different scents depending on the season. In early spring, these Pokémon give off a delicate, sweet, and calming scent."
+    "description": "Deerling have different scents depending on the season. In early spring, these Pokémon give off a delicate, sweet, and calming scent.",
+    "portrait_credits": ["baronessfaron", "Emmuffin"],
+    "sprite_credits": ["baronessfaron"]
   }

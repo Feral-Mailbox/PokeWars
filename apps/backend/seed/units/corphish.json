@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [124],
     "is_legendary": false,
-    "description": "It was originally a Pokémon from afar that escaped to the wild. It can adapt to the dirtiest river."
+    "description": "It was originally a Pokémon from afar that escaped to the wild. It can adapt to the dirtiest river.",
+    "portrait_credits": ["CHUNSOFT", "Gust"],
+    "sprite_credits": ["CHUNSOFT", "Caitemis"]
 }

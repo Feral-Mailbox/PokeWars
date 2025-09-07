@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "A smart and kindhearted Pokémon, it glides across the surface of the sea while its beautiful song echoes around it."
+    "description": "A smart and kindhearted Pokémon, it glides across the surface of the sea while its beautiful song echoes around it.",
+    "portrait_credits": ["CHUNSOFT", "C_Pariah", "silverfox88"],
+    "sprite_credits": ["CHUNSOFT"]
 }

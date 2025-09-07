@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds."
+    "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds.",
+    "portrait_credits": ["CHUNSOFT", "JFain"],
+    "sprite_credits": ["CHUNSOFT"]
 }

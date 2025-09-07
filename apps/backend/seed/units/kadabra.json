@@ -21,5 +21,7 @@
     "evolution_cost": 1200,
     "evolves_into": [21],
     "is_legendary": false,
-    "description": "This Pokémon's telekinesis is immensely powerful. To prepare for evolution, Kadabra stores up psychic energy in the star on its forehead."
+    "description": "This Pokémon's telekinesis is immensely powerful. To prepare for evolution, Kadabra stores up psychic energy in the star on its forehead.",
+    "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
   }

@@ -21,5 +21,7 @@
     "evolution_cost": 1000,
     "evolves_into": [108],
     "is_legendary": false,
-    "description": "It is said that happiness will come to those who see a gathering of Clefairy dancing under a full moon."
+    "description": "It is said that happiness will come to those who see a gathering of Clefairy dancing under a full moon.",
+    "portrait_credits": ["CHUNSOFT", "estelstarlight"],
+    "sprite_credits": ["CHUNSOFT"]
 }

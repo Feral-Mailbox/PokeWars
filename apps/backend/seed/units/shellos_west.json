@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [81],
     "is_legendary": false,
-    "description": "It oozes a purple fluid to deter enemies. Apparently, there are more West Sea Shellos now than there were in the past."
+    "description": "It oozes a purple fluid to deter enemies. Apparently, there are more West Sea Shellos now than there were in the past.",
+    "portrait_credits": ["CHUNSOFT", "chikorene"],
+    "sprite_credits": ["CHUNSOFT"]
 }

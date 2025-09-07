@@ -21,6 +21,8 @@
     "evolution_cost": 600,
     "evolves_into": [8],
     "is_legendary": false,
-    "description": "The balloons it inflates with its nose grow larger and larger as it practices day by day."
+    "description": "The balloons it inflates with its nose grow larger and larger as it practices day by day.",
+    "portrait_credits": ["Fable", "Anonymous", "Emmuffin"],
+    "sprite_credits": ["Anonymous", "JFain"]
 }
   

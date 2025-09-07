@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Inhaled air is carried to its flame sac, heated, and exhaled as fire that reaches over 3,000 degrees Fahrenheit."
+    "description": "Inhaled air is carried to its flame sac, heated, and exhaled as fire that reaches over 3,000 degrees Fahrenheit.",
+    "portrait_credits": ["CHUNSOFT", "Yynnyal", "ShyStarryRain"],
+    "sprite_credits": ["CHUNSOFT", "Ginnie", "JFain"]
 }

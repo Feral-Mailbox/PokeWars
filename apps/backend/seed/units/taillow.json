@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [15],
     "is_legendary": false,
-    "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates."
+    "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates.",
+    "portrait_credits": ["CHUNSOFT", "Top_Kec"],
+    "sprite_credits": ["CHUNSOFT"]
   }

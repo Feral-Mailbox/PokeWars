@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [38],
     "is_legendary": false,
-    "description": "The leaves on its head grow right back even if they fall out. These bitter leaves refresh those who eat them."
+    "description": "The leaves on its head grow right back even if they fall out. These bitter leaves refresh those who eat them.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["Emmuffin"]
 }

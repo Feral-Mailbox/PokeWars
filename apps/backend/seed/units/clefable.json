@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Their ears are sensitive enough to hear a pin drop from over a mile away, so they’re usually found in quiet places."
+    "description": "Their ears are sensitive enough to hear a pin drop from over a mile away, so they’re usually found in quiet places.",
+    "portrait_credits": ["CHUNSOFT", "jackolanternjackalope", "Gust"],
+    "sprite_credits": ["CHUNSOFT"]
 }

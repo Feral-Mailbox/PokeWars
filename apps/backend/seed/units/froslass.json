@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "When it finds humans or Pokémon it likes, it freezes them and takes them to its chilly den, where they become decorations."
+    "description": "When it finds humans or Pokémon it likes, it freezes them and takes them to its chilly den, where they become decorations.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

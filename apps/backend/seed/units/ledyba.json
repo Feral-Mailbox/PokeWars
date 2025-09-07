@@ -21,6 +21,8 @@
     "evolution_cost": 400,
     "evolves_into": [13],
     "is_legendary": false,
-    "description": "They communicate with one another using bodily fluids that give off odors. When they're angry, their odor smells sour."
+    "description": "They communicate with one another using bodily fluids that give off odors. When they're angry, their odor smells sour.",
+    "portrait_credits": ["CHUNSOFT", "JFain"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
   }
     

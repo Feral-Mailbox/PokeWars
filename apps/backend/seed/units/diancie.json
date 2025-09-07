@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "It can instantly create many diamonds by compressing the carbon in the air between its hands."
+    "description": "It can instantly create many diamonds by compressing the carbon in the air between its hands.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["Emmuffin"]
 }

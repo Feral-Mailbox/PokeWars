@@ -21,5 +21,7 @@
     "evolution_cost": 800,
     "evolves_into": [78],
     "is_legendary": false,
-    "description": "When several of these Pokémon gather, their electricity can build and cause lightning storms."
+    "description": "When several of these Pokémon gather, their electricity can build and cause lightning storms.",
+    "portrait_credits": ["CHUNSOFT"],
+    "sprite_credits": ["CHUNSOFT"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "When facing a tough foe, it looses flames from its wrists. Its powerful legs let it jump clear over buildings."
+    "description": "When facing a tough foe, it looses flames from its wrists. Its powerful legs let it jump clear over buildings.",
+    "portrait_credits": ["CHUNSOFT", "Noo"],
+    "sprite_credits": ["CHUNSOFT"]
 }

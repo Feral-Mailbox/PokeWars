@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [89],
     "is_legendary": false,
-    "description": "Only female Salandit can produce gas laden with pheromones. Males entranced by this gas will do whatever the females tell them."
+    "description": "Only female Salandit can produce gas laden with pheromones. Males entranced by this gas will do whatever the females tell them.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron", "Soulja"]
 }

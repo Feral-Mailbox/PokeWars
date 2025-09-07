@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [113],
     "is_legendary": false,
-    "description": "It eats iron ore—and sometimes railroad tracks—to build up the steel armor that protects its body."
+    "description": "It eats iron ore—and sometimes railroad tracks—to build up the steel armor that protects its body.",
+    "portrait_credits": ["CHUNSOFT", "Murpi"],
+    "sprite_credits": ["CHUNSOFT", "Emboarger"]
 }

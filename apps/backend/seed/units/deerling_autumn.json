@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [25],
     "is_legendary": false,
-    "description": "Deerling have different scents depending on the season. In this form, Deerling have a softly sweet scent that lingers in the nose."
+    "description": "Deerling have different scents depending on the season. In this form, Deerling have a softly sweet scent that lingers in the nose.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["baronessfaron"]
 }

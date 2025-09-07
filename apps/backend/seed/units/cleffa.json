@@ -21,5 +21,7 @@
     "evolution_cost": 400,
     "evolves_into": [107],
     "is_legendary": false,
-    "description": "Because of its unusual, starlike silhouette, people believe that it came here on a meteor."
+    "description": "Because of its unusual, starlike silhouette, people believe that it came here on a meteor.",
+    "portrait_credits": ["CHUNSOFT", "Deleca7755", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Though there are many enthusiasts for Sawsbuck as a species, this seasonal form in particular is not very popular. "
+    "description": "Though there are many enthusiasts for Sawsbuck as a species, this seasonal form in particular is not very popular.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron"]
 }

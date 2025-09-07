@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "It has phenomenal power. It will mercilessly crush anyone or anything that bullies small Pokémon."
+    "description": "It has phenomenal power. It will mercilessly crush anyone or anything that bullies small Pokémon.",
+    "portrait_credits": ["Noo", "Garbage"],
+    "sprite_credits": ["Emmuffin"]
 }

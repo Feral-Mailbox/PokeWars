@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Upon hearing its eerie howls, other Pokémon get the shivers and head straight back to their nests."
+    "description": "Upon hearing its eerie howls, other Pokémon get the shivers and head straight back to their nests.",
+    "portrait_credits": ["CHUNSOFT", "Murpi"],
+    "sprite_credits": ["CHUNSOFT"]
 }

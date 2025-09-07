@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "The antennae have distinctive patterns that look like eyes. When it rains, they grow heavy, making flight impossible."
+    "description": "The antennae have distinctive patterns that look like eyes. When it rains, they grow heavy, making flight impossible.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

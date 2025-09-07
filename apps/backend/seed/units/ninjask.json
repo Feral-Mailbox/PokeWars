@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Because they move so quickly, they sometimes become unseeable. They congregate around tree sap."
+    "description": "Because they move so quickly, they sometimes become unseeable. They congregate around tree sap.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

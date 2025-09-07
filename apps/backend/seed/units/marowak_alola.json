@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "This Pokémon sets the bone it holds on fire and dances through the night as a way to mourn its fallen allies."
+    "description": "This Pokémon sets the bone it holds on fire and dances through the night as a way to mourn its fallen allies.",
+    "portrait_credits": ["Anonymous"],
+    "sprite_credits": ["Emmuffin"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [44],
     "is_legendary": false,
-    "description": "It is smart enough to hunt in packs. It uses a variety of cries for communicating with others."
+    "description": "It is smart enough to hunt in packs. It uses a variety of cries for communicating with others.",
+    "portrait_credits": ["CHUNSOFT", "Gust"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

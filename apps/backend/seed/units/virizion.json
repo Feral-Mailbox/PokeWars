@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "It darts around opponents with a flurry of quick movements, slicing them up with its horns."
+    "description": "It darts around opponents with a flurry of quick movements, slicing them up with its horns.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron"]
 }

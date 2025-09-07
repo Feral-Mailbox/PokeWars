@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [50, 51, 52, 53, 54, 55, 56, 57],
     "is_legendary": false,
-    "description": "Its ability to evolve into many forms allows it to adapt smoothly and perfectly to any environment."
+    "description": "Its ability to evolve into many forms allows it to adapt smoothly and perfectly to any environment.",
+    "portrait_credits": ["CHUNSOFT"],
+    "sprite_credits": ["CHUNSOFT"]
 }

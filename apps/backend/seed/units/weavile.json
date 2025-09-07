@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Evolution made it even more devious. It communicates by clawing signs in boulders."
+    "description": "Evolution made it even more devious. It communicates by clawing signs in boulders.",
+    "portrait_credits": ["CHUNSOFT", "PhillipsYoung", "ShyStarryRain"],
+    "sprite_credits": ["CHUNSOFT"]
 }

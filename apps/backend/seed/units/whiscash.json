@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It is extremely protective of its territory. If any foe approaches, it attacks using vicious tremors."
+    "description": "It is extremely protective of its territory. If any foe approaches, it attacks using vicious tremors.",
+    "portrait_credits": ["CHUNSOFT", "Emmuffin", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

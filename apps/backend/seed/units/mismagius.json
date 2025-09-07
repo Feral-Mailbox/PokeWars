@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Its cry sounds like an incantation. It is said the cry may rarely be imbued with happiness-giving power."
+    "description": "Its cry sounds like an incantation. It is said the cry may rarely be imbued with happiness-giving power.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT"]
 }

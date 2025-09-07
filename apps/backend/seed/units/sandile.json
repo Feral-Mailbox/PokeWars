@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [110],
     "is_legendary": false,
-    "description": "It submerges itself in sand and moves as if swimming. This wise behavior keeps its enemies from finding it and maintains its temperature."
+    "description": "It submerges itself in sand and moves as if swimming. This wise behavior keeps its enemies from finding it and maintains its temperature.",
+    "portrait_credits": ["Noivern"],
+    "sprite_credits": ["Noivern", "baronessfaron"]
 }

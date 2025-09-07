@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Using the long fur on its arms like whips, it launches into combo attacks that, once started, no one can stop."
+    "description": "Using the long fur on its arms like whips, it launches into combo attacks that, once started, no one can stop.",
+    "portrait_credits": ["baronessfaron"],
+    "sprite_credits": ["baronessfaron"]
 }

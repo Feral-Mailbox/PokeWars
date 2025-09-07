@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [83],
     "is_legendary": false,
-    "description": "It communicates with others telepathically. Its body is encapsulated in liquid, but if it takes a heavy blow, the liquid will leak out."
+    "description": "It communicates with others telepathically. Its body is encapsulated in liquid, but if it takes a heavy blow, the liquid will leak out.",
+    "portrait_credits": ["Emmuffin", "NOLASMOR"],
+    "sprite_credits": ["Anonymous", "Uni"]
 }

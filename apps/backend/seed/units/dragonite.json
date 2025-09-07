@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "It can fly in spite of its big and bulky physique. It circles the globe in just 16 hours."
+    "description": "It can fly in spite of its big and bulky physique. It circles the globe in just 16 hours.",
+    "portrait_credits": ["CHUNSOFT", "Emboarger", "AlexGroeger"],
+    "sprite_credits": ["CHUNSOFT"]
 }

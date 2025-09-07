@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [40],
     "is_legendary": false,
-    "description": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity."
+    "description": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity.",
+    "portrait_credits": ["Emmuffin"],
+    "sprite_credits": ["Emmuffin"]
 }

@@ -21,6 +21,8 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Although its fur has many admirers, it is tough to raise as a pet because of its fickle meanness."
+    "description": "Although its fur has many admirers, it is tough to raise as a pet because of its fickle meanness.",
+    "portrait_credits": ["CHUNSOFT", "baronessfaron", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT"]
   }
     

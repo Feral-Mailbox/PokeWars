@@ -21,5 +21,7 @@
     "evolution_cost": 1400,
     "evolves_into": [140],
     "is_legendary": false,
-    "description": "It is called the divine Pokémon. When its entire body brightens slightly, the weather changes."
+    "description": "It is called the divine Pokémon. When its entire body brightens slightly, the weather changes.",
+    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
+    "sprite_credits": ["CHUNSOFT"]
 }

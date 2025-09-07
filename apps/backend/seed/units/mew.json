@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "It’s very intelligent and can use an incredible variety of moves. Many believe that all other Pokémon are descendants of this one."
+    "description": "It’s very intelligent and can use an incredible variety of moves. Many believe that all other Pokémon are descendants of this one.",
+    "portrait_credits": ["CHUNSOFT", "Garbage", "baronessfaron"],
+    "sprite_credits": ["CHUNSOFT", "JFain"]
 }

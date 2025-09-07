@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": true,
-    "description": "When it shares the infinite energy it creates, that being’s entire body will be overflowing with power."
+    "description": "When it shares the infinite energy it creates, that being’s entire body will be overflowing with power.",
+    "portrait_credits": ["MonochromeKirby", "baronessfaron"],
+    "sprite_credits": ["MonochromeKirby"]
 }

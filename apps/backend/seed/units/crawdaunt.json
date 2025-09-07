@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "A brutish Pokémon that loves to battle. It will crash itself into any foe that approaches its nest."
+    "description": "A brutish Pokémon that loves to battle. It will crash itself into any foe that approaches its nest.",
+    "portrait_credits": ["CHUNSOFT", "0palite", "Topc_Kec"],
+    "sprite_credits": ["CHUNSOFT"]
 }

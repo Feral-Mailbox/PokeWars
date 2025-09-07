@@ -21,5 +21,7 @@
     "evolution_cost": 600,
     "evolves_into": [59],
     "is_legendary": false,
-    "description": "Inflating its poison sacs, it fills the area with an odd sound and hits flinching opponents with a poison jab."
+    "description": "Inflating its poison sacs, it fills the area with an odd sound and hits flinching opponents with a poison jab.",
+    "portrait_credits": ["CHUNSOFT", "Noo", "Gust"],
+    "sprite_credits": ["CHUNSOFT"]
 }

@@ -21,5 +21,7 @@
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
-    "description": "Its highly developed brain is on par with a supercomputer. It can use all forms of psychic abilities."
+    "description": "Its highly developed brain is on par with a supercomputer. It can use all forms of psychic abilities.",
+    "portrait_credits": ["CHUNSOFT", "Gust"],
+    "sprite_credits": ["CHUNSOFT"]
   }
