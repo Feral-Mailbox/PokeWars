@@ -37,7 +37,9 @@ def load_units():
                 evolution_cost=data.get("evolution_cost", 0),
                 evolves_into=data.get("evolves_into"),
                 is_legendary=data.get("is_legendary", False),
-                description=data.get("description", "")
+                description=data.get("description", ""),
+                portrait_credits=data.get("portrait_credits", []),
+                sprite_credits=data.get("sprite_credits", [])
             )
 
             db.add(new_unit)

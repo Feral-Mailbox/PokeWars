@@ -31,6 +31,8 @@ class UnitDetail(BaseModel):
     evolves_into: Optional[List[int]]
     is_legendary: bool
     description: Optional[str]
+    portrait_credits: List[str]
+    sprite_credits: List[str]
 
     model_config = ConfigDict(from_attributes=True)
 

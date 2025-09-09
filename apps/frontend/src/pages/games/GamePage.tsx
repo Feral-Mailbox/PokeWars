@@ -136,6 +136,8 @@ export default function GamePage() {
               cost: u.unit.cost,
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
+              portrait_credits: u.unit.portrait_credits ?? [],
+              sprite_credits: u.unit.sprite_credits ?? [],
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -284,6 +286,8 @@ export default function GamePage() {
               cost: u.unit.cost,
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
+              portrait_credits: u.unit.portrait_credits ?? [],
+              sprite_credits: u.unit.sprite_credits ?? [],
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -546,6 +550,8 @@ export default function GamePage() {
           const currentHp = placedUnitAtTile.current_hp;
           const statusEffects = placedUnitAtTile.status_effects ?? [];
 
+          console.log(unit)
+
           return (
             <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
               <h2 className="text-lg font-bold mb-2">Unit Info</h2>
@@ -605,6 +611,14 @@ export default function GamePage() {
                   </ul>
                 </div>
               )}
+              <p className="text-xs text-gray-400 mt-2 leading-snug">
+                <span className="font-semibold">Portrait Credits:</span>{" "}
+                {(unit.portrait_credits?.filter(Boolean) ?? []).join(", ") || "None"}
+              </p>
+              <p className="text-xs text-gray-400 leading-snug">
+                <span className="font-semibold">Sprite Credits:</span>{" "}
+                {(unit.sprite_credits?.filter(Boolean) ?? []).join(", ") || "None"}
+              </p>
             </div>
           );
         }
