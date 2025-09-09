@@ -5,7 +5,7 @@ import { secureFetch } from '@/utils/secureFetch';
 import logo from '../assets/react.svg';
 
 const Navbar = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, setUser } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [showGamesMenu, setShowGamesMenu] = useState(false);
@@ -37,9 +37,11 @@ const Navbar = () => {
         if (res?.ok) {
           const data = await res.json();
           setUser(data);
+        } else {
+          setUser(null);
         }
-      } catch (err) {
-        console.error('Session check failed', err);
+      } catch {
+        setUser(null);
       }
     };
     checkSession();
@@ -87,10 +89,13 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    await secureFetch('/api/logout', {
-      method: 'POST',
-    });
-    logout();
+    try {
+      await secureFetch('/api/logout', { method: 'POST' });
+    } finally {
+      setUser(null);
+      setIsRegister(false);
+      navigate('/');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
