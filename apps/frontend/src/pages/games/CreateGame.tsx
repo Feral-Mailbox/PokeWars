@@ -11,11 +11,28 @@ const CreateGame = () => {
   const [cashPerTurn, setCashPerTurn] = useState<number>(100);
   const [maxTurns, setMaxTurns] = useState<number>(99);
   const [unitLimit, setUnitLimit] = useState<number>(30);
+  const [turnSeconds, setTurnSeconds] = useState<number>(300);
   const [isPrivate, setIsPrivate] = useState(false);
   const [gameName, setGameName] = useState("");
   const [userId, setUserId] = useState<number | null>(null);
 
   const navigate = useNavigate();
+
+  const TURN_PRESETS = [
+  { label: "30 seconds", value: 30 },
+  { label: "1 minute",   value: 60 },
+  { label: "2 minutes",  value: 120 },
+  { label: "5 minutes",  value: 300 },   // default value
+  { label: "10 minutes", value: 600 },
+  { label: "15 minutes", value: 900 },
+  { label: "30 minutes", value: 1800 },
+  { label: "1 hour",     value: 3600 },
+  { label: "2 hours",    value: 7200 },
+  { label: "4 hours",    value: 14400 },
+  { label: "8 hours",    value: 28800 },
+  { label: "12 hours",   value: 43200 },
+  { label: "24 hours",   value: 86400 },
+];
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -86,7 +103,8 @@ const CreateGame = () => {
       starting_cash: startingCash,
       cash_per_turn: cashPerTurn,
       max_turns: maxTurns,
-      unit_limit: unitLimit,
+      unit_limit: unitLimit,  
+      turn_seconds: turnSeconds,
     };
 
     const res = await secureFetch("/api/games/create", {
@@ -190,6 +208,22 @@ const CreateGame = () => {
             </select>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Turn Timer</label>
+          <select
+            value={turnSeconds}
+            onChange={(e) => setTurnSeconds(Number(e.target.value))}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+          >
+            {TURN_PRESETS.map(p => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            When time runs out, the next player’s turn begins automatically.
+          </p>
+        </div>
 
         {gamemode === "War" && (
           <>

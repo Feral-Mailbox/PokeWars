@@ -77,6 +77,7 @@ class Game(Base):
     cash_per_turn = Column(Integer, nullable=True)
     max_turns = Column(Integer, nullable=True)
     unit_limit = Column(Integer, nullable=True)
+    turn_seconds = Column(Integer, nullable=False, default=300)
     is_private = Column(Boolean, default=True)
     host_id = Column(Integer, ForeignKey("users.id"))
     link = Column(String, unique=True, nullable=False)
@@ -98,6 +99,7 @@ class GameState(Base):
     current_turn = Column(Integer)
     status = Column(Enum(GameStatus), default=GameStatus.open, nullable=False)
     players = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    turn_deadline = Column(DateTime(timezone=True), nullable=True)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     replay_log = Column(MutableList.as_mutable(JSON), nullable=True, default=list)
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import hashlib
 import redis
 
@@ -50,10 +50,34 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
         cash_per_turn=game.cash_per_turn,
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
+        turn_seconds=game.turn_seconds,
+        turn_deadline=game_state.turn_deadline,
         replay_log=game_state.replay_log,
         link=game.link,
         timestamp=game.timestamp
     )
+
+def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
+    """Advance to the next player if the turn timer elapsed. Returns True if advanced."""
+    if state.status != GameStatus.in_progress or not state.turn_deadline:
+        return False
+    now = datetime.now(timezone.utc)
+    if now < state.turn_deadline:
+        return False
+
+    # Advance to next player by position in state.players (list of user_ids)
+    if not state.players:
+        return False
+    try:
+        idx = state.players.index(state.current_turn) if state.current_turn in state.players else -1
+    except ValueError:
+        idx = -1
+    next_idx = (idx + 1) % len(state.players)
+    state.current_turn = state.players[next_idx]
+    state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
+    db.commit()
+    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+    return True
 
 @router.get("/open", response_model=List[GameResponse])
 def get_open_games(
@@ -134,6 +158,7 @@ def create_game(
         cash_per_turn=data.cash_per_turn,
         max_turns=data.max_turns,
         unit_limit=data.unit_limit,
+        turn_seconds=data.turn_seconds or 300,
     )
     db.add(new_game)
     db.flush()
@@ -184,6 +209,7 @@ def create_game(
         cash_per_turn=new_game.cash_per_turn,
         max_turns=new_game.max_turns,
         unit_limit=new_game.unit_limit,
+        turn_seconds=new_game.turn_seconds,
         replay_log=game_state.replay_log,
         link=new_game.link,
         timestamp=new_game.timestamp
@@ -292,6 +318,11 @@ def start_game(
             return {"detail": "Game moved to preparation phase"}
         elif game_state.status == GameStatus.preparation:
             game_state.status = GameStatus.in_progress
+
+            if game_state.players:
+                game_state.current_turn = game_state.players[0]
+                game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
+
             db.commit()
             redis_client.publish(f"game_updates:{game.link}", "game_started")
             return {"detail": "Game started"}
@@ -299,6 +330,11 @@ def start_game(
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
     else:
         game_state.status = GameStatus.in_progress
+
+        if game_state.players:
+                game_state.current_turn = game_state.players[0]
+                game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
+
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_started")
         return {"detail": "Game started"}
@@ -316,6 +352,9 @@ def get_game_by_link(
     )
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
+
+    game_state = db.query(GameState).filter_by(game_id=game.id).first()
+    advance_if_expired(game, game_state, db)
 
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
     player_states = db.query(GamePlayer).filter_by(game_id=game.id).all()
@@ -340,6 +379,7 @@ def get_game_by_link(
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
+        turn_deadline=game_state.turn_deadline,
         winner_id=game_state.winner_id,
         gamemode=game.gamemode,
         current_turn=game_state.current_turn,
@@ -347,6 +387,7 @@ def get_game_by_link(
         cash_per_turn=game.cash_per_turn,
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
+        turn_seconds=game.turn_seconds,
         replay_log=game_state.replay_log,
         link=game.link,
         timestamp=game.timestamp

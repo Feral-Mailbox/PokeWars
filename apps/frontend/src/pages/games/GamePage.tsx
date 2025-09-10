@@ -11,9 +11,48 @@ const TILE_SIZE = 16;
 const TILE_SCALE = 2;
 const TILE_DRAW_SIZE = TILE_SIZE * TILE_SCALE;
 
+function getMovementRange(
+  start: [number, number],
+  range: number,
+  movementCosts: number[][],
+  width: number,
+  height: number
+): [number, number][] {
+  const visited = new Set<string>();
+  const result: [number, number][] = [];
+  const queue: Array<{ x: number; y: number; cost: number }> = [{ x: start[0], y: start[1], cost: 0 }];
+
+  const directions = [
+    [0, 1], [0, -1],
+    [1, 0], [-1, 0]
+  ];
+
+  while (queue.length > 0) {
+    const { x, y, cost } = queue.shift()!;
+    const key = `${x},${y}`;
+    if (visited.has(key) || x < 0 || y < 0 || x >= width || y >= height) continue;
+    visited.add(key);
+    result.push([x, y]);
+
+    for (const [dx, dy] of directions) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx >= 0 && ny >= 0 && nx < width && ny < height) {
+        const nextCost = cost + movementCosts[ny][nx];
+        if (!visited.has(`${nx},${ny}`) && nextCost <= range) {
+          queue.push({ x: nx, y: ny, cost: nextCost });
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 export default function GamePage() {
   const { gameId } = useParams();
   const [userId, setUserId] = useState<number | null>(null);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [gameData, setGameData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
@@ -25,13 +64,16 @@ export default function GamePage() {
   const [isReady, setIsReady] = useState<boolean>(false);
   const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
   const [lockedUnit, setLockedUnit] = useState<any | null>(null);
+  const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
+  const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
-
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
 
@@ -73,6 +115,21 @@ export default function GamePage() {
   function getPlayerColor(playerId: number): string {
     return playerColorMap[playerId] ?? "#00000000";
   }
+
+  function fmt(seconds: number): string {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
+    } else {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+  }
+
 
   const handleStartGame = async () => {
     const res = await secureFetch(`/api/games/start/${gameData.id}`, { method: "POST" });
@@ -136,8 +193,6 @@ export default function GamePage() {
               cost: u.unit.cost,
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
-              portrait_credits: u.unit.portrait_credits ?? [],
-              sprite_credits: u.unit.sprite_credits ?? [],
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -204,6 +259,40 @@ export default function GamePage() {
     fetchUnits();
   }, [isPreparationPhase]);
 
+  const advanceRequestedRef = useRef(false);
+
+  useEffect(() => {
+    if (!gameData?.turn_deadline) return;
+    const deadlineMs = new Date(gameData.turn_deadline).getTime();
+
+    const tick = async () => {
+      const now = Date.now();
+      const secs = Math.max(0, Math.ceil((deadlineMs - now) / 1000));
+      setRemainingTime(secs);
+
+      if (secs === 0 && !advanceRequestedRef.current && gameData?.link) {
+        advanceRequestedRef.current = true;
+        const res = await secureFetch(`/api/games/${gameData.link}`);
+
+        if (res.ok) {
+          const updated = await res.json();
+          setGameData(updated);
+        }
+        
+        // Small debounce so spam doesn't occur if clock stays at 0 for a sec
+        setTimeout(() => { advanceRequestedRef.current = false; }, 1500);
+      }
+    };
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [gameData?.turn_deadline, gameData?.link]);
+
+  useEffect(() => {
+    advanceRequestedRef.current = false;
+  }, [gameData?.current_turn, gameData?.turn_deadline]);
+
   useEffect(() => {
     const fetchMoves = async () => {
       const res = await secureFetch("/api/moves/all");
@@ -245,6 +334,83 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
+    if (gameData?.status !== "in_progress") return;
+
+    const canvas = overlayRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    highlightedTiles.forEach(([x, y]) => {
+      const color = getPlayerColor(lockedUnit?.user_id ?? 0);
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        x * TILE_DRAW_SIZE,
+        y * TILE_DRAW_SIZE,
+        TILE_DRAW_SIZE,
+        TILE_DRAW_SIZE
+      );
+    });
+  }, [highlightedTiles, lockedUnit, gameData?.status]);
+
+  useEffect(() => {
+    if (gameData?.status !== "in_progress") return;
+
+    const canvas = overlayRef.current;
+    if (!canvas) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
+      const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
+      const clickedTile: [number, number] = [x, y];
+      let unitHasMoved = false;
+
+      // If we don't have a unit selected, ignore
+      if (!lockedUnit || !unitOriginalTile) return;
+
+      const isValidMove = highlightedTiles.some(
+        ([hx, hy]) => hx === x && hy === y
+      );
+
+      // Move the unit if clicked in valid range
+      if (isValidMove) {
+        setPlacedUnits(prev =>
+          prev.map(u =>
+            u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u
+          )
+        );
+        unitHasMoved = true;
+      } else if (!isValidMove && lockedUnit && unitOriginalTile) {
+        // Reset to original tile only if unit has actually moved
+        const currentUnit = placedUnits.find(u => u.id === lockedUnit.instanceId);
+        const isMoved = currentUnit && (
+          currentUnit.tile[0] !== unitOriginalTile[0] ||
+          currentUnit.tile[1] !== unitOriginalTile[1]
+        );
+
+        if (isMoved) {
+          setPlacedUnits(prev =>
+            prev.map(u =>
+              u.id === lockedUnit.id ? { ...u, tile: unitOriginalTile } : u
+            )
+          );
+        }
+
+        setHighlightedTiles([]);
+        setLockedUnit(null);
+        setUnitOriginalTile(null);
+      }
+    };
+
+    canvas.addEventListener("click", handleClick);
+    return () => canvas.removeEventListener("click", handleClick);
+  }, [highlightedTiles, lockedUnit, unitOriginalTile]);
+
+  useEffect(() => {
     if (!gameData?.link) return;
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const hostname = window.location.hostname;
@@ -255,7 +421,7 @@ export default function GamePage() {
     ws.onerror = (e) => console.error("[Game WS] Error", e);
 
     ws.onmessage = (event) => {
-      if (["player_joined", "game_started", "player_ready", "game_preparation"].includes(event.data)) {
+      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced"].includes(event.data)) {
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
           if (!res.ok) return;
@@ -286,8 +452,6 @@ export default function GamePage() {
               cost: u.unit.cost,
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
-              portrait_credits: u.unit.portrait_credits ?? [],
-              sprite_credits: u.unit.sprite_credits ?? [],
             },
             tile: [u.x, u.y],
             current_hp: u.current_hp,
@@ -375,7 +539,20 @@ export default function GamePage() {
 
         <p className="text-lg font-semibold mb-2 text-yellow-400">
           {gameData?.status === "in_progress" ? (
-            "Game in progress..."
+            (() => {
+              const current = gameData.players.find(
+                (p: any) => p.player_id === gameData.current_turn
+              );
+              const name = current?.username ?? "Player";
+              return (
+                <>
+                  {name}'s Turn{" "}
+                  {typeof remainingTime === "number" && (
+                    <span className="text-gray-400">({fmt(remainingTime)})</span>
+                  )}
+                </>
+              );
+            })()
           ) : gameData?.status === "preparation" ? (
             allPlayersReady ? (
               isHost
@@ -438,10 +615,22 @@ export default function GamePage() {
 
         <div className="relative" style={{ width: mapWidth, height: mapHeight }}>
           <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
+          <canvas
+            ref={overlayRef}
+            id="overlayCanvas"
+            width={mapWidth}
+            height={mapHeight}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              pointerEvents: "none",
+            }}
+          />
 
-          {placedUnits.map(({ id, unit, tile, current_hp, user_id }, idx) => (
+          {placedUnits.map(({ id, unit, tile, current_hp, user_id }) => (
             <div
-              key={idx}
+              key={id}
               data-unit
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit) {
@@ -459,9 +648,20 @@ export default function GamePage() {
                   setSelectedTile(tile);
                 } else if (gameData.status === "in_progress") {
                   setLockedUnit(prev => {
-                    // Clicking again toggles off the lock
-                    const isSame = prev?.id === unit.id;
-                    return isSame ? null : { ...unit, user_id, current_hp };
+                    const isSameInstance = prev?.instanceId === id;
+                    if (isSameInstance) {
+                      setHighlightedTiles([]);
+                      return null;
+                    }
+
+                    const movement = unit.base_stats?.range ?? 0;
+                    const costMap = gameData.map.tile_data.movement_cost;
+                    const width = gameData.map.width;
+                    const height = gameData.map.height;
+                    const tiles = getMovementRange(tile, movement, costMap, width, height);
+                    setHighlightedTiles(tiles);
+                    setUnitOriginalTile(tile);
+                    return { ...unit, user_id, current_hp, instanceId: id, tile };
                   });
                 }
               }}
@@ -550,11 +750,8 @@ export default function GamePage() {
           const currentHp = placedUnitAtTile.current_hp;
           const statusEffects = placedUnitAtTile.status_effects ?? [];
 
-          console.log(unit)
-
           return (
             <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
-              <h2 className="text-lg font-bold mb-2">Unit Info</h2>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <UnitPortrait assetFolder={unit.asset_folder} />
@@ -579,11 +776,12 @@ export default function GamePage() {
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
                 <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
                 <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Range:</span> {unit.base_stats?.range ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
               </div>
 
               {unit.move_ids?.length > 0 && (
@@ -611,14 +809,28 @@ export default function GamePage() {
                   </ul>
                 </div>
               )}
-              <p className="text-xs text-gray-400 mt-2 leading-snug">
-                <span className="font-semibold">Portrait Credits:</span>{" "}
-                {(unit.portrait_credits?.filter(Boolean) ?? []).join(", ") || "None"}
-              </p>
-              <p className="text-xs text-gray-400 leading-snug">
-                <span className="font-semibold">Sprite Credits:</span>{" "}
-                {(unit.sprite_credits?.filter(Boolean) ?? []).join(", ") || "None"}
-              </p>
+              <button
+                className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                onClick={async () => {
+                  if (!placedUnitAtTile?.id || !gameData?.link) return;
+
+                  const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${placedUnitAtTile.id}`, {
+                    method: "DELETE"
+                  });
+
+                  if (!res.ok) {
+                    setToastMessage("Failed to remove unit.");
+                    return;
+                  }
+
+                  // Refund the cost and remove the unit from placedUnits
+                  setCash(prev => prev + (placedUnitAtTile.unit?.cost ?? 0));
+                  setPlacedUnits(prev => prev.filter(u => u.id !== placedUnitAtTile.id));
+                  setSelectedTile(null);
+                }}
+              >
+                Remove Unit
+              </button>
             </div>
           );
         }
@@ -740,11 +952,12 @@ export default function GamePage() {
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
                 <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
                 <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Range:</span> {unit.base_stats?.range ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
               </div>
 
               {unit.move_ids?.length > 0 && (
