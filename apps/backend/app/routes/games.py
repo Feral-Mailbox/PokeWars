@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime, timedelta, timezone
+from collections import deque
 import hashlib
+import json
 import redis
 
 from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit
@@ -72,12 +74,66 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         idx = state.players.index(state.current_turn) if state.current_turn in state.players else -1
     except ValueError:
         idx = -1
+
     next_idx = (idx + 1) % len(state.players)
     state.current_turn = state.players[next_idx]
     state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
+
+    compute_turn_locks(game, state, db)
     db.commit()
     redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+    redis_client.publish(f"game_updates:{game.link}", "turn_started")
     return True
+
+def movement_range_backend(start, rng, movement_costs, width, height):
+    sx, sy = start
+    seen = set()
+    out = []
+    q = deque([(sx, sy, 0)])
+    dirs = [(1,0),(-1,0),(0,1),(0,-1)]
+    while q:
+        x, y, c = q.popleft()
+        if x < 0 or y < 0 or x >= width or y >= height: 
+            continue
+        key = (x, y)
+        if key in seen: 
+            continue
+        seen.add(key)
+        out.append([x, y])
+        for dx, dy in dirs:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < width and 0 <= ny < height:
+                nc = c + movement_costs[ny][nx]
+                if nc <= rng and (nx, ny) not in seen:
+                    q.append((nx, ny, nc))
+    return out
+
+def compute_turn_locks(game: Game, state: GameState, db: Session):
+    """Cache {unit_id: {origin:[x,y], tiles:[[...],...]}} for the player whose turn it is."""
+    if not state.current_turn:
+        return
+
+    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    costs = map_obj.tile_data["movement_cost"]
+    width, height = map_obj.width, map_obj.height
+    units = (
+        db.query(GameUnit)
+        .join(Unit, Unit.id == GameUnit.unit_id)
+        .filter(GameUnit.game_id == game.id, GameUnit.user_id == state.current_turn)
+        .all()
+    )
+
+    key = f"turnlock:{game.link}:{state.current_turn}"
+    redis_client.delete(key)
+
+    # Store as a hash: field=unit_id, value=json
+    for gu in units:
+        rng = (gu.unit.base_stats or {}).get("range", 0)
+        tiles = movement_range_backend((gu.x, gu.y), rng, costs, width, height)
+        redis_client.hset(
+            key, str(gu.id),
+            json.dumps({"origin": [gu.x, gu.y], "tiles": tiles})
+        )
 
 @router.get("/open", response_model=List[GameResponse])
 def get_open_games(
@@ -323,8 +379,10 @@ def start_game(
                 game_state.current_turn = game_state.players[0]
                 game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
 
+            compute_turn_locks(game, game_state, db)
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "game_started")
+            redis_client.publish(f"game_updates:{game.link}", "game_started")        
+            redis_client.publish(f"game_updates:{game.link}", "turn_started")
             return {"detail": "Game started"}
         else:
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
@@ -335,8 +393,10 @@ def start_game(
                 game_state.current_turn = game_state.players[0]
                 game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
 
+        compute_turn_locks(game, game_state, db)
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_started")
+        redis_client.publish(f"game_updates:{game.link}", "turn_started")
         return {"detail": "Game started"}
 
 @router.get("/{link}", response_model=GameResponse)
@@ -488,7 +548,7 @@ def place_unit(
         is_fainted=unit_data.is_fainted,
     )
     db.add(new_unit)
-    db.flush()  # Get new_unit.id before assigning
+    db.flush()
 
     # Step 2: Update player state
     player_state.cash_remaining -= unit_info.cost
@@ -497,7 +557,7 @@ def place_unit(
     # Step 3: Ensure SQLAlchemy registers state as dirty
     db.add(player_state)
 
-    db.commit()  # Now commit everything
+    db.commit()
     db.refresh(new_unit)
 
     return new_unit
@@ -534,6 +594,91 @@ def remove_unit(
     db.delete(unit)
     db.commit()
     return {"detail": "Unit removed and cash refunded"}
+
+
+@router.get("/{link}/turnlock")
+def get_turnlock(
+    link: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+
+    # Return the locks for the player whose turn it is (i.e., the “frozen” sets)
+    key = f"turnlock:{game.link}:{state.current_turn}"
+    raw = redis_client.hgetall(key)
+    return {int(k): json.loads(v) for k, v in raw.items()}
+
+@router.post("/{link}/move")
+def move_unit(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Expect: {"unit_id": int, "x": int, "y": int}
+    try:
+        unit_id = int(payload.get("unit_id"))
+        x = int(payload.get("x"))
+        y = int(payload.get("y"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+
+    # Check for player turn
+    if state.current_turn != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    # Fetch GameUnit and ownership check
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only move your own unit")
+
+    # Bounds check
+    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    if x < 0 or y < 0 or x >= map_obj.width or y >= map_obj.height:
+        raise HTTPException(status_code=400, detail="Out of bounds")
+
+    # Occupancy check (no stacking)
+    occupied = (
+        db.query(GameUnit)
+        .filter(GameUnit.game_id == game.id, GameUnit.x == x, GameUnit.y == y, GameUnit.id != gu.id)
+        .count()
+    )
+    if occupied:
+        raise HTTPException(status_code=400, detail="Tile occupied")
+
+    key = f"turnlock:{game.link}:{user.id}"
+    lock = redis_client.hget(key, str(gu.id))
+    if not lock:
+        raise HTTPException(status_code=400, detail="Move set not initialized")
+    lock = json.loads(lock)
+    allowed = { (tx, ty) for tx, ty in lock["tiles"] }
+    if (x, y) not in allowed:
+        raise HTTPException(status_code=400, detail="Illegal move for this turn")
+
+    gu.x = x
+    gu.y = y
+    db.commit()
+
+    redis_client.publish(
+        f"game_updates:{game.link}",
+        f"unit_moved:{gu.id}:{gu.user_id}:{x}:{y}"
+    )
+
+    return {"ok": True, "unit_id": gu.id, "x": x, "y": y}
 
 @router.get("/{link}/state", response_model=GameStateSchema)
 def get_game_state(

@@ -68,14 +68,18 @@ export default function GamePage() {
   const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const gameLinkRef = useRef<string | undefined>(undefined);
+  const myTurnRef = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
 
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
+  const frozenMovesRef = useRef<Record<number, { origin: [number, number]; tiles: [number, number][] }>>({});
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
+  const isMyTurn = userId != null && gameData?.current_turn === userId;
 
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
@@ -116,6 +120,13 @@ export default function GamePage() {
     return playerColorMap[playerId] ?? "#00000000";
   }
 
+  function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
+    return placedUnitsRef.current.some(u => {
+      if (ignoreUnitId && u.id === ignoreUnitId) return false;
+      return u.tile[0] === x && u.tile[1] === y;
+    });
+  }
+
   function fmt(seconds: number): string {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -127,6 +138,20 @@ export default function GamePage() {
         .padStart(2, "0")}`;
     } else {
       return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+  }
+
+  async function sendMove(unitId: number, x: number, y: number) {
+    try {
+      await secureFetch(`/api/games/${gameLinkRef.current}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unit_id: unitId, x, y }),
+      });
+    } catch {
+      setToastMessage("Move failed; resyncing.");
+      const r = await secureFetch(`/api/games/${gameData.link}`);
+      if (r.ok) setGameData(await r.json());
     }
   }
 
@@ -319,11 +344,12 @@ export default function GamePage() {
       const clickedEl = e.target as HTMLElement;
       const clickedUnit = clickedEl.closest("[data-unit]");
       const clickedMenu = clickedEl.closest("[data-unit-info]");
+      const clickedOverlay = clickedEl.closest("#overlayCanvas");
 
       // If the click is NOT on a unit or on the menu, clear both
-      if (!clickedUnit && !clickedMenu) {
+      if (!clickedUnit && !clickedMenu && !clickedOverlay) {
         setLockedUnit(null);
-        setHoveredUnit(null); // ✅ hide if hovered only
+        setHoveredUnit(null);
       }
     };
 
@@ -354,7 +380,7 @@ export default function GamePage() {
         TILE_DRAW_SIZE
       );
     });
-  }, [highlightedTiles, lockedUnit, gameData?.status]);
+  }, [highlightedTiles, lockedUnit, unitOriginalTile, isMyTurn, userId, gameData?.link]);
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
@@ -367,48 +393,61 @@ export default function GamePage() {
       const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
       const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
       const clickedTile: [number, number] = [x, y];
-      let unitHasMoved = false;
+      
+      if (!lockedUnit || !unitOriginalTile || !myTurnRef.current) return;
 
-      // If we don't have a unit selected, ignore
-      if (!lockedUnit || !unitOriginalTile) return;
+      // Only allow landing inside the PRECOMPUTED tiles
+      const isInRange = highlightedTiles.some(([hx, hy]) => hx === x && hy === y);
 
-      const isValidMove = highlightedTiles.some(
-        ([hx, hy]) => hx === x && hy === y
+      if (!isInRange) {
+        setLockedUnit(null);
+        setHoveredUnit(null);
+        setHighlightedTiles([]);
+        setUnitOriginalTile(null);
+        return;
+      }
+
+      if (lockedUnit.user_id !== userId) {
+        setToastMessage("You can only move your own units.");
+        return;
+      }
+
+      if (isTileOccupied(x, y, lockedUnit.instanceId)) {
+        setToastMessage("That tile is occupied.");
+        return;
+      }
+      
+      setPlacedUnits(prev =>
+        prev.map(u =>
+          u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u
+        )
       );
 
-      // Move the unit if clicked in valid range
-      if (isValidMove) {
-        setPlacedUnits(prev =>
-          prev.map(u =>
-            u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u
-          )
-        );
-        unitHasMoved = true;
-      } else if (!isValidMove && lockedUnit && unitOriginalTile) {
-        // Reset to original tile only if unit has actually moved
-        const currentUnit = placedUnits.find(u => u.id === lockedUnit.instanceId);
-        const isMoved = currentUnit && (
-          currentUnit.tile[0] !== unitOriginalTile[0] ||
-          currentUnit.tile[1] !== unitOriginalTile[1]
-        );
-
-        if (isMoved) {
-          setPlacedUnits(prev =>
-            prev.map(u =>
-              u.id === lockedUnit.id ? { ...u, tile: unitOriginalTile } : u
-            )
-          );
-        }
-
-        setHighlightedTiles([]);
-        setLockedUnit(null);
-        setUnitOriginalTile(null);
-      }
+      sendMove(lockedUnit.instanceId, clickedTile[0], clickedTile[1]);
     };
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
   }, [highlightedTiles, lockedUnit, unitOriginalTile]);
+
+  useEffect(() => {
+    setLockedUnit(null);
+    setHighlightedTiles([]);
+    setUnitOriginalTile(null);
+    frozenMovesRef.current = {};
+  }, [gameData?.current_turn]);
+
+  useEffect(() => {
+    if (!gameData?.link || !gameData?.current_turn) return;
+    (async () => {
+      const res = await secureFetch(`/api/games/${gameData.link}/turnlock`);
+      if (!res.ok) return;
+      const locks = await res.json() as Record<string, {origin:[number,number], tiles:[number,number][]}>;
+      const next: Record<number, {origin:[number,number], tiles:[number,number][]}> = {};
+      for (const [k, v] of Object.entries(locks)) next[Number(k)] = v;
+      frozenMovesRef.current = next;
+    })();
+  }, [gameData?.link, gameData?.current_turn]);
 
   useEffect(() => {
     if (!gameData?.link) return;
@@ -421,6 +460,17 @@ export default function GamePage() {
     ws.onerror = (e) => console.error("[Game WS] Error", e);
 
     ws.onmessage = (event) => {
+      if (typeof event.data === "string" && event.data.startsWith("unit_moved:")) {
+        const [, unitIdStr, , xStr, yStr] = event.data.split(":");
+        const unitId = Number(unitIdStr);
+        const x = Number(xStr);
+        const y = Number(yStr);
+        setPlacedUnits(prev =>
+          prev.map(u => (u.id === unitId ? { ...u, tile: [x, y] as [number, number] } : u))
+        );
+        return;
+      }
+      
       if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced"].includes(event.data)) {
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
@@ -459,6 +509,16 @@ export default function GamePage() {
           }));
 
           setPlacedUnits(mapped);
+
+          try {
+            const lockRes = await secureFetch(`/api/games/${updatedGame.link}/turnlock`);
+            if (lockRes.ok) {
+              const locks = await lockRes.json() as Record<string, {origin:[number,number], tiles:[number,number][]}>;
+              const next: Record<number, {origin:[number,number], tiles:[number,number][]}> = {};
+              for (const [k, v] of Object.entries(locks)) next[Number(k)] = v;
+              frozenMovesRef.current = next;
+            }
+          } catch {}
         })();
       }
     };
@@ -477,6 +537,9 @@ export default function GamePage() {
       return () => clearTimeout(timeout);
     }
   }, [toastMessage]);
+
+  useEffect(() => { gameLinkRef.current = gameData?.link; }, [gameData?.link]);
+  useEffect(() => { myTurnRef.current = isMyTurn; }, [isMyTurn]);
 
   const handleToggleReady = async () => {
     const res = await secureFetch(`/api/games/${gameData.link}/player/ready`, {
@@ -624,7 +687,7 @@ export default function GamePage() {
               position: "absolute",
               top: 0,
               left: 0,
-              pointerEvents: "none",
+              pointerEvents: lockedUnit && isMyTurn ? "auto" : "none",
             }}
           />
 
@@ -651,16 +714,32 @@ export default function GamePage() {
                     const isSameInstance = prev?.instanceId === id;
                     if (isSameInstance) {
                       setHighlightedTiles([]);
+                      setUnitOriginalTile(null);
                       return null;
+                    }
+
+                    const cached = frozenMovesRef.current[id];
+                    if (cached) {
+                      setHighlightedTiles(cached.tiles);
+                      setUnitOriginalTile(cached.origin);
+                      return { ...unit, user_id, current_hp, instanceId: id, tile };
                     }
 
                     const movement = unit.base_stats?.range ?? 0;
                     const costMap = gameData.map.tile_data.movement_cost;
                     const width = gameData.map.width;
                     const height = gameData.map.height;
+                    const origin: [number, number] = tile;
                     const tiles = getMovementRange(tile, movement, costMap, width, height);
+
+                    frozenMovesRef.current[id] = { origin, tiles };
                     setHighlightedTiles(tiles);
-                    setUnitOriginalTile(tile);
+
+                    if (isMyTurn && user_id === userId) {
+                      setUnitOriginalTile(origin);
+                    } else {
+                      setUnitOriginalTile(null);
+                    }
                     return { ...unit, user_id, current_hp, instanceId: id, tile };
                   });
                 }
