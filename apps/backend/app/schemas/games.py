@@ -49,6 +49,7 @@ class GameResponse(BaseModel):
     max_players: int
     host_id: int
     players: List[PlayerInfo]
+    player_order: List[int]
     turn_deadline: Optional[datetime] = None
     winner_id: Optional[int]
     gamemode: GameMode

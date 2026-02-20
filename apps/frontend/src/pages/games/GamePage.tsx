@@ -80,7 +80,13 @@ export default function GamePage() {
   const frozenMovesRef = useRef<Record<number, { origin: [number, number]; tiles: [number, number][] }>>({});
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
-  const isMyTurn = userId != null && gameData?.current_turn === userId;
+  
+  // Derive current player from turn counter
+  const currentPlayerId = 
+    gameData?.player_order && gameData.current_turn !== null && gameData.current_turn !== undefined
+      ? gameData.player_order[gameData.current_turn % gameData.player_order.length]
+      : null;
+  const isMyTurn = userId != null && currentPlayerId === userId;
 
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
@@ -813,12 +819,25 @@ export default function GamePage() {
         <h1 className="text-3xl font-bold mb-2">
           {gameData?.game_name || "Untitled Game"} <span className="text-sm text-gray-400">({gameData?.gamemode})</span>
         </h1>
+        
+        {gameData?.max_turns && gameData.current_turn !== null && gameData.current_turn !== undefined && gameData.player_order && gameData.host_id && (gameData?.status === "in_progress" || gameData?.status === "completed") && (
+          (() => {
+            // Calculate display turn based on host's turn only
+            const hostIndex = gameData.player_order.indexOf(gameData.host_id);
+            const displayTurn = Math.floor((gameData.current_turn + gameData.player_order.length - hostIndex) / gameData.player_order.length);
+            return (
+              <p className="text-md text-gray-300 mb-2">
+                Turn {displayTurn} / {gameData.max_turns}
+              </p>
+            );
+          })()
+        )}
 
         <p className="text-lg font-semibold mb-2 text-yellow-400">
           {gameData?.status === "in_progress" ? (
             (() => {
               const current = gameData.players.find(
-                (p: any) => p.player_id === gameData.current_turn
+                (p: any) => p.player_id === currentPlayerId
               );
               const name = current?.username ?? "Player";
               return (

@@ -45,6 +45,7 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
+        player_order=game_state.players,
         winner_id=game_state.winner_id,
         gamemode=game.gamemode,
         current_turn=game_state.current_turn,
@@ -76,13 +77,20 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     # Advance to next player by position in state.players (list of user_ids)
     if not state.players:
         return False
-    try:
-        idx = state.players.index(state.current_turn) if state.current_turn in state.players else -1
-    except ValueError:
-        idx = -1
 
-    next_idx = (idx + 1) % len(state.players)
-    state.current_turn = state.players[next_idx]
+    # Increment turn counter
+    if state.current_turn is None:
+        state.current_turn = 0
+    else:
+        state.current_turn += 1
+    
+    # Check if game should be completed
+    if game.max_turns and state.current_turn > game.max_turns:
+        state.status = GameStatus.completed
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return True
+    
     state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
 
     compute_turn_locks(game, state, db)
@@ -116,8 +124,11 @@ def movement_range_backend(start, rng, movement_costs, width, height):
 
 def compute_turn_locks(game: Game, state: GameState, db: Session):
     """Cache {unit_id: {origin:[x,y], tiles:[[...],...]}} for the player whose turn it is."""
-    if not state.current_turn:
+    if state.current_turn is None or not state.players:
         return
+
+    # Derive the current player from the turn counter
+    current_player_id = state.players[state.current_turn % len(state.players)]
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
     costs = map_obj.tile_data["movement_cost"]
@@ -125,11 +136,11 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
     units = (
         db.query(GameUnit)
         .join(Unit, Unit.id == GameUnit.unit_id)
-        .filter(GameUnit.game_id == game.id, GameUnit.user_id == state.current_turn)
+        .filter(GameUnit.game_id == game.id, GameUnit.user_id == current_player_id)
         .all()
     )
 
-    key = f"turnlock:{game.link}:{state.current_turn}"
+    key = f"turnlock:{game.link}:{current_player_id}"
     redis_client.delete(key)
 
     # Store as a hash: field=unit_id, value=json
@@ -264,6 +275,8 @@ def create_game(
             username=user.username,
             is_ready=player_state.is_ready
         )],
+        player_order=game_state.players,
+        turn_deadline=game_state.turn_deadline,
         winner_id=game_state.winner_id,
         gamemode=new_game.gamemode,
         current_turn=game_state.current_turn,
@@ -339,6 +352,8 @@ def join_game(
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
+        player_order=game_state.players,
+        turn_deadline=None,
         winner_id=game_state.winner_id,
         gamemode=game.gamemode,
         current_turn=game_state.current_turn,
@@ -346,6 +361,7 @@ def join_game(
         cash_per_turn=game.cash_per_turn,
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
+        turn_seconds=game.turn_seconds,
         replay_log=game_state.replay_log,
         link=game.link,
         timestamp=game.timestamp
@@ -382,7 +398,7 @@ def start_game(
             game_state.status = GameStatus.in_progress
 
             if game_state.players:
-                game_state.current_turn = game_state.players[0]
+                game_state.current_turn = 0
                 game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
 
             compute_turn_locks(game, game_state, db)
@@ -396,7 +412,7 @@ def start_game(
         game_state.status = GameStatus.in_progress
 
         if game_state.players:
-                game_state.current_turn = game_state.players[0]
+                game_state.current_turn = 0
                 game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
 
         compute_turn_locks(game, game_state, db)
@@ -445,6 +461,7 @@ def get_game_by_link(
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
+        player_order=game_state.players,
         turn_deadline=game_state.turn_deadline,
         winner_id=game_state.winner_id,
         gamemode=game.gamemode,
@@ -616,7 +633,10 @@ def get_turnlock(
     state = db.query(GameState).filter_by(game_id=game.id).first()
 
     # Return the locks for the player whose turn it is (i.e., the “frozen” sets)
-    key = f"turnlock:{game.link}:{state.current_turn}"
+    if not state.players or state.current_turn is None:
+        return {}
+    current_player_id = state.players[state.current_turn % len(state.players)]
+    key = f"turnlock:{game.link}:{current_player_id}"
     raw = redis_client.hgetall(key)
     return {int(k): json.loads(v) for k, v in raw.items()}
 
@@ -643,8 +663,11 @@ def move_unit(
     if not state or state.status != GameStatus.in_progress:
         raise HTTPException(status_code=400, detail="Game not in progress")
 
-    # Check for player turn
-    if state.current_turn != user.id:
+    # Check for player turn - derive active player from turn counter
+    if not state.players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+    current_player_id = state.players[state.current_turn % len(state.players)]
+    if current_player_id != user.id:
         raise HTTPException(status_code=403, detail="Not your turn")
 
     # Fetch GameUnit and ownership check

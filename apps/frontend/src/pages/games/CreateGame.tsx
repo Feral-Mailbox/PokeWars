@@ -9,12 +9,25 @@ const CreateGame = () => {
   const [maxPlayers, setMaxPlayers] = useState(2);
   const [startingCash, setStartingCash] = useState<number>(3000);
   const [cashPerTurn, setCashPerTurn] = useState<number>(100);
-  const [maxTurns, setMaxTurns] = useState<number>(99);
+  const [maxTurns, setMaxTurns] = useState<number | string>(10);
   const [unitLimit, setUnitLimit] = useState<number>(30);
   const [turnSeconds, setTurnSeconds] = useState<number>(300);
   const [isPrivate, setIsPrivate] = useState(false);
   const [gameName, setGameName] = useState("");
   const [userId, setUserId] = useState<number | null>(null);
+
+  const handleMaxTurnsChange = (value: string) => {
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) {
+      setMaxTurns(10);
+    } else if (numValue < 10) {
+      setMaxTurns(10);
+    } else if (numValue > 99) {
+      setMaxTurns(99);
+    } else {
+      setMaxTurns(numValue);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -81,13 +94,18 @@ const CreateGame = () => {
     if (selected === "War") {
       setStartingCash(100);
       setCashPerTurn(100);
-      setMaxTurns(99);
+      setMaxTurns(10);
       setUnitLimit(30);
+    } else if (selected === "Capture The Flag") {
+      setStartingCash(3000);
+      setCashPerTurn(undefined);
+      setUnitLimit(undefined);
+      setMaxTurns(10);
     } else {
       setStartingCash(3000);
       setCashPerTurn(undefined);
       setUnitLimit(undefined);
-      setMaxTurns(selected === "Capture The Flag" ? 99 : undefined);
+      setMaxTurns(10);
     }
   };
   
@@ -102,7 +120,7 @@ const CreateGame = () => {
       is_private: isPrivate,
       starting_cash: startingCash,
       cash_per_turn: cashPerTurn,
-      max_turns: maxTurns,
+      max_turns: typeof maxTurns === 'string' ? parseInt(maxTurns, 10) || 10 : maxTurns,
       unit_limit: unitLimit,  
       turn_seconds: turnSeconds,
     };
@@ -209,6 +227,23 @@ const CreateGame = () => {
           </div>
         )}
 
+        {/* Max Turns */}
+        <div>
+          <label className="block text-sm font-medium mb-1">Max Turns</label>
+          <input
+            type="number"
+            min="10"
+            max="99"
+            value={maxTurns}
+            onChange={(e) => setMaxTurns(e.target.value)}
+            onBlur={(e) => handleMaxTurnsChange(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Enter a value between 10 and 99 turns.
+          </p>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Turn Timer</label>
           <select
@@ -255,22 +290,6 @@ const CreateGame = () => {
               </select>
             </div>
           </>
-        )}
-
-        {(gamemode === "War" || gamemode === "Capture The Flag") && (
-          <div>
-            <label className="block text-sm font-medium mb-1">Max Turns</label>
-            <select
-              value={maxTurns}
-              onChange={(e) => setMaxTurns(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded"
-            >
-              {[...Array(95)].map((_, i) => {
-                const val = i + 5;
-                return <option key={val} value={val}>{val}</option>;
-              })}
-            </select>
-          </div>
         )}
 
         {/* Private Game Option */}
