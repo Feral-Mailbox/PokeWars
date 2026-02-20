@@ -185,8 +185,10 @@ class GameUnit(Base):
     game_id = Column(Integer, ForeignKey("games.id"))
     unit_id = Column(Integer, ForeignKey("units.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    x = Column(Integer, nullable=False)
-    y = Column(Integer, nullable=False)
+    starting_x = Column(Integer, nullable=False)
+    starting_y = Column(Integer, nullable=False)
+    current_x = Column(Integer, nullable=False)
+    current_y = Column(Integer, nullable=False)
     current_hp = Column(Integer, nullable=False)
     stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]

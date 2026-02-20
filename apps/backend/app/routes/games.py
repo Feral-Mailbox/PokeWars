@@ -67,6 +67,12 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     if now < state.turn_deadline:
         return False
 
+    # Sync all units' starting positions to current positions before advancing turn
+    units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+    for unit in units_to_sync:
+        unit.starting_x = unit.current_x
+        unit.starting_y = unit.current_y
+
     # Advance to next player by position in state.players (list of user_ids)
     if not state.players:
         return False
@@ -129,10 +135,10 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
     # Store as a hash: field=unit_id, value=json
     for gu in units:
         rng = (gu.unit.base_stats or {}).get("range", 0)
-        tiles = movement_range_backend((gu.x, gu.y), rng, costs, width, height)
+        tiles = movement_range_backend((gu.starting_x, gu.starting_y), rng, costs, width, height)
         redis_client.hset(
             key, str(gu.id),
-            json.dumps({"origin": [gu.x, gu.y], "tiles": tiles})
+            json.dumps({"origin": [gu.starting_x, gu.starting_y], "tiles": tiles})
         )
 
 @router.get("/open", response_model=List[GameResponse])
@@ -540,8 +546,10 @@ def place_unit(
         game_id=game.id,
         unit_id=unit_data.unit_id,
         user_id=user.id,
-        x=unit_data.x,
-        y=unit_data.y,
+        starting_x=unit_data.x,
+        starting_y=unit_data.y,
+        current_x=unit_data.x,
+        current_y=unit_data.y,
         current_hp=unit_data.current_hp,
         stat_boosts=unit_data.stat_boosts,
         status_effects=unit_data.status_effects,
@@ -654,7 +662,7 @@ def move_unit(
     # Occupancy check (no stacking)
     occupied = (
         db.query(GameUnit)
-        .filter(GameUnit.game_id == game.id, GameUnit.x == x, GameUnit.y == y, GameUnit.id != gu.id)
+        .filter(GameUnit.game_id == game.id, GameUnit.current_x == x, GameUnit.current_y == y, GameUnit.id != gu.id)
         .count()
     )
     if occupied:
@@ -669,8 +677,8 @@ def move_unit(
     if (x, y) not in allowed:
         raise HTTPException(status_code=400, detail="Illegal move for this turn")
 
-    gu.x = x
-    gu.y = y
+    gu.current_x = x
+    gu.current_y = y
     db.commit()
 
     redis_client.publish(

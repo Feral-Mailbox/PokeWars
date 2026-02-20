@@ -63,6 +63,7 @@ export default function GamePage() {
   const [cash, setCash] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
+  const [hoveredMove, setHoveredMove] = useState<any | null>(null);
   const [lockedUnit, setLockedUnit] = useState<any | null>(null);
   const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
   const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
@@ -125,6 +126,170 @@ export default function GamePage() {
       if (ignoreUnitId && u.id === ignoreUnitId) return false;
       return u.tile[0] === x && u.tile[1] === y;
     });
+  }
+
+  function getActiveOrigin(): [number, number] | null {
+    const u = lockedUnit ?? hoveredUnit;
+    if (!u) return null;
+    const unitId = u.instanceId ?? u.id;
+    const live = placedUnitsRef.current.find(p => p.id === unitId);
+    return (live?.tile as [number, number]) ?? (u.tile as [number, number]) ?? null;
+  }
+
+  /* ----- ATTACK RANGE FUNCTIONS ------ */
+
+  const prevTilesRef = useRef<[number, number][]>([]);
+  const mapTilesW = gameData?.map?.width ?? 0;
+  const mapTilesH = gameData?.map?.height ?? 0;
+
+  const [attackOverlay, setAttackOverlay] = useState<{
+    normal: [number, number][];
+    invert: [number, number][];
+  }>({ normal: [], invert: [] });
+
+  function inBounds(x:number, y:number) {
+    const W = gameData?.map?.width ?? 0;
+    const H = gameData?.map?.height ?? 0;
+    return x >= 0 && y >= 0 && x < W && y < H;
+  }
+
+  function rebuildAttackOverlay(move: any) {
+    const origin = getActiveOrigin();
+    let next = { normal: [] as [number, number][], invert: [] as [number, number][] };
+
+    if (origin && move) {
+      const { kind, offset } = parseRangeSpec(move); // you added this earlier
+      if (kind === "adjacent") {
+        next.normal = getAdjacentTiles(origin);
+      } else if (kind === "dash_attack") {
+        const { step, attack } = getDashAttackTiles(origin);
+        next.invert = step;  // dash step
+        next.normal = attack; // attack tiles
+      } else if (kind === "blast") {
+        next.normal = getBlastTiles(origin, offset || 1);
+      }
+    }
+    setAttackOverlay(next);
+  }
+
+  function parseRangeSpec(move: any): { kind: string; offset: number } {
+    // Prefer range_type if provided; fall back to range
+    const raw = String(move?.range_type ?? move?.range ?? "").toLowerCase().trim();
+    // Supports "blast", "blast:1", "dash_attack", "adjacent", etc.
+    const m = raw.match(/^([a-z_]+)(?::(\d+))?$/);
+    const kind = m?.[1] ?? "";
+    const offset = m?.[2] ? parseInt(m[2], 10) : 0; // default 0 unless provided
+    return { kind, offset };
+  }
+
+  function getAdjacentTiles([x, y]: [number, number]): [number, number][] {
+    const cand: [number, number][] = [
+      [x, y - 1], // up
+      [x, y + 1], // down
+      [x - 1, y], // left
+      [x + 1, y], // right
+    ];
+    return cand.filter(([cx, cy]) => cx >= 0 && cy >= 0 && cx < mapTilesW && cy < mapTilesH);
+  }
+
+  function getDashAttackTiles([x, y]: [number, number]) {
+    const step: [number, number][] = [
+      [x, y - 1], // up
+      [x, y + 1], // down
+      [x - 1, y], // left
+      [x + 1, y], // right
+    ].filter(([cx, cy]) => inBounds(cx, cy));
+
+    const attack: [number, number][] = [
+      [x, y - 2],
+      [x, y + 2],
+      [x - 2, y],
+      [x + 2, y],
+    ].filter(([cx, cy]) => inBounds(cx, cy));
+
+    return { step, attack };
+  }
+  
+  function getBlastTiles([x, y]: [number, number], offset: number) {
+    // For up/down: 3 wide (x-1..x+1) by 2 rows, starting 'offset' away
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    // Up (front is negative y)
+    const uy1 = y - offset;
+    const uy2 = y - (offset + 1);
+    for (let dx = -1; dx <= 1; dx++) {
+      pushIfIn(x + dx, uy1);
+      pushIfIn(x + dx, uy2);
+    }
+
+    // Down (positive y)
+    const dy1 = y + offset;
+    const dy2 = y + (offset + 1);
+    for (let dx = -1; dx <= 1; dx++) {
+      pushIfIn(x + dx, dy1);
+      pushIfIn(x + dx, dy2);
+    }
+
+    // Left (negative x)
+    const lx1 = x - offset;
+    const lx2 = x - (offset + 1);
+    for (let dy = -1; dy <= 1; dy++) {
+      pushIfIn(lx1, y + dy);
+      pushIfIn(lx2, y + dy);
+    }
+
+    // Right (positive x)
+    const rx1 = x + offset;
+    const rx2 = x + (offset + 1);
+    for (let dy = -1; dy <= 1; dy++) {
+      pushIfIn(rx1, y + dy);
+      pushIfIn(rx2, y + dy);
+    }
+
+    return tiles;
+  }
+
+  function handleMoveHoverStart(move?: any) {
+    prevTilesRef.current = highlightedTiles;
+    setHighlightedTiles([]);
+    setHoveredMove(move || null);
+    rebuildAttackOverlay(move);
+  }
+
+  function handleMoveHoverEnd() {
+    setHoveredMove(null);
+    setAttackOverlay({ normal: [], invert: [] });
+    setHighlightedTiles(prevTilesRef.current);
+    prevTilesRef.current = [];
+  }
+
+  function MoveButton({ move, TYPE_COLORS }: { move: any; TYPE_COLORS: Record<string,string> }) {
+    return (
+      <button
+        type="button"
+        onMouseEnter={() => handleMoveHoverStart(move)}
+        onMouseLeave={handleMoveHoverEnd}
+        className="w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none"
+      >
+        <div className="flex justify-between font-bold">
+          <span>{move.name}</span>
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded"
+            style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}
+          >
+            {move.type}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>Power: {move.power ?? "—"}</span>
+          <span>PP: {move.pp ?? "—"}</span>
+        </div>
+      </button>
+    );
   }
 
   function fmt(seconds: number): string {
@@ -219,7 +384,7 @@ export default function GamePage() {
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
             },
-            tile: [u.x, u.y],
+            tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
             user_id: u.user_id,
           }));
@@ -318,6 +483,26 @@ export default function GamePage() {
     advanceRequestedRef.current = false;
   }, [gameData?.current_turn, gameData?.turn_deadline]);
 
+  const lastOriginRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!hoveredMove) return;
+    let raf = 0;
+
+    const tick = () => {
+      const o = getActiveOrigin();
+      const key = o ? `${o[0]},${o[1]}` : "";
+      if (key !== lastOriginRef.current) {
+        lastOriginRef.current = key;
+        rebuildAttackOverlay(hoveredMove);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, [hoveredMove, lockedUnit, hoveredUnit, placedUnits]);
+
   useEffect(() => {
     const fetchMoves = async () => {
       const res = await secureFetch("/api/moves/all");
@@ -332,6 +517,10 @@ export default function GamePage() {
     };
     fetchMoves();
   }, []);
+
+  useEffect(() => {
+    if (hoveredMove) rebuildAttackOverlay(hoveredMove);
+  }, [placedUnits, hoveredMove]);
 
   useEffect(() => {
     if (isReady) {
@@ -361,26 +550,46 @@ export default function GamePage() {
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
-
     const canvas = overlayRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // movement tiles
     highlightedTiles.forEach(([x, y]) => {
       const color = getPlayerColor(lockedUnit?.user_id ?? 0);
       ctx.fillStyle = color;
-      ctx.fillRect(
-        x * TILE_DRAW_SIZE,
-        y * TILE_DRAW_SIZE,
-        TILE_DRAW_SIZE,
-        TILE_DRAW_SIZE
-      );
+      ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
     });
-  }, [highlightedTiles, lockedUnit, unitOriginalTile, isMyTurn, userId, gameData?.link]);
+
+    // attack tiles
+    attackOverlay.normal.forEach(([x, y]) => {
+      const color = getPlayerColor(lockedUnit?.user_id ?? 0);
+      ctx.fillStyle = color;
+      ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
+    });
+
+    if (attackOverlay.invert.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = "difference";
+      ctx.fillStyle = "#FFFFFF";
+      attackOverlay.invert.forEach(([x, y]) => {
+        ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
+      });
+      ctx.restore();
+    }
+  }, [
+    highlightedTiles,
+    lockedUnit,
+    unitOriginalTile,
+    isMyTurn,
+    userId,
+    gameData?.link,
+    gameData?.status,
+    attackOverlay
+  ]);
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
@@ -418,10 +627,15 @@ export default function GamePage() {
       }
       
       setPlacedUnits(prev =>
-        prev.map(u =>
-          u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u
-        )
+        prev.map(u => (u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u))
       );
+
+      lastOriginRef.current = "";
+
+      if (hoveredMove) {
+        // wait one frame so placedUnitsRef is updated by the effect
+        requestAnimationFrame(() => rebuildAttackOverlay(hoveredMove));
+      }
 
       sendMove(lockedUnit.instanceId, clickedTile[0], clickedTile[1]);
     };
@@ -503,7 +717,7 @@ export default function GamePage() {
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
             },
-            tile: [u.x, u.y],
+            tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
             user_id: u.user_id,
           }));
@@ -725,21 +939,18 @@ export default function GamePage() {
                       return { ...unit, user_id, current_hp, instanceId: id, tile };
                     }
 
-                    const movement = unit.base_stats?.range ?? 0;
+                    const movement = lockedUnit.unit?.base_stats?.range ?? 0;
                     const costMap = gameData.map.tile_data.movement_cost;
                     const width = gameData.map.width;
                     const height = gameData.map.height;
-                    const origin: [number, number] = tile;
-                    const tiles = getMovementRange(tile, movement, costMap, width, height);
 
-                    frozenMovesRef.current[id] = { origin, tiles };
-                    setHighlightedTiles(tiles);
+                    const newOrigin: [number, number] = clickedTile;
+                    const newTiles = getMovementRange(newOrigin, movement, costMap, width, height);
 
-                    if (isMyTurn && user_id === userId) {
-                      setUnitOriginalTile(origin);
-                    } else {
-                      setUnitOriginalTile(null);
-                    }
+                    frozenMovesRef.current[lockedUnit.instanceId] = { origin: newOrigin, tiles: newTiles };
+                    setHighlightedTiles(newTiles);
+                    
+                    setUnitOriginalTile(newOrigin);
                     return { ...unit, user_id, current_hp, instanceId: id, tile };
                   });
                 }
@@ -958,7 +1169,7 @@ export default function GamePage() {
                         {
                           id: placedUnit.id,
                           unit: placedUnit.unit,
-                          tile: [placedUnit.x, placedUnit.y],
+                          tile: [placedUnit.current_x, placedUnit.current_y],
                           current_hp: placedUnit.current_hp,
                           user_id: placedUnit.user_id,
                         }
@@ -1047,17 +1258,8 @@ export default function GamePage() {
                       const move = moveMap[id];
                       if (!move) return null;
                       return (
-                        <li key={id} className="border border-gray-600 p-2 rounded">
-                          <div className="flex justify-between font-bold">
-                            <span>{move.name}</span>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}>
-                              {move.type}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Power: {move.power ?? "—"}</span>
-                            <span>PP: {move.pp ?? "—"}</span>
-                          </div>
+                        <li key={id}>
+                          <MoveButton move={move} TYPE_COLORS={TYPE_COLORS} />
                         </li>
                       );
                     })}

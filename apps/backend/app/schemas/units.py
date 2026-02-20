@@ -50,8 +50,10 @@ class GameUnitSchema(BaseModel):
     game_id: int
     unit_id: int
     user_id: int
-    x: int
-    y: int
+    starting_x: int
+    starting_y: int
+    current_x: int
+    current_y: int
     current_hp: int
     stat_boosts: Dict[str, int]
     status_effects: List[str]
