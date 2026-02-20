@@ -911,7 +911,7 @@ export default function GamePage() {
               data-unit
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit) {
-                  setHoveredUnit({ ...unit, user_id, current_hp });
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile });
                 }
               }}
               onMouseLeave={() => {
@@ -936,22 +936,22 @@ export default function GamePage() {
                     if (cached) {
                       setHighlightedTiles(cached.tiles);
                       setUnitOriginalTile(cached.origin);
-                      return { ...unit, user_id, current_hp, instanceId: id, tile };
+                      return { unit, user_id, current_hp, instanceId: id, tile };
                     }
 
-                    const movement = lockedUnit.unit?.base_stats?.range ?? 0;
+                    const movement = unit?.base_stats?.range ?? 0;
                     const costMap = gameData.map.tile_data.movement_cost;
                     const width = gameData.map.width;
                     const height = gameData.map.height;
 
-                    const newOrigin: [number, number] = clickedTile;
+                    const newOrigin: [number, number] = tile;
                     const newTiles = getMovementRange(newOrigin, movement, costMap, width, height);
 
-                    frozenMovesRef.current[lockedUnit.instanceId] = { origin: newOrigin, tiles: newTiles };
+                    frozenMovesRef.current[id] = { origin: newOrigin, tiles: newTiles };
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { ...unit, user_id, current_hp, instanceId: id, tile };
+                    return { unit, user_id, current_hp, instanceId: id, tile };
                   });
                 }
               }}
@@ -1208,7 +1208,7 @@ export default function GamePage() {
 
         // Case 3: In Progress = Unit Info (via click)
         if (gameData?.status === "in_progress" && activeUnit) {
-          const unit = activeUnit;
+          const unit = activeUnit.unit;
           const currentHp = activeUnit.current_hp;
           const statusEffects = activeUnit.status_effects ?? [];
 
