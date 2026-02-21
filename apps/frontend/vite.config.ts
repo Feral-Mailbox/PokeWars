@@ -4,10 +4,12 @@ import react from '@vitejs/plugin-react';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import type { InlineConfig } from 'vitest';
 
 dotenv.config();
 
 const isDev = process.env.NODE_ENV === 'development';
+let httpsConfig: any = false;
 
 if (isDev) {
   const keyPath = path.resolve(__dirname, 'certs/privkey.pem');
@@ -19,8 +21,8 @@ if (isDev) {
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath),
       };
-    } catch (e) {
-      console.warn('⚠️ Failed to read HTTPS cert files:', e.message);
+    } catch (e: unknown) {
+      console.warn('⚠️ Failed to read HTTPS cert files:', (e as Error).message);
     }
   } else {
     console.warn('⚠️ HTTPS certs not found, skipping HTTPS config');
@@ -37,7 +39,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"], // text summary and lcov for CI tools
     },
-  },
+  } as InlineConfig,
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -47,7 +49,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
-    https: false,
+    https: httpsConfig,
     allowedHosts: ['poketactics.net', 'www.poketactics.net'],
     watch: {
       usePolling: true, // 🔥 Windows + WSL fix

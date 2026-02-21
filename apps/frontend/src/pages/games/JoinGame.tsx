@@ -100,7 +100,7 @@ export default function JoinGame() {
           className="border p-2 rounded"
         />
         <button
-          onClick={() => fetchGames(page)}
+          onClick={() => fetchGames()}
           title="Reload games"
           className="flex items-center gap-1 border p-2 rounded bg-gray-700 hover:bg-gray-600 text-white"
         >

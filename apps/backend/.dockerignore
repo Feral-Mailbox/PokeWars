@@ -10,4 +10,3 @@ __pycache__/
 .vscode
 *.log
 tests/
-alembic/versions/

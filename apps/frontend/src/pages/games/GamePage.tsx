@@ -57,7 +57,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number] }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[] }[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
@@ -455,39 +455,33 @@ export default function GamePage() {
     fetchUnits();
   }, [isPreparationPhase]);
 
-  const advanceRequestedRef = useRef(false);
-
   useEffect(() => {
     if (!gameData?.turn_deadline) return;
     const deadlineMs = new Date(gameData.turn_deadline).getTime();
 
-    const tick = async () => {
+    const tick = () => {
       const now = Date.now();
       const secs = Math.max(0, Math.ceil((deadlineMs - now) / 1000));
       setRemainingTime(secs);
-
-      if (secs === 0 && !advanceRequestedRef.current && gameData?.link) {
-        advanceRequestedRef.current = true;
-        const res = await secureFetch(`/api/games/${gameData.link}`);
-
-        if (res.ok) {
-          const updated = await res.json();
-          setGameData(updated);
-        }
-        
-        // Small debounce so spam doesn't occur if clock stays at 0 for a sec
-        setTimeout(() => { advanceRequestedRef.current = false; }, 1500);
-      }
     };
 
     tick();
     const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [gameData?.turn_deadline, gameData?.link]);
-
-  useEffect(() => {
-    advanceRequestedRef.current = false;
-  }, [gameData?.current_turn, gameData?.turn_deadline]);
+    
+    // Handle page visibility changes - recalculate timer when page becomes active
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        tick();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [gameData?.turn_deadline]);
 
   const lastOriginRef = useRef<string>("");
 

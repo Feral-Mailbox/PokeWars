@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { WebSocketProvider } from './state/WebSocketContext';
 import Homepage from './pages/Homepage';
+import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 import Navbar from './components/Navbar';
 import CreateGame from './pages/games/CreateGame';
@@ -15,6 +16,7 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<Homepage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/games/create" element={<CreateGame />} />
         <Route path="/games/join" element={<JoinGame />} />
         <Route path="/games/in-progress" element={<ActiveGames />} />

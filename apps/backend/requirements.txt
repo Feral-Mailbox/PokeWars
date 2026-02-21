@@ -1,8 +1,10 @@
 alembic
+APScheduler
 argon2-cffi
 email_validator
 fastapi
 passlib[bcrypt]
+bcrypt==3.2.2
 psycopg2-binary
 PyJWT
 python-dotenv
