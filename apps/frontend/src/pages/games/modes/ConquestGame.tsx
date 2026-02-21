@@ -22,9 +22,9 @@ export default function ConquestGame({
   isReady: boolean;
 }) {
   const isPreparationPhase = gameData.status === "preparation";
-  const sortedPlayers = [...gameData.players].sort((a, b) => a.id - b.id);
-  const playerIndex = sortedPlayers.findIndex(p => p.player_id === userId);
-  const playerNumber = playerIndex + 1;
+  const playerOrder: number[] = Array.isArray(gameData.player_order) ? gameData.player_order : [];
+  const playerIndex = playerOrder.indexOf(userId);
+  const playerNumber = playerIndex >= 0 ? playerIndex + 1 : 0;
   const spawnGrid = gameData.map.tile_data?.spawn_points;
 
   useEffect(() => {

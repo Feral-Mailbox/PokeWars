@@ -10,8 +10,13 @@ export function useMapRenderer(canvasId: string, gameData: any, overlayCallback?
     const TILE_SCALE = 2;
     const { base, overlay } = gameData.map.tile_data;
 
-    const tilesetPaths = gameData.map.tileset_names.map(name =>
-      `${window.location.origin.replace(":5173", "")}/assets/tilesets/${name}`
+    const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
+    const normalizedBase = assetBase.startsWith("http")
+      ? assetBase
+      : `${window.location.origin}${assetBase.startsWith("/") ? "" : "/"}${assetBase}`;
+    const tilesetBase = normalizedBase.replace(/\/$/, "");
+    const tilesetPaths = gameData.map.tileset_names.map((name: string) =>
+      `${tilesetBase}/tilesets/${name}`
     );
 
     const tilesets = tilesetPaths.map(src => {
@@ -21,10 +26,13 @@ export function useMapRenderer(canvasId: string, gameData: any, overlayCallback?
     });
 
     let loadedCount = 0;
-    tilesets.forEach(img => {
+    tilesets.forEach((img, index) => {
       img.onload = () => {
         loadedCount++;
         if (loadedCount === tilesets.length) drawAll();
+      };
+      img.onerror = () => {
+        console.error(`[MapRenderer] Failed to load tileset: ${tilesetPaths[index]}`);
       };
     });
 

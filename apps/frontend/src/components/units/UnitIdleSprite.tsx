@@ -87,9 +87,13 @@ export default function UnitIdleSprite({
       });
 
     const loadAssets = async () => {
-      const origin = window.location.origin.replace(":5173", "");
-      const basePath = `${origin}/assets/units/${assetFolder}/sprites`;
-      const malePath = `${origin}/assets/units/${assetFolder}/sprites/male`;
+      const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
+      const normalizedBase = assetBase.startsWith("http")
+        ? assetBase
+        : `${window.location.origin}${assetBase.startsWith("/") ? "" : "/"}${assetBase}`;
+      const base = normalizedBase.replace(/\/$/, "");
+      const basePath = `${base}/units/${assetFolder}/sprites`;
+      const malePath = `${base}/units/${assetFolder}/sprites/male`;
 
       const baseSuccess = await loadAnimFromPath(basePath);
       if (!baseSuccess) {
