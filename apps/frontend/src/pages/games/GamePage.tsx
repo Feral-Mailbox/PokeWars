@@ -1065,6 +1065,18 @@ export default function GamePage() {
       }
       
       if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked"].includes(event.data)) {
+        if (event.data === "turn_started" || event.data === "turn_advanced") {
+          setLockedUnit(null);
+          setHoveredUnit(null);
+          setHighlightedTiles([]);
+          setUnitOriginalTile(null);
+          setMoveTargeting(false);
+          setSelectedMove(null);
+          setSelectedMoveTarget(null);
+          setHoveredOverlayTile(null);
+          setAttackOverlay({ normal: [], invert: [] });
+          preMoveStateRef.current = null;
+        }
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
           if (!res.ok) return;

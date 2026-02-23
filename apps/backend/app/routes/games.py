@@ -844,7 +844,42 @@ def execute_move(
             db.delete(unit)
 
     gu.can_move = False
-    db.commit()
+    db.flush()
+    remaining_units = db.query(GameUnit).filter(
+        GameUnit.game_id == game.id,
+        GameUnit.user_id == current_player_id,
+        GameUnit.can_move == True
+    ).count()
+
+    if remaining_units == 0:
+        units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+        for unit in units_to_sync:
+            unit.starting_x = unit.current_x
+            unit.starting_y = unit.current_y
+
+        current_player_units = db.query(GameUnit).filter(
+            GameUnit.game_id == game.id,
+            GameUnit.user_id == current_player_id
+        ).all()
+        for unit in current_player_units:
+            unit.can_move = True
+
+        state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
+
+        if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
+            state.status = GameStatus.completed
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        else:
+            now = datetime.now(timezone.utc)
+            state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
+            compute_turn_locks(game, state, db)
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+            redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    else:
+        db.commit()
+
     redis_client.publish(f"game_updates:{game.link}", "unit_locked")
     for unit_id in removed_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
