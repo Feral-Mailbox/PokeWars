@@ -204,6 +204,7 @@ export default function GamePage() {
     return { kind, offset };
   }
 
+
   function getAdjacentTiles([x, y]: [number, number]): [number, number][] {
     const cand: [number, number][] = [
       [x, y - 1], // up
@@ -535,19 +536,76 @@ export default function GamePage() {
   };
 
   const handleExecuteMove = async () => {
-    if (!gameData?.link || !activeUnit?.instanceId) return;
+    if (!gameData?.link || !activeUnit?.instanceId || !selectedMove) return;
+    const activeId = activeUnit.instanceId;
+    const attackTiles = selectedDirectionalTiles.length > 0 ? selectedDirectionalTiles : attackOverlay.normal;
+    const attackTileSet = new Set(attackTiles.map(([x, y]) => `${x},${y}`));
+    const currentUnits = placedUnitsRef.current;
+    const receivingTargets = currentUnits.filter(u => {
+      if (u.id === activeId) return false;
+      const key = `${u.tile[0]},${u.tile[1]}`;
+      return attackTileSet.has(key);
+    });
+
     const res = await secureFetch(`/api/games/${gameData.link}/execute_move`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ unit_id: activeUnit.instanceId })
+      body: JSON.stringify({
+        unit_id: activeId,
+        move_id: selectedMove.id,
+        target_ids: receivingTargets.map(t => t.id)
+      })
     });
     if (!res.ok) {
       setToastMessage("Unable to execute move.");
       return;
     }
 
+    const data = await res.json();
+    if (Array.isArray(data?.targets) && data.targets.length > 0) {
+      const nextHpById = new Map<number, number>();
+      for (const t of data.targets) {
+        if (typeof t?.id === "number" && typeof t?.current_hp === "number") {
+          nextHpById.set(t.id, t.current_hp);
+        }
+      }
+      if (nextHpById.size > 0) {
+        setPlacedUnits(prev =>
+          prev.map(u => {
+            const nextHp = nextHpById.get(u.id);
+            return nextHp == null ? u : { ...u, current_hp: nextHp };
+          })
+        );
+        setLockedUnit(prev => {
+          if (!prev) return prev;
+          const nextHp = nextHpById.get(prev.instanceId ?? prev.id);
+          return nextHp == null ? prev : { ...prev, current_hp: nextHp };
+        });
+        setHoveredUnit(prev => {
+          if (!prev) return prev;
+          const nextHp = nextHpById.get(prev.instanceId ?? prev.id);
+          return nextHp == null ? prev : { ...prev, current_hp: nextHp };
+        });
+      }
+    }
+
+    if (Array.isArray(data?.removed_ids) && data.removed_ids.length > 0) {
+      const removedSet = new Set<number>(data.removed_ids);
+      setPlacedUnits(prev => prev.filter(u => !removedSet.has(u.id)));
+      setLockedUnit(prev => {
+        if (!prev) return prev;
+        const id = prev.instanceId ?? prev.id;
+        return removedSet.has(id) ? null : prev;
+      });
+      setHoveredUnit(prev => {
+        if (!prev) return prev;
+        const id = prev.instanceId ?? prev.id;
+        return removedSet.has(id) ? null : prev;
+      });
+    }
+
     setPlacedUnits(prev =>
-      prev.map(u => (u.id === activeUnit.instanceId ? { ...u, can_move: false } : u))
+      prev.map(u => (u.id === activeId ? { ...u, can_move: false } : u))
     );
     setLockedUnit(prev => prev ? { ...prev, can_move: false } : prev);
     setHoveredUnit(prev => prev ? { ...prev, can_move: false } : prev);
@@ -979,6 +1037,30 @@ export default function GamePage() {
         setPlacedUnits(prev =>
           prev.map(u => (u.id === unitId ? { ...u, tile: [x, y] as [number, number] } : u))
         );
+        return;
+      }
+
+      if (typeof event.data === "string" && event.data.startsWith("unit_removed:")) {
+        const [, unitIdStr] = event.data.split(":");
+        const unitId = Number(unitIdStr);
+        setPlacedUnits(prev => prev.filter(u => u.id !== unitId));
+        setLockedUnit(prev => {
+          if (!prev) return prev;
+          const id = prev.instanceId ?? prev.id;
+          return id === unitId ? null : prev;
+        });
+        setHoveredUnit(prev => {
+          if (!prev) return prev;
+          const id = prev.instanceId ?? prev.id;
+          return id === unitId ? null : prev;
+        });
+        setMoveTargeting(false);
+        setSelectedMove(null);
+        setSelectedMoveTarget(null);
+        setHoveredOverlayTile(null);
+        setAttackOverlay({ normal: [], invert: [] });
+        setHighlightedTiles([]);
+        setUnitOriginalTile(null);
         return;
       }
       

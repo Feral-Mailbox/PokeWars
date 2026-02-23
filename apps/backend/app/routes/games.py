@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime, timedelta, timezone
 from collections import deque
+import random
 import hashlib
 import json
 import redis
 
-from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit
+from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move
 from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
 from app.schemas.maps import MapDetail
 from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
@@ -15,6 +16,45 @@ from app.dependencies import get_db, get_current_user
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
+
+TYPE_EFFECTIVENESS = {
+    "normal": {"weak": [], "resist": ["rock", "steel"], "immune": ["ghost"]},
+    "fire": {"weak": ["grass", "ice", "bug", "steel"], "resist": ["fire", "water", "rock", "dragon"], "immune": []},
+    "water": {"weak": ["fire", "ground", "rock"], "resist": ["water", "grass", "dragon"], "immune": []},
+    "electric": {"weak": ["water", "flying"], "resist": ["electric", "grass", "dragon"], "immune": ["ground"]},
+    "grass": {"weak": ["water", "ground", "rock"], "resist": ["fire", "grass", "poison", "flying", "bug", "dragon", "steel"], "immune": []},
+    "ice": {"weak": ["grass", "ground", "flying", "dragon"], "resist": ["fire", "water", "ice", "steel"], "immune": []},
+    "fighting": {"weak": ["normal", "ice", "rock", "dark", "steel"], "resist": ["poison", "flying", "psychic", "bug", "fairy"], "immune": ["ghost"]},
+    "poison": {"weak": ["grass", "fairy"], "resist": ["poison", "ground", "rock", "ghost"], "immune": ["steel"]},
+    "ground": {"weak": ["fire", "electric", "poison", "rock", "steel"], "resist": ["grass", "bug"], "immune": ["flying"]},
+    "flying": {"weak": ["grass", "fighting", "bug"], "resist": ["electric", "rock", "steel"], "immune": []},
+    "psychic": {"weak": ["fighting", "poison"], "resist": ["psychic", "steel"], "immune": ["dark"]},
+    "bug": {"weak": ["grass", "psychic", "dark"], "resist": ["fire", "fighting", "poison", "flying", "ghost", "steel", "fairy"], "immune": []},
+    "rock": {"weak": ["fire", "ice", "flying", "bug"], "resist": ["fighting", "ground", "steel"], "immune": []},
+    "ghost": {"weak": ["psychic", "ghost"], "resist": ["dark"], "immune": ["normal"]},
+    "dragon": {"weak": ["dragon"], "resist": ["steel"], "immune": ["fairy"]},
+    "dark": {"weak": ["psychic", "ghost"], "resist": ["fighting", "dark", "fairy"], "immune": []},
+    "steel": {"weak": ["ice", "rock", "fairy"], "resist": ["fire", "water", "electric", "steel"], "immune": []},
+    "fairy": {"weak": ["fighting", "dragon", "dark"], "resist": ["fire", "poison", "steel"], "immune": []},
+}
+
+
+def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
+    if not move_type:
+        return 1
+    chart = TYPE_EFFECTIVENESS.get(str(move_type).lower())
+    if not chart:
+        return 1
+    multiplier = 1.0
+    for dtype in defender_types or []:
+        key = str(dtype).lower()
+        if key in chart["immune"]:
+            return 0
+        if key in chart["weak"]:
+            multiplier *= 2
+        elif key in chart["resist"]:
+            multiplier *= 0.5
+    return multiplier
 
 def serialize_game_response(game: Game, db: Session) -> GameResponse:
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
@@ -728,6 +768,8 @@ def execute_move(
 ):
     try:
         unit_id = int(payload.get("unit_id"))
+        move_id = int(payload.get("move_id"))
+        target_ids = payload.get("target_ids") or []
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid payload")
 
@@ -753,10 +795,60 @@ def execute_move(
     if not gu.can_move:
         raise HTTPException(status_code=400, detail="Unit is locked")
 
+    move = db.query(Move).filter(Move.id == move_id).first()
+    if not move:
+        raise HTTPException(status_code=404, detail="Move not found")
+
+    targets: List[GameUnit] = []
+    if target_ids:
+        targets = (
+            db.query(GameUnit)
+            .filter(GameUnit.game_id == game.id, GameUnit.id.in_(target_ids))
+            .all()
+        )
+
+    targets_multiplier = 0.75 if len(targets) >= 2 else 1
+    damage_results = []
+    removed_ids: List[int] = []
+    if targets:
+        category = (move.category or "").lower()
+        is_special = category == "special"
+        attack_stat = "sp_attack" if is_special else "attack"
+        defense_stat = "sp_defense" if is_special else "defense"
+        power = move.power or 0
+        attacker_types = gu.unit.types or []
+        stab = 1.5 if move.type in attacker_types else 1
+
+        for target in targets:
+            attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
+            defense = (target.current_stats or {}).get(defense_stat, 1) or 1
+            safe_defense = defense if defense > 0 else 1
+            random_factor = random.randint(85, 100) / 100
+            critical = 1
+            type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
+            base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
+            damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier)
+
+            target.current_hp = max(0, (target.current_hp or 0) - damage)
+            if target.current_hp <= 0:
+                removed_ids.append(target.id)
+            damage_results.append({"id": target.id, "damage": damage, "current_hp": target.current_hp})
+
+    if removed_ids:
+        removed_units = [t for t in targets if t.id in removed_ids]
+        for unit in removed_units:
+            player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=unit.user_id).first()
+            if player_state and unit.id in player_state.game_units:
+                player_state.game_units.remove(unit.id)
+                db.add(player_state)
+            db.delete(unit)
+
     gu.can_move = False
     db.commit()
     redis_client.publish(f"game_updates:{game.link}", "unit_locked")
-    return {"ok": True, "unit_id": gu.id}
+    for unit_id in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+    return {"ok": True, "unit_id": gu.id, "targets": damage_results, "removed_ids": removed_ids}
 
 @router.post("/{link}/move")
 def move_unit(
