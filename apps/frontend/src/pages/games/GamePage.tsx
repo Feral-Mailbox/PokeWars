@@ -137,6 +137,12 @@ export default function GamePage() {
     return playerColorMap[playerId] ?? "#00000000";
   }
 
+  function getOverlayColor(unit: any | null): string {
+    if (!unit) return "#00000000";
+    if (unit.can_move === false) return "#77777780";
+    return getPlayerColor(unit.user_id ?? 0);
+  }
+
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId && u.id === ignoreUnitId) return false;
@@ -453,14 +459,15 @@ export default function GamePage() {
   }
 
   function MoveButton({ move, TYPE_COLORS }: { move: any; TYPE_COLORS: Record<string,string> }) {
+    const isLocked = activeUnit?.can_move === false;
     return (
       <button
         type="button"
-        onMouseEnter={() => handleMoveHoverStart(move)}
+        onMouseEnter={() => !isLocked && handleMoveHoverStart(move)}
         onMouseLeave={handleMoveHoverEnd}
         onClick={() => handleMoveSelect(move)}
-        disabled={moveTargeting}
-        className="w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none"
+        disabled={moveTargeting || isLocked}
+        className={`w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <div className="flex justify-between font-bold">
           <span>{move.name}</span>
@@ -525,6 +532,30 @@ export default function GamePage() {
       setToastMessage("Unable to end turn.");
       return;
     }
+  };
+
+  const handleExecuteMove = async () => {
+    if (!gameData?.link || !activeUnit?.instanceId) return;
+    const res = await secureFetch(`/api/games/${gameData.link}/execute_move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: activeUnit.instanceId })
+    });
+    if (!res.ok) {
+      setToastMessage("Unable to execute move.");
+      return;
+    }
+
+    setPlacedUnits(prev =>
+      prev.map(u => (u.id === activeUnit.instanceId ? { ...u, can_move: false } : u))
+    );
+    setLockedUnit(prev => prev ? { ...prev, can_move: false } : prev);
+    setHoveredUnit(prev => prev ? { ...prev, can_move: false } : prev);
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
   };
 
   useEffect(() => {
@@ -755,19 +786,20 @@ export default function GamePage() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    const overlayUnit = lockedUnit ?? hoveredUnit;
+    const overlayColor = getOverlayColor(overlayUnit);
+
     if (!moveTargeting) {
       // movement tiles
       highlightedTiles.forEach(([x, y]) => {
-        const color = getPlayerColor(lockedUnit?.user_id ?? 0);
-        ctx.fillStyle = color;
+        ctx.fillStyle = overlayColor;
         ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
       });
     }
 
     // attack tiles
     attackOverlay.normal.forEach(([x, y]) => {
-      const color = getPlayerColor(lockedUnit?.user_id ?? 0);
-      ctx.fillStyle = color;
+      ctx.fillStyle = overlayColor;
       ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
     });
 
@@ -950,7 +982,7 @@ export default function GamePage() {
         return;
       }
       
-      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced"].includes(event.data)) {
+      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked"].includes(event.data)) {
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
           if (!res.ok) return;
@@ -991,6 +1023,18 @@ export default function GamePage() {
           }));
 
           setPlacedUnits(mapped);
+
+          // Update lockedUnit and hoveredUnit if they're affected by the update
+          setLockedUnit(prev => {
+            if (!prev) return prev;
+            const updated = mapped.find((u: any) => u.id === prev.instanceId);
+            return updated ? { ...prev, can_move: updated.can_move } : prev;
+          });
+          setHoveredUnit(prev => {
+            if (!prev) return prev;
+            const updated = mapped.find((u: any) => u.id === prev.instanceId);
+            return updated ? { ...prev, can_move: updated.can_move } : prev;
+          });
 
           try {
             const lockRes = await secureFetch(`/api/games/${updatedGame.link}/turnlock`);
@@ -1191,11 +1235,11 @@ export default function GamePage() {
               position: "absolute",
               top: 0,
               left: 0,
-              pointerEvents: lockedUnit && lockedUnit.can_move !== false && isMyTurn ? "auto" : "none",
+              pointerEvents: (lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting ? "auto" : "none",
             }}
           />
 
-          {placedUnits.map(({ id, unit, tile, current_hp, user_id }) => (
+          {placedUnits.map(({ id, unit, tile, current_hp, user_id, can_move }) => (
             <div
               key={id}
               data-unit
@@ -1217,10 +1261,6 @@ export default function GamePage() {
                   setSelectedTile(tile);
                 } else if (gameData.status === "in_progress") {
                   const live = placedUnits.find(p => p.id === id);
-                  if (isMyTurn && live?.user_id === userId && live?.can_move === false) {
-                    setToastMessage("This unit is locked and cannot act.");
-                    return;
-                  }
                   setLockedUnit(prev => {
                     const isSameInstance = prev?.instanceId === id;
                     if (isSameInstance) {
@@ -1258,8 +1298,8 @@ export default function GamePage() {
                 top: tile[1] * TILE_DRAW_SIZE,
                 width: TILE_DRAW_SIZE,
                 height: TILE_DRAW_SIZE,
-                pointerEvents: "auto",
-                cursor: "pointer",
+                pointerEvents: moveTargeting ? "none" : "auto",
+                cursor: moveTargeting ? "default" : "pointer",
               }}
             >
               <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
@@ -1279,7 +1319,7 @@ export default function GamePage() {
                   assetFolder={unit.asset_folder}
                   onFrameSize={([, h]) => setSpriteHeight(h)}
                   isMapPlacement                  
-                  overlayColor={getPlayerColor(user_id)}
+                  overlayColor={can_move === false ? "#777777" : getPlayerColor(user_id)}
                 />
 
                 <div
@@ -1571,16 +1611,28 @@ export default function GamePage() {
                     })}
                   </ul>
                   {moveTargeting && selectedMove && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoveCancel();
-                      }}
-                      className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                    >
-                      Cancel Move
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExecuteMove();
+                        }}
+                        className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                      >
+                        Execute Move
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveCancel();
+                        }}
+                        className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                      >
+                        Cancel Move
+                      </button>
+                    </>
                   )}
                 </div>
               )}

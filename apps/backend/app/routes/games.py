@@ -74,6 +74,15 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         unit.starting_x = unit.current_x
         unit.starting_y = unit.current_y
 
+    # Reset can_move for the current player's units before advancing turn
+    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_units = db.query(GameUnit).filter(
+        GameUnit.game_id == game.id,
+        GameUnit.user_id == current_player_id
+    ).all()
+    for unit in current_player_units:
+        unit.can_move = True
+
     # Advance to next player by position in state.players (list of user_ids)
     if not state.players:
         return False
@@ -84,8 +93,8 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     else:
         state.current_turn += 1
     
-    # Check if game should be completed
-    if game.max_turns and state.current_turn > game.max_turns:
+    # Check if game should be completed (max_turns represents full rounds, not individual player turns)
+    if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
         state.status = GameStatus.completed
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_completed")
@@ -684,9 +693,18 @@ def end_turn(
         unit.starting_x = unit.current_x
         unit.starting_y = unit.current_y
 
+    # Reset can_move for the current player's units before advancing turn
+    current_player_units = db.query(GameUnit).filter(
+        GameUnit.game_id == game.id,
+        GameUnit.user_id == current_player_id
+    ).all()
+    for unit in current_player_units:
+        unit.can_move = True
+
     state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
 
-    if game.max_turns and state.current_turn > game.max_turns:
+    # Check if game should be completed (max_turns represents full rounds, not individual player turns)
+    if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
         state.status = GameStatus.completed
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_completed")
@@ -700,6 +718,45 @@ def end_turn(
     redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
     redis_client.publish(f"game_updates:{game.link}", "turn_started")
     return {"detail": "Turn ended"}
+
+@router.post("/{link}/execute_move")
+def execute_move(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        unit_id = int(payload.get("unit_id"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+    if not state.players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = state.players[state.current_turn % len(state.players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only execute moves for your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit is locked")
+
+    gu.can_move = False
+    db.commit()
+    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    return {"ok": True, "unit_id": gu.id}
 
 @router.post("/{link}/move")
 def move_unit(

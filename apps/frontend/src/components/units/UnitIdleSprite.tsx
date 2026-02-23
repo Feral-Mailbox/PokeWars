@@ -201,7 +201,7 @@ export default function UnitIdleSprite({
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [spriteImage, shadowImage, durations, frameSize, isMapPlacement]);
+  }, [spriteImage, shadowImage, durations, frameSize, isMapPlacement, overlayColor]);
 
   const [fw, fh] = frameSize;
 
