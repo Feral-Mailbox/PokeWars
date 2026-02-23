@@ -558,6 +558,22 @@ def place_unit(
     if unit_info.cost > player_state.cash_remaining:
         raise HTTPException(status_code=400, detail="Not enough cash")
 
+    # Calculate current_stats from base_stats using stat formulas
+    # Assumptions: EV=0, IV=0, Nature=1
+    level = 50
+    current_stats = {}
+    if isinstance(unit_info.base_stats, dict):
+        for stat_name, base_value in unit_info.base_stats.items():
+            if stat_name.lower() == "hp":
+                # HP formula: floor((2 × Base × Level) / 100) + Level + 10
+                current_stats[stat_name] = int((2 * base_value * level) / 100) + level + 10
+            elif stat_name.lower() == "range":
+                current_stats[stat_name] = base_value
+            else:
+                # Other stats formula: floor((2 × Base × Level) / 100 + 5) × Nature
+                # With Nature = 1: floor((2 × Base × Level) / 100 + 5)
+                current_stats[stat_name] = int((2 * base_value * level) / 100 + 5)
+
     # Step 1: Create and persist new GameUnit
     new_unit = GameUnit(
         game_id=game.id,
@@ -567,7 +583,9 @@ def place_unit(
         starting_y=unit_data.y,
         current_x=unit_data.x,
         current_y=unit_data.y,
-        current_hp=unit_data.current_hp,
+        current_hp=current_stats.get('hp', unit_data.current_hp),
+        level=level,
+        current_stats=current_stats,
         stat_boosts=unit_data.stat_boosts,
         status_effects=unit_data.status_effects,
         is_fainted=unit_data.is_fainted,

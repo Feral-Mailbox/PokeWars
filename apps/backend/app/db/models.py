@@ -189,7 +189,9 @@ class GameUnit(Base):
     starting_y = Column(Integer, nullable=False)
     current_x = Column(Integer, nullable=False)
     current_y = Column(Integer, nullable=False)
+    level = Column(Integer, default=50)
     current_hp = Column(Integer, nullable=False)
+    current_stats = Column(JSON, nullable=False)
     stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
     is_fainted = Column(Boolean, default=False)

@@ -92,7 +92,7 @@ def test_unit_model(db_session):
     assert not unit.is_legendary
 
 def test_game_unit_model(db_session):
-    gu = GameUnit(game_id=1, unit_id=1, user_id=1, x=2, y=3, current_hp=35)
+    gu = GameUnit(game_id=1, unit_id=1, user_id=1, x=2, y=3, current_hp=35, level=50)
     db_session.add(gu)
     db_session.commit()
     assert gu.stat_boosts == {}

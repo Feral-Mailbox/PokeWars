@@ -57,13 +57,17 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[] }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number }[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [hoveredUnit, setHoveredUnit] = useState<any | null>(null);
   const [hoveredMove, setHoveredMove] = useState<any | null>(null);
+  const [selectedMove, setSelectedMove] = useState<any | null>(null);
+  const [moveTargeting, setMoveTargeting] = useState(false);
+  const [hoveredOverlayTile, setHoveredOverlayTile] = useState<[number, number] | null>(null);
+  const [selectedMoveTarget, setSelectedMoveTarget] = useState<[number, number] | null>(null);
   const [lockedUnit, setLockedUnit] = useState<any | null>(null);
   const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
   const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
@@ -259,7 +263,71 @@ export default function GamePage() {
     return tiles;
   }
 
+  function getDirectionalOverlayTiles(target: [number, number] | null) {
+    if (!target) return [] as [number, number][];
+    const origin = getActiveOrigin();
+    if (!origin) return [] as [number, number][];
+
+    const [ox, oy] = origin;
+    const [tx, ty] = target;
+    const dx = tx - ox;
+    const dy = ty - oy;
+    if (dx === 0 && dy === 0) return [] as [number, number][];
+
+    const useHorizontal = Math.abs(dx) >= Math.abs(dy);
+    const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
+    const overlayTiles = [...attackOverlay.normal, ...attackOverlay.invert];
+    return overlayTiles.filter(([x, y]) => {
+      const rx = x - ox;
+      const ry = y - oy;
+      if (rx === 0 && ry === 0) return false;
+      if (useHorizontal) {
+        return rx * dir > 0 && Math.abs(rx) >= Math.abs(ry);
+      }
+      return ry * dir > 0 && Math.abs(ry) > Math.abs(rx);
+    });
+  }
+
+  function drawTileOutline(ctx: CanvasRenderingContext2D, tiles: [number, number][], lineWidth: number) {
+    if (!tiles.length) return;
+    const tileSet = new Set(tiles.map(([x, y]) => `${x},${y}`));
+    const hasTile = (x: number, y: number) => tileSet.has(`${x},${y}`);
+
+    ctx.save();
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+
+    tiles.forEach(([x, y]) => {
+      const left = x * TILE_DRAW_SIZE + 1;
+      const top = y * TILE_DRAW_SIZE + 1;
+      const right = left + TILE_DRAW_SIZE - 2;
+      const bottom = top + TILE_DRAW_SIZE - 2;
+
+      if (!hasTile(x - 1, y)) {
+        ctx.moveTo(left, top);
+        ctx.lineTo(left, bottom);
+      }
+      if (!hasTile(x + 1, y)) {
+        ctx.moveTo(right, top);
+        ctx.lineTo(right, bottom);
+      }
+      if (!hasTile(x, y - 1)) {
+        ctx.moveTo(left, top);
+        ctx.lineTo(right, top);
+      }
+      if (!hasTile(x, y + 1)) {
+        ctx.moveTo(left, bottom);
+        ctx.lineTo(right, bottom);
+      }
+    });
+
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function handleMoveHoverStart(move?: any) {
+    if (moveTargeting) return;
     prevTilesRef.current = highlightedTiles;
     setHighlightedTiles([]);
     setHoveredMove(move || null);
@@ -267,10 +335,65 @@ export default function GamePage() {
   }
 
   function handleMoveHoverEnd() {
+    if (moveTargeting) return;
     setHoveredMove(null);
     setAttackOverlay({ normal: [], invert: [] });
     setHighlightedTiles(prevTilesRef.current);
     prevTilesRef.current = [];
+  }
+
+  function isMoveOverlayTile(x: number, y: number) {
+    return (
+      attackOverlay.normal.some(([tx, ty]) => tx === x && ty === y) ||
+      attackOverlay.invert.some(([tx, ty]) => tx === x && ty === y)
+    );
+  }
+
+  function handleMoveSelect(move: any) {
+    if (!activeUnit) return;
+    if (!isMyTurn) {
+      setToastMessage("You can only use moves on your turn.");
+      return;
+    }
+    if (activeUnit.user_id !== userId) {
+      setToastMessage("You can only use your own unit's moves.");
+      return;
+    }
+
+    if (!lockedUnit || lockedUnit.instanceId !== activeUnit.instanceId) {
+      const unitId = activeUnit.instanceId;
+      const cached = frozenMovesRef.current[unitId];
+      if (cached) {
+        setHighlightedTiles(cached.tiles);
+        setUnitOriginalTile(cached.origin);
+      } else if (gameData?.map) {
+        const movement = activeUnit?.unit?.base_stats?.range ?? 0;
+        const costMap = gameData.map.tile_data.movement_cost;
+        const width = gameData.map.width;
+        const height = gameData.map.height;
+        const newOrigin: [number, number] = activeUnit.tile as [number, number];
+        const newTiles = getMovementRange(newOrigin, movement, costMap, width, height);
+        frozenMovesRef.current[unitId] = { origin: newOrigin, tiles: newTiles };
+        setHighlightedTiles(newTiles);
+        setUnitOriginalTile(newOrigin);
+      }
+      setLockedUnit(activeUnit);
+    }
+
+    setSelectedMove(move);
+    setMoveTargeting(true);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setHoveredMove(null);
+    rebuildAttackOverlay(move);
+  }
+
+  function handleMoveCancel() {
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
   }
 
   function MoveButton({ move, TYPE_COLORS }: { move: any; TYPE_COLORS: Record<string,string> }) {
@@ -279,6 +402,8 @@ export default function GamePage() {
         type="button"
         onMouseEnter={() => handleMoveHoverStart(move)}
         onMouseLeave={handleMoveHoverEnd}
+        onClick={() => handleMoveSelect(move)}
+        disabled={moveTargeting}
         className="w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none"
       >
         <div className="flex justify-between font-bold">
@@ -393,6 +518,8 @@ export default function GamePage() {
             tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
             user_id: u.user_id,
+            level: u.level,
+            current_stats: u.current_stats,
           }));
 
           setPlacedUnits(mapped);
@@ -485,8 +612,12 @@ export default function GamePage() {
 
   const lastOriginRef = useRef<string>("");
 
+  const activeMove = selectedMove ?? hoveredMove;
+  const hoveredDirectionalTiles = getDirectionalOverlayTiles(hoveredOverlayTile);
+  const selectedDirectionalTiles = getDirectionalOverlayTiles(selectedMoveTarget);
+
   useEffect(() => {
-    if (!hoveredMove) return;
+    if (!activeMove) return;
     let raf = 0;
 
     const tick = () => {
@@ -494,14 +625,14 @@ export default function GamePage() {
       const key = o ? `${o[0]},${o[1]}` : "";
       if (key !== lastOriginRef.current) {
         lastOriginRef.current = key;
-        rebuildAttackOverlay(hoveredMove);
+        rebuildAttackOverlay(activeMove);
       }
       raf = requestAnimationFrame(tick);
     };
 
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [hoveredMove, lockedUnit, hoveredUnit, placedUnits]);
+  }, [activeMove, lockedUnit, hoveredUnit, placedUnits]);
 
   useEffect(() => {
     const fetchMoves = async () => {
@@ -519,8 +650,8 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    if (hoveredMove) rebuildAttackOverlay(hoveredMove);
-  }, [placedUnits, hoveredMove]);
+    if (activeMove) rebuildAttackOverlay(activeMove);
+  }, [placedUnits, activeMove]);
 
   useEffect(() => {
     if (isReady) {
@@ -530,6 +661,7 @@ export default function GamePage() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (moveTargeting) return;
       const clickedEl = e.target as HTMLElement;
       const clickedUnit = clickedEl.closest("[data-unit]");
       const clickedMenu = clickedEl.closest("[data-unit-info]");
@@ -546,7 +678,7 @@ export default function GamePage() {
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
-  }, []);
+  }, [moveTargeting]);
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
@@ -557,12 +689,14 @@ export default function GamePage() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // movement tiles
-    highlightedTiles.forEach(([x, y]) => {
-      const color = getPlayerColor(lockedUnit?.user_id ?? 0);
-      ctx.fillStyle = color;
-      ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
-    });
+    if (!moveTargeting) {
+      // movement tiles
+      highlightedTiles.forEach(([x, y]) => {
+        const color = getPlayerColor(lockedUnit?.user_id ?? 0);
+        ctx.fillStyle = color;
+        ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
+      });
+    }
 
     // attack tiles
     attackOverlay.normal.forEach(([x, y]) => {
@@ -580,6 +714,14 @@ export default function GamePage() {
       });
       ctx.restore();
     }
+
+    if (moveTargeting && hoveredDirectionalTiles.length) {
+      drawTileOutline(ctx, hoveredDirectionalTiles, 2);
+    }
+
+    if (moveTargeting && selectedDirectionalTiles.length) {
+      drawTileOutline(ctx, selectedDirectionalTiles, 3);
+    }
   }, [
     highlightedTiles,
     lockedUnit,
@@ -588,7 +730,11 @@ export default function GamePage() {
     userId,
     gameData?.link,
     gameData?.status,
-    attackOverlay
+    attackOverlay,
+    moveTargeting,
+    hoveredOverlayTile,
+    selectedMoveTarget,
+    activeMove
   ]);
 
   useEffect(() => {
@@ -602,6 +748,13 @@ export default function GamePage() {
       const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
       const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
       const clickedTile: [number, number] = [x, y];
+
+      if (moveTargeting && selectedMove) {
+        if (isMoveOverlayTile(x, y)) {
+          setSelectedMoveTarget(clickedTile);
+        }
+        return;
+      }
       
       if (!lockedUnit || !unitOriginalTile || !myTurnRef.current) return;
 
@@ -642,14 +795,55 @@ export default function GamePage() {
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [highlightedTiles, lockedUnit, unitOriginalTile]);
+  }, [highlightedTiles, lockedUnit, unitOriginalTile, moveTargeting, selectedMove, attackOverlay]);
+
+  useEffect(() => {
+    if (gameData?.status !== "in_progress") return;
+    const canvas = overlayRef.current;
+    if (!canvas) return;
+
+    const handleMove = (e: MouseEvent) => {
+      if (!moveTargeting || !selectedMove) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
+      const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
+      if (isMoveOverlayTile(x, y)) {
+        setHoveredOverlayTile([x, y]);
+      } else {
+        setHoveredOverlayTile(null);
+      }
+    };
+
+    const handleLeave = () => setHoveredOverlayTile(null);
+
+    canvas.addEventListener("mousemove", handleMove);
+    canvas.addEventListener("mouseleave", handleLeave);
+    return () => {
+      canvas.removeEventListener("mousemove", handleMove);
+      canvas.removeEventListener("mouseleave", handleLeave);
+    };
+  }, [gameData?.status, moveTargeting, selectedMove, attackOverlay]);
 
   useEffect(() => {
     setLockedUnit(null);
     setHighlightedTiles([]);
     setUnitOriginalTile(null);
     frozenMovesRef.current = {};
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
   }, [gameData?.current_turn]);
+
+  useEffect(() => {
+    if (lockedUnit) return;
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
+  }, [lockedUnit]);
 
   useEffect(() => {
     if (!gameData?.link || !gameData?.current_turn) return;
@@ -720,6 +914,8 @@ export default function GamePage() {
             tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
             user_id: u.user_id,
+            level: u.level,
+            current_stats: u.current_stats,
           }));
 
           setPlacedUnits(mapped);
@@ -923,16 +1119,17 @@ export default function GamePage() {
               key={id}
               data-unit
               onMouseEnter={() => {
-                if (gameData.status === "in_progress" && !lockedUnit) {
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile });
+                if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats });
                 }
               }}
               onMouseLeave={() => {
-                if (gameData.status === "in_progress" && !lockedUnit) {
+                if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
                   setHoveredUnit(null);
                 }
               }}
               onClick={() => {
+                if (moveTargeting) return;
                 if (gameData.status === "preparation") {
                   if (isReady) return;
                   setSelectedTile(tile);
@@ -964,7 +1161,7 @@ export default function GamePage() {
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile };
+                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats };
                   });
                 }
               }}
@@ -1050,6 +1247,7 @@ export default function GamePage() {
         // Case 1: Preparation phase + tile has a unit = show Unit Info
         if (isPreparationPhase && selectedTile && placedUnitAtTile !== undefined) {
           const unit = placedUnitAtTile.unit;
+          const level = placedUnitAtTile.level;
           const currentHp = placedUnitAtTile.current_hp;
           const statusEffects = placedUnitAtTile.status_effects ?? [];
 
@@ -1061,7 +1259,7 @@ export default function GamePage() {
                   <div className="font-semibold text-lg">{unit.name}</div>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">
-                  {currentHp ?? "?"}/{unit.base_stats?.hp ?? "?"}
+                  {currentHp ?? "?"}/{placedUnitAtTile?.current_stats?.hp ?? "?"}
                 </div>
               </div>
 
@@ -1077,14 +1275,16 @@ export default function GamePage() {
                 </div>
               )}
 
+              <div className="text-sm mb-2 font-medium">Level: {level}</div>
+
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
-                <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
-                <div><span className="font-semibold">Range:</span> {unit.base_stats?.range ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
+                <div><span className="font-semibold">HP:</span> {placedUnitAtTile?.current_stats?.hp ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Def:</span> {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {placedUnitAtTile?.current_stats?.attack ?? "?"}</div>
+                <div><span className="font-semibold">Speed:</span> {placedUnitAtTile?.current_stats?.speed ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {placedUnitAtTile?.current_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Range:</span> {placedUnitAtTile?.current_stats?.range ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}</div>
               </div>
 
               {unit.move_ids?.length > 0 && (
@@ -1159,7 +1359,7 @@ export default function GamePage() {
                         unit_id: unit.id,
                         x: selectedTile[0],
                         y: selectedTile[1],
-                        current_hp: unit.base_stats.hp || 100,
+                        current_hp: 100, // Backend will set this from calculated current_stats
                         stat_boosts: {},
                         status_effects: [],
                         is_fainted: false,
@@ -1185,6 +1385,8 @@ export default function GamePage() {
                           tile: [placedUnit.current_x, placedUnit.current_y],
                           current_hp: placedUnit.current_hp,
                           user_id: placedUnit.user_id,
+                          level: placedUnit.level,
+                          current_stats: placedUnit.current_stats,
                         }
                       ]);
                       setCash((prev) => prev - unit.cost);
@@ -1222,6 +1424,7 @@ export default function GamePage() {
         // Case 3: In Progress = Unit Info (via click)
         if (gameData?.status === "in_progress" && activeUnit) {
           const unit = activeUnit.unit;
+          const level = activeUnit.level;
           const currentHp = activeUnit.current_hp;
           const statusEffects = activeUnit.status_effects ?? [];
 
@@ -1237,7 +1440,7 @@ export default function GamePage() {
                   <div className="font-semibold text-lg">{unit.name}</div>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">
-                  {currentHp ?? "?"}/{unit.base_stats?.hp ?? "?"}
+                  {currentHp ?? "?"}/{activeUnit?.current_stats?.hp ?? "?"}
                 </div>
               </div>
 
@@ -1253,14 +1456,16 @@ export default function GamePage() {
                 </div>
               )}
 
+              <div className="text-sm mb-2 font-medium">Level: {level}</div>
+
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div><span className="font-semibold">HP:</span> {unit.base_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Def:</span> {unit.base_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {unit.base_stats?.attack ?? "?"}</div>
-                <div><span className="font-semibold">Speed:</span> {unit.base_stats?.speed ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {unit.base_stats?.defense ?? "?"}</div>
-                <div><span className="font-semibold">Range:</span> {unit.base_stats?.range ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {unit.base_stats?.sp_attack ?? "?"}</div>
+                <div><span className="font-semibold">HP:</span> {activeUnit?.current_stats?.hp ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Def:</span> {activeUnit?.current_stats?.sp_defense ?? "?"}</div>
+                <div><span className="font-semibold">Attack:</span> {activeUnit?.current_stats?.attack ?? "?"}</div>
+                <div><span className="font-semibold">Speed:</span> {activeUnit?.current_stats?.speed ?? "?"}</div>
+                <div><span className="font-semibold">Defense:</span> {activeUnit?.current_stats?.defense ?? "?"}</div>
+                <div><span className="font-semibold">Range:</span> {activeUnit?.current_stats?.range ?? "?"}</div>
+                <div><span className="font-semibold">Sp. Atk:</span> {activeUnit?.current_stats?.sp_attack ?? "?"}</div>
               </div>
 
               {unit.move_ids?.length > 0 && (
@@ -1277,6 +1482,15 @@ export default function GamePage() {
                       );
                     })}
                   </ul>
+                  {moveTargeting && selectedMove && (
+                    <button
+                      type="button"
+                      onClick={handleMoveCancel}
+                      className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                    >
+                      Cancel Move
+                    </button>
+                  )}
                 </div>
               )}
             </div>

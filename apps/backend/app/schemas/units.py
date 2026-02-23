@@ -54,7 +54,9 @@ class GameUnitSchema(BaseModel):
     starting_y: int
     current_x: int
     current_y: int
+    level: int
     current_hp: int
+    current_stats: Dict[str, int]
     stat_boosts: Dict[str, int]
     status_effects: List[str]
     is_fainted: bool

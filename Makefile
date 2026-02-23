@@ -71,14 +71,14 @@ first-launch:
 
 # === Lifecycle ===
 up:
-	$(DC_USED) up -d
+	$(DC_USED) up -d --build
 
 down:
 	$(DC_USED) down
 
 restart:
 	$(DC_USED) down
-	$(DC_USED) up -d
+	$(DC_USED) up -d --build
 
 build:
 	$(DC_USED) build
