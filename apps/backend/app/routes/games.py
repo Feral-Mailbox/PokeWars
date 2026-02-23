@@ -843,6 +843,20 @@ def execute_move(
                 db.add(player_state)
             db.delete(unit)
 
+    if removed_ids:
+        db.flush()
+        remaining_units = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+        remaining_players = {unit.user_id for unit in remaining_units}
+        if len(remaining_players) == 1:
+            state.status = GameStatus.completed
+            state.winner_id = next(iter(remaining_players))
+            gu.can_move = False
+            db.commit()
+            for unit_id in removed_ids:
+                redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            return {"ok": True, "unit_id": gu.id, "targets": damage_results, "removed_ids": removed_ids}
+
     gu.can_move = False
     db.flush()
     remaining_units = db.query(GameUnit).filter(

@@ -1064,8 +1064,8 @@ export default function GamePage() {
         return;
       }
       
-      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked"].includes(event.data)) {
-        if (event.data === "turn_started" || event.data === "turn_advanced") {
+      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
+        if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
           setLockedUnit(null);
           setHoveredUnit(null);
           setHighlightedTiles([]);
@@ -1199,6 +1199,7 @@ export default function GamePage() {
   const isHost = userId === gameData?.host_id;
   const isFull = gameData?.players?.length >= gameData?.max_players;
   const hostPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.host_id);
+  const winnerPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.winner_id);
   const allPlayersReady = gameData?.players?.every((p: any) => p.is_ready === true);
 
   const placedUnitAtTile = selectedTile
@@ -1259,6 +1260,8 @@ export default function GamePage() {
             ) : (
               "Preparation phase — pick your team!"
             )
+          ) : gameData?.status === "completed" ? (
+            `${winnerPlayer?.username ?? "Unknown"} wins the match!`
           ) : gameData?.status === "closed" && isHost ? (
             "Players have been found!"
           ) : !isFull ? (
@@ -1277,7 +1280,7 @@ export default function GamePage() {
           </button>
         )}
 
-        {isHost && gameData?.status !== "in_progress" && gameData?.status !== "preparation" && (
+        {isHost && gameData?.status !== "in_progress" && gameData?.status !== "preparation" && gameData?.status !== "completed" && (
           <button
             className="mt-2 mb-4 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
             disabled={!isFull}
