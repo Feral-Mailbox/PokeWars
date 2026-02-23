@@ -60,6 +60,7 @@ class GameUnitSchema(BaseModel):
     stat_boosts: Dict[str, int]
     status_effects: List[str]
     is_fainted: bool
+    can_move: bool
     unit: UnitSummary
 
     model_config = ConfigDict(from_attributes=True)

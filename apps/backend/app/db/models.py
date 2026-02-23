@@ -195,6 +195,7 @@ class GameUnit(Base):
     stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
     is_fainted = Column(Boolean, default=False)
+    can_move = Column(Boolean, default=True, nullable=False)
 
     game = relationship("Game", back_populates="game_units")
     unit = relationship("Unit", back_populates="game_units")

@@ -145,6 +145,7 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
 
     # Store as a hash: field=unit_id, value=json
     for gu in units:
+        gu.can_move = True
         rng = (gu.unit.base_stats or {}).get("range", 0)
         tiles = movement_range_backend((gu.starting_x, gu.starting_y), rng, costs, width, height)
         redis_client.hset(
@@ -658,6 +659,48 @@ def get_turnlock(
     raw = redis_client.hgetall(key)
     return {int(k): json.loads(v) for k, v in raw.items()}
 
+@router.post("/{link}/end_turn")
+def end_turn(
+    link: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+    if not state.players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = state.players[state.current_turn % len(state.players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+    for unit in units_to_sync:
+        unit.starting_x = unit.current_x
+        unit.starting_y = unit.current_y
+
+    state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
+
+    if game.max_turns and state.current_turn > game.max_turns:
+        state.status = GameStatus.completed
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {"detail": "Game completed"}
+
+    now = datetime.now(timezone.utc)
+    state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
+
+    compute_turn_locks(game, state, db)
+    db.commit()
+    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+    redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    return {"detail": "Turn ended"}
+
 @router.post("/{link}/move")
 def move_unit(
     link: str,
@@ -694,6 +737,8 @@ def move_unit(
         raise HTTPException(status_code=404, detail="Unit not found")
     if gu.user_id != user.id:
         raise HTTPException(status_code=403, detail="You can only move your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit is locked")
 
     # Bounds check
     map_obj = db.query(Map).filter_by(id=game.map_id).first()

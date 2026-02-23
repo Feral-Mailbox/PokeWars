@@ -57,7 +57,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; can_move?: boolean }[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
@@ -82,6 +82,12 @@ export default function GamePage() {
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
   const frozenMovesRef = useRef<Record<number, { origin: [number, number]; tiles: [number, number][] }>>({});
+  const preMoveStateRef = useRef<{
+    lockedUnit: any | null;
+    hoveredUnit: any | null;
+    highlightedTiles: [number, number][];
+    unitOriginalTile: [number, number] | null;
+  } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
   
@@ -328,7 +334,9 @@ export default function GamePage() {
 
   function handleMoveHoverStart(move?: any) {
     if (moveTargeting) return;
-    prevTilesRef.current = highlightedTiles;
+    if (prevTilesRef.current.length === 0 && highlightedTiles.length > 0) {
+      prevTilesRef.current = highlightedTiles;
+    }
     setHighlightedTiles([]);
     setHoveredMove(move || null);
     rebuildAttackOverlay(move);
@@ -338,8 +346,10 @@ export default function GamePage() {
     if (moveTargeting) return;
     setHoveredMove(null);
     setAttackOverlay({ normal: [], invert: [] });
-    setHighlightedTiles(prevTilesRef.current);
-    prevTilesRef.current = [];
+    if (prevTilesRef.current.length > 0) {
+      setHighlightedTiles(prevTilesRef.current);
+      prevTilesRef.current = [];
+    }
   }
 
   function isMoveOverlayTile(x: number, y: number) {
@@ -358,6 +368,19 @@ export default function GamePage() {
     if (activeUnit.user_id !== userId) {
       setToastMessage("You can only use your own unit's moves.");
       return;
+    }
+    if (activeUnit.can_move === false) {
+      setToastMessage("This unit is locked and cannot act.");
+      return;
+    }
+
+    if (!moveTargeting) {
+      preMoveStateRef.current = {
+        lockedUnit,
+        hoveredUnit,
+        highlightedTiles,
+        unitOriginalTile,
+      };
     }
 
     if (!lockedUnit || lockedUnit.instanceId !== activeUnit.instanceId) {
@@ -394,6 +417,39 @@ export default function GamePage() {
     setSelectedMoveTarget(null);
     setHoveredOverlayTile(null);
     setAttackOverlay({ normal: [], invert: [] });
+
+    const snapshot = preMoveStateRef.current;
+    if (snapshot) {
+      const fallbackLocked = lockedUnit ?? snapshot.lockedUnit;
+      setLockedUnit(fallbackLocked);
+      setHoveredUnit(snapshot.lockedUnit ? snapshot.hoveredUnit : null);
+      const locked = fallbackLocked;
+      if (locked) {
+        const unitId = locked.instanceId ?? locked.id;
+        const cached = frozenMovesRef.current[unitId];
+        if (cached) {
+          setHighlightedTiles(cached.tiles);
+          setUnitOriginalTile(cached.origin);
+        } else if (gameData?.map) {
+          const movement = locked?.unit?.base_stats?.range ?? 0;
+          const costMap = gameData.map.tile_data.movement_cost;
+          const width = gameData.map.width;
+          const height = gameData.map.height;
+          const origin: [number, number] = (locked.tile as [number, number]) ?? snapshot.unitOriginalTile ?? [0, 0];
+          const tiles = getMovementRange(origin, movement, costMap, width, height);
+          frozenMovesRef.current[unitId] = { origin, tiles };
+          setHighlightedTiles(tiles);
+          setUnitOriginalTile(origin);
+        } else {
+          setHighlightedTiles(snapshot.highlightedTiles);
+          setUnitOriginalTile(snapshot.unitOriginalTile);
+        }
+      } else {
+        setHighlightedTiles(snapshot.highlightedTiles);
+        setUnitOriginalTile(snapshot.unitOriginalTile);
+      }
+    }
+    preMoveStateRef.current = null;
   }
 
   function MoveButton({ move, TYPE_COLORS }: { move: any; TYPE_COLORS: Record<string,string> }) {
@@ -462,6 +518,15 @@ export default function GamePage() {
     }
   };
 
+  const handleEndTurn = async () => {
+    if (!gameData?.link) return;
+    const res = await secureFetch(`/api/games/${gameData.link}/end_turn`, { method: "POST" });
+    if (!res.ok) {
+      setToastMessage("Unable to end turn.");
+      return;
+    }
+  };
+
   useEffect(() => {
     const fetchGame = async () => {
       try {
@@ -520,6 +585,7 @@ export default function GamePage() {
             user_id: u.user_id,
             level: u.level,
             current_stats: u.current_stats,
+            can_move: u.can_move ?? true,
           }));
 
           setPlacedUnits(mapped);
@@ -757,6 +823,10 @@ export default function GamePage() {
       }
       
       if (!lockedUnit || !unitOriginalTile || !myTurnRef.current) return;
+      if (lockedUnit.can_move === false) {
+        setToastMessage("This unit is locked and cannot act.");
+        return;
+      }
 
       // Only allow landing inside the PRECOMPUTED tiles
       const isInRange = highlightedTiles.some(([hx, hy]) => hx === x && hy === y);
@@ -843,6 +913,7 @@ export default function GamePage() {
     setSelectedMoveTarget(null);
     setHoveredOverlayTile(null);
     setAttackOverlay({ normal: [], invert: [] });
+    preMoveStateRef.current = null;
   }, [lockedUnit]);
 
   useEffect(() => {
@@ -916,6 +987,7 @@ export default function GamePage() {
             user_id: u.user_id,
             level: u.level,
             current_stats: u.current_stats,
+            can_move: u.can_move ?? true,
           }));
 
           setPlacedUnits(mapped);
@@ -1058,6 +1130,15 @@ export default function GamePage() {
           )}
         </p>
 
+        {gameData?.status === "in_progress" && isMyTurn && (
+          <button
+            className="mt-2 mb-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            onClick={handleEndTurn}
+          >
+            End Turn
+          </button>
+        )}
+
         {isHost && gameData?.status !== "in_progress" && gameData?.status !== "preparation" && (
           <button
             className="mt-2 mb-4 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
@@ -1110,7 +1191,7 @@ export default function GamePage() {
               position: "absolute",
               top: 0,
               left: 0,
-              pointerEvents: lockedUnit && isMyTurn ? "auto" : "none",
+              pointerEvents: lockedUnit && lockedUnit.can_move !== false && isMyTurn ? "auto" : "none",
             }}
           />
 
@@ -1120,7 +1201,8 @@ export default function GamePage() {
               data-unit
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats });
+                  const live = placedUnits.find(p => p.id === id);
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true });
                 }
               }}
               onMouseLeave={() => {
@@ -1134,6 +1216,11 @@ export default function GamePage() {
                   if (isReady) return;
                   setSelectedTile(tile);
                 } else if (gameData.status === "in_progress") {
+                  const live = placedUnits.find(p => p.id === id);
+                  if (isMyTurn && live?.user_id === userId && live?.can_move === false) {
+                    setToastMessage("This unit is locked and cannot act.");
+                    return;
+                  }
                   setLockedUnit(prev => {
                     const isSameInstance = prev?.instanceId === id;
                     if (isSameInstance) {
@@ -1146,7 +1233,7 @@ export default function GamePage() {
                     if (cached) {
                       setHighlightedTiles(cached.tiles);
                       setUnitOriginalTile(cached.origin);
-                      return { unit, user_id, current_hp, instanceId: id, tile };
+                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true };
                     }
 
                     const movement = unit?.base_stats?.range ?? 0;
@@ -1161,7 +1248,7 @@ export default function GamePage() {
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats };
+                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true };
                   });
                 }
               }}
@@ -1387,6 +1474,7 @@ export default function GamePage() {
                           user_id: placedUnit.user_id,
                           level: placedUnit.level,
                           current_stats: placedUnit.current_stats,
+                          can_move: placedUnit.can_move ?? true,
                         }
                       ]);
                       setCash((prev) => prev - unit.cost);
@@ -1485,7 +1573,10 @@ export default function GamePage() {
                   {moveTargeting && selectedMove && (
                     <button
                       type="button"
-                      onClick={handleMoveCancel}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMoveCancel();
+                      }}
                       className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
                     >
                       Cancel Move
