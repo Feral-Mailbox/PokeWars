@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["self:defense:+2:3:50"]
+  "effects": ["self:raise_stat:defense:2:50"]
 }

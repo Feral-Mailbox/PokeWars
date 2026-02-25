@@ -1,0 +1,20 @@
+{
+  "id": 63,
+  "name": "Hyper Beam",
+  "description": "The target is attacked with a powerful beam. The user can't move on the next turn.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 150,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:apply_state:recharge"]
+}

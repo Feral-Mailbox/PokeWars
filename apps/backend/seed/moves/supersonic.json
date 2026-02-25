@@ -1,0 +1,20 @@
+{
+  "id": 48,
+  "name": "Supersonic",
+  "description": "The user generates odd sound waves from its body that confuse the target.",
+  "type": "Normal",
+  "category": "Status",
+  "accuracy": 55,
+  "pp": 20,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": ["target:status:confusion"]
+}

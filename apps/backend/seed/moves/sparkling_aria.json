@@ -8,7 +8,7 @@
   "accuracy": 100,
   "pp": 10,
   "range": "pulse:2",
-  "targeting": "all",
+  "targeting": "enemy",
   "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,

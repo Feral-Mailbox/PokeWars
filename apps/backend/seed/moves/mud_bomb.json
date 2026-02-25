@@ -16,5 +16,6 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:accuracy:-1:3:30"]
+  "affected_by_bulletproof": true,
+  "effects": ["target:lower_stat:accuracy:1:30"]
 }

@@ -1,0 +1,20 @@
+{
+  "id": 153,
+  "name": "Explosion",
+  "description": "The user attacks everything around it by causing a tremendous explosion. The user faints upon using this move.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 250,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "pulse:5",
+  "targeting": "all",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:instant_ko"]
+}

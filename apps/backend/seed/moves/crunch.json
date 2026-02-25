@@ -1,7 +1,7 @@
 {
   "id": 242,
   "name": "Crunch",
-  "description": "A slashing attack with a poisonous blade that may also leave the target poisoned. Critical hits land more easily.",
+  "description": "The user crunches up the target with sharp fangs. This may also lower the target's Defense stat.",
   "type": "Dark",
   "category": "Physical",
   "power": 80,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:defense:-1:3:20"]
+  "effects": ["target:lower_stat:defense:1:20"]
 }

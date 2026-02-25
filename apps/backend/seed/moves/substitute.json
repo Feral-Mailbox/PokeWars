@@ -1,0 +1,17 @@
+{
+  "id": 164,
+  "name": "Substitute",
+  "description": "The user makes a copy of itself using some of its HP. The copy serves as the user's decoy.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:substitute", "self:damage:4"]
+}

@@ -1,7 +1,7 @@
 {
   "id": 418,
   "name": "Bullet Punch",
-  "description": "The user strikes the target with tough punches as fast as bullets. This move raises the user's speed for a turn.",
+  "description": "The user strikes the target with tough punches as fast as bullets. This move raises the user's speed.",
   "type": "Steel",
   "category": "Physical",
   "power": 40,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["self:speed:+1:1"]
+  "effects": ["self:raise_stat:speed:1"]
 }

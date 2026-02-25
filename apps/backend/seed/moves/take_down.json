@@ -1,0 +1,20 @@
+{
+  "id": 36,
+  "name": "Take Down",
+  "description": "A reckless full-body charge attack for slamming into the target. This also damages the user a little.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 90,
+  "accuracy": 85,
+  "pp": 20,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:recoil:damage_dealt:4"]
+}

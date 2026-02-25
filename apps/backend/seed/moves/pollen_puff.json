@@ -16,5 +16,6 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["conditional_replace_with_heal:target_is_ally:0.5:max_hp"]
+  "affected_by_bulletproof": true,
+  "effects": ["conditional_replace_with_heal:target_is_ally:2:max_hp"]
 }

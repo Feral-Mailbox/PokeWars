@@ -18,7 +18,6 @@
   "affected_by_kings_rock": true,
   "effects": [
     "multi_hit:2:3",
-    "self:range:0:1",
     "self:confuse:50"
   ]
 }

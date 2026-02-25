@@ -1,0 +1,20 @@
+{
+  "id": 76,
+  "name": "Solar Beam",
+  "description": "In this two-turn attack, the user gathers light, then blasts a bundled beam on the next turn.",
+  "type": "Grass",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:apply_state:solar_beam"]
+}

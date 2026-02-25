@@ -16,8 +16,8 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
   "effects": [
-    "target:attack:-1:3",
-    "target:special_attack:-1:3",
+    "target:lower_stat:attack:1",
+    "target:lower_stat:special_attack:1",
     "self:knockback:1",
     "self:swap_with_behind"
   ]

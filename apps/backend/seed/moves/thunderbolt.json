@@ -17,6 +17,6 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
   "effects": [
-    "target:paralysis:10"
+    "target:status:paralysis:10"
   ]
 }

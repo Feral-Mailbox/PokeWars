@@ -1,0 +1,19 @@
+{
+  "id": 77,
+  "name": "Poison Powder",
+  "description": "The user scatters a cloud of poisonous dust that poisons the target.",
+  "type": "Poison",
+  "category": "Status",
+  "accuracy": 75,
+  "pp": 35,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:status:poison"]
+}

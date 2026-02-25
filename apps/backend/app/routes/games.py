@@ -56,6 +56,20 @@ def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
             multiplier *= 0.5
     return multiplier
 
+def get_remaining_unit_counts(game_id: int, db: Session) -> dict:
+    counts: dict[int, int] = {}
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    for unit in units:
+        counts[unit.user_id] = counts.get(unit.user_id, 0) + 1
+    return counts
+
+def get_draw_player_ids(game: Game, state: GameState, db: Session) -> List[int]:
+    counts = get_remaining_unit_counts(game.id, db)
+    if not counts:
+        return list(state.players or [])
+    max_count = max(counts.values())
+    return [pid for pid, count in counts.items() if count == max_count]
+
 def serialize_game_response(game: Game, db: Session) -> GameResponse:
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
     if not game_state:
@@ -75,6 +89,10 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
 
+    draw_player_ids = None
+    if game_state.status == GameStatus.completed and game_state.winner_id is None:
+        draw_player_ids = get_draw_player_ids(game, game_state, db)
+
     return GameResponse(
         id=game.id,
         status=game_state.status,
@@ -87,6 +105,7 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
         players=players,
         player_order=game_state.players,
         winner_id=game_state.winner_id,
+        draw_player_ids=draw_player_ids,
         gamemode=game.gamemode,
         current_turn=game_state.current_turn,
         starting_cash=game.starting_cash,
@@ -135,7 +154,12 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
+        draw_player_ids = get_draw_player_ids(game, state, db)
         state.status = GameStatus.completed
+        if len(draw_player_ids) == 1:
+            state.winner_id = draw_player_ids[0]
+        else:
+            state.winner_id = None
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_completed")
         return True
@@ -745,7 +769,12 @@ def end_turn(
 
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
+        draw_player_ids = get_draw_player_ids(game, state, db)
         state.status = GameStatus.completed
+        if len(draw_player_ids) == 1:
+            state.winner_id = draw_player_ids[0]
+        else:
+            state.winner_id = None
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_completed")
         return {"detail": "Game completed"}

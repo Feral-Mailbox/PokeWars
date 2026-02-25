@@ -1201,6 +1201,9 @@ export default function GamePage() {
   const hostPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.host_id);
   const winnerPlayer = gameData?.players?.find((p: any) => p.player_id === gameData.winner_id);
   const allPlayersReady = gameData?.players?.every((p: any) => p.is_ready === true);
+  const drawPlayers = (gameData?.draw_player_ids ?? [])
+    .map((id: number) => gameData?.players?.find((p: any) => p.player_id === id)?.username)
+    .filter((name: string | undefined) => Boolean(name));
 
   const placedUnitAtTile = selectedTile
   ? placedUnits.find(
@@ -1261,7 +1264,11 @@ export default function GamePage() {
               "Preparation phase — pick your team!"
             )
           ) : gameData?.status === "completed" ? (
-            `${winnerPlayer?.username ?? "Unknown"} wins the match!`
+            winnerPlayer
+              ? `${winnerPlayer.username} wins the match!`
+              : drawPlayers.length > 0
+                ? `Draw between ${drawPlayers.join(", ")}.`
+                : "Match completed."
           ) : gameData?.status === "closed" && isHost ? (
             "Players have been found!"
           ) : !isFull ? (

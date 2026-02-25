@@ -18,6 +18,6 @@
   "affected_by_kings_rock": true,
   "effects": [
     "target:knockback:1",
-    "self:attack:+1:3:20"
+    "self:raise_stat:attack:1:20"
   ]
 }

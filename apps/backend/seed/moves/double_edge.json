@@ -1,0 +1,20 @@
+{
+  "id": 38,
+  "name": "Double Edge",
+  "description": "A reckless, life-risking tackle. This also damages the user quite a lot.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:recoil:damage_dealt:3"]
+}

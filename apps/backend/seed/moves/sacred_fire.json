@@ -7,7 +7,7 @@
   "power": 100,
   "accuracy": 95,
   "pp": 5,
-  "range": "inverted_cone:2",
+  "range": "inverted_cone:4",
   "targeting": "enemy",
   "cooldown": 2,
   "makes_contact": false,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:burn:50"]
+  "effects": ["target:status:burn:50"]
 }

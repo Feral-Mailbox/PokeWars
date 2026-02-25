@@ -1,0 +1,20 @@
+{
+  "id": 111,
+  "name": "Defense Curl",
+  "description": "The user curls up in a ball to reduce damage and raises its Defense stat.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 40,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:defense:1",
+    "self:apply_state:defense_curl"
+  ]
+}

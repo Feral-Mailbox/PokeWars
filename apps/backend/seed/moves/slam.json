@@ -1,0 +1,20 @@
+{
+  "id": 21,
+  "name": "Slam",
+  "description": "The target is slammed with a long tail, vines, or the like to inflict damage.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 75,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:status:paralysis:30"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": 45,
+  "name": "Growl",
+  "description": "The user growls in an endearing way, making opposing Pokémon less wary. This lowers their Attack stats. ",
+  "type": "Normal",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 40,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:lower_stat:attack:1"]
+}

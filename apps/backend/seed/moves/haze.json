@@ -1,0 +1,19 @@
+{
+  "id": 114,
+  "name": "Haze",
+  "description": "The user creates a haze that eliminates every stat change among all the nearby Pokémon.",
+  "type": "Ice",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 30,
+  "range": "pulse:3",
+  "targeting": "all",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:reset_stats"]
+}

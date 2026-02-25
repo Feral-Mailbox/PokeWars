@@ -14,5 +14,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": []
+  "effects": ["target:status:sleep"]
 }

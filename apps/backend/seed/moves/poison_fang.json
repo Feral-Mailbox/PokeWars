@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:badly_poison:50"]
+  "effects": ["target:status:badly_poison:50"]
 }

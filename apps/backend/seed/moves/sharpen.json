@@ -1,0 +1,17 @@
+{
+  "id": 159,
+  "name": "Sharpen",
+  "description": "The user makes its edges more jagged, which raises its Attack stat.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:attack:1"]
+}

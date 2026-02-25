@@ -1,0 +1,21 @@
+{
+  "id": 121,
+  "name": "Egg Bomb",
+  "description": "A large egg is hurled at the target with maximum force to inflict damage.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 75,
+  "pp": 10,
+  "range": "bomb:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "affected_by_bulletproof": true,
+  "effects": []
+}

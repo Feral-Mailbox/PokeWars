@@ -1,0 +1,19 @@
+{
+  "id": 79,
+  "name": "Sleep Powder",
+  "description": "The user scatters a big cloud of sleep-inducing dust around the target.",
+  "type": "Grass",
+  "category": "Status",
+  "accuracy": 75,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:status:sleep"]
+}

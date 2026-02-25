@@ -1,0 +1,22 @@
+{
+  "id": 143,
+  "name": "Sky Attack",
+  "description": "A second-turn attack move where critical hits land more easily. This may also make the target flinch.",
+  "type": "Flying",
+  "category": "Physical",
+  "power": 140,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:sky_attack"
+]
+}

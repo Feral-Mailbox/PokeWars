@@ -14,5 +14,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["target:heal:0.5:max_hp"]
+  "effects": ["target:heal:2"]
 }

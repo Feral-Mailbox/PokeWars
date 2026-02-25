@@ -1,0 +1,17 @@
+{
+  "id": 106,
+  "name": "Harden",
+  "description": "The user stiffens all the muscles in its body to raise its Defense stat.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:defense:1"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 107,
+  "name": "Minimize",
+  "description": "The user compresses its body to make itself look smaller, which sharply raises its evasiveness.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:evasion:2",
+    "self:apply_state:minimized"
+  ]
+}

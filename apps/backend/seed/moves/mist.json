@@ -1,0 +1,18 @@
+{
+  "id": 54,
+  "name": "Mist",
+  "description": "The user cloaks itself and its allies in a white mist that prevents any of their stats from being lowered for five turns.",
+  "type": "Ice",
+  "category": "Status",
+  "pp": 30,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:mist"]
+}

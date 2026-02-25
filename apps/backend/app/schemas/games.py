@@ -52,6 +52,7 @@ class GameResponse(BaseModel):
     player_order: List[int]
     turn_deadline: Optional[datetime] = None
     winner_id: Optional[int]
+    draw_player_ids: Optional[List[int]] = None
     gamemode: GameMode
     status: str
     current_turn: Optional[int]
