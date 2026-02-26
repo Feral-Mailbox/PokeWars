@@ -1,0 +1,19 @@
+{
+  "id": 462,
+  "name": "Crush Grip",
+  "description": "The target is crushed with great force. The more HP the target has left, the greater this move's power.",
+  "type": "Normal",
+  "category": "Physical",
+  "accuracy": 100,
+  "pp": 5,
+  "range": "inverted_cone:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:crush_grip"]
+}

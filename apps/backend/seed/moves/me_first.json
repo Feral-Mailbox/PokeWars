@@ -1,0 +1,18 @@
+{
+  "id": 382,
+  "name": "Me First",
+  "description": "The user cuts ahead of the target to copy and use the target's intended move with greater power. This move fails if it isn't used first.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["steal_and_use_move:1.5x"]
+}

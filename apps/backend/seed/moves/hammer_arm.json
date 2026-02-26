@@ -1,0 +1,20 @@
+{
+  "id": 359,
+  "name": "Hammer Arm",
+  "description": "The user swings and hits with its strong, heavy fist. It lowers the user's Speed, however.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:lower_stat:speed:1"]
+}

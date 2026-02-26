@@ -1,0 +1,18 @@
+{
+  "id": 357,
+  "name": "Miracle Eye",
+  "description": "Enables a Dark-type target to be hit by Psychic-type attacks. This also enables an evasive target to be hit.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 40,
+  "range": "blast:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:miracle_eye"]
+}

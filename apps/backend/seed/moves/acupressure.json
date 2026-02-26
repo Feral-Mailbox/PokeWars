@@ -1,0 +1,18 @@
+{
+  "id": 367,
+  "name": "Acupressure",
+  "description": "The user applies pressure to stress points, sharply boosting one of its or its allies' stats.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "range": "adjacent",
+  "targeting": "self, ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:raise_stat:random:2"]
+}

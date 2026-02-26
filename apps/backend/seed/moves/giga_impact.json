@@ -1,0 +1,20 @@
+{
+  "id": 416,
+  "name": "Giga Impact",
+  "description": "The user charges at the target using every bit of its power. The user can't move on the next turn.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 150,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "inverted_cone:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:apply_state:recharge"]
+}

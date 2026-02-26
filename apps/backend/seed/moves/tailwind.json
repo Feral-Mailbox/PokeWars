@@ -1,0 +1,18 @@
+{
+  "id": 366,
+  "name": "Tailwind",
+  "description": "The user whips up a turbulent whirlwind that ups the Speed stat of the user and its allies for four turns.",
+  "type": "Flying",
+  "category": "Status",
+  "pp": 15,
+  "range": "pulse:6",
+  "targeting": "all",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["field:tailwind"]
+}

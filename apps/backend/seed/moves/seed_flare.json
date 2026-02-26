@@ -1,0 +1,20 @@
+{
+  "id": 465,
+  "name": "Seed Flare",
+  "description": "The user emits a shock wave from its body to attack its target. This may also harshly lower the target's Sp. Def stat.",
+  "type": "Grass",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 85,
+  "pp": 5,
+  "range": "inverted_cone:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:lower_stat:special_defense:2:40"]
+}

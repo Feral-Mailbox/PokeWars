@@ -7,7 +7,7 @@
   "power": 120,
   "accuracy": 95,
   "pp": 5,
-  "range": "blast:2",
+  "range": "adjacent",
   "targeting": "enemy",
   "cooldown": 1,
   "makes_contact": true,

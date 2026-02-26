@@ -1,0 +1,18 @@
+{
+  "id": 361,
+  "name": "Healing Wish",
+  "description": "The user faints. In return, the Pokémon around it will have their HP restored and status conditions cured.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:2",
+  "targeting": "ally",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:heal:1", "target:cure_status:all", "self:instant_ko"]
+}

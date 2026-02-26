@@ -1,0 +1,20 @@
+{
+  "id": 458,
+  "name": "Double Hit",
+  "description": "The user slams the target with a long tail, vines, or a tentacle. The target is hit twice in a row.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 35,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["multi_hit:2:2"]
+}

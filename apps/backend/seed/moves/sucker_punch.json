@@ -1,0 +1,20 @@
+{
+  "id": 389,
+  "name": "Sucker Punch",
+  "description": "The user anticipates an attack and strikes first. If an opponent uses an attack against it, the user will attack them first.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:apply_state:sucker_punch"]
+}

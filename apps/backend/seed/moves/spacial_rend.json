@@ -1,0 +1,20 @@
+{
+  "id": 460,
+  "name": "Spacial Rend",
+  "description": "The user tears the target along with the space around it. Critical hits land more easily.",
+  "type": "Dragon",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "x_attack:1",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["high_crit_ratio"]
+}

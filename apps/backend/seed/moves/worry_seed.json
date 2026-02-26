@@ -1,0 +1,19 @@
+{
+  "id": 388,
+  "name": "Worry Seed",
+  "description": "A seed that causes worry is planted on the target. It prevents sleep by making the target's Ability Insomnia.",
+  "type": "Grass",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 10,
+  "range": "inverted_cone:1",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:set_ability:insomnia"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 438,
+  "name": "Power Whip",
+  "description": "The user violently whirls its vines, tentacles, or the like to harshly lash the target.",
+  "type": "Grass",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 85,
+  "pp": 10,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": []
+}

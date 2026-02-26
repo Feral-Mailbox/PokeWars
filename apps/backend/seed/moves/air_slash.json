@@ -1,0 +1,20 @@
+{
+  "id": 403,
+  "name": "Air Slash",
+  "description": "The user attacks with a blade of air that slices even the sky. This may also make the target flinch.",
+  "type": "Flying",
+  "category": "Special",
+  "power": 75,
+  "accuracy": 95,
+  "pp": 15,
+  "range": "x_attack:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:flinch:30"]
+}

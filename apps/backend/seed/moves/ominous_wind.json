@@ -1,0 +1,20 @@
+{
+  "id": 466,
+  "name": "Ominous Wind",
+  "description": "The user blasts the target with a gust of repulsive wind. This may also raise all the user's stats at once.",
+  "type": "Ghost",
+  "category": "Special",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:raise_stat:all:1:10"]
+}

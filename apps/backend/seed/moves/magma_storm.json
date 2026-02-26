@@ -1,0 +1,20 @@
+{
+  "id": 463,
+  "name": "Magma Storm",
+  "description": "The target becomes trapped within a maelstrom of fire that rages for four to five turns.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 75,
+  "pp": 5,
+  "range": "ranged_pulse",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:apply_state:trap"]
+}

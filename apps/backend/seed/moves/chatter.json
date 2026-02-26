@@ -1,0 +1,21 @@
+{
+  "id": 448,
+  "name": "Chatter",
+  "description": "The user attacks the target with sound waves of deafening chatter. This confuses the target.",
+  "type": "Flying",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": ["target:status:confusion"]
+}

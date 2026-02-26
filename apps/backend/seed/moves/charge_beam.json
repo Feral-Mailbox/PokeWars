@@ -1,0 +1,20 @@
+{
+  "id": 451,
+  "name": "Charge Beam",
+  "description": "The user attacks with an electric charge. The user may use any remaining electricity to raise its Sp. Atk stat.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 50,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:raise_stat:special_attack:1:70"]
+}

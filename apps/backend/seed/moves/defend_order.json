@@ -1,0 +1,17 @@
+{
+  "id": 455,
+  "name": "Defend Order",
+  "description": "The user calls out its underlings to make a living shield, raising its Defense and Sp. Def stats.",
+  "type": "Bug",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:defense:1", "self:raise_stat:special_defense:1"]
+}

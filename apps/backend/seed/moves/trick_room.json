@@ -1,0 +1,18 @@
+{
+  "id": 433,
+  "name": "Trick Room",
+  "description": "The user creates a bizarre area in which reverses Speed for five turns.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 5,
+  "range": "pulse:6",
+  "targeting": "all",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["field:trick_room"]
+}

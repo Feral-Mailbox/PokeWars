@@ -1,0 +1,21 @@
+{
+  "id": 405,
+  "name": "Bug Buzz",
+  "description": "The user generates a damaging sound wave. It may also lower the target's Sp. Def stat.",
+  "type": "Bug",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "cone:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": ["target:lower_stat:special_defense:1:10"]
+}

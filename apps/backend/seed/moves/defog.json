@@ -1,0 +1,22 @@
+{
+  "id": 432,
+  "name": "Defog",
+  "description": "A strong wind blows away the target's barriers such as Reflect or Light Screen. This also lowers the target's evasiveness.",
+  "type": "Flying",
+  "category": "Status",
+  "pp": 15,
+  "range": "blast:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:lower_stat:evasion:1",
+    "field:clear_hazards",
+    "target:defog"
+  ]
+}
