@@ -1,13 +1,13 @@
 {
-  "id": 250,
-  "name": "Whirlpool",
-  "description": "The user traps the target in a violent swirling whirlpool for four to five turns.",
+  "id": 323,
+  "name": "Water Spout",
+  "description": "The user spouts water to damage opposing Pokémon. The lower the user's HP, the lower the move's power.",
   "type": "Water",
   "category": "Special",
-  "power": 35,
-  "accuracy": 85,
-  "pp": 15,
-  "range": "ranged_pulse",
+  "power": 150,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "bomb:2",
   "targeting": "enemy",
   "cooldown": 0,
   "makes_contact": false,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:apply_state:trap"]
+  "effects": ["eruption"]
 }

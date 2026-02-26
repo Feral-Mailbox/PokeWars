@@ -1,0 +1,17 @@
+{
+  "id": 289,
+  "name": "Snatch",
+  "description": "The user steals the effects of any attempts to use a healing or stat-changing move within two tiles of it.",
+  "type": "Dark",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:snatch"]
+}

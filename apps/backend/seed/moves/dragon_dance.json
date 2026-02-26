@@ -1,0 +1,17 @@
+{
+  "id": 349,
+  "name": "Dragon Dance",
+  "description": "The user vigorously performs a mystic, powerful dance that raises its Attack and Speed stats.",
+  "type": "Dragon",
+  "category": "Status",
+  "pp": 20,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:attack:1", "self:raise_stat:speed:1"]
+}

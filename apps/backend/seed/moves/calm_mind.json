@@ -1,0 +1,17 @@
+{
+  "id": 347,
+  "name": "Calm Mind",
+  "description": "The user quietly focuses its mind and calms its spirit to raise its Sp. Atk and Sp. Def stats.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 20,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:special_attack:1", "self:raise_stat:special_defense:1"]
+}

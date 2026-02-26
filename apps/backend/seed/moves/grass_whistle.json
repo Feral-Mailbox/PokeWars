@@ -1,0 +1,19 @@
+{
+  "id": 320,
+  "name": "Grass Whistle",
+  "description": "The user plays a pleasant melody that lulls the target into a deep sleep.",
+  "type": "Grass",
+  "category": "Status",
+  "accuracy": 55,
+  "pp": 15,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:status:sleep"]
+}

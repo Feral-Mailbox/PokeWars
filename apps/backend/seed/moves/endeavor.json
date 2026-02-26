@@ -1,0 +1,19 @@
+{
+  "id": 283,
+  "name": "Endeavor",
+  "description": "This attack move cuts down the target's HP to equal the user's HP.",
+  "type": "Normal",
+  "category": "Physical",
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:endeavor"]
+}

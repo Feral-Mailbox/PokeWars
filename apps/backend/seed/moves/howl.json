@@ -1,0 +1,18 @@
+{
+  "id": 336,
+  "name": "Howl",
+  "description": "The user howls loudly to raise the spirit of itself and allies. This raises their Attack stats.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 40,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:raise_stat:attack:1"]
+}

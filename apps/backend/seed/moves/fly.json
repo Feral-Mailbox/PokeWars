@@ -4,7 +4,7 @@
   "description": "The user soars, then strikes its target on the second turn.",
   "type": "Flying",
   "category": "Physical",
-  "power": 180,
+  "power": 90,
   "accuracy": 95,
   "pp": 35,
   "range": "line:3",

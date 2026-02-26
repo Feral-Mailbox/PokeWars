@@ -1,0 +1,17 @@
+{
+  "id": 266,
+  "name": "Follow Me",
+  "description": "The user draws attention to itself, making all targets take aim only at the user.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 20,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:center_of_attention"]
+}

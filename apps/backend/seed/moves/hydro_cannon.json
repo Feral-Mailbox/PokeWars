@@ -1,8 +1,8 @@
 {
-  "id": 63,
-  "name": "Hyper Beam",
-  "description": "The target is attacked with a powerful beam. The user can't move on the next turn.",
-  "type": "Normal",
+  "id": 308,
+  "name": "Hydro Cannon",
+  "description": "The target is hit with a watery blast. The user can't move on the next turn.",
+  "type": "Water",
   "category": "Special",
   "power": 150,
   "accuracy": 90,

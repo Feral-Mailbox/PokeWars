@@ -1,18 +1,19 @@
 {
-  "id": 212,
-  "name": "Mean Look",
-  "description": "The user pins the target with a dark, arresting look. The target becomes unable to move for 3 turns.",
-  "type": "Normal",
+  "id": 313,
+  "name": "Fake Tears",
+  "description": "The user feigns crying to fluster the target, harshly lowering its Sp. Def stat.",
+  "type": "Dark",
   "category": "Status",
-  "pp": 5,
+  "accuracy": 100,
+  "pp": 20,
   "range": "adjacent",
   "targeting": "enemy",
-  "cooldown": 1,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": true,
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:immobilized"]
+  "effects": ["target:lower_stat:special_defense:2"]
 }

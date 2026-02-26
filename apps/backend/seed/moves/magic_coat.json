@@ -1,0 +1,17 @@
+{
+  "id": 277,
+  "name": "Magic Coat",
+  "description": "A barrier reflects back to the target moves like Leech Seed and moves that damage status.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 15,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:magic_coat"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 318,
+  "name": "Silver Wind",
+  "description": "The target is attacked with powdery scales blown by the wind. This may also raise all the user's stats.",
+  "type": "Bug",
+  "category": "Special",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:raise_stat:all:1:10"]
+}

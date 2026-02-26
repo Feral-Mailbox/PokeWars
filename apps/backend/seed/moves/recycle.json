@@ -1,0 +1,17 @@
+{
+  "id": 278,
+  "name": "Recycle",
+  "description": "The user recycles a held item that has been used in battle so it can be used again.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:recycle_item"]
+}

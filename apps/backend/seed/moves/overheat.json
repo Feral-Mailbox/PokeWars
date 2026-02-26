@@ -1,13 +1,13 @@
 {
-  "id": 63,
-  "name": "Hyper Beam",
-  "description": "The target is attacked with a powerful beam. The user can't move on the next turn.",
-  "type": "Normal",
+  "id": 315,
+  "name": "Overheat",
+  "description": "The user attacks the target at full power. The attack's recoil harshly lowers the user's Sp. Atk stat.",
+  "type": "Fire",
   "category": "Special",
-  "power": 150,
+  "power": 130,
   "accuracy": 90,
   "pp": 5,
-  "range": "line:4",
+  "range": "cone:2",
   "targeting": "enemy",
   "cooldown": 1,
   "makes_contact": false,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["self:apply_state:recharge"]
+  "effects": ["self:lower_stat:special_attack:2"]
 }

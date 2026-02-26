@@ -1,0 +1,20 @@
+{
+  "id": 296,
+  "name": "Mist Ball",
+  "description": "A mist-like flurry of down envelops and damages the target. This may also lower the target's Sp. Atk stat.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 95,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "bomb:2",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:lower_stat:special_attack:1:50"]
+}

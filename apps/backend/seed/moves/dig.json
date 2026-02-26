@@ -4,7 +4,7 @@
   "description": "The user burrows, then attacks on the second turn.",
   "type": "Ground",
   "category": "Physical",
-  "power": 160,
+  "power": 80,
   "accuracy": 100,
   "pp": 10,
   "range": "line:3",
@@ -16,5 +16,8 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["delayed_hit:1", "self:apply_state:underground:1"]
+  "effects": [
+    "self:condition:tile:ground",
+    "delayed_hit:1",
+    "self:apply_state:underground"]
 }

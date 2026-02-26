@@ -1,8 +1,8 @@
 {
-  "id": 63,
-  "name": "Hyper Beam",
-  "description": "The target is attacked with a powerful beam. The user can't move on the next turn.",
-  "type": "Normal",
+  "id": 338,
+  "name": "Frenzy Plant",
+  "description": "The user slams the target with the roots of an enormous tree. The user can't move on the next turn.",
+  "type": "Grass",
   "category": "Special",
   "power": 150,
   "accuracy": 90,

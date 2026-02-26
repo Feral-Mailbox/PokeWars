@@ -4,6 +4,7 @@
   "description": "Two turns after this move is used, a hunk of psychic energy attacks the target.",
   "type": "Psychic",
   "category": "Special",
+  "power": 120,
   "accuracy": 100,
   "pp": 10,
   "range": "blast:2",
@@ -16,6 +17,6 @@
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
   "effects": [
-    "delayed_attack:2:type:Psychic:category:Special:power:120"
+    "delayed_attack:2"
   ]
 }

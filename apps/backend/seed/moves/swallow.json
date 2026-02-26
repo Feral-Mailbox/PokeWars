@@ -1,0 +1,17 @@
+{
+  "id": 256,
+  "name": "Swallow",
+  "description": "The power stored using Stockpile is absorbed to restore HP. The more stockpiled, the more HP is restored.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:swallow", "self:remove_state:stockpile"]
+}

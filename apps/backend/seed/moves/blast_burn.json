@@ -1,8 +1,8 @@
 {
-  "id": 63,
-  "name": "Hyper Beam",
-  "description": "The target is attacked with a powerful beam. The user can't move on the next turn.",
-  "type": "Normal",
+  "id": 307,
+  "name": "Blast Burn",
+  "description": "The target is razed by a fiery explosion. The user can't move on the next turn.",
+  "type": "Fire",
   "category": "Special",
   "power": 150,
   "accuracy": 90,

@@ -1,13 +1,13 @@
 {
-  "id": 250,
-  "name": "Whirlpool",
-  "description": "The user traps the target in a violent swirling whirlpool for four to five turns.",
-  "type": "Water",
+  "id": 341,
+  "name": "Mud Shot",
+  "description": "The user attacks by hurling a blob of mud at the target. This also lowers the target's Speed stat.",
+  "type": "Ground",
   "category": "Special",
-  "power": 35,
-  "accuracy": 85,
+  "power": 55,
+  "accuracy": 95,
   "pp": 15,
-  "range": "ranged_pulse",
+  "range": "line:2",
   "targeting": "enemy",
   "cooldown": 0,
   "makes_contact": false,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:apply_state:trap"]
+  "effects": ["target:lower_stat:speed:1"]
 }

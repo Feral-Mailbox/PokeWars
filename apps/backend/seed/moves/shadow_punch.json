@@ -1,0 +1,19 @@
+{
+  "id": 325,
+  "name": "Shadow Punch",
+  "description": "The user throws a punch from the shadows. This attack never misses.",
+  "type": "Ghost",
+  "category": "Physical",
+  "power": 60,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": []
+}

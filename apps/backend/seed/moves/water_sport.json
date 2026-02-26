@@ -1,0 +1,18 @@
+{
+  "id": 346,
+  "name": "Water Sport",
+  "description": "The user soaks the battlefield with water. This weakens Fire-type moves for five turns, and prevents explosions.",
+  "type": "Water",
+  "category": "Status",
+  "pp": 15,
+  "range": "pulse:6",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["field:damp"]
+}

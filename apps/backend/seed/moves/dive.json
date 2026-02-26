@@ -1,0 +1,24 @@
+{
+  "id": 291,
+  "name": "Dive",
+  "description": "Diving on the first turn, the user floats up and attacks on the next turn.",
+  "type": "Water",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:condition:tile:water",
+    "delayed_hit:1",
+    "self:apply_state:underwater"
+  ]
+}

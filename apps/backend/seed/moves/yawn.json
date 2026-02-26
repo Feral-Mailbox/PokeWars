@@ -1,18 +1,18 @@
 {
-  "id": 212,
-  "name": "Mean Look",
-  "description": "The user pins the target with a dark, arresting look. The target becomes unable to move for 3 turns.",
+  "id": 281,
+  "name": "Yawn",
+  "description": "The user lets loose a huge yawn that lulls the target into falling asleep on the next turn.",
   "type": "Normal",
   "category": "Status",
-  "pp": 5,
+  "pp": 10,
   "range": "adjacent",
   "targeting": "enemy",
-  "cooldown": 1,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": true,
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:immobilized"]
+  "effects": ["target:apply_state:drowsy"]
 }

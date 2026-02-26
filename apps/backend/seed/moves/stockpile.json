@@ -1,0 +1,17 @@
+{
+  "id": 254,
+  "name": "Stockpile",
+  "description": "The user charges up power and raises both its Defense and Sp. Def stats. Can be used up to three times.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 20,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:stockpile:increment"]
+}

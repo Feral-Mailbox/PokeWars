@@ -1,0 +1,20 @@
+{
+  "id": 257,
+  "name": "Heat Wave",
+  "description": "The user attacks by exhaling hot breath on the opposing Pokémon. This may also leave those Pokémon with a burn.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 95,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:status:burn:10"]
+}

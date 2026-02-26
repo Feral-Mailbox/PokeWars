@@ -1,0 +1,21 @@
+{
+  "id": 253,
+  "name": "Uproar",
+  "description": "The user attacks in an uproar for three turns. During that time, no one can fall asleep.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": ["self:apply_state:uproar:3", "field:prevent_sleep"]
+}

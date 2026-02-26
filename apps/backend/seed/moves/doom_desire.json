@@ -1,0 +1,20 @@
+{
+  "id": 353,
+  "name": "Doom Desire",
+  "description": "Two turns after this move is used, a concentrated bundle of light blasts the target.",
+  "type": "Steel",
+  "category": "Special",
+  "power": 140,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["delayed_hit:2"]
+}

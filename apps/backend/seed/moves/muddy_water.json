@@ -1,13 +1,13 @@
 {
-  "id": 250,
-  "name": "Whirlpool",
-  "description": "The user traps the target in a violent swirling whirlpool for four to five turns.",
+  "id": 330,
+  "name": "Muddy Water",
+  "description": "The user attacks by shooting muddy water at opposing Pokémon. This may also lower their accuracy.",
   "type": "Water",
   "category": "Special",
-  "power": 35,
+  "power": 90,
   "accuracy": 85,
-  "pp": 15,
-  "range": "ranged_pulse",
+  "pp": 10,
+  "range": "inverted_cone:2",
   "targeting": "enemy",
   "cooldown": 0,
   "makes_contact": false,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:apply_state:trap"]
+  "effects": ["target:lower_stat:accuracy:1:30"]
 }
