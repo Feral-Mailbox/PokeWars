@@ -1,0 +1,20 @@
+{
+  "id": 223,
+  "name": "Dynamic Punch",
+  "description": "The user punches the target with full, concentrated power. This confuses the target if it hits.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 50,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:status:confusion"]
+}

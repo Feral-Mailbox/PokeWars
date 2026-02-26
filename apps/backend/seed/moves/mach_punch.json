@@ -1,0 +1,20 @@
+{
+  "id": 183,
+  "name": "Mach Punch",
+  "description": "The user throws a punch at blinding speed. This move always raises the user's speed.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 30,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:raise_stat:speed:1"]
+}

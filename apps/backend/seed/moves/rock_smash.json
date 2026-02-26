@@ -1,0 +1,20 @@
+{
+  "id": 249,
+  "name": "Rock Smash",
+  "description": "The user attacks with a punch that can shatter rocks. This may also lower the target's Defense stat.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:lower_stat:defense:1:50"]
+}

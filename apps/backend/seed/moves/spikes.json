@@ -1,0 +1,18 @@
+{
+  "id": 191,
+  "name": "Spikes",
+  "description": "The user lays a trap of spikes at the opposing team's feet. The trap hurts Pokémon that end their turn on them.",
+  "type": "Ground",
+  "category": "Status",
+  "pp": 20,
+  "range": "blast:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:field_hazard:spikes"]
+}

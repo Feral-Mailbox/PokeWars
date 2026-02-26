@@ -1,19 +1,19 @@
 {
-  "id": 50,
-  "name": "Disable",
-  "description": "For four turns, this move prevents the target from moving.",
+  "id": 227,
+  "name": "Encore",
+  "description": "The user compels the target to keep using the move it encored for three turns.",
   "type": "Normal",
   "category": "Status",
   "accuracy": 100,
-  "pp": 20,
+  "pp": 5,
   "range": "adjacent",
   "targeting": "enemy",
-  "cooldown": 2,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": true,
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:disabled"]
+  "effects": ["target:apply_state:encore"]
 }

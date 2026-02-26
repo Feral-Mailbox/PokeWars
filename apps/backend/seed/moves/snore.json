@@ -1,0 +1,21 @@
+{
+  "id": 173,
+  "name": "Snore",
+  "description": "This attack can be used only if the user is asleep. The harsh noise may also make the target flinch.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": ["self:condition:status:sleep", "target:flinch:30"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": 215,
+  "name": "Heal Bell",
+  "description": "The user makes a soothing bell chime to heal the status conditions of nearby allied Pokémon.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 5,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": ["target:status:none"]
+}

@@ -1,19 +1,19 @@
 {
-  "id": 50,
-  "name": "Disable",
-  "description": "For four turns, this move prevents the target from moving.",
+  "id": 230,
+  "name": "Sweet Scent",
+  "description": "A sweet scent that harshly lowers the target's evasiveness.",
   "type": "Normal",
   "category": "Status",
   "accuracy": 100,
   "pp": 20,
-  "range": "adjacent",
+  "range": "pulse:2",
   "targeting": "enemy",
-  "cooldown": 2,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": true,
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:disabled"]
+  "effects": ["target:lower_stat:evasion:2"]
 }

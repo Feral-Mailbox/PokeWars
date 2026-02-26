@@ -1,13 +1,12 @@
 {
-  "id": 89,
-  "name": "Earthquake",
-  "description": "The user sets off an earthquake that strikes every Pokémon around it.",
+  "id": 222,
+  "name": "Magnitude",
+  "description": "The user attacks everything around it with a ground-shaking quake. Its power varies.",
   "type": "Ground",
   "category": "Physical",
-  "power": 100,
   "accuracy": 100,
-  "pp": 10,
-  "range": "blast:1",
+  "pp": 30,
+  "range": "pulse:2",
   "targeting": "all",
   "cooldown": 0,
   "makes_contact": false,
@@ -16,5 +15,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:hit:underground"]
+  "effects": ["conditional_power:magnitude", "target:hit:underground"]
 }

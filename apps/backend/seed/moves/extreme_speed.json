@@ -1,0 +1,20 @@
+{
+  "id": 245,
+  "name": "Extreme Speed",
+  "description": "The user charges at the target at blinding speed. This move sharply raises the user's Speed stat.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:raise_stat:speed:2"]
+}

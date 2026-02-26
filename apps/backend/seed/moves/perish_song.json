@@ -1,0 +1,19 @@
+{
+  "id": 195,
+  "name": "Perish Song",
+  "description": "Any Pokémon that hears this song faints in three turns",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 5,
+  "range": "pulse:3",
+  "targeting": "all",
+  "cooldown": 3,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": ["target:perish_song"]
+}

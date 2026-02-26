@@ -1,11 +1,11 @@
 {
-  "id": 50,
-  "name": "Disable",
-  "description": "For four turns, this move prevents the target from moving.",
+  "id": 213,
+  "name": "Attract",
+  "description": "If it is the opposite gender of the user, the target becomes infatuated and less likely to attack.",
   "type": "Normal",
   "category": "Status",
   "accuracy": 100,
-  "pp": 20,
+  "pp": 15,
   "range": "adjacent",
   "targeting": "enemy",
   "cooldown": 2,
@@ -15,5 +15,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:disabled"]
+  "effects": ["target:infatuation"]
 }

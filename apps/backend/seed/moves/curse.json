@@ -1,0 +1,22 @@
+{
+  "id": 174,
+  "name": "Curse",
+  "description": "A move that works differently for the Ghost type than for all other types.",
+  "type": "Ghost",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:attack:1:condition:not:ghost",
+    "self:raise_stat:defense:1:condition:not:ghost",
+    "self:lower_stat:speed:1:condition:not:ghost",
+    "target:apply_state:curse:condition:ghost"
+  ]
+}

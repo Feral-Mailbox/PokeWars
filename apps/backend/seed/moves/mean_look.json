@@ -1,19 +1,18 @@
 {
-  "id": 50,
-  "name": "Disable",
-  "description": "For four turns, this move prevents the target from moving.",
+  "id": 212,
+  "name": "Mean Look",
+  "description": "The user pins the target with a dark, arresting look. The target becomes unable to move for 3 turns.",
   "type": "Normal",
   "category": "Status",
-  "accuracy": 100,
-  "pp": 20,
+  "pp": 5,
   "range": "adjacent",
   "targeting": "enemy",
-  "cooldown": 2,
+  "cooldown": 1,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": true,
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:apply_state:disabled"]
+  "effects": ["target:immobilize"]
 }

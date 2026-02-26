@@ -1,0 +1,18 @@
+{
+  "id": 169,
+  "name": "Spider Web",
+  "description": "The user ensnares the target with thin, gooey silk so it can't flee from battle.",
+  "type": "Bug",
+  "category": "Status",
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:trap"]
+}

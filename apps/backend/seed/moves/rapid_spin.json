@@ -1,0 +1,24 @@
+{
+  "id": 229,
+  "name": "Rapid Spin",
+  "description": "A spin attack that can also eliminate such moves as Bind, Wrap, and Leech Seed. This also raises the user's Speed stat.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 40,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:rapid_spin",
+    "self:clear_hazards",
+    "self:raise_stat:speed:1"
+  ]
+}

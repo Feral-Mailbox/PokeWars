@@ -1,0 +1,18 @@
+{
+  "id": 170,
+  "name": "Mind Reader",
+  "description": "The user senses the target's movements with its mind to ensure its next attack does not miss the target.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 5,
+  "range": "cone:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:mind_reader"]
+}

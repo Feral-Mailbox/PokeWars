@@ -1,14 +1,14 @@
 {
-  "id": 89,
-  "name": "Earthquake",
-  "description": "The user sets off an earthquake that strikes every Pokémon around it.",
+  "id": 198,
+  "name": "Bone Rush",
+  "description": "The user strikes the target with a hard bone two to five times in a row.",
   "type": "Ground",
   "category": "Physical",
-  "power": 100,
-  "accuracy": 100,
+  "power": 25,
+  "accuracy": 90,
   "pp": 10,
-  "range": "blast:1",
-  "targeting": "all",
+  "range": "adjacent",
+  "targeting": "enemy",
   "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:hit:underground"]
+  "effects": ["multi_hit:2:5"]
 }

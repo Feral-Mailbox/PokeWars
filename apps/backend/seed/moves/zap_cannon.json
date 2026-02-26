@@ -1,0 +1,20 @@
+{
+  "id": 192,
+  "name": "Zap Cannon",
+  "description": "The user fires an electric blast like a cannon to inflict damage and cause paralysis.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 50,
+  "pp": 5,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:status:paralysis"]
+}

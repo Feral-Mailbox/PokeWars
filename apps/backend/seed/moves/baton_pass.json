@@ -1,0 +1,18 @@
+{
+  "id": 226,
+  "name": "Baton Pass",
+  "description": "The user switches places with an ally, passing along any stat changes and certain move effects.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 40,
+  "range": "adjacent",
+  "targeting": "ally",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:swap_with_target", "target:baton_pass"]
+}

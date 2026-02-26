@@ -1,18 +1,17 @@
 {
-  "id": 105,
-  "name": "Recover",
-  "description": "Restoring its own cells, the user restores its own HP by half of its max HP.",
+  "id": 187,
+  "name": "Belly Drum",
+  "description": "The user maximizes its Attack stat in exchange for HP equal to half its max HP.",
   "type": "Normal",
   "category": "Status",
-  "accuracy": 100,
-  "pp": 5,
+  "pp": 10,
   "targeting": "self",
-  "cooldown": 1,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": false,
   "affected_by_magic_coat": false,
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["self:heal:2"]
+  "effects": ["self:raise_stat:attack:max", "self:hp_cost:2"]
 }

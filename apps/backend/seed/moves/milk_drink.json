@@ -1,10 +1,9 @@
 {
-  "id": 105,
-  "name": "Recover",
-  "description": "Restoring its own cells, the user restores its own HP by half of its max HP.",
+  "id": 208,
+  "name": "Milk Drink",
+  "description": "The user restores its own HP by up to half of its max HP.",
   "type": "Normal",
   "category": "Status",
-  "accuracy": 100,
   "pp": 5,
   "targeting": "self",
   "cooldown": 1,
