@@ -196,6 +196,7 @@ class GameUnit(Base):
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
     is_fainted = Column(Boolean, default=False)
     can_move = Column(Boolean, default=True, nullable=False)
+    move_pp = Column(MutableList.as_mutable(JSON), default=list)  # e.g., [10, 8, 5, 15] for 4 moves
 
     game = relationship("Game", back_populates="game_units")
     unit = relationship("Unit", back_populates="game_units")
@@ -257,6 +258,7 @@ class Move(Base):
     affected_by_snatch = Column(Boolean, nullable=True, default=False)
     affected_by_mirror_move = Column(Boolean, nullable=True, default=False)
     affected_by_kings_rock = Column(Boolean, nullable=True, default=False)
+    sound_based = Column(Boolean, nullable=True, default=False)
 
     # Tactical attributes
     range = Column(String, nullable=True)

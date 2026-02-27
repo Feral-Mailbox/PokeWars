@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Dict, Optional
 
 class UnitSummary(BaseModel):
@@ -61,6 +61,7 @@ class GameUnitSchema(BaseModel):
     status_effects: List[str]
     is_fainted: bool
     can_move: bool
+    move_pp: List[int] = Field(default_factory=list)
     unit: UnitSummary
 
     model_config = ConfigDict(from_attributes=True)

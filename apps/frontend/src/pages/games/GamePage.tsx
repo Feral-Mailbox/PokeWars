@@ -57,7 +57,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; can_move?: boolean }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; can_move?: boolean; move_pp?: number[] }[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
@@ -459,8 +459,19 @@ export default function GamePage() {
     preMoveStateRef.current = null;
   }
 
-  function MoveButton({ move, TYPE_COLORS }: { move: any; TYPE_COLORS: Record<string,string> }) {
+  function MoveButton({ move, moveIndex, TYPE_COLORS }: { move: any; moveIndex: number; TYPE_COLORS: Record<string,string> }) {
     const isLocked = activeUnit?.can_move === false;
+    const movePP = activeUnit?.move_pp?.[moveIndex] ?? move.pp ?? 0;
+    const maxPP = move.pp ?? 0;
+    const ppPercentage = maxPP > 0 ? (movePP / maxPP) * 100 : 0;
+    
+    let ppColor = '#ffffff'; // white
+    if (ppPercentage <= 10) {
+      ppColor = '#ef4444'; // red
+    } else if (ppPercentage <= 50) {
+      ppColor = '#eab308'; // yellow
+    }
+    
     return (
       <button
         type="button"
@@ -481,7 +492,7 @@ export default function GamePage() {
         </div>
         <div className="flex justify-between">
           <span>Power: {move.power ?? "—"}</span>
-          <span>PP: {move.pp ?? "—"}</span>
+          <span style={{ color: ppColor }}>PP: {movePP}/{maxPP}</span>
         </div>
       </button>
     );
@@ -537,6 +548,20 @@ export default function GamePage() {
 
   const handleExecuteMove = async () => {
     if (!gameData?.link || !activeUnit?.instanceId || !selectedMove) return;
+    
+    // Find the moveIndex and check PP (only if move_pp is initialized)
+    const moveIndex = activeUnit.unit?.move_ids?.indexOf(selectedMove.id) ?? -1;
+    if (moveIndex === -1) return;
+    
+    // Only check PP on frontend if move_pp array is properly initialized
+    if (activeUnit.move_pp && Array.isArray(activeUnit.move_pp) && activeUnit.move_pp.length > moveIndex) {
+      const currentMovePP = activeUnit.move_pp[moveIndex];
+      if (currentMovePP <= 0) {
+        setToastMessage("This move has no PP left!");
+        return;
+      }
+    }
+    
     const activeId = activeUnit.instanceId;
     const attackTiles = selectedDirectionalTiles.length > 0 ? selectedDirectionalTiles : attackOverlay.normal;
     const attackTileSet = new Set(attackTiles.map(([x, y]) => `${x},${y}`));
@@ -604,11 +629,35 @@ export default function GamePage() {
       });
     }
 
+    // Update PP from backend response
+    const updatedMovePP = data?.move_pp ?? [];
+    
     setPlacedUnits(prev =>
-      prev.map(u => (u.id === activeId ? { ...u, can_move: false } : u))
+      prev.map(u => {
+        if (u.id === activeId) {
+          return { ...u, can_move: false, move_pp: updatedMovePP };
+        }
+        return u;
+      })
     );
-    setLockedUnit(prev => prev ? { ...prev, can_move: false } : prev);
-    setHoveredUnit(prev => prev ? { ...prev, can_move: false } : prev);
+    
+    // Update lockedUnit with PP from backend
+    setLockedUnit(prev => {
+      if (!prev) return prev;
+      if (prev.instanceId === activeId || prev.id === activeId) {
+        return { ...prev, can_move: false, move_pp: updatedMovePP };
+      }
+      return { ...prev, can_move: false };
+    });
+    
+    // Update hoveredUnit with PP from backend
+    setHoveredUnit(prev => {
+      if (!prev) return prev;
+      if (prev.instanceId === activeId || prev.id === activeId) {
+        return { ...prev, can_move: false, move_pp: updatedMovePP };
+      }
+      return { ...prev, can_move: false };
+    });
     setMoveTargeting(false);
     setSelectedMove(null);
     setSelectedMoveTarget(null);
@@ -658,24 +707,30 @@ export default function GamePage() {
           : backendUnits;
 
 
-          const mapped = visibleUnits.map((u: any) => ({
-            id: u.id,
-            unit: {
-              id: u.unit_id,
-              asset_folder: u.unit.asset_folder,
-              name: u.unit.name,
-              types: u.unit.types,
-              cost: u.unit.cost,
-              base_stats: u.unit.base_stats,
-              move_ids: u.unit.move_ids,
-            },
-            tile: [u.current_x, u.current_y],
-            current_hp: u.current_hp,
-            user_id: u.user_id,
-            level: u.level,
-            current_stats: u.current_stats,
-            can_move: u.can_move ?? true,
-          }));
+          const mapped = visibleUnits.map((u: any) => {
+            // Preserve move_pp from backend - it should contain the current PP for each move
+            let movePP = Array.isArray(u.move_pp) && u.move_pp.length > 0 ? u.move_pp : [];
+            
+            return {
+              id: u.id,
+              unit: {
+                id: u.unit_id,
+                asset_folder: u.unit.asset_folder,
+                name: u.unit.name,
+                types: u.unit.types,
+                cost: u.unit.cost,
+                base_stats: u.unit.base_stats,
+                move_ids: u.unit.move_ids,
+              },
+              tile: [u.current_x, u.current_y],
+              current_hp: u.current_hp,
+              user_id: u.user_id,
+              level: u.level,
+              current_stats: u.current_stats,
+              can_move: u.can_move ?? true,
+              move_pp: movePP,
+            };
+          });
 
           setPlacedUnits(mapped);
         }
@@ -803,6 +858,26 @@ export default function GamePage() {
     };
     fetchMoves();
   }, []);
+
+  // Initialize move_pp with full PP values from moveMap if not provided by backend
+  useEffect(() => {
+    if (Object.keys(moveMap).length === 0) return;
+    
+    setPlacedUnits(prev =>
+      prev.map(unit => {
+        // Only initialize move_pp if it's completely missing or empty
+        // Don't overwrite existing values from the backend
+        if (!Array.isArray(unit.move_pp) || unit.move_pp.length === 0) {
+          const ppArray = unit.unit.move_ids?.map((moveId: number) => {
+            const move = moveMap[moveId];
+            return move?.pp ?? 0;
+          }) ?? [];
+          return { ...unit, move_pp: ppArray };
+        }
+        return unit;
+      })
+    );
+  }, [moveMap]);
 
   useEffect(() => {
     if (activeMove) rebuildAttackOverlay(activeMove);
@@ -1064,6 +1139,34 @@ export default function GamePage() {
         return;
       }
       
+      if (typeof event.data === "string" && event.data.startsWith("unit_pp_updated:")) {
+        const [, unitIdStr] = event.data.split(":");
+        const unitId = Number(unitIdStr);
+        // Fetch updated unit data to get the latest move_pp
+        secureFetch(`/api/games/${gameId}/units`)
+          .then(res => res.json())
+          .then(backendUnits => {
+            const updatedUnit = backendUnits.find((u: any) => u.id === unitId);
+            if (updatedUnit && updatedUnit.move_pp) {
+              setPlacedUnits(prev =>
+                prev.map(u => u.id === unitId ? { ...u, move_pp: updatedUnit.move_pp } : u)
+              );
+              setLockedUnit(prev => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? { ...prev, move_pp: updatedUnit.move_pp } : prev;
+              });
+              setHoveredUnit(prev => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? { ...prev, move_pp: updatedUnit.move_pp } : prev;
+              });
+            }
+          })
+          .catch(err => console.error("Failed to fetch unit PP update:", err));
+        return;
+      }
+      
       if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
         if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
           setLockedUnit(null);
@@ -1114,6 +1217,7 @@ export default function GamePage() {
             level: u.level,
             current_stats: u.current_stats,
             can_move: u.can_move ?? true,
+            move_pp: Array.isArray(u.move_pp) && u.move_pp.length > 0 ? u.move_pp : [],
           }));
 
           setPlacedUnits(mapped);
@@ -1122,12 +1226,12 @@ export default function GamePage() {
           setLockedUnit(prev => {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated ? { ...prev, can_move: updated.can_move } : prev;
+            return updated ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp } : prev;
           });
           setHoveredUnit(prev => {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated ? { ...prev, can_move: updated.can_move } : prev;
+            return updated ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp } : prev;
           });
 
           try {
@@ -1350,7 +1454,7 @@ export default function GamePage() {
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
                   const live = placedUnits.find(p => p.id === id);
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true });
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
                 }
               }}
               onMouseLeave={() => {
@@ -1377,7 +1481,7 @@ export default function GamePage() {
                     if (cached) {
                       setHighlightedTiles(cached.tiles);
                       setUnitOriginalTile(cached.origin);
-                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true };
+                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
                     }
 
                     const movement = unit?.base_stats?.range ?? 0;
@@ -1392,7 +1496,7 @@ export default function GamePage() {
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true };
+                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
                   });
                 }
               }}
@@ -1522,9 +1626,20 @@ export default function GamePage() {
                 <div className="mt-3">
                   <h3 className="text-md font-semibold mb-1">Moves:</h3>
                   <ul className="space-y-2 text-sm">
-                    {unit.move_ids.map((id: number) => {
+                    {unit.move_ids.map((id: number, moveIndex: number) => {
                       const move = moveMap[id];
                       if (!move) return null;
+                      const movePP = placedUnitAtTile?.move_pp?.[moveIndex] ?? move.pp ?? 0;
+                      const maxPP = move.pp ?? 0;
+                      const ppPercentage = maxPP > 0 ? (movePP / maxPP) * 100 : 0;
+                      
+                      let ppColor = '#ffffff'; // white
+                      if (ppPercentage <= 10) {
+                        ppColor = '#ef4444'; // red
+                      } else if (ppPercentage <= 50) {
+                        ppColor = '#eab308'; // yellow
+                      }
+                      
                       return (
                         <li key={id} className="border border-gray-600 p-2 rounded">
                           <div className="flex justify-between font-bold">
@@ -1535,7 +1650,7 @@ export default function GamePage() {
                           </div>
                           <div className="flex justify-between">
                             <span>Power: {move.power ?? "—"}</span>
-                            <span>PP: {move.pp ?? "—"}</span>
+                            <span style={{ color: ppColor }}>PP: {movePP}/{maxPP}</span>
                           </div>
                         </li>
                       );
@@ -1608,6 +1723,10 @@ export default function GamePage() {
                       }
 
                       const placedUnit = await res.json();
+                      
+                      // Use move_pp directly from backend response
+                      const movePP = placedUnit.move_pp ?? [];
+                      
                       setPlacedUnits((prev) => [
                         ...prev,
                         {
@@ -1619,6 +1738,7 @@ export default function GamePage() {
                           level: placedUnit.level,
                           current_stats: placedUnit.current_stats,
                           can_move: placedUnit.can_move ?? true,
+                          move_pp: movePP,
                         }
                       ]);
                       setCash((prev) => prev - unit.cost);
@@ -1704,12 +1824,12 @@ export default function GamePage() {
                 <div className="mt-3">
                   <h3 className="text-md font-semibold mb-1">Moves:</h3>
                   <ul className="space-y-2 text-sm">
-                    {unit.move_ids.map((id: number) => {
+                    {unit.move_ids.map((id: number, moveIndex: number) => {
                       const move = moveMap[id];
                       if (!move) return null;
                       return (
                         <li key={id}>
-                          <MoveButton move={move} TYPE_COLORS={TYPE_COLORS} />
+                          <MoveButton move={move} moveIndex={moveIndex} TYPE_COLORS={TYPE_COLORS} />
                         </li>
                       );
                     })}

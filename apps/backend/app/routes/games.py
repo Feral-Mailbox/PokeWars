@@ -602,13 +602,24 @@ def get_game_units(
     link: str,
     db: Session = Depends(get_db)
 ):
-    return (
+    # Expire session objects to ensure fresh data from database
+    db.expire_all()
+    units = (
         db.query(GameUnit)
         .join(Game)
         .options(joinedload(GameUnit.unit))
         .filter(Game.link == link)
         .all()
     )
+    
+    # Ensure move_pp is properly populated for each unit
+    for unit in units:
+        if unit.move_pp is None:
+            unit.move_pp = []
+        elif not isinstance(unit.move_pp, list):
+            unit.move_pp = list(unit.move_pp) if unit.move_pp else []
+    
+    return units
 
 @router.post("/{link}/units/place", response_model=GameUnitSchema)
 def place_unit(
@@ -648,6 +659,16 @@ def place_unit(
                 # With Nature = 1: floor((2 × Base × Level) / 100 + 5)
                 current_stats[stat_name] = int((2 * base_value * level) / 100 + 5)
 
+    # Initialize move_pp with full PP values from the unit's moves
+    move_pp = []
+    if unit_info.move_ids:
+        for move_id in unit_info.move_ids:
+            move = db.query(Move).filter_by(id=move_id).first()
+            if move and move.pp is not None:
+                move_pp.append(move.pp)
+            else:
+                move_pp.append(0)
+    
     # Step 1: Create and persist new GameUnit
     new_unit = GameUnit(
         game_id=game.id,
@@ -663,6 +684,7 @@ def place_unit(
         stat_boosts=unit_data.stat_boosts,
         status_effects=unit_data.status_effects,
         is_fainted=unit_data.is_fainted,
+        move_pp=move_pp,
     )
     db.add(new_unit)
     db.flush()
@@ -828,6 +850,36 @@ def execute_move(
     if not move:
         raise HTTPException(status_code=404, detail="Move not found")
 
+    # Check and decrement PP
+    unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
+    if not unit_info or not unit_info.move_ids:
+        raise HTTPException(status_code=400, detail="Unit has no moves")
+    
+    if move_id not in unit_info.move_ids:
+        raise HTTPException(status_code=400, detail="Unit does not know this move")
+    
+    move_index = unit_info.move_ids.index(move_id)
+    
+    # Initialize move_pp if not set
+    if not gu.move_pp or len(gu.move_pp) == 0:
+        gu.move_pp = [move.pp if move.pp else 0 for move in 
+                      [db.query(Move).filter_by(id=mid).first() for mid in unit_info.move_ids]]
+        db.add(gu)
+    
+    # Ensure move_pp array is long enough
+    if len(gu.move_pp) <= move_index:
+        raise HTTPException(status_code=400, detail="PP data corrupted")
+    
+    current_pp = gu.move_pp[move_index]
+    if current_pp <= 0:
+        raise HTTPException(status_code=400, detail="Move has no PP left")
+    
+    # Decrement PP - reassign the entire list to ensure SQLAlchemy detects the change
+    new_pp_list = gu.move_pp.copy()
+    new_pp_list[move_index] = max(0, current_pp - 1)
+    gu.move_pp = new_pp_list
+    db.add(gu)
+
     targets: List[GameUnit] = []
     if target_ids:
         targets = (
@@ -859,6 +911,7 @@ def execute_move(
             damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier)
 
             target.current_hp = max(0, (target.current_hp or 0) - damage)
+            db.add(target)
             if target.current_hp <= 0:
                 removed_ids.append(target.id)
             damage_results.append({"id": target.id, "damage": damage, "current_hp": target.current_hp})
@@ -884,7 +937,14 @@ def execute_move(
             for unit_id in removed_ids:
                 redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
             redis_client.publish(f"game_updates:{game.link}", "game_completed")
-            return {"ok": True, "unit_id": gu.id, "targets": damage_results, "removed_ids": removed_ids}
+            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
+            return {
+                "ok": True, 
+                "unit_id": gu.id, 
+                "move_pp": gu.move_pp,
+                "targets": damage_results, 
+                "removed_ids": removed_ids
+            }
 
     gu.can_move = False
     db.flush()
@@ -926,7 +986,17 @@ def execute_move(
     redis_client.publish(f"game_updates:{game.link}", "unit_locked")
     for unit_id in removed_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-    return {"ok": True, "unit_id": gu.id, "targets": damage_results, "removed_ids": removed_ids}
+    
+    # Broadcast PP update
+    redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
+    
+    return {
+        "ok": True, 
+        "unit_id": gu.id, 
+        "move_pp": gu.move_pp,
+        "targets": damage_results, 
+        "removed_ids": removed_ids
+    }
 
 @router.post("/{link}/move")
 def move_unit(
