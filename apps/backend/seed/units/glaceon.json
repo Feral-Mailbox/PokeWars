@@ -15,12 +15,13 @@
       "speed": 65,
       "range": 4
     },
-    "move_ids": [196],
+    "move_ids": [59, 573, 243],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "cleric_dps",
     "description": "It can control its body temperature at will. This enables it to freeze the moisture in the atmosphere, creating flurries of diamond dust.",
     "portrait_credits": ["CHUNSOFT", "PhillipsYoung"],
     "sprite_credits": ["CHUNSOFT", "JFain", "baronessfaron"]

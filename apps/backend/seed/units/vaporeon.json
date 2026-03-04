@@ -15,12 +15,13 @@
       "speed": 65,
       "range": 4
     },
-    "move_ids": [56],
+    "move_ids": [151, 57, 273],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "glass_cannon",
     "description": "Its cell composition is similar to water molecules. As a result, it can't be seen when it melts away into water.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

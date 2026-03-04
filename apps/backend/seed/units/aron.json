@@ -15,7 +15,8 @@
       "speed": 30,
       "range": 3
     },
-    "move_ids": [232],
+    "move_ids": [232, 317],
+    "archetype": "tank",
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,

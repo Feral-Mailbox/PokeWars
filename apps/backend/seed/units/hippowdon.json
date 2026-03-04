@@ -15,12 +15,13 @@
       "speed": 47,
       "range": 2
     },
-    "move_ids": [],
+    "move_ids": [89, 423, 303],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "wall",
     "description": " It shrouds itself in sand to ward off germs. It travels easily through the sands of the desert.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

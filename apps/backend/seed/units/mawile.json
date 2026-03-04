@@ -15,12 +15,13 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [442, 776, 583],
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "brawler",
     "description": "It uses its docile-looking face to lull foes into complacency, then bites with its huge, relentless jaws.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron", "Emmuffin"],
     "sprite_credits": ["CHUNSOFT"]

@@ -15,7 +15,8 @@
       "speed": 70,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [225, 414, 369],
+    "archetype": "scout_dps",
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": [1000],

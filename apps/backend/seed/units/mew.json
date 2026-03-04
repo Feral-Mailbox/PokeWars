@@ -15,8 +15,9 @@
       "speed": 100,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [94, 396, 144, 118],
     "ability_ids": [],
+    "archetype": "wildcard",
     "cost": 1600,
     "evolution_cost": null,
     "evolves_into": null,

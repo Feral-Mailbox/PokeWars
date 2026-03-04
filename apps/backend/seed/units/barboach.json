@@ -15,12 +15,13 @@
       "speed": 60,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [55, 341],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [61],
     "is_legendary": false,
+    "archetype": "tank",
     "description": "Its two whiskers provide a sensitive radar. Even in muddy waters, it can detect its prey’s location.",
     "portrait_credits": ["CHUNSOFT", "chikorene"],
     "sprite_credits": ["CHUNSOFT"]

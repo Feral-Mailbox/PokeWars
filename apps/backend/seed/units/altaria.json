@@ -15,12 +15,13 @@
       "speed": 80,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [406, 585, 355],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "special_tank",
     "description": "On sunny days, it flies freely through the sky and blends into the clouds. It sings in a beautiful soprano.",
     "portrait_credits": ["CHUNSOFT", "gromchurch", "TawnySoup"],
     "sprite_credits": ["CHUNSOFT", "TawnySoup"]

@@ -15,12 +15,13 @@
       "speed": 85,
       "range": 3
     },
-    "move_ids": [441, 490],
+    "move_ids": [398, 370, 389],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "assassin",
     "description": "Swaying and dodging the attacks of its foes, it weaves its flexible body in close, then lunges out with its poisonous claws.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

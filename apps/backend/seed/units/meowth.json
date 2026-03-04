@@ -15,12 +15,13 @@
       "speed": 90,
       "range": 3
     },
-    "move_ids": [6, 154],
+    "move_ids": [6, 252],
     "ability_ids": [],
     "cost": 100,
     "evolution_cost": 600,
     "evolves_into": [11],
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "It loves things that sparkle. When it sees a shiny object, the gold coin on its head shines, too.",
     "portrait_credits": ["CHUNSOFT", "PhillipsYoung"],
     "sprite_credits": ["CHUNSOFT"]

@@ -15,13 +15,12 @@
       "speed": 95,
       "range": 4
     },
-    "move_ids": [348],
+    "move_ids": [348, 235, 92],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
-    "is_legendary": false,
-    "description": "When you see Leafeon asleep in a patch of sunshine, you’ll know it is using photosynthesis to produce clean air.",
+    "is_legendary": false,    "archetype": "special_tank",    "description": "When you see Leafeon asleep in a patch of sunshine, you’ll know it is using photosynthesis to produce clean air.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT", "baronessfaron"]
 }

@@ -15,12 +15,13 @@
       "speed": 110,
       "range": 4
     },
-    "move_ids": [60, 234],
+    "move_ids": [235, 94, 92],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser",
     "description": "It uses the fine hair that covers its body to sense air currents and predict its enemy's actions.",
     "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

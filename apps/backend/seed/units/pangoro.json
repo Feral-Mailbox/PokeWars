@@ -15,12 +15,13 @@
       "speed": 58,
       "range": 3
     },
-    "move_ids": [276, 282, 575],
+    "move_ids": [575, 359, 242],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bully_pivot",
     "description": "Using its leaf, Pangoro can predict the moves of its opponents. It strikes with punches that can turn a dump truck into scrap with just one hit.",
     "portrait_credits": ["baronessfaron", "Emmuffin", "Soulja"],
     "sprite_credits": ["Soulja"]

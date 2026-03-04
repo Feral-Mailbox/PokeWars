@@ -15,7 +15,8 @@
       "speed": 25,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [101, 261, 220],
+    "archetype": "wall",
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": 1000,

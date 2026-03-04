@@ -15,12 +15,13 @@
       "speed": 110,
       "range": 4
     },
-    "move_ids": [344, 94],
+    "move_ids": [85, 94, 609, 57],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "special_sweeper",
     "description": "This Pokémon rides on its tail while it uses its psychic powers to levitate. It attacks with star-shaped thunderbolts.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]

@@ -15,7 +15,8 @@
       "speed": 121,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [880, 406, 369],
+    "archetype": "support_pivot",
     "ability_ids": [],
     "cost": 500,
     "evolution_cost": null,

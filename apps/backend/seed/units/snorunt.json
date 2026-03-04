@@ -15,12 +15,13 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [181, 43],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
-    "evolves_into": [63, 64],
+    "evolves_into": [62, 64],
     "is_legendary": false,
+    "archetype": "scout",
     "description": "It is said that a home visited by a Snorunt will prosper. It can withstand cold of −150 degrees Fahrenheit.",
     "portrait_credits": ["CHUNSOFT", "Caitemis"],
     "sprite_credits": ["CHUNSOFT"]

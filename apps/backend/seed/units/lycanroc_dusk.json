@@ -15,12 +15,13 @@
       "speed": 110,
       "range": 4
     },
-    "move_ids": [709, 280],
+    "move_ids": [709, 707, 444, 370],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["Emmuffin"]

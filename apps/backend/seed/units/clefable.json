@@ -15,7 +15,8 @@
       "speed": 60,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [585, 236, 266, 322],
+    "archetype": "paladin_tank",
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,

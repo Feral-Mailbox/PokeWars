@@ -15,12 +15,13 @@
       "speed": 105,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [136, 369, 282],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "glass_cannon",
     "description": "Using the long fur on its arms like whips, it launches into combo attacks that, once started, no one can stop.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["baronessfaron"]

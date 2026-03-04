@@ -15,7 +15,8 @@
       "speed": 15,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [1, 186],
+    "archetype": "healer_trainee",
     "ability_ids": [],
     "cost": 100,
     "evolution_cost": 400,

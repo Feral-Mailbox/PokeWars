@@ -15,12 +15,13 @@
       "speed": 96,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [583, 421, 14],
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "assassin",
     "description": "This Pokémon lives in dark places untouched by sunlight. When it appears before humans, it hides itself under a cloth that resembles a Pikachu.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]

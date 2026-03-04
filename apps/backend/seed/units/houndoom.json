@@ -15,12 +15,13 @@
       "speed": 95,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [53, 399, 417],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "Upon hearing its eerie howls, other Pokémon get the shivers and head straight back to their nests.",
     "portrait_credits": ["CHUNSOFT", "Murpi"],
     "sprite_credits": ["CHUNSOFT"]

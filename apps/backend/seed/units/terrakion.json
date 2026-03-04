@@ -15,8 +15,9 @@
       "speed": 108,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [533, 444, 370, 14],
     "ability_ids": [],
+    "archetype": "bruiser",
     "cost": 1600,
     "evolution_cost": null,
     "evolves_into": null,

@@ -189,6 +189,20 @@ export default function GamePage() {
         next.normal = attack; // attack tiles
       } else if (kind === "blast") {
         next.normal = getBlastTiles(origin, offset || 1);
+      } else if (kind === "sweep") {
+        next.normal = getSweepTiles(origin, offset || 1);
+      } else if (kind === "ranged") {
+        next.normal = getRangedTiles(origin, offset || 1);
+      } else if (kind === "line") {
+        next.normal = getLineTiles(origin, offset || 1);
+      } else if (kind === "bomb") {
+        next.normal = getBombTiles(origin, offset || 1);
+      } else if (kind === "cone") {
+        next.normal = getConeTiles(origin, offset || 1);
+      } else if (kind === "inverted_cone") {
+        next.normal = getInvertedConeTiles(origin, offset || 1);
+      } else if (kind === "x_attack") {
+        next.normal = getXAttackTiles(origin, offset || 1);
       }
     }
     setAttackOverlay(next);
@@ -271,6 +285,301 @@ export default function GamePage() {
     for (let dy = -1; dy <= 1; dy++) {
       pushIfIn(rx1, y + dy);
       pushIfIn(rx2, y + dy);
+    }
+
+    return tiles;
+  }
+
+  function getInvertedConeTiles([x, y]: [number, number], range: number) {
+    // Inverted cone flips the original cone distances
+    // inverted_cone:1/2 = 2 tiles deep, inverted_cone:3/4 = 3 tiles deep
+    // Even values include middle tiles, odd values exclude middles
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const includeMiddles = range % 2 === 0;
+    const depth = range <= 2 ? 2 : 3;
+    const sweeps = depth === 2
+      ? [{ dist: 1, half: 1 }]
+      : [{ dist: 1, half: 1 }, { dist: 2, half: 2 }];
+    const adjacentDist = depth === 2 ? 2 : 3;
+
+    const allowOffset = (offset: number, half: number) =>
+      includeMiddles || Math.abs(offset) > (half - 1);
+
+    // UP direction
+    for (const { dist, half } of sweeps) {
+      for (let dx = -half; dx <= half; dx++) {
+        if (allowOffset(dx, half)) pushIfIn(x + dx, y - dist);
+      }
+    }
+    pushIfIn(x, y - adjacentDist);
+
+    // DOWN direction
+    for (const { dist, half } of sweeps) {
+      for (let dx = -half; dx <= half; dx++) {
+        if (allowOffset(dx, half)) pushIfIn(x + dx, y + dist);
+      }
+    }
+    pushIfIn(x, y + adjacentDist);
+
+    // LEFT direction
+    for (const { dist, half } of sweeps) {
+      for (let dy = -half; dy <= half; dy++) {
+        if (allowOffset(dy, half)) pushIfIn(x - dist, y + dy);
+      }
+    }
+    pushIfIn(x - adjacentDist, y);
+
+    // RIGHT direction
+    for (const { dist, half } of sweeps) {
+      for (let dy = -half; dy <= half; dy++) {
+        if (allowOffset(dy, half)) pushIfIn(x + dist, y + dy);
+      }
+    }
+    pushIfIn(x + adjacentDist, y);
+
+    return tiles;
+  }
+
+  function getXAttackTiles([x, y]: [number, number], range: number) {
+    // X attack hits one tile in each direction at distance `range`,
+    // plus the diagonals from that attacked tile.
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const attackPoints: [number, number][] = [
+      [x, y - range], // up
+      [x, y + range], // down
+      [x - range, y], // left
+      [x + range, y], // right
+    ];
+
+    for (const [ax, ay] of attackPoints) {
+      if (!inBounds(ax, ay)) continue;
+      pushIfIn(ax, ay);
+      pushIfIn(ax - 1, ay - 1);
+      pushIfIn(ax + 1, ay - 1);
+      pushIfIn(ax - 1, ay + 1);
+      pushIfIn(ax + 1, ay + 1);
+    }
+
+    return tiles;
+  }
+
+  function getSweepTiles([x, y]: [number, number], offset: number) {
+    // Sweep hits 3 tiles perpendicular to each direction at 'offset' distance
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    // Up (sweep left-to-right at offset distance up)
+    const upY = y - offset;
+    for (let dx = -1; dx <= 1; dx++) {
+      pushIfIn(x + dx, upY);
+    }
+
+    // Down (sweep left-to-right at offset distance down)
+    const downY = y + offset;
+    for (let dx = -1; dx <= 1; dx++) {
+      pushIfIn(x + dx, downY);
+    }
+
+    // Left (sweep up-down at offset distance left)
+    const leftX = x - offset;
+    for (let dy = -1; dy <= 1; dy++) {
+      pushIfIn(leftX, y + dy);
+    }
+
+    // Right (sweep up-down at offset distance right)
+    const rightX = x + offset;
+    for (let dy = -1; dy <= 1; dy++) {
+      pushIfIn(rightX, y + dy);
+    }
+
+    return tiles;
+  }
+
+  function getRangedTiles([x, y]: [number, number], range: number) {
+    // Ranged hits a SINGLE tile at the specified distance in each cardinal direction
+    // ranged:1 hits 2 tiles away (4 tiles total), ranged:2 hits 3 tiles away, etc.
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const distance = range + 1;
+
+    // Up (negative y direction) - only at exact distance
+    pushIfIn(x, y - distance);
+
+    // Down (positive y direction) - only at exact distance
+    pushIfIn(x, y + distance);
+
+    // Left (negative x direction) - only at exact distance
+    pushIfIn(x - distance, y);
+
+    // Right (positive x direction) - only at exact distance
+    pushIfIn(x + distance, y);
+
+    return tiles;
+  }
+
+  function getLineTiles([x, y]: [number, number], range: number) {
+    // Line extends straight from the user, hitting MULTIPLE tiles in each direction
+    // line:1 hits 2 tiles per direction, line:2 hits 3 tiles, etc.
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    // Up (negative y direction)
+    for (let i = 1; i <= range + 1; i++) {
+      pushIfIn(x, y - i);
+    }
+
+    // Down (positive y direction)
+    for (let i = 1; i <= range + 1; i++) {
+      pushIfIn(x, y + i);
+    }
+
+    // Left (negative x direction)
+    for (let i = 1; i <= range + 1; i++) {
+      pushIfIn(x - i, y);
+    }
+
+    // Right (positive x direction)
+    for (let i = 1; i <= range + 1; i++) {
+      pushIfIn(x + i, y);
+    }
+
+    return tiles;
+  }
+
+  function getBombTiles([x, y]: [number, number], range: number) {
+    // Bomb attacks 2 tiles away in each cardinal direction,
+    // and each attack point creates a plus pattern around it
+    // bomb:2 includes the center of each explosion, bomb:1 does not
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const includeCenter = range >= 2;
+    const distance = 2;
+
+    // Attack points at distance 2 in each cardinal direction
+    const attackPoints: [number, number][] = [
+      [x, y - distance],     // up
+      [x, y + distance],     // down
+      [x - distance, y],     // left
+      [x + distance, y],     // right
+    ];
+
+    // For each attack point, create a plus pattern
+    for (const [ax, ay] of attackPoints) {
+      if (!inBounds(ax, ay)) continue;
+
+      // Center of explosion (only if range >= 2)
+      if (includeCenter) {
+        pushIfIn(ax, ay);
+      }
+
+      // Plus pattern around the attack point
+      pushIfIn(ax, ay - 1);  // up
+      pushIfIn(ax, ay + 1);  // down
+      pushIfIn(ax - 1, ay);  // left
+      pushIfIn(ax + 1, ay);  // right
+    }
+
+    return tiles;
+  }
+
+  function getConeTiles([x, y]: [number, number], range: number) {
+    // Cone attacks in a cone shape in each cardinal direction
+    // cone:1/2 = 2 tiles deep, cone:3/4 = 3 tiles deep
+    // Even values include middle tiles, odd values exclude middles
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const includeMiddles = range % 2 === 0;
+    const depth = range <= 2 ? 2 : 3;
+
+    // Build cone for each cardinal direction
+    // UP direction
+    pushIfIn(x, y - 1); // adjacent
+    // First sweep at distance 1
+    pushIfIn(x - 1, y - 1); // left
+    if (includeMiddles) pushIfIn(x, y - 1); // middle (already added as adjacent)
+    pushIfIn(x + 1, y - 1); // right
+    if (depth >= 3) {
+      // Second sweep at distance 2
+      pushIfIn(x - 2, y - 2); // far left
+      if (includeMiddles) {
+        pushIfIn(x - 1, y - 2);
+        pushIfIn(x, y - 2);
+        pushIfIn(x + 1, y - 2);
+      }
+      pushIfIn(x + 2, y - 2); // far right
+    }
+
+    // DOWN direction
+    pushIfIn(x, y + 1); // adjacent
+    pushIfIn(x - 1, y + 1);
+    if (includeMiddles) pushIfIn(x, y + 1);
+    pushIfIn(x + 1, y + 1);
+    if (depth >= 3) {
+      pushIfIn(x - 2, y + 2);
+      if (includeMiddles) {
+        pushIfIn(x - 1, y + 2);
+        pushIfIn(x, y + 2);
+        pushIfIn(x + 1, y + 2);
+      }
+      pushIfIn(x + 2, y + 2);
+    }
+
+    // LEFT direction
+    pushIfIn(x - 1, y); // adjacent
+    pushIfIn(x - 1, y - 1);
+    if (includeMiddles) pushIfIn(x - 1, y);
+    pushIfIn(x - 1, y + 1);
+    if (depth >= 3) {
+      pushIfIn(x - 2, y - 2);
+      if (includeMiddles) {
+        pushIfIn(x - 2, y - 1);
+        pushIfIn(x - 2, y);
+        pushIfIn(x - 2, y + 1);
+      }
+      pushIfIn(x - 2, y + 2);
+    }
+
+    // RIGHT direction
+    pushIfIn(x + 1, y); // adjacent
+    pushIfIn(x + 1, y - 1);
+    if (includeMiddles) pushIfIn(x + 1, y);
+    pushIfIn(x + 1, y + 1);
+    if (depth >= 3) {
+      pushIfIn(x + 2, y - 2);
+      if (includeMiddles) {
+        pushIfIn(x + 2, y - 1);
+        pushIfIn(x + 2, y);
+        pushIfIn(x + 2, y + 1);
+      }
+      pushIfIn(x + 2, y + 2);
     }
 
     return tiles;

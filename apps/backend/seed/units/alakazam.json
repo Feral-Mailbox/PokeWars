@@ -15,12 +15,13 @@
       "speed": 120,
       "range": 3
     },
-    "move_ids": [94, 248, 134],
+    "move_ids": [94, 247, 105, 347],
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "tactical_nuke",
     "description": "Its highly developed brain is on par with a supercomputer. It can use all forms of psychic abilities.",
     "portrait_credits": ["CHUNSOFT", "Gust"],
     "sprite_credits": ["CHUNSOFT"]

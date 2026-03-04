@@ -15,7 +15,8 @@
       "speed": 100,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [337, 89, 349, 7],
+    "archetype": "all_rounder",
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,

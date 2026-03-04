@@ -15,12 +15,13 @@
       "speed": 95,
       "range": 3
     },
-    "move_ids": [532, 29],
+    "move_ids": [532, 38, 26],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser",
     "description": "Though there are many enthusiasts for Sawsbuck as a species, this seasonal form in particular is not very popular.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["baronessfaron"]

@@ -15,12 +15,13 @@
       "speed": 90,
       "range": 3
     },
-    "move_ids": [80, 73],
+    "move_ids": [483, 79, 72],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "cleric_dps",
     "description": "The fragrance of the garland on its head has a relaxing effect, but taking care of it is very difficult.",
     "portrait_credits": ["Garbage"],
     "sprite_credits": ["powercristal", "baronessfaron", "Garbage"]

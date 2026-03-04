@@ -15,7 +15,8 @@
       "speed": 105,
       "range": 3
     },
-    "move_ids": [247, 466],
+    "move_ids": [247, 408, 417],
+    "archetype": "special_sweeper",
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,

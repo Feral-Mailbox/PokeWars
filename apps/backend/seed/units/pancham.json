@@ -15,12 +15,13 @@
       "speed": 43,
       "range": 3
     },
-    "move_ids": [2],
+    "move_ids": [292, 44],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 800,
     "evolves_into": [23],
     "is_legendary": false,
+    "archetype": "brawler",
     "description": "It's desperate to intimidate its opponents. Be nice and pretend to be scared if you catch it glaring at you intensely.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]

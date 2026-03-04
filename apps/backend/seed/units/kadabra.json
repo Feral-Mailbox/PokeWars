@@ -15,12 +15,13 @@
       "speed": 105,
       "range": 3
     },
-    "move_ids": [60, 134],
+    "move_ids": [100, 94, 101],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": 1200,
     "evolves_into": [21],
     "is_legendary": false,
+    "archetype": "glass_cannon",
     "description": "This Pokémon's telekinesis is immensely powerful. To prepare for evolution, Kadabra stores up psychic energy in the star on its forehead.",
     "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

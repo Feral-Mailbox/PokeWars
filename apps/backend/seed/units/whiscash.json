@@ -15,12 +15,13 @@
       "speed": 60,
       "range": 2
     },
-    "move_ids": [],
+    "move_ids": [89, 127, 349],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser_tank",
     "description": "It is extremely protective of its territory. If any foe approaches, it attacks using vicious tremors.",
     "portrait_credits": ["CHUNSOFT", "Emmuffin", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

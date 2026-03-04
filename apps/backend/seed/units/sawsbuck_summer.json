@@ -15,12 +15,13 @@
       "speed": 95,
       "range": 3
     },
-    "move_ids": [532, 29],
+    "move_ids": [532, 38, 26],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser",
     "description": "There are many Sawsbuck enthusiasts. The thicker and larger the branches and leaves on its antlers, the more majestic the Sawsbuck is thought to be.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["baronessfaron"]

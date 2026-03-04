@@ -15,12 +15,13 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [398],
+    "move_ids": [398, 189],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [59],
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "Inflating its poison sacs, it fills the area with an odd sound and hits flinching opponents with a poison jab.",
     "portrait_credits": ["CHUNSOFT", "Noo", "Gust"],
     "sprite_credits": ["CHUNSOFT"]

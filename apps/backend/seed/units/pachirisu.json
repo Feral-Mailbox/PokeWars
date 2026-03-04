@@ -15,12 +15,13 @@
       "speed": 95,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [609, 266, 162],
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "A pair may be seen rubbing their cheek pouches together in an effort to share stored electricity.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT", "JFain", "baronessfaron"]

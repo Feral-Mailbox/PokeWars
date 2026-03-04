@@ -15,12 +15,13 @@
       "speed": 60,
       "range": 4
     },
-    "move_ids": [84],
+    "move_ids": [84, 204],
     "ability_ids": [],
     "cost": 100,
     "evolution_cost": 400,
     "evolves_into": [77],
     "is_legendary": false,
+    "archetype": "speedster_trainee",
     "description": "It is unskilled at storing electric power. Any kind of shock causes it to discharge energy spontaneously.",
     "portrait_credits": ["CHUNSOFT", "C_Pariah"],
     "sprite_credits": ["CHUNSOFT", "Spikey-Valentine"]

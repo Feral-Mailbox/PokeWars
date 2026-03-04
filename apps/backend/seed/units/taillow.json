@@ -15,12 +15,13 @@
       "speed": 85,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [64, 98],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [15],
     "is_legendary": false,
+    "archetype": "scout",
     "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates.",
     "portrait_credits": ["CHUNSOFT", "Top_Kec"],
     "sprite_credits": ["CHUNSOFT"]

@@ -15,8 +15,9 @@
       "speed": 65,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [352, 564],
     "ability_ids": [],
+    "archetype": "scout_buffer",
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [135],

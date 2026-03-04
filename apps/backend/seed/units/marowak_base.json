@@ -15,12 +15,13 @@
       "speed": 45,
       "range": 3
     },
-    "move_ids": [155, 444],
+    "move_ids": [155, 89, 446],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser",
     "description": "When this Pokémon evolved, the skull of its mother fused to it. Marowak's temperament also turned vicious at the same time.",
     "portrait_credits": ["CHUNSOFT", "Emmuffin"],
     "sprite_credits": ["CHUNSOFT"]

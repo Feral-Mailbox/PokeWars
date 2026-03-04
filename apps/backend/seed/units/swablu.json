@@ -15,12 +15,13 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [64, 47],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
-    "evolves_into": [75],
+    "evolves_into": [72],
     "is_legendary": false,
+    "archetype": "support",
     "description": "It constantly grooms its cotton-like wings. It takes a shower to clean itself if it becomes dirty.",
     "portrait_credits": ["CHUNSOFT", "Emmuffin"],
     "sprite_credits": ["CHUNSOFT", "Emmuffin"]

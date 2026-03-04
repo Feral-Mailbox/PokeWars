@@ -15,8 +15,9 @@
       "speed": 85,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [453, 129],
     "ability_ids": [],
+    "archetype": "speedster",
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [137],

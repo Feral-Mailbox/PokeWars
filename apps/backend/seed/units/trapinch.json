@@ -15,7 +15,8 @@
       "speed": 10,
       "range": 2
     },
-    "move_ids": [],
+    "move_ids": [89, 157],
+    "archetype": "trapper",
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": [600],

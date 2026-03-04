@@ -15,13 +15,12 @@
       "speed": 55,
       "range": 3
     },
-    "move_ids": [3, 304, 135],
+    "move_ids": [79, 69, 135],
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,
     "evolves_into": null,
-    "is_legendary": false,
-    "description": "Anyone who takes even one taste of Blissey’s egg becomes unfailingly caring and pleasant to everyone.",
+    "is_legendary": false,    "archetype": "healer_buffer",    "description": "Anyone who takes even one taste of Blissey’s egg becomes unfailingly caring and pleasant to everyone.",
     "portrait_credits": ["CHUNSOFT", "JFain"],
     "sprite_credits": ["CHUNSOFT"]
 }

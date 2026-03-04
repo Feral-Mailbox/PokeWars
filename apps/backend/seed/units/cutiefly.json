@@ -15,12 +15,13 @@
       "speed": 84,
       "range": 3
     },
-    "move_ids": [522],
+    "move_ids": [584, 78],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [70],
     "is_legendary": false,
+    "archetype": "healer",
     "description": "When it senses the auras of people or Pokémon who are having fun, it will draw close and give them a painful poke with its long proboscis.",
     "portrait_credits": ["baronessfaron", "NOLASMOR"],
     "sprite_credits": ["baronessfaron"]

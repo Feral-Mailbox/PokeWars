@@ -15,12 +15,13 @@
       "speed": 65,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [252, 490],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [68],
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "They seclude themselves in the mountains and devote themselves to training. The form of their kicks and chops differs from pack to pack.",
     "portrait_credits": ["mucrush", "JFain", "Garbage"],
     "sprite_credits": ["JFain"]

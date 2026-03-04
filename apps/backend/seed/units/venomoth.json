@@ -15,12 +15,13 @@
       "speed": 90,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [405, 94, 483],
     "ability_ids": [],
     "cost": 500,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "special_sweeper",
     "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust.",
     "portrait_credits": ["CHUNSOFT", "skygummi", "Mooncaller"],
     "sprite_credits": ["CHUNSOFT"]

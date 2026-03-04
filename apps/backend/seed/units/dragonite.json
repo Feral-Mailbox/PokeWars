@@ -15,8 +15,9 @@
       "speed": 80,
       "range": 2
     },
-    "move_ids": [407, 355, 349],
+    "move_ids": [337, 542, 7, 245],
     "ability_ids": [],
+    "archetype": "all_rounder_boss",
     "cost": 1400,
     "evolution_cost": null,
     "evolves_into": null,

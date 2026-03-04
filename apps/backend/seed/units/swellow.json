@@ -15,12 +15,13 @@
       "speed": 125,
       "range": 4
     },
-    "move_ids": [],
+    "move_ids": [263, 413, 369],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey.",
     "portrait_credits": ["CHUNSOFT", "Caitemis"],
     "sprite_credits": ["CHUNSOFT", "Emmuffin"]

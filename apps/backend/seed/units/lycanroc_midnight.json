@@ -15,12 +15,13 @@
       "speed": 82,
       "range": 3
     },
-    "move_ids": [157, 242],
+    "move_ids": [68, 444, 583, 339],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "brawler",
     "description": "This Pokémon uses its rocky mane to slash any who approach. It will even disobey its Trainer if it dislikes the orders it was given.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["baronessfaron"]

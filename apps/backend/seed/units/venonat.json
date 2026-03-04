@@ -15,12 +15,13 @@
       "speed": 45,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [93, 77],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
-    "evolves_into": null,
+    "evolves_into": [66],
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "Its eyes act as radar, enabling it to be active in darkness. The eyes can also shoot powerful beams.",
     "portrait_credits": ["CHUNSOFT", "Blanky"],
     "sprite_credits": ["CHUNSOFT"]

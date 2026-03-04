@@ -172,6 +172,7 @@ class Unit(Base):
     description = Column(String, nullable=True)
     portrait_credits = Column(JSON, nullable=False, default=list)
     sprite_credits = Column(JSON, nullable=False, default=list)
+    archetype = Column(String, nullable=True)
 
     game_units = relationship("GameUnit", back_populates="unit")
 

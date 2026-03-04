@@ -15,12 +15,13 @@
       "speed": 80,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [94, 408, 298],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "disruptor_buffer",
     "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds.",
     "portrait_credits": ["CHUNSOFT", "JFain"],
     "sprite_credits": ["CHUNSOFT"]

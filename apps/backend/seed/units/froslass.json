@@ -15,12 +15,13 @@
       "speed": 110,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [247, 58, 194],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "glass_cannon",
     "description": "When it finds humans or Pokémon it likes, it freezes them and takes them to its chilly den, where they become decorations.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron"],
     "sprite_credits": ["CHUNSOFT"]

@@ -15,7 +15,8 @@
       "speed": 25,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [101, 261],
+    "archetype": "stall",
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,

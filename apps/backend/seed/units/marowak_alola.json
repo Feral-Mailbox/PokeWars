@@ -15,12 +15,13 @@
       "speed": 45,
       "range": 3
     },
-    "move_ids": [708, 172],
+    "move_ids": [708, 89, 444],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "scout",
     "description": "This Pokémon sets the bone it holds on fire and dances through the night as a way to mourn its fallen allies.",
     "portrait_credits": ["Anonymous"],
     "sprite_credits": ["Emmuffin"]

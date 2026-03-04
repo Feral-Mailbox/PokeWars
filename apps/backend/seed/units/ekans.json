@@ -15,8 +15,9 @@
       "speed": 55,
       "range": 3
     },
-    "move_ids": [40],
+    "move_ids": [40, 137],
     "ability_ids": [],
+    "archetype": "disruptor",
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [133],

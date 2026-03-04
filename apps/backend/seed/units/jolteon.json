@@ -15,12 +15,13 @@
       "speed": 130,
       "range": 4
     },
-    "move_ids": [85],
+    "move_ids": [85, 521, 86],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "special_sweeper",
     "description": "It concentrates the weak electric charges emitted by its cells and launches wicked lightning bolts.",
     "portrait_credits": ["CHUNSOFT", "baronessfaron", "ShyStarryRain"],
     "sprite_credits": ["CHUNSOFT", "dmDash"]

@@ -15,12 +15,13 @@
       "speed": 60,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [596, 202, 389],
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "tank_disruptor",
     "description": "With noises that could be mistaken for the rattles of maracas, it creates an upbeat rhythm, startling bird Pokémon and making them fly off in a hurry.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["JFain"]

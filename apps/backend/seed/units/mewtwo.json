@@ -15,8 +15,9 @@
       "speed": 130,
       "range": 4
     },
-    "move_ids": [540, 411, 105],
+    "move_ids": [540, 396, 247, 105],
     "ability_ids": [],
+    "archetype": "glass_cannon",
     "cost": 2000,
     "evolution_cost": null,
     "evolves_into": null,

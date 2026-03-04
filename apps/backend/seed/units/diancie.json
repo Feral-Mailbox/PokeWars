@@ -15,8 +15,9 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [591, 585, 334],
+    "move_ids": [591, 585, 446, 433],
     "ability_ids": [],
+    "archetype": "tank_buffer",
     "cost": 1600,
     "evolution_cost": null,
     "evolves_into": null,

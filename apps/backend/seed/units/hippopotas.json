@@ -15,12 +15,13 @@
       "speed": 32,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [328, 303],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 800,
     "evolves_into": [27],
     "is_legendary": false,
+    "archetype": "tank",
     "description": " It shrouds itself in sand to ward off germs. It travels easily through the sands of the desert.",
     "portrait_credits": ["CHUNSOFT", "Emmuffin"],
     "sprite_credits": ["CHUNSOFT"]

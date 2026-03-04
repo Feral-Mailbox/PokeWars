@@ -15,13 +15,12 @@
       "speed": 65,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [44, 29, 215],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [40],
-    "is_legendary": false,
-    "description": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity.",
+    "is_legendary": false,    "archetype": "brawler",    "description": "This Pokémon is smooth and moist to the touch. Yeast in Fidough’s breath induces fermentation in the Pokémon’s vicinity.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["Emmuffin"]
 }

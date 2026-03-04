@@ -15,7 +15,8 @@
       "speed": 35,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [61, 11],
+    "archetype": "brawler",
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,

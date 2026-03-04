@@ -15,12 +15,13 @@
       "speed": 72,
       "range": 3
     },
-    "move_ids": [688, 136, 213],
+    "move_ids": [688, 438, 136, 312],
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "This Pokémon is proud and aggressive. However, it is said that a Tsareena will instantly become calm if someone touches the crown on its calyx.",
     "portrait_credits": ["baronessfaron"],
     "sprite_credits": ["baronessfaron"]

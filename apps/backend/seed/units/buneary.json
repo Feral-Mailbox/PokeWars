@@ -15,12 +15,13 @@
       "speed": 85,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [98, 608],
     "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [72],
+    "cost": 100,
+    "evolution_cost": 400,
+    "evolves_into": [52],
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "It slams foes by sharply uncoiling its rolled ears. It stings enough to make a grown-up cry in pain.",
     "portrait_credits": ["CHUNSOFT", "Gust"],
     "sprite_credits": ["CHUNSOFT", "JFain"]

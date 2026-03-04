@@ -15,12 +15,13 @@
       "speed": 96,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [583, 421, 14],
     "ability_ids": [],
     "cost": null,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "assassin",
     "description": "It has taken damage and can no longer hold the head of its cloth disguise upright. For as long as it lives, Mimikyu will never forget its attacker.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]

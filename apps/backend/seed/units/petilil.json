@@ -15,12 +15,13 @@
       "speed": 30,
       "range": 3
     },
-    "move_ids": [72],
+    "move_ids": [72, 79, 312],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [38],
     "is_legendary": false,
+    "archetype": "tank_healer",
     "description": "The leaves on its head grow right back even if they fall out. These bitter leaves refresh those who eat them.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["Emmuffin"]

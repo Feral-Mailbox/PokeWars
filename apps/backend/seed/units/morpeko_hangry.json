@@ -15,12 +15,13 @@
       "speed": 97,
       "range": 4
     },
-    "move_ids": [783, 162],
+    "move_ids": [783, 402, 44],
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "bruiser",
     "description": "Hunger has disrupted this Pokémon's hormonal balance. The Electric-type energy stored in its cheek sacs has turned into Dark-type energy.",
     "portrait_credits": ["Emmuffin", "Garbage"],
     "sprite_credits": ["Emmuffin", "JFain"]

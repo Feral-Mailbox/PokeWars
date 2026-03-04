@@ -15,7 +15,8 @@
       "speed": 45,
       "range": 2
     },
-    "move_ids": [],
+    "move_ids": [325, 89, 261, 220],
+    "archetype": "tank_bruiser",
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,

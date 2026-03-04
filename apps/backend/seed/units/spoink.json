@@ -15,12 +15,13 @@
       "speed": 60,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [60, 109],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [31],
     "is_legendary": false,
+    "archetype": "disruptor",
     "description": "Using its tail like a spring, it keeps its heart beating by bouncing constantly. If it stops, it dies.",
     "portrait_credits": ["CHUNSOFT", "Emmuffin"],
     "sprite_credits": ["CHUNSOFT"]

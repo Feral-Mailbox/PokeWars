@@ -15,12 +15,13 @@
       "speed": 32,
       "range": 4
     },
-    "move_ids": [320],
+    "move_ids": [75, 230, 23],
     "ability_ids": [],
     "cost": 100,
     "evolution_cost": 400,
     "evolves_into": [47],
     "is_legendary": false,
+    "archetype": "bruiser_utility",
     "description": "Its sweat is sweet, like syrup made from boiled-down fruit. Because of this, Bounsweet was highly valued in the past, when sweeteners were scarce.",
     "portrait_credits": ["baronessfaron", "NOLASMOR"],
     "sprite_credits": ["baronessfaron"]

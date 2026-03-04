@@ -15,12 +15,13 @@
       "speed": 110,
       "range": 3
     },
-    "move_ids": [344, 87],
+    "move_ids": [85, 411, 609, 245],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "glass_cannon",
     "description": "It can loose 100,000-volt bursts of electricity, instantly downing foes several times its size.",
     "portrait_credits": ["CHUNSOFT", "Garbage"],
     "sprite_credits": ["CHUNSOFT"]

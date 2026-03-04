@@ -15,12 +15,13 @@
       "speed": 124,
       "range": 3
     },
-    "move_ids": [676, 605],
+    "move_ids": [676, 585, 483],
     "ability_ids": [],
-    "cost": 600,
+    "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "healer_dps",
     "description": "Pollen puffs created by skilled Ribombee can relieve fatigue, making the puffs a popular commodity.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]

@@ -15,12 +15,13 @@
       "speed": 105,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [216, 136, 361],
     "ability_ids": [],
-    "cost": 600,
+    "cost": 400,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "speedster_support",
     "description": "Lopunny is constantly monitoring its surroundings. If danger approaches, this Pokémon responds with superdestructive kicks.",
     "portrait_credits": ["CHUNSOFT", "JFain"],
     "sprite_credits": ["CHUNSOFT"]

@@ -15,12 +15,13 @@
       "speed": 90,
       "range": 4
     },
-    "move_ids": [100],
+    "move_ids": [100, 237],
     "ability_ids": [],
     "cost": 200,
     "evolution_cost": 600,
     "evolves_into": [20],
     "is_legendary": false,
+    "archetype": "speedster",
     "description": "Abra can teleport in its sleep. Apparently the more deeply Abra sleeps, the farther its teleportations go.",
     "portrait_credits": ["CHUNSOFT", "JFain", "cosmosully"],
     "sprite_credits": ["CHUNSOFT", "Emmuffin"]

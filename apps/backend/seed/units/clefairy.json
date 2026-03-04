@@ -15,7 +15,8 @@
       "speed": 35,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [585, 236, 266],
+    "archetype": "healer_buffer",
     "ability_ids": [],
     "cost": 400,
     "evolution_cost": 1000,

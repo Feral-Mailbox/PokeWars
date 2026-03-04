@@ -15,12 +15,13 @@
       "speed": 81,
       "range": 3
     },
-    "move_ids": [401, 340, 416],
+    "move_ids": [127, 242, 349],
     "ability_ids": [],
     "cost": 1000,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "boss_sweeper",
     "description": "Once it appears, it goes on a rampage. It remains enraged until it demolishes everything around it.",
     "portrait_credits": ["CHUNSOFT"],
     "sprite_credits": ["baronessfaron"]

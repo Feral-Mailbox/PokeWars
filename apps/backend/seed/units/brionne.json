@@ -15,12 +15,13 @@
         "speed": 50,
         "range": 3
     },
-    "move_ids": [61, 47],
+    "move_ids": [61, 196, 392],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": 1600,
     "evolves_into": [9],
     "is_legendary": false,
+    "archetype": "healer_slower",
     "description": "It cares deeply for its companions. When its Trainer is feeling down, it performs a cheery dance to try to help.",
     "portrait_credits": ["baronessfaron", "Top_Kec"],
     "sprite_credits": ["Anonymous", "baronessfaron"]

@@ -15,7 +15,8 @@
       "speed": 117,
       "range": 3
     },
-    "move_ids": [680, 188],
+    "move_ids": [53, 188, 92],
+    "archetype": "assassin_dot",
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,

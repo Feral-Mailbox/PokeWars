@@ -15,8 +15,9 @@
     "speed": 56,
     "range": 2
   },
-  "move_ids": [452, 89, 235],
+  "move_ids": [452, 89, 235, 446],
   "ability_ids": [],
+  "archetype": "heavy_tank",
   "cost": 1000,
   "evolution_cost": null,
   "evolves_into": null,

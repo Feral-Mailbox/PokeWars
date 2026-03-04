@@ -15,12 +15,13 @@
       "speed": 50,
       "range": 3
     },
-    "move_ids": [3, 135],
+    "move_ids": [204, 72, 135],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": 1000,
     "evolves_into": [36],
     "is_legendary": false,
+    "archetype": "healer_buffer",
     "description": "This kindly Pokémon lays highly nutritious eggs and shares them with injured Pokémon or people.",
     "portrait_credits": ["CHUNSOFT", "Mojo"],
     "sprite_credits": ["CHUNSOFT"]

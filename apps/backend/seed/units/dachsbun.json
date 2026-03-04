@@ -15,12 +15,13 @@
       "speed": 95,
       "range": 3
     },
-    "move_ids": [],
+    "move_ids": [389, 46, 215],
     "ability_ids": [],
     "cost": 600,
     "evolution_cost": null,
     "evolves_into": null,
     "is_legendary": false,
+    "archetype": "tank",
     "description": "The surface of this Pokémon's skin hardens when exposed to intense heat, and its body has an appetizing aroma.",
     "portrait_credits": ["Emmuffin"],
     "sprite_credits": ["baronessfaron"]
