@@ -57,7 +57,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; can_move?: boolean; move_pp?: number[] }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; stat_boosts?: any; can_move?: boolean; move_pp?: number[] }[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
@@ -133,6 +133,26 @@ export default function GamePage() {
     Fairy: "#D685AD",
   };
 
+  // Helper function to calculate total stat boost stage for a given stat
+  function getStatBoostStage(unit: any, statName: string): number {
+    if (!unit?.stat_boosts || !unit.stat_boosts[statName]) return 0;
+    
+    const instances = unit.stat_boosts[statName];
+    if (!Array.isArray(instances)) return 0;
+    
+    // Sum all magnitudes from active instances
+    return instances.reduce((total: number, inst: any) => {
+      return total + (inst?.magnitude || 0);
+    }, 0);
+  }
+
+  // Helper function to get color based on stat boost stage
+  function getStatColor(stage: number): string {
+    if (stage > 0) return '#22c55e'; // green-500 for boosts
+    if (stage < 0) return '#ef4444'; // red-500 for reductions
+    return '#ffffff'; // white for neutral
+  }
+
   function getPlayerColor(playerId: number): string {
     return playerColorMap[playerId] ?? "#00000000";
   }
@@ -181,7 +201,9 @@ export default function GamePage() {
 
     if (origin && move) {
       const { kind, offset } = parseRangeSpec(move); // you added this earlier
-      if (kind === "adjacent") {
+      if (kind === "self") {
+        next.normal = [origin];
+      } else if (kind === "adjacent") {
         next.normal = getAdjacentTiles(origin);
       } else if (kind === "dash_attack") {
         const { step, attack } = getDashAttackTiles(origin);
@@ -209,9 +231,9 @@ export default function GamePage() {
   }
 
   function parseRangeSpec(move: any): { kind: string; offset: number } {
-    // Prefer range_type if provided; fall back to range
-    const raw = String(move?.range_type ?? move?.range ?? "").toLowerCase().trim();
-    // Supports "blast", "blast:1", "dash_attack", "adjacent", etc.
+    // Prefer range_type if provided; fall back to range, then targeting
+    const raw = String(move?.range_type ?? move?.range ?? move?.targeting ?? "").toLowerCase().trim();
+    // Supports "blast", "blast:1", "dash_attack", "adjacent", "self", etc.
     const m = raw.match(/^([a-z_]+)(?::(\d+))?$/);
     const kind = m?.[1] ?? "";
     const offset = m?.[2] ? parseInt(m[2], 10) : 0; // default 0 unless provided
@@ -594,7 +616,9 @@ export default function GamePage() {
     const [tx, ty] = target;
     const dx = tx - ox;
     const dy = ty - oy;
-    if (dx === 0 && dy === 0) return [] as [number, number][];
+    
+    // For self-targeting (origin === target), return the target as-is
+    if (dx === 0 && dy === 0) return [target];
 
     const useHorizontal = Math.abs(dx) >= Math.abs(dy);
     const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
@@ -721,10 +745,17 @@ export default function GamePage() {
 
     setSelectedMove(move);
     setMoveTargeting(true);
-    setSelectedMoveTarget(null);
     setHoveredOverlayTile(null);
     setHoveredMove(null);
     rebuildAttackOverlay(move);
+    
+    // Auto-select target for self-targeting moves
+    const { kind } = parseRangeSpec(move);
+    if (kind === "self") {
+      setSelectedMoveTarget(activeUnit.tile as [number, number]);
+    } else {
+      setSelectedMoveTarget(null);
+    }
   }
 
   function handleMoveCancel() {
@@ -1036,6 +1067,7 @@ export default function GamePage() {
               user_id: u.user_id,
               level: u.level,
               current_stats: u.current_stats,
+              stat_boosts: u.stat_boosts || {},
               can_move: u.can_move ?? true,
               move_pp: movePP,
             };
@@ -1476,6 +1508,49 @@ export default function GamePage() {
         return;
       }
       
+      if (typeof event.data === "string" && event.data.startsWith("unit_stats_updated:")) {
+        const [, unitIdStr] = event.data.split(":");
+        const unitId = Number(unitIdStr);
+        // Fetch updated unit data to get the latest current_stats and stat_boosts
+        secureFetch(`/api/games/${gameId}/units`)
+          .then(res => res.json())
+          .then(backendUnits => {
+            const updatedUnit = backendUnits.find((u: any) => u.id === unitId);
+            if (updatedUnit) {
+              setPlacedUnits(prev =>
+                prev.map(u => u.id === unitId ? { 
+                  ...u, 
+                  current_stats: updatedUnit.current_stats,
+                  stat_boosts: updatedUnit.stat_boosts || {},
+                  move_pp: updatedUnit.move_pp || u.move_pp 
+                } : u)
+              );
+              setLockedUnit(prev => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? { 
+                  ...prev, 
+                  current_stats: updatedUnit.current_stats,
+                  stat_boosts: updatedUnit.stat_boosts || {},
+                  move_pp: updatedUnit.move_pp || prev.move_pp 
+                } : prev;
+              });
+              setHoveredUnit(prev => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? { 
+                  ...prev, 
+                  current_stats: updatedUnit.current_stats,
+                  stat_boosts: updatedUnit.stat_boosts || {},
+                  move_pp: updatedUnit.move_pp || prev.move_pp 
+                } : prev;
+              });
+            }
+          })
+          .catch(err => console.error("Failed to fetch unit stats update:", err));
+        return;
+      }
+      
       if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
         if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
           setLockedUnit(null);
@@ -1525,6 +1600,7 @@ export default function GamePage() {
             user_id: u.user_id,
             level: u.level,
             current_stats: u.current_stats,
+            stat_boosts: u.stat_boosts || {},
             can_move: u.can_move ?? true,
             move_pp: Array.isArray(u.move_pp) && u.move_pp.length > 0 ? u.move_pp : [],
           }));
@@ -1763,7 +1839,7 @@ export default function GamePage() {
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
                   const live = placedUnits.find(p => p.id === id);
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
                 }
               }}
               onMouseLeave={() => {
@@ -1790,7 +1866,7 @@ export default function GamePage() {
                     if (cached) {
                       setHighlightedTiles(cached.tiles);
                       setUnitOriginalTile(cached.origin);
-                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
+                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, stat_boosts: placedUnits.find(p => p.id === id)?.stat_boosts, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
                     }
 
                     const movement = unit?.base_stats?.range ?? 0;
@@ -1805,7 +1881,7 @@ export default function GamePage() {
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
+                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
                   });
                 }
               }}
@@ -1922,13 +1998,48 @@ export default function GamePage() {
               <div className="text-sm mb-2 font-medium">Level: {level}</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div><span className="font-semibold">HP:</span> {placedUnitAtTile?.current_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Def:</span> {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {placedUnitAtTile?.current_stats?.attack ?? "?"}</div>
-                <div><span className="font-semibold">Speed:</span> {placedUnitAtTile?.current_stats?.speed ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {placedUnitAtTile?.current_stats?.defense ?? "?"}</div>
-                <div><span className="font-semibold">Range:</span> {placedUnitAtTile?.current_stats?.range ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}</div>
+                <div>
+                  <span className="font-semibold">HP:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'hp')) }}>
+                    {placedUnitAtTile?.current_stats?.hp ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Sp. Def:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'sp_defense')) }}>
+                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Attack:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'attack')) }}>
+                    {placedUnitAtTile?.current_stats?.attack ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Speed:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'speed')) }}>
+                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Defense:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'defense')) }}>
+                    {placedUnitAtTile?.current_stats?.defense ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Range:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'range')) }}>
+                    {placedUnitAtTile?.current_stats?.range ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Sp. Atk:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'sp_attack')) }}>
+                    {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}
+                  </span>
+                </div>
               </div>
 
               {unit.move_ids?.length > 0 && (
@@ -2120,13 +2231,48 @@ export default function GamePage() {
               <div className="text-sm mb-2 font-medium">Level: {level}</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div><span className="font-semibold">HP:</span> {activeUnit?.current_stats?.hp ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Def:</span> {activeUnit?.current_stats?.sp_defense ?? "?"}</div>
-                <div><span className="font-semibold">Attack:</span> {activeUnit?.current_stats?.attack ?? "?"}</div>
-                <div><span className="font-semibold">Speed:</span> {activeUnit?.current_stats?.speed ?? "?"}</div>
-                <div><span className="font-semibold">Defense:</span> {activeUnit?.current_stats?.defense ?? "?"}</div>
-                <div><span className="font-semibold">Range:</span> {activeUnit?.current_stats?.range ?? "?"}</div>
-                <div><span className="font-semibold">Sp. Atk:</span> {activeUnit?.current_stats?.sp_attack ?? "?"}</div>
+                <div>
+                  <span className="font-semibold">HP:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'hp')) }}>
+                    {activeUnit?.current_stats?.hp ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Sp. Def:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'sp_defense')) }}>
+                    {activeUnit?.current_stats?.sp_defense ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Attack:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'attack')) }}>
+                    {activeUnit?.current_stats?.attack ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Speed:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'speed')) }}>
+                    {activeUnit?.current_stats?.speed ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Defense:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'defense')) }}>
+                    {activeUnit?.current_stats?.defense ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Range:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'range')) }}>
+                    {activeUnit?.current_stats?.range ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Sp. Atk:</span>{" "}
+                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'sp_attack')) }}>
+                    {activeUnit?.current_stats?.sp_attack ?? "?"}
+                  </span>
+                </div>
               </div>
 
               {unit.move_ids?.length > 0 && (

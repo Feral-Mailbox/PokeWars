@@ -56,6 +56,292 @@ def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
             multiplier *= 0.5
     return multiplier
 
+def normalize_stat_name(stat: str) -> str:
+    """Normalize stat names to match model field names."""
+    mapping = {
+        "special_attack": "sp_attack",
+        "special_defense": "sp_defense",
+        "sp attack": "sp_attack",
+        "sp defense": "sp_defense",
+    }
+    return mapping.get(stat.lower(), stat.lower())
+
+
+def default_stat_boosts() -> dict:
+    return {
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": [],
+    }
+
+
+def normalize_stat_boosts(raw: dict | None) -> dict:
+    normalized = default_stat_boosts()
+    if not isinstance(raw, dict):
+        return normalized
+
+    for raw_stat, value in raw.items():
+        stat = normalize_stat_name(str(raw_stat))
+        if stat not in normalized:
+            continue
+
+        if isinstance(value, list):
+            clean_instances = []
+            for instance in value:
+                if not isinstance(instance, dict):
+                    continue
+                magnitude = instance.get("magnitude")
+                if not isinstance(magnitude, (int, float)):
+                    continue
+                expires_turn = instance.get("expires_turn", 4)
+                if not isinstance(expires_turn, (int, float)):
+                    expires_turn = 4
+                clean_instances.append({
+                    "magnitude": int(magnitude),
+                    "expires_turn": int(expires_turn),
+                })
+            normalized[stat] = clean_instances
+        elif isinstance(value, (int, float)):
+            # Backwards compatibility for old stage-based payloads (e.g. {"attack": 1})
+            stage_value = int(value)
+            if stage_value != 0:
+                normalized[stat] = [{"magnitude": stage_value, "expires_turn": 4}]
+
+    return normalized
+
+def get_stat_multiplier(stat_boosts: dict, stat: str) -> float:
+    """
+    Calculate the multiplier for a stat based on its boost/debuff stages.
+    Uses standard Pokémon stat stage formula:
+    - For positive stages: (2 + stage) / 2
+    - For negative stages: 2 / (2 - stage)
+    - Stage is capped at ±6
+    """
+    stat = normalize_stat_name(stat)
+    boosts = normalize_stat_boosts(stat_boosts)
+    
+    if stat not in boosts:
+        return 1.0
+    
+    instances = boosts.get(stat, [])
+    if not instances:
+        return 1.0
+    
+    # Sum all magnitudes from active instances
+    total_stage = sum(inst.get("magnitude", 0) for inst in instances)
+    
+    # Cap at ±6
+    total_stage = max(-6, min(6, total_stage))
+    
+    # Calculate multiplier
+    if total_stage == 0:
+        return 1.0
+    elif total_stage > 0:
+        return (2 + total_stage) / 2
+    else:  # total_stage < 0
+        return 2 / (2 - total_stage)
+
+def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
+    """
+    Compute the effective stats for a unit, applying stat boost multipliers.
+    Returns a dict with all stats including HP, attack, defense, etc.
+    """
+    # Get base stats from the unit definition
+    unit_info = db.query(Unit).filter_by(id=unit.unit_id).first()
+    if not unit_info or not isinstance(unit_info.base_stats, dict):
+        return unit.current_stats or {}
+    
+    level = unit.level or 50
+    effective_stats = {}
+    
+    for stat_name, base_value in unit_info.base_stats.items():
+        # Calculate base stat value (without boosts)
+        if stat_name.lower() == "hp":
+            # HP formula: floor((2 × Base × Level) / 100) + Level + 10
+            base_stat = int((2 * base_value * level) / 100) + level + 10
+            # HP is not affected by stat boosts in battle
+            effective_stats[stat_name] = base_stat
+        elif stat_name.lower() == "range":
+            # Range is not affected by stat boosts
+            effective_stats[stat_name] = base_value
+        else:
+            # Other stats formula: floor((2 × Base × Level) / 100 + 5)
+            base_stat = int((2 * base_value * level) / 100 + 5)
+            
+            # Apply stat boost multiplier
+            multiplier = get_stat_multiplier(unit.stat_boosts, stat_name)
+            effective_stats[stat_name] = int(base_stat * multiplier)
+    
+    return effective_stats
+
+def apply_stat_change(unit: GameUnit, stat: str, magnitude: int, current_turn: int, db: Session):
+    """
+    Apply or cancel a stat change to a unit.
+    - magnitude: positive for boost, negative for debuff
+    - Implements cancellation: opposite effects cancel, prioritizing soonest-expiring
+    - Handles partial cancellation when magnitudes differ
+    - Each instance expires after 4 turns (including application turn)
+    """
+    stat = normalize_stat_name(stat)
+    
+    # Ensure stat_boosts is always in canonical list-of-instances shape
+    unit.stat_boosts = normalize_stat_boosts(unit.stat_boosts)
+    if stat not in unit.stat_boosts:
+        unit.stat_boosts[stat] = []
+    
+    instances = unit.stat_boosts[stat]
+    remaining_magnitude = magnitude
+    
+    # Process cancellation with opposite-sign effects (already in expiry order)
+    i = 0
+    while i < len(instances) and remaining_magnitude != 0:
+        instance_mag = instances[i].get("magnitude", 0)
+        
+        # Check if signs are opposite (cancellation applies)
+        if (remaining_magnitude > 0 and instance_mag < 0) or (remaining_magnitude < 0 and instance_mag > 0):
+            # Calculate how much can be cancelled
+            abs_incoming = abs(remaining_magnitude)
+            abs_existing = abs(instance_mag)
+            
+            if abs_incoming < abs_existing:
+                # Incoming is smaller: reduce existing magnitude
+                if instance_mag < 0:
+                    instances[i]["magnitude"] = instance_mag + abs_incoming  # e.g., -3 + 2 = -1
+                else:
+                    instances[i]["magnitude"] = instance_mag - abs_incoming  # e.g., +3 - 2 = +1
+                remaining_magnitude = 0  # Fully consumed
+                i += 1
+            elif abs_incoming > abs_existing:
+                # Incoming is larger: remove existing, continue with remainder
+                if remaining_magnitude > 0:
+                    remaining_magnitude -= abs_existing  # e.g., +5 - 3 = +2
+                else:
+                    remaining_magnitude += abs_existing  # e.g., -5 + 3 = -2
+                instances.pop(i)
+                # Don't increment i, check next instance at same position
+            else:
+                # Equal: both cancel out completely
+                instances.pop(i)
+                remaining_magnitude = 0
+        else:
+            # Same sign, no cancellation
+            i += 1
+    
+    # If there's remaining magnitude, add it as a new instance
+    if remaining_magnitude != 0:
+        # Set to 4 turns (will be decremented at start of each player turn)
+        instances.append({
+            "magnitude": remaining_magnitude,
+            "expires_turn": 4
+        })
+    
+    # Mark as modified for SQLAlchemy
+    unit.stat_boosts = dict(unit.stat_boosts)
+    
+    # Recalculate current_stats to reflect the new stat boosts
+    unit.current_stats = compute_effective_stats(unit, db)
+    
+    db.add(unit)
+
+def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit], current_turn: int, db: Session):
+    """
+    Process all effects from a move (stat changes, status conditions, etc.)
+    Format: recipient:effect_type:param1:param2[:accuracy]
+    For stat changes: recipient:raise_stat/lower_stat:stat_name:magnitude[:accuracy]
+    """
+    if not move.effects:
+        return
+    
+    for effect_str in move.effects:
+        parts = effect_str.split(":")
+        if len(parts) < 4:
+            continue  # Invalid format
+        
+        recipient = parts[0]  # "self" or "target"
+        effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
+        
+        # Only handle stat changes for now
+        if effect_type not in ["raise_stat", "lower_stat"]:
+            continue
+        
+        stat_name = parts[2]
+        try:
+            magnitude_val = int(parts[3])
+        except ValueError:
+            continue
+        
+        # Check accuracy if provided
+        accuracy = 100  # Default: always applies
+        if len(parts) >= 5:
+            try:
+                accuracy = int(parts[4])
+            except ValueError:
+                pass
+        
+        # Roll for accuracy
+        if random.randint(1, 100) > accuracy:
+            continue  # Effect didn't trigger
+        
+        # Determine sign based on effect type
+        magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
+        
+        # Apply to appropriate unit(s)
+        if recipient == "self":
+            apply_stat_change(attacker, stat_name, magnitude, current_turn, db)
+        elif recipient == "target":
+            for target in targets:
+                apply_stat_change(target, stat_name, magnitude, current_turn, db)
+
+def decrement_and_expire_stat_boosts(user_id: int, game_id: int, db: Session) -> list[int]:
+    """
+    Decrement stat boost timers for a player's units and remove expired ones.
+    Returns list of unit IDs that had their stat boosts modified.
+    """
+    units = db.query(GameUnit).filter(
+        GameUnit.game_id == game_id,
+        GameUnit.user_id == user_id
+    ).all()
+    
+    modified_unit_ids = []
+    
+    for unit in units:
+        unit.stat_boosts = normalize_stat_boosts(unit.stat_boosts)
+        
+        modified = False
+        for stat, instances in unit.stat_boosts.items():
+            if not isinstance(instances, list):
+                continue
+            
+            # Decrement expires_turn for each instance
+            for inst in instances:
+                if "expires_turn" in inst:
+                    inst["expires_turn"] -= 1
+                    modified = True
+            
+            # Filter out instances that reached 0 or below
+            original_count = len(instances)
+            unit.stat_boosts[stat] = [
+                inst for inst in instances 
+                if inst.get("expires_turn", 0) > 0
+            ]
+            
+            if len(unit.stat_boosts[stat]) != original_count:
+                modified = True
+        
+        if modified:
+            # Mark as modified for SQLAlchemy
+            unit.stat_boosts = dict(unit.stat_boosts)
+            # Recalculate current_stats to reflect the new stat boosts
+            unit.current_stats = compute_effective_stats(unit, db)
+            db.add(unit)
+            modified_unit_ids.append(unit.id)
+    
+    return modified_unit_ids
+
 def get_remaining_unit_counts(game_id: int, db: Session) -> dict:
     counts: dict[int, int] = {}
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
@@ -151,6 +437,14 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         state.current_turn = 0
     else:
         state.current_turn += 1
+    
+    # Decrement and expire stat boosts for the new current player's units
+    new_current_player_id = state.players[state.current_turn % len(state.players)]
+    modified_unit_ids = decrement_and_expire_stat_boosts(new_current_player_id, game.id, db)
+    
+    # Broadcast stat updates for units that had boosts expire
+    for unit_id in modified_unit_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
     
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
@@ -680,14 +974,18 @@ def place_unit(
         current_y=unit_data.y,
         current_hp=current_stats.get('hp', unit_data.current_hp),
         level=level,
-        current_stats=current_stats,
-        stat_boosts=unit_data.stat_boosts,
+        current_stats=current_stats,  # Initial stats without boosts
+        stat_boosts=normalize_stat_boosts(unit_data.stat_boosts),
         status_effects=unit_data.status_effects,
         is_fainted=unit_data.is_fainted,
         move_pp=move_pp,
     )
     db.add(new_unit)
     db.flush()
+    
+    # Recalculate current_stats to apply any initial stat boosts
+    new_unit.current_stats = compute_effective_stats(new_unit, db)
+    db.add(new_unit)
 
     # Step 2: Update player state
     player_state.cash_remaining -= unit_info.cost
@@ -916,6 +1214,16 @@ def execute_move(
                 removed_ids.append(target.id)
             damage_results.append({"id": target.id, "damage": damage, "current_hp": target.current_hp})
 
+    # Process move effects (stat changes, status conditions, etc.)
+    # Use targets list for target effects, even if empty
+    process_move_effects(move, gu, targets, state.current_turn, db)
+    
+    # Broadcast stat updates for units that may have been affected
+    # This includes the attacker (self-buffs) and all targets (debuffs/buffs)
+    affected_unit_ids = [gu.id] + [t.id for t in targets]
+    for unit_id in affected_unit_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+
     if removed_ids:
         removed_units = [t for t in targets if t.id in removed_ids]
         for unit in removed_units:
@@ -968,6 +1276,14 @@ def execute_move(
             unit.can_move = True
 
         state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
+
+        # Decrement and expire stat boosts for the new current player's units
+        new_current_player_id = state.players[state.current_turn % len(state.players)]
+        modified_unit_ids = decrement_and_expire_stat_boosts(new_current_player_id, game.id, db)
+        
+        # Broadcast stat updates for units that had boosts expire
+        for unit_id in modified_unit_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
 
         if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
             state.status = GameStatus.completed

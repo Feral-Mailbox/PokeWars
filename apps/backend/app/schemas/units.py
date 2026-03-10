@@ -1,6 +1,13 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Dict, Optional
 
+class StatBoostInstance(BaseModel):
+    """Represents a single stat boost or debuff instance"""
+    magnitude: int  # positive for boost, negative for debuff
+    expires_turn: int  # absolute turn number when this expires
+
+    model_config = ConfigDict(from_attributes=True)
+
 class UnitSummary(BaseModel):
     id: int
     species_id: int
@@ -13,6 +20,7 @@ class UnitSummary(BaseModel):
     move_ids: List[int]
     portrait_credits: List[str]
     sprite_credits: List[str]
+    archetype: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -33,6 +41,7 @@ class UnitDetail(BaseModel):
     description: Optional[str]
     portrait_credits: List[str]
     sprite_credits: List[str]
+    archetype: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -41,7 +50,15 @@ class GameUnitCreateRequest(BaseModel):
     x: int
     y: int
     current_hp: int
-    stat_boosts: Dict[str, int]
+    stat_boosts: Dict[str, List[StatBoostInstance]] = Field(default_factory=lambda: {
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": []
+    })
     status_effects: List[str]
     is_fainted: bool
 
@@ -57,7 +74,15 @@ class GameUnitSchema(BaseModel):
     level: int
     current_hp: int
     current_stats: Dict[str, int]
-    stat_boosts: Dict[str, int]
+    stat_boosts: Dict[str, List[StatBoostInstance]] = Field(default_factory=lambda: {
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": []
+    })
     status_effects: List[str]
     is_fainted: bool
     can_move: bool

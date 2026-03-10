@@ -39,7 +39,8 @@ def load_units():
                 is_legendary=data.get("is_legendary", False),
                 description=data.get("description", ""),
                 portrait_credits=data.get("portrait_credits", []),
-                sprite_credits=data.get("sprite_credits", [])
+                sprite_credits=data.get("sprite_credits", []),
+                archetype=data.get("archetype")
             )
 
             db.add(new_unit)

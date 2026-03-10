@@ -193,7 +193,15 @@ class GameUnit(Base):
     level = Column(Integer, default=50)
     current_hp = Column(Integer, nullable=False)
     current_stats = Column(JSON, nullable=False)
-    stat_boosts = Column(JSON, default=dict)  # e.g., { "attack": 1, "speed": -2 }
+    stat_boosts = Column(JSON, default=lambda: {
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": []
+    })  # Each stat holds list of active boost instances
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
     is_fainted = Column(Boolean, default=False)
     can_move = Column(Boolean, default=True, nullable=False)
