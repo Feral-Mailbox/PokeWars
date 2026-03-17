@@ -7,7 +7,7 @@
   "power": 100,
   "accuracy": 100,
   "pp": 10,
-  "range": "cone:2",
+  "range": "inverted_cone:2",
   "targeting": "enemy",
   "cooldown": 1,
   "makes_contact": false,

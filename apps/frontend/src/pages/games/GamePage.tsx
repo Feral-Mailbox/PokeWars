@@ -189,6 +189,28 @@ export default function GamePage() {
     invert: [number, number][];
   }>({ normal: [], invert: [] });
 
+  function dedupeTiles(tiles: [number, number][]): [number, number][] {
+    const seen = new Set<string>();
+    const unique: [number, number][] = [];
+    for (const [x, y] of tiles) {
+      const key = `${x},${y}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push([x, y]);
+    }
+    return unique;
+  }
+
+  function normalizeAttackOverlay(overlay: {
+    normal: [number, number][];
+    invert: [number, number][];
+  }) {
+    const normal = dedupeTiles(overlay.normal);
+    const normalSet = new Set(normal.map(([x, y]) => `${x},${y}`));
+    const invert = dedupeTiles(overlay.invert).filter(([x, y]) => !normalSet.has(`${x},${y}`));
+    return { normal, invert };
+  }
+
   function inBounds(x:number, y:number) {
     const W = gameData?.map?.width ?? 0;
     const H = gameData?.map?.height ?? 0;
@@ -227,7 +249,7 @@ export default function GamePage() {
         next.normal = getXAttackTiles(origin, offset || 1);
       }
     }
-    setAttackOverlay(next);
+    setAttackOverlay(normalizeAttackOverlay(next));
   }
 
   function parseRangeSpec(move: any): { kind: string; offset: number } {
@@ -325,44 +347,43 @@ export default function GamePage() {
     const includeMiddles = range % 2 === 0;
     const depth = range <= 2 ? 2 : 3;
     const sweeps = depth === 2
-      ? [{ dist: 1, half: 1 }]
-      : [{ dist: 1, half: 1 }, { dist: 2, half: 2 }];
-    const adjacentDist = depth === 2 ? 2 : 3;
+      ? [{ dist: 2, half: 1 }]
+      : [{ dist: 2, half: 1 }, { dist: 3, half: 2 }];
 
     const allowOffset = (offset: number, half: number) =>
       includeMiddles || Math.abs(offset) > (half - 1);
 
-    // UP direction
+    // UP direction - adjacent tile at distance 1
+    pushIfIn(x, y - 1);
     for (const { dist, half } of sweeps) {
       for (let dx = -half; dx <= half; dx++) {
         if (allowOffset(dx, half)) pushIfIn(x + dx, y - dist);
       }
     }
-    pushIfIn(x, y - adjacentDist);
 
-    // DOWN direction
+    // DOWN direction - adjacent tile at distance 1
+    pushIfIn(x, y + 1);
     for (const { dist, half } of sweeps) {
       for (let dx = -half; dx <= half; dx++) {
         if (allowOffset(dx, half)) pushIfIn(x + dx, y + dist);
       }
     }
-    pushIfIn(x, y + adjacentDist);
 
-    // LEFT direction
+    // LEFT direction - adjacent tile at distance 1
+    pushIfIn(x - 1, y);
     for (const { dist, half } of sweeps) {
       for (let dy = -half; dy <= half; dy++) {
         if (allowOffset(dy, half)) pushIfIn(x - dist, y + dy);
       }
     }
-    pushIfIn(x - adjacentDist, y);
 
-    // RIGHT direction
+    // RIGHT direction - adjacent tile at distance 1
+    pushIfIn(x + 1, y);
     for (const { dist, half } of sweeps) {
       for (let dy = -half; dy <= half; dy++) {
         if (allowOffset(dy, half)) pushIfIn(x + dist, y + dy);
       }
     }
-    pushIfIn(x + adjacentDist, y);
 
     return tiles;
   }
@@ -529,9 +550,8 @@ export default function GamePage() {
   }
 
   function getConeTiles([x, y]: [number, number], range: number) {
-    // Cone attacks in a cone shape in each cardinal direction
-    // cone:1/2 = 2 tiles deep, cone:3/4 = 3 tiles deep
-    // Even values include middle tiles, odd values exclude middles
+    // Cone is the flipped profile of inverted_cone.
+    // cone:1/2 extends 2 tiles, cone:3/4 extends 3 tiles.
     const tiles: [number, number][] = [];
 
     const pushIfIn = (tx: number, ty: number) => {
@@ -540,68 +560,73 @@ export default function GamePage() {
 
     const includeMiddles = range % 2 === 0;
     const depth = range <= 2 ? 2 : 3;
+    const layers = depth === 2
+      ? [{ half: 1 }, { half: 0 }]
+      : [{ half: 2 }, { half: 1 }, { half: 0 }];
 
-    // Build cone for each cardinal direction
+    const allowOffset = (offset: number, half: number, layerIndex: number) => {
+      if (layerIndex === 0) return true;
+      return includeMiddles || Math.abs(offset) > (half - 1);
+    };
+
     // UP direction
-    pushIfIn(x, y - 1); // adjacent
-    // First sweep at distance 1
-    pushIfIn(x - 1, y - 1); // left
-    if (includeMiddles) pushIfIn(x, y - 1); // middle (already added as adjacent)
-    pushIfIn(x + 1, y - 1); // right
-    if (depth >= 3) {
-      // Second sweep at distance 2
-      pushIfIn(x - 2, y - 2); // far left
-      if (includeMiddles) {
-        pushIfIn(x - 1, y - 2);
-        pushIfIn(x, y - 2);
-        pushIfIn(x + 1, y - 2);
+    for (let i = 0; i < layers.length; i++) {
+      const dist = i + 1;
+      const { half } = layers[i];
+      if (half === 0) {
+        pushIfIn(x, y - dist);
+        continue;
       }
-      pushIfIn(x + 2, y - 2); // far right
+      for (let dx = -half; dx <= half; dx++) {
+        if (allowOffset(dx, half, i)) {
+          pushIfIn(x + dx, y - dist);
+        }
+      }
     }
 
     // DOWN direction
-    pushIfIn(x, y + 1); // adjacent
-    pushIfIn(x - 1, y + 1);
-    if (includeMiddles) pushIfIn(x, y + 1);
-    pushIfIn(x + 1, y + 1);
-    if (depth >= 3) {
-      pushIfIn(x - 2, y + 2);
-      if (includeMiddles) {
-        pushIfIn(x - 1, y + 2);
-        pushIfIn(x, y + 2);
-        pushIfIn(x + 1, y + 2);
+    for (let i = 0; i < layers.length; i++) {
+      const dist = i + 1;
+      const { half } = layers[i];
+      if (half === 0) {
+        pushIfIn(x, y + dist);
+        continue;
       }
-      pushIfIn(x + 2, y + 2);
+      for (let dx = -half; dx <= half; dx++) {
+        if (allowOffset(dx, half, i)) {
+          pushIfIn(x + dx, y + dist);
+        }
+      }
     }
 
     // LEFT direction
-    pushIfIn(x - 1, y); // adjacent
-    pushIfIn(x - 1, y - 1);
-    if (includeMiddles) pushIfIn(x - 1, y);
-    pushIfIn(x - 1, y + 1);
-    if (depth >= 3) {
-      pushIfIn(x - 2, y - 2);
-      if (includeMiddles) {
-        pushIfIn(x - 2, y - 1);
-        pushIfIn(x - 2, y);
-        pushIfIn(x - 2, y + 1);
+    for (let i = 0; i < layers.length; i++) {
+      const dist = i + 1;
+      const { half } = layers[i];
+      if (half === 0) {
+        pushIfIn(x - dist, y);
+        continue;
       }
-      pushIfIn(x - 2, y + 2);
+      for (let dy = -half; dy <= half; dy++) {
+        if (allowOffset(dy, half, i)) {
+          pushIfIn(x - dist, y + dy);
+        }
+      }
     }
 
     // RIGHT direction
-    pushIfIn(x + 1, y); // adjacent
-    pushIfIn(x + 1, y - 1);
-    if (includeMiddles) pushIfIn(x + 1, y);
-    pushIfIn(x + 1, y + 1);
-    if (depth >= 3) {
-      pushIfIn(x + 2, y - 2);
-      if (includeMiddles) {
-        pushIfIn(x + 2, y - 1);
-        pushIfIn(x + 2, y);
-        pushIfIn(x + 2, y + 1);
+    for (let i = 0; i < layers.length; i++) {
+      const dist = i + 1;
+      const { half } = layers[i];
+      if (half === 0) {
+        pushIfIn(x + dist, y);
+        continue;
       }
-      pushIfIn(x + 2, y + 2);
+      for (let dy = -half; dy <= half; dy++) {
+        if (allowOffset(dy, half, i)) {
+          pushIfIn(x + dist, y + dy);
+        }
+      }
     }
 
     return tiles;
@@ -628,9 +653,9 @@ export default function GamePage() {
       const ry = y - oy;
       if (rx === 0 && ry === 0) return false;
       if (useHorizontal) {
-        return rx * dir > 0 && Math.abs(rx) >= Math.abs(ry);
+        return rx * dir > 0 && Math.abs(rx) + 1 >= Math.abs(ry);
       }
-      return ry * dir > 0 && Math.abs(ry) > Math.abs(rx);
+      return ry * dir > 0 && Math.abs(ry) + 1 >= Math.abs(rx);
     });
   }
 
