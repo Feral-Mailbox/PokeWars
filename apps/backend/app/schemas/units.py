@@ -59,7 +59,7 @@ class GameUnitCreateRequest(BaseModel):
         "accuracy": [],
         "evasion": []
     })
-    status_effects: List[str]
+    status_effects: List[str | int] = Field(default_factory=list)
     is_fainted: bool
 
 class GameUnitSchema(BaseModel):
@@ -83,7 +83,7 @@ class GameUnitSchema(BaseModel):
         "accuracy": [],
         "evasion": []
     })
-    status_effects: List[str]
+    status_effects: List[str | int] = Field(default_factory=list)
     is_fainted: bool
     can_move: bool
     move_pp: List[int] = Field(default_factory=list)

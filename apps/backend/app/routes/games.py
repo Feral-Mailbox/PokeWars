@@ -38,6 +38,22 @@ TYPE_EFFECTIVENESS = {
     "fairy": {"weak": ["fighting", "dragon", "dark"], "resist": ["fire", "poison", "steel"], "immune": []},
 }
 
+VALID_STATUS_EFFECTS = {
+    "burn",
+    "sleep",
+    "poison",
+    "badly_poisoned",
+    "frozen",
+    "paralysis",
+}
+
+SHORT_DURATION_STATUS_EFFECTS = {"sleep", "frozen"}
+
+STATUS_NAME_ALIASES = {
+    "badly_poison": "badly_poisoned",
+    "badly_poisoned": "badly_poisoned",
+}
+
 
 def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
     if not move_type:
@@ -77,6 +93,91 @@ def default_stat_boosts() -> dict:
         "accuracy": [],
         "evasion": [],
     }
+
+
+def normalize_status_name(status: str) -> str:
+    normalized = str(status).lower().strip()
+    return STATUS_NAME_ALIASES.get(normalized, normalized)
+
+
+def normalize_status_effects(raw: list | dict | str | None) -> list:
+    def parse_single_status(value) -> list | None:
+        if isinstance(value, dict):
+            status = normalize_status_name(str(value.get("status", "")))
+            if status not in VALID_STATUS_EFFECTS:
+                return None
+            expires_turn = value.get("expires_turn", 1)
+            if not isinstance(expires_turn, (int, float)):
+                expires_turn = 1
+            if status == "badly_poisoned":
+                bad_poison_turn = value.get("bad_poison_turn", 1)
+                if not isinstance(bad_poison_turn, (int, float)):
+                    bad_poison_turn = 1
+                return [status, int(expires_turn), int(bad_poison_turn)]
+            return [status, int(expires_turn)]
+
+        if isinstance(value, list) and len(value) >= 2:
+            status_raw, expires_turn_raw = value[0], value[1]
+            status = normalize_status_name(status_raw)
+            if status not in VALID_STATUS_EFFECTS:
+                return None
+            if not isinstance(expires_turn_raw, (int, float)):
+                return None
+            if status == "badly_poisoned":
+                bad_poison_turn_raw = value[2] if len(value) >= 3 else 1
+                if not isinstance(bad_poison_turn_raw, (int, float)):
+                    bad_poison_turn_raw = 1
+                return [status, int(expires_turn_raw), int(bad_poison_turn_raw)]
+            return [status, int(expires_turn_raw)]
+
+        if isinstance(value, str):
+            status = normalize_status_name(value)
+            if status in VALID_STATUS_EFFECTS:
+                return [status, 1]
+
+        return None
+
+    if raw is None:
+        return []
+
+    # Canonical: [status, turns]
+    parsed = parse_single_status(raw)
+    if parsed:
+        return parsed
+
+    # Backwards compatibility: nested arrays/lists with first valid entry
+    if isinstance(raw, list):
+        for entry in raw:
+            parsed_entry = parse_single_status(entry)
+            if parsed_entry:
+                return parsed_entry
+
+    return []
+
+
+def get_status_duration(status: str) -> int:
+    if status in SHORT_DURATION_STATUS_EFFECTS:
+        return random.randint(2, 4)
+    return random.randint(4, 7)
+
+
+def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
+    status = normalize_status_name(status)
+    if status not in VALID_STATUS_EFFECTS:
+        return False
+
+    current_status_effects = normalize_status_effects(unit.status_effects)
+    has_active_status = len(current_status_effects) == 2 and int(current_status_effects[1]) > 0
+    if has_active_status:
+        return False
+
+    duration = get_status_duration(status)
+    if status == "badly_poisoned":
+        unit.status_effects = [status, duration, 1]
+    else:
+        unit.status_effects = [status, duration]
+    db.add(unit)
+    return True
 
 
 def normalize_stat_boosts(raw: dict | None) -> dict:
@@ -258,43 +359,67 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
     
     for effect_str in move.effects:
         parts = effect_str.split(":")
-        if len(parts) < 4:
+        if len(parts) < 2:
             continue  # Invalid format
         
         recipient = parts[0]  # "self" or "target"
         effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
-        
-        # Only handle stat changes for now
-        if effect_type not in ["raise_stat", "lower_stat"]:
-            continue
-        
-        stat_name = parts[2]
-        try:
-            magnitude_val = int(parts[3])
-        except ValueError:
-            continue
-        
-        # Check accuracy if provided
-        accuracy = 100  # Default: always applies
-        if len(parts) >= 5:
+
+        if effect_type in ["raise_stat", "lower_stat"]:
+            if len(parts) < 4:
+                continue
+
+            stat_name = parts[2]
             try:
-                accuracy = int(parts[4])
+                magnitude_val = int(parts[3])
             except ValueError:
-                pass
-        
-        # Roll for accuracy
-        if random.randint(1, 100) > accuracy:
-            continue  # Effect didn't trigger
-        
-        # Determine sign based on effect type
-        magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
-        
-        # Apply to appropriate unit(s)
-        if recipient == "self":
-            apply_stat_change(attacker, stat_name, magnitude, current_turn, db)
-        elif recipient == "target":
-            for target in targets:
-                apply_stat_change(target, stat_name, magnitude, current_turn, db)
+                continue
+
+            accuracy = 100
+            if len(parts) >= 5:
+                try:
+                    accuracy = int(parts[4])
+                except ValueError:
+                    pass
+
+            if random.randint(1, 100) > accuracy:
+                continue
+
+            magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
+
+            if recipient == "self":
+                apply_stat_change(attacker, stat_name, magnitude, current_turn, db)
+            elif recipient == "target":
+                for target in targets:
+                    apply_stat_change(target, stat_name, magnitude, current_turn, db)
+
+        elif effect_type == "status":
+            if len(parts) < 3:
+                continue
+
+            status_name = parts[2]
+            accuracy = 100
+            if len(parts) >= 4:
+                try:
+                    accuracy = int(parts[3])
+                except ValueError:
+                    pass
+
+            if random.randint(1, 100) > accuracy:
+                continue
+
+            if recipient == "self":
+                apply_status_effect(attacker, status_name, db)
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) > 0:
+                        apply_status_effect(target, status_name, db)
+
+
+def move_deals_direct_damage(move: Move) -> bool:
+    category = (move.category or "").lower()
+    power = move.power or 0
+    return category in {"physical", "special"} and power > 0
 
 def decrement_and_expire_stat_boosts(user_id: int, game_id: int, db: Session) -> list[int]:
     """
@@ -340,6 +465,69 @@ def decrement_and_expire_stat_boosts(user_id: int, game_id: int, db: Session) ->
             db.add(unit)
             modified_unit_ids.append(unit.id)
     
+    return modified_unit_ids
+
+
+def decrement_and_expire_status_effects(user_id: int, game_id: int, db: Session) -> list[int]:
+    """
+    Decrement status timers for a player's units and remove expired statuses.
+    Returns list of unit IDs that had their status effects modified.
+    """
+    units = db.query(GameUnit).filter(
+        GameUnit.game_id == game_id,
+        GameUnit.user_id == user_id
+    ).all()
+
+    modified_unit_ids = []
+
+    for unit in units:
+        status_effect = normalize_status_effects(unit.status_effects)
+        if not status_effect:
+            if unit.status_effects:
+                unit.status_effects = []
+                db.add(unit)
+                modified_unit_ids.append(unit.id)
+            continue
+
+        status_name = status_effect[0]
+        turns_remaining = int(status_effect[1]) - 1
+
+        # Expire first; if cured this turn, skip all status effects.
+        if turns_remaining <= 0:
+            unit.status_effects = []
+            db.add(unit)
+            modified_unit_ids.append(unit.id)
+            continue
+
+        max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+        current_hp = int(unit.current_hp or 0)
+
+        if status_name in {"burn", "poison"}:
+            damage = max(1, max_hp // 8) if max_hp > 0 else 0
+            unit.current_hp = max(0, current_hp - damage)
+        elif status_name == "badly_poisoned":
+            bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
+            bad_poison_turn = max(1, bad_poison_turn)
+            damage = max(1, (max_hp * bad_poison_turn) // 16) if max_hp > 0 else 0
+            unit.current_hp = max(0, current_hp - damage)
+            status_effect[2] = bad_poison_turn + 1
+        elif status_name == "sleep":
+            unit.can_move = False
+        elif status_name == "frozen":
+            unit.can_move = False
+        elif status_name == "paralysis":
+            if random.randint(1, 100) <= 25:
+                unit.can_move = False
+
+        if turns_remaining > 0:
+            if status_name == "badly_poisoned":
+                unit.status_effects = [status_name, turns_remaining, int(status_effect[2])]
+            else:
+                unit.status_effects = [status_name, turns_remaining]
+
+        db.add(unit)
+        modified_unit_ids.append(unit.id)
+
     return modified_unit_ids
 
 def get_remaining_unit_counts(game_id: int, db: Session) -> dict:
@@ -440,7 +628,8 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     
     # Decrement and expire stat boosts for the new current player's units
     new_current_player_id = state.players[state.current_turn % len(state.players)]
-    modified_unit_ids = decrement_and_expire_stat_boosts(new_current_player_id, game.id, db)
+    modified_unit_ids = set(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
+    modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
     
     # Broadcast stat updates for units that had boosts expire
     for unit_id in modified_unit_ids:
@@ -512,7 +701,6 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
 
     # Store as a hash: field=unit_id, value=json
     for gu in units:
-        gu.can_move = True
         rng = (gu.unit.base_stats or {}).get("range", 0)
         tiles = movement_range_backend((gu.starting_x, gu.starting_y), rng, costs, width, height)
         redis_client.hset(
@@ -912,6 +1100,7 @@ def get_game_units(
             unit.move_pp = []
         elif not isinstance(unit.move_pp, list):
             unit.move_pp = list(unit.move_pp) if unit.move_pp else []
+        unit.status_effects = normalize_status_effects(unit.status_effects)
     
     return units
 
@@ -976,7 +1165,7 @@ def place_unit(
         level=level,
         current_stats=current_stats,  # Initial stats without boosts
         stat_boosts=normalize_stat_boosts(unit_data.stat_boosts),
-        status_effects=unit_data.status_effects,
+        status_effects=normalize_status_effects(unit_data.status_effects),
         is_fainted=unit_data.is_fainted,
         move_pp=move_pp,
     )
@@ -1087,6 +1276,13 @@ def end_turn(
 
     state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
 
+    new_current_player_id = state.players[state.current_turn % len(state.players)]
+    modified_unit_ids = set(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
+    modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
+
+    for unit_id in modified_unit_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
         draw_player_ids = get_draw_player_ids(game, state, db)
@@ -1189,7 +1385,7 @@ def execute_move(
     targets_multiplier = 0.75 if len(targets) >= 2 else 1
     damage_results = []
     removed_ids: List[int] = []
-    if targets:
+    if targets and move_deals_direct_damage(move):
         category = (move.category or "").lower()
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
@@ -1279,7 +1475,8 @@ def execute_move(
 
         # Decrement and expire stat boosts for the new current player's units
         new_current_player_id = state.players[state.current_turn % len(state.players)]
-        modified_unit_ids = decrement_and_expire_stat_boosts(new_current_player_id, game.id, db)
+        modified_unit_ids = set(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
+        modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
         
         # Broadcast stat updates for units that had boosts expire
         for unit_id in modified_unit_ids:

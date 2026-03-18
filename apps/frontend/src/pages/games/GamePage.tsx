@@ -163,6 +163,61 @@ export default function GamePage() {
     return getPlayerColor(unit.user_id ?? 0);
   }
 
+  function getAssetBaseUrl(): string {
+    const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
+    const normalizedBase = assetBase.startsWith("http")
+      ? assetBase
+      : `${window.location.origin}${assetBase.startsWith("/") ? "" : "/"}${assetBase}`;
+    return normalizedBase.replace(/\/$/, "");
+  }
+
+  function normalizeStatusName(status: string): string {
+    const normalized = String(status || "").toLowerCase();
+    if (normalized === "badly_poison") return "badly_poisoned";
+    return normalized;
+  }
+
+  function getActiveStatusName(statusEffects: any): string | null {
+    if (!statusEffects) return null;
+
+    if (Array.isArray(statusEffects) && statusEffects.length === 2 && typeof statusEffects[0] === "string") {
+      return normalizeStatusName(statusEffects[0]);
+    }
+
+    if (Array.isArray(statusEffects) && Array.isArray(statusEffects[0]) && typeof statusEffects[0][0] === "string") {
+      return normalizeStatusName(statusEffects[0][0]);
+    }
+
+    if (Array.isArray(statusEffects) && typeof statusEffects[0] === "string") {
+      return normalizeStatusName(statusEffects[0]);
+    }
+
+    if (typeof statusEffects === "object" && typeof statusEffects.status === "string") {
+      return normalizeStatusName(statusEffects.status);
+    }
+
+    return null;
+  }
+
+  function getStatusIconSrc(statusEffects: any): string | null {
+    const status = getActiveStatusName(statusEffects);
+    if (!status) return null;
+
+    const iconByStatus: Record<string, string> = {
+      burn: "status_burn.png",
+      sleep: "status_sleep.png",
+      poison: "status_poisoned.png",
+      badly_poisoned: "status_poisoned.png",
+      frozen: "status_frozen.png",
+      paralysis: "status_paralysis.png",
+    };
+
+    const iconFile = iconByStatus[status];
+    if (!iconFile) return null;
+
+    return `${getAssetBaseUrl()}/misc/status_icons/${iconFile}`;
+  }
+
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId && u.id === ignoreUnitId) return false;
@@ -1090,6 +1145,7 @@ export default function GamePage() {
               tile: [u.current_x, u.current_y],
               current_hp: u.current_hp,
               user_id: u.user_id,
+              status_effects: u.status_effects ?? [],
               level: u.level,
               current_stats: u.current_stats,
               stat_boosts: u.stat_boosts || {},
@@ -1547,6 +1603,7 @@ export default function GamePage() {
                   ...u, 
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
+                  status_effects: updatedUnit.status_effects ?? u.status_effects ?? [],
                   move_pp: updatedUnit.move_pp || u.move_pp 
                 } : u)
               );
@@ -1557,6 +1614,7 @@ export default function GamePage() {
                   ...prev, 
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
+                  status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
                   move_pp: updatedUnit.move_pp || prev.move_pp 
                 } : prev;
               });
@@ -1567,6 +1625,7 @@ export default function GamePage() {
                   ...prev, 
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
+                  status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
                   move_pp: updatedUnit.move_pp || prev.move_pp 
                 } : prev;
               });
@@ -1623,6 +1682,7 @@ export default function GamePage() {
             tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
             user_id: u.user_id,
+            status_effects: u.status_effects ?? [],
             level: u.level,
             current_stats: u.current_stats,
             stat_boosts: u.stat_boosts || {},
@@ -1636,12 +1696,16 @@ export default function GamePage() {
           setLockedUnit(prev => {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp } : prev;
+            return updated
+              ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp, status_effects: updated.status_effects ?? prev.status_effects ?? [] }
+              : prev;
           });
           setHoveredUnit(prev => {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp } : prev;
+            return updated
+              ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp, status_effects: updated.status_effects ?? prev.status_effects ?? [] }
+              : prev;
           });
 
           try {
@@ -1864,7 +1928,7 @@ export default function GamePage() {
               onMouseEnter={() => {
                 if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
                   const live = placedUnits.find(p => p.id === id);
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
+                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, status_effects: live?.status_effects ?? [], can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
                 }
               }}
               onMouseLeave={() => {
@@ -1891,7 +1955,7 @@ export default function GamePage() {
                     if (cached) {
                       setHighlightedTiles(cached.tiles);
                       setUnitOriginalTile(cached.origin);
-                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, stat_boosts: placedUnits.find(p => p.id === id)?.stat_boosts, can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
+                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, stat_boosts: placedUnits.find(p => p.id === id)?.stat_boosts, status_effects: placedUnits.find(p => p.id === id)?.status_effects ?? [], can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
                     }
 
                     const movement = unit?.base_stats?.range ?? 0;
@@ -1906,7 +1970,7 @@ export default function GamePage() {
                     setHighlightedTiles(newTiles);
                     
                     setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
+                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, status_effects: live?.status_effects ?? [], can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
                   });
                 }
               }}
@@ -1995,13 +2059,23 @@ export default function GamePage() {
           const level = placedUnitAtTile.level;
           const currentHp = placedUnitAtTile.current_hp;
           const statusEffects = placedUnitAtTile.status_effects ?? [];
+          const statusIconSrc = getStatusIconSrc(statusEffects);
 
           return (
             <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <UnitPortrait assetFolder={unit.asset_folder} />
-                  <div className="font-semibold text-lg">{unit.name}</div>
+                  <div className="font-semibold text-lg flex items-center gap-2">
+                    <span>{unit.name}</span>
+                    {statusIconSrc && (
+                      <img
+                        src={statusIconSrc}
+                        alt="Status"
+                        className="w-12 h-12 object-contain"
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">
                   {currentHp ?? "?"}/{placedUnitAtTile?.current_stats?.hp ?? "?"}
@@ -2023,12 +2097,6 @@ export default function GamePage() {
               <div className="text-sm mb-2 font-medium">Level: {level}</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div>
-                  <span className="font-semibold">HP:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'hp')) }}>
-                    {placedUnitAtTile?.current_stats?.hp ?? "?"}
-                  </span>
-                </div>
                 <div>
                   <span className="font-semibold">Sp. Def:</span>{" "}
                   <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'sp_defense')) }}>
@@ -2180,6 +2248,7 @@ export default function GamePage() {
                           tile: [placedUnit.current_x, placedUnit.current_y],
                           current_hp: placedUnit.current_hp,
                           user_id: placedUnit.user_id,
+                          status_effects: placedUnit.status_effects ?? [],
                           level: placedUnit.level,
                           current_stats: placedUnit.current_stats,
                           can_move: placedUnit.can_move ?? true,
@@ -2224,6 +2293,7 @@ export default function GamePage() {
           const level = activeUnit.level;
           const currentHp = activeUnit.current_hp;
           const statusEffects = activeUnit.status_effects ?? [];
+          const statusIconSrc = getStatusIconSrc(statusEffects);
 
           return (
             <div
@@ -2234,7 +2304,16 @@ export default function GamePage() {
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <UnitPortrait assetFolder={unit.asset_folder} />
-                  <div className="font-semibold text-lg">{unit.name}</div>
+                  <div className="font-semibold text-lg flex items-center gap-2">
+                    <span>{unit.name}</span>
+                    {statusIconSrc && (
+                      <img
+                        src={statusIconSrc}
+                        alt="Status"
+                        className="w-12 h-12 object-contain"
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className="text-sm text-gray-300 font-medium">
                   {currentHp ?? "?"}/{activeUnit?.current_stats?.hp ?? "?"}
@@ -2256,12 +2335,6 @@ export default function GamePage() {
               <div className="text-sm mb-2 font-medium">Level: {level}</div>
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div>
-                  <span className="font-semibold">HP:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'hp')) }}>
-                    {activeUnit?.current_stats?.hp ?? "?"}
-                  </span>
-                </div>
                 <div>
                   <span className="font-semibold">Sp. Def:</span>{" "}
                   <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'sp_defense')) }}>

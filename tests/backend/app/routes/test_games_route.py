@@ -2,6 +2,7 @@
 import pytest
 import app.db.models as models
 from fastapi.testclient import TestClient
+from app.routes.games import process_move_effects, decrement_and_expire_status_effects, move_deals_direct_damage
 
 from app.main import app
 from app.dependencies import get_db, get_current_user
@@ -170,3 +171,309 @@ def test_get_game_by_link(client, db, user):
     resp = client.get("/games/forest123")
     assert resp.status_code == 200
     assert resp.json()["game_name"] == "Forest Battle"
+
+
+def test_process_move_effects_applies_status_to_target(db):
+    move = models.Move(
+        name="Status Test",
+        type="ghost",
+        category="Status",
+        effects=["target:status:burn"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(status_effects=[], current_hp=100)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert isinstance(target.status_effects, list)
+    assert len(target.status_effects) == 2
+    assert target.status_effects[0] == "burn"
+    assert 4 <= target.status_effects[1] <= 7
+
+
+def test_process_move_effects_does_not_override_existing_status(db):
+    move = models.Move(
+        name="Status Test 2",
+        type="psychic",
+        category="Status",
+        effects=["target:status:sleep"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=["poison", 3],
+        current_hp=100
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.status_effects[0] == "poison"
+    assert target.status_effects[1] == 3
+
+
+def test_decrement_and_expire_status_effects(db, user):
+    game = models.Game(
+        game_name="Status Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="status-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=50,
+        current_stats={"hp": 50},
+        status_effects=["sleep", 1],
+        is_fainted=False,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    modified = decrement_and_expire_status_effects(user.id, game.id, db)
+
+    db.refresh(unit)
+    assert unit.id in modified
+    assert unit.status_effects == []
+
+
+def test_process_move_effects_normalizes_badly_poisoned_name(db):
+    move = models.Move(
+        name="Toxic Test",
+        type="poison",
+        category="Status",
+        effects=["target:status:badly_poison"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(status_effects=[], current_hp=100)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert len(target.status_effects) == 2
+    assert target.status_effects[0] == "badly_poisoned"
+
+
+def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, user):
+    game = models.Game(
+        game_name="Burn Tick Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="burn-tick-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=80,
+        current_stats={"hp": 80},
+        status_effects=["burn", 4],
+        is_fainted=False,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+
+    assert unit.current_hp == 70  # 1/8 of 80 = 10
+    assert unit.status_effects == ["burn", 3]
+
+
+def test_decrement_and_expire_status_effects_badly_poisoned_scales_damage(db, user):
+    game = models.Game(
+        game_name="Toxic Tick Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="toxic-tick-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=160,
+        current_stats={"hp": 160},
+        status_effects=["badly_poisoned", 4, 1],
+        is_fainted=False,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+    assert unit.current_hp == 150  # 1/16 of 160 = 10
+    assert unit.status_effects == ["badly_poisoned", 3, 2]
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+    assert unit.current_hp == 130  # next turn 2/16 of 160 = 20
+    assert unit.status_effects == ["badly_poisoned", 2, 3]
+
+
+def test_decrement_and_expire_status_effects_paralysis_can_lock_action(db, user, monkeypatch):
+    game = models.Game(
+        game_name="Paralysis Tick Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="paralysis-tick-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=100,
+        current_stats={"hp": 100},
+        status_effects=["paralysis", 4],
+        is_fainted=False,
+        can_move=True,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    # Force paralysis proc
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 1)
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+
+    assert unit.can_move is False
+    assert unit.status_effects == ["paralysis", 3]
+
+
+def test_decrement_and_expire_status_effects_sleep_always_locks_action(db, user):
+    game = models.Game(
+        game_name="Sleep Tick Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="sleep-tick-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=100,
+        current_stats={"hp": 100},
+        status_effects=["sleep", 4],
+        is_fainted=False,
+        can_move=True,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+
+    assert unit.can_move is False
+    assert unit.status_effects == ["sleep", 3]
+
+
+def test_decrement_and_expire_status_effects_cured_sleep_does_not_lock_action(db, user):
+    game = models.Game(
+        game_name="Sleep Cure Tick Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="sleep-cure-tick-game"
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=100,
+        current_stats={"hp": 100},
+        status_effects=["sleep", 1],
+        is_fainted=False,
+        can_move=True,
+        move_pp=[]
+    )
+    db.add(unit)
+    db.commit()
+
+    decrement_and_expire_status_effects(user.id, game.id, db)
+    db.refresh(unit)
+
+    assert unit.status_effects == []
+    assert unit.can_move is True
+
+
+def test_move_deals_direct_damage_for_special_with_power():
+    move = models.Move(name="Flamethrower", category="Special", power=90)
+    assert move_deals_direct_damage(move) is True
+
+
+def test_move_deals_direct_damage_false_for_status_zero_power():
+    move = models.Move(name="Toxic", category="Status", power=0)
+    assert move_deals_direct_damage(move) is False
+
+
+def test_move_deals_direct_damage_false_for_physical_zero_power():
+    move = models.Move(name="NonDamaging", category="Physical", power=0)
+    assert move_deals_direct_damage(move) is False

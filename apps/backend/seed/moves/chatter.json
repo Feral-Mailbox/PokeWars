@@ -17,5 +17,5 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
   "sound_based": true,
-  "effects": ["target:status:confusion"]
+  "effects": ["target:confusion"]
 }
