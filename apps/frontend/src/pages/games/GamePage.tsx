@@ -71,6 +71,7 @@ export default function GamePage() {
   const [lockedUnit, setLockedUnit] = useState<any | null>(null);
   const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
   const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
+  const [unitSearchQuery, setUnitSearchQuery] = useState<string>("");
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const gameLinkRef = useRef<string | undefined>(undefined);
@@ -90,6 +91,13 @@ export default function GamePage() {
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
   const unitLimit = gameData?.unit_limit ?? 6;
+  const isUnitSelectMenuVisible =
+    isPreparationPhase &&
+    selectedTile &&
+    !placedUnits.some(
+      (u) => u.tile[0] === selectedTile[0] && u.tile[1] === selectedTile[1]
+    ) &&
+    placedUnits.length < unitLimit;
   
   // Derive current player from turn counter
   const currentPlayerId = 
@@ -1327,6 +1335,12 @@ export default function GamePage() {
   }, [isReady]);
 
   useEffect(() => {
+    if (!isUnitSelectMenuVisible) {
+      setUnitSearchQuery("");
+    }
+  }, [isUnitSelectMenuVisible]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (moveTargeting) return;
       const clickedEl = e.target as HTMLElement;
@@ -2214,11 +2228,22 @@ export default function GamePage() {
 
         // Case 2: Preparation phase + empty tile = Select Unit Menu
         if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
+          const filteredUnits = availableUnits.filter((unit) =>
+            String(unit.name || "").toLowerCase().includes(unitSearchQuery.toLowerCase().trim())
+          );
+
           return (
             <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
               <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
+              <input
+                type="text"
+                value={unitSearchQuery}
+                onChange={(e) => setUnitSearchQuery(e.target.value)}
+                placeholder="Search units..."
+                className="w-full mb-3 px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
+              />
               <ul className="space-y-2 text-sm">
-                {availableUnits.map((unit) => (
+                {filteredUnits.map((unit) => (
                   <li
                     key={unit.id}
                     className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
