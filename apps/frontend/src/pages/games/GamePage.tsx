@@ -700,9 +700,24 @@ export default function GamePage() {
     // For self-targeting (origin === target), return the target as-is
     if (dx === 0 && dy === 0) return [target];
 
+    const { kind, offset } = parseRangeSpec(activeMove);
     const useHorizontal = Math.abs(dx) >= Math.abs(dy);
     const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
     const overlayTiles = [...attackOverlay.normal, ...attackOverlay.invert];
+
+    // Sweep should only include the exact 3-tile band, not any extra diagonal spillover.
+    if (kind === "sweep") {
+      const sweepOffset = offset > 0 ? offset : 1;
+      return overlayTiles.filter(([x, y]) => {
+        const rx = x - ox;
+        const ry = y - oy;
+        if (useHorizontal) {
+          return rx === dir * sweepOffset && Math.abs(ry) <= 1;
+        }
+        return ry === dir * sweepOffset && Math.abs(rx) <= 1;
+      });
+    }
+
     return overlayTiles.filter(([x, y]) => {
       const rx = x - ox;
       const ry = y - oy;
