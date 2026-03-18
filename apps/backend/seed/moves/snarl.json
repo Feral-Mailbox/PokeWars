@@ -1,0 +1,21 @@
+{
+  "id": 555,
+  "name": "Snarl",
+  "description": "The user yells as if it's ranting about something, which lowers the Sp. Atk stat of opposing Pokémon.",
+  "type": "Dark",
+  "category": "Special",
+  "power": 55,
+  "accuracy": 95,
+  "pp": 15,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": ["target:lower_stat:special_attack:1"]
+}

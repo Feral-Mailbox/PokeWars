@@ -1,0 +1,20 @@
+{
+  "id": 480,
+  "name": "Storm Throw",
+  "description": "The user strikes the target with a fierce blow. This attack always results in a critical hit.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["guaranteed_crit"]
+}

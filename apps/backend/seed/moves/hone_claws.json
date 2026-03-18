@@ -1,0 +1,17 @@
+{
+  "id": 468,
+  "name": "Hone Claws",
+  "description": "The user sharpens its claws to boost its Attack stat and accuracy.",
+  "type": "Dark",
+  "category": "Status",
+  "pp": 15,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:attack:1", "self:raise_stat:accuracy:1"]
+}

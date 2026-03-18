@@ -1,0 +1,18 @@
+{
+  "id": 511,
+  "name": "Quash",
+  "description": "The user suppresses the target and makes prevents them from acting next turn.",
+  "type": "Dark",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 15,
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:cannot_act:1"]
+}

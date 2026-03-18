@@ -1,0 +1,20 @@
+{
+  "id": 508,
+  "name": "Shift Gear",
+  "description": "The user rotates its gears, raising its Attack stat and sharply raising its Speed stat.",
+  "type": "Steel",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:attack:1",
+    "self:raise_stat:speed:2"
+  ]
+}

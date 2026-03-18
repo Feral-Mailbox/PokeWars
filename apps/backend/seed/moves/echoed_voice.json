@@ -1,0 +1,21 @@
+{
+  "id": 497,
+  "name": "Echoed Voice",
+  "description": "The user attacks the target with an echoing voice. If this move is used every turn, its power is increased.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": ["stacking_power:condition:successive_hits:base:40:mod:add:max:200"]
+}

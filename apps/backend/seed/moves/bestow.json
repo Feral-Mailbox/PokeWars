@@ -1,0 +1,18 @@
+{
+  "id": 516,
+  "name": "Bestow",
+  "description": "The user passes its held item to the target when the target isn't holding an item.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:give_item:self:holding_item"]
+}

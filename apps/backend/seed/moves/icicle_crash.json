@@ -1,7 +1,7 @@
 {
   "id": 556,
   "name": "Icicle Crash",
-  "description": "The user attacks by harshly dropping an icicle onto the target. It may also make the target flinch.",
+  "description": "The user attacks by harshly dropping large icicles onto the target. This may also make the target flinch.",
   "type": "Ice",
   "category": "Physical",
   "power": 85,

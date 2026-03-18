@@ -1,7 +1,7 @@
 {
   "id": 539,
   "name": "Night Daze",
-  "description": "The user lets loose a pitch-black shock wave at its target. It may also lower the target's accuracy.",
+  "description": "The user lets loose a pitch-black shock wave at its target. This may also lower the target's accuracy.",
   "type": "Dark",
   "category": "Special",
   "power": 85,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:lower_stat:accuracy:1:40"]
+  "effects": ["target:lower_stats:accuracy:40"]
 }

@@ -18,8 +18,8 @@
   "affected_by_kings_rock": true,
   "effects": [
     "delayed_hit:1",
-    "self:apply_state:airborne:1",
-    "target:apply_state:airborne:1",
-    "target:prevent_action:1"
+    "self:apply_state:airborne:1", 
+    "target:apply_state:airborne:1", 
+    "target:cannot_act:1"
   ]
 }

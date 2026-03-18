@@ -1,0 +1,19 @@
+{
+  "id": 493,
+  "name": "Simple Beam",
+  "description": "The user's mysterious psychic wave changes the target's Ability to Simple.",
+  "type": "Normal",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 15,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:change_ability:simple"]
+}

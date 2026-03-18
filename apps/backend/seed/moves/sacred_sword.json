@@ -1,7 +1,7 @@
 {
   "id": 533,
   "name": "Sacred Sword",
-  "description": "The user attacks by slicing with its long horns. The target's stat changes don't affect this attack's damage.",
+  "description": "The user attacks by slicing with a long horn. The target's stat changes don't affect this attack's damage.",
   "type": "Fighting",
   "category": "Physical",
   "power": 90,
@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["target:ignore_modifiers:defense,evasion"]
+  "effects": ["target:ignore_stat_changes"]
 }

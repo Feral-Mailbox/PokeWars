@@ -1,0 +1,21 @@
+{
+  "id": 483,
+  "name": "Quiver Dance",
+  "description": "The user lightly performs a beautiful, mystic dance. This boosts the user's Sp. Atk, Sp. Def, and Speed stats.",
+  "type": "Bug",
+  "category": "Status",
+  "pp": 20,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:special_atk:1",
+    "self:raise_stat:special_def:1",
+    "self:raise_stat:speed:1"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": 540,
   "name": "Psystrike",
-  "description": "The user materializes an odd psychic wave to attack the target. This move deals physical damage.",
+  "description": "The user materializes an odd psychic wave to attack the target. This attack does physical damage.",
   "type": "Psychic",
   "category": "Special",
   "power": 100,
@@ -9,7 +9,7 @@
   "pp": 10,
   "range": "inverted_cone:2",
   "targeting": "enemy",
-  "cooldown": 1,
+  "cooldown": 0,
   "makes_contact": false,
   "affected_by_protect": true,
   "affected_by_magic_coat": false,

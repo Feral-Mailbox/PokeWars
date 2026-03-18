@@ -1,0 +1,20 @@
+{
+  "id": 531,
+  "name": "Heart Stamp",
+  "description": "The user unleashes a vicious blow after its cute act makes the target less wary. This may also make the target flinch.",
+  "type": "Psychic",
+  "category": "Physical",
+  "power": 60,
+  "accuracy": 100,
+  "pp": 25,
+  "range": "inverted_cone:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:flinch:30"]
+}

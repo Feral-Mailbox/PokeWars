@@ -1,0 +1,20 @@
+{
+  "id": 514,
+  "name": "Retaliate",
+  "description": "The user gets revenge for a fainted ally. If an ally fainted in the previous turn, this move's power is increased.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["conditional_power:ally_fainted:2"]
+}

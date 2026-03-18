@@ -1,0 +1,20 @@
+{
+  "id": 500,
+  "name": "Stored Power",
+  "description": "The user attacks the target with stored power. The more the user's stats are raised, the greater the move's power.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 20,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["stacking_power:condition:stat_changes:base:20:mod:add:max:200"]
+}

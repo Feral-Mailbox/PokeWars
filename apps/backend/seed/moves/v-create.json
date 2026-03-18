@@ -7,7 +7,7 @@
   "power": 180,
   "accuracy": 95,
   "pp": 5,
-  "range": "dash_attack_sides",
+  "range": "inverted_cone:3",
   "targeting": "enemy",
   "cooldown": 2,
   "makes_contact": true,

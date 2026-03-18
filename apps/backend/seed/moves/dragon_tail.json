@@ -1,7 +1,7 @@
 {
   "id": 525,
   "name": "Dragon Tail",
-  "description": "The target is knocked away and switched with those behind it.",
+  "description": "The target is knocked away, and a different Pokémon is dragged out. In the wild, this ends a battle against a single Pokémon.",
   "type": "Dragon",
   "category": "Physical",
   "power": 60,
@@ -16,8 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": [
-    "target:knockback:1",
-    "target:swap_with_behind"
-  ]
+  "effects": ["target:knockback:switch:1"]
 }

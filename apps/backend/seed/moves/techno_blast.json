@@ -1,0 +1,27 @@
+{
+  "id": 546,
+  "name": "Techno Blast",
+  "description": "The user fires a beam of light at its target. The move's type changes depending on the Drive the user holds.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_type:held_item:normal_memory:normal",
+    "conditional_type:held_item:fire_memory:fire",
+    "conditional_type:held_item:water_memory:water",
+    "conditional_type:held_item:electric_memory:electric",
+    "conditional_type:held_item:grass_memory:grass",
+    "conditional_type:held_item:ice_memory:ice"
+  ]
+}

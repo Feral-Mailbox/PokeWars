@@ -1,0 +1,17 @@
+{
+  "id": 475,
+  "name": "Autotomize",
+  "description": "The user sheds part of its body to make itself lighter and sharply raise its Speed stat.",
+  "type": "Steel",
+  "category": "Status",
+  "pp": 15,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:raise_stat:speed:2"]
+}

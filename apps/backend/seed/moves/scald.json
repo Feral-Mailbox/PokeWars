@@ -1,0 +1,20 @@
+{
+  "id": 503,
+  "name": "Scald",
+  "description": "The user shoots boiling hot water at its target. This may also leave the target with a burn.",
+  "type": "Water",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:apply_status:burn:30", "target:thaw_if_frozen"]
+}

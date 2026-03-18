@@ -1,0 +1,20 @@
+{
+  "id": 549,
+  "name": "Glaciate",
+  "description": "The user attacks by blowing freezing cold air at opposing Pokémon. This lowers their Speed stat.",
+  "type": "Ice",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 95,
+  "pp": 10,
+  "range": "inverted_cone:4",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:lower_stats:speed"]
+}

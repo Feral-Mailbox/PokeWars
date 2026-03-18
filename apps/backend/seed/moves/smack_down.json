@@ -1,0 +1,20 @@
+{
+  "id": 479,
+  "name": "Smack Down",
+  "description": "The user throws a stone or similar projectile to attack an opponent. A flying Pokémon will fall to the ground when it's hit.",
+  "type": "Rock",
+  "category": "Physical",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:apply_state:grounded"]
+}

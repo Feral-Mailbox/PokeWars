@@ -16,5 +16,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
-  "effects": ["conditional_power:target_below_50_percent_hp:2"]
+  "effects": ["conditional_power:below_50_percent_hp:2"]
 }

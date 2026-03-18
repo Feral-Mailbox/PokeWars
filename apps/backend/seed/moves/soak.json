@@ -1,0 +1,19 @@
+{
+  "id": 487,
+  "name": "Soak",
+  "description": "The user shoots a torrent of water at the target and changes the target's type to Water.",
+  "type": "Water",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:change_type:water"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 551,
+  "name": "Blue Flare",
+  "description": "The user attacks by engulfing the target in an intense, yet beautiful, blue flame. This may also leave the target with a burn.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 130,
+  "accuracy": 85,
+  "pp": 5,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:apply_status:burn:20"]
+}

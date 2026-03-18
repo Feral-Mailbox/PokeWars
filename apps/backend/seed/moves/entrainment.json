@@ -1,0 +1,18 @@
+{
+  "id": 494,
+  "name": "Entrainment",
+  "description": "The user dances with an odd rhythm that compels the target to mimic it, making the target's Ability the same as the user's.",
+  "type": "Normal",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 15,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:copy_ability:self"]
+}

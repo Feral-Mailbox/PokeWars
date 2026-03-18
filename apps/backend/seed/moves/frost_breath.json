@@ -1,0 +1,20 @@
+{
+  "id": 524,
+  "name": "Frost Breath",
+  "description": "The user blows its cold breath on the target. This attack always results in a critical hit.",
+  "type": "Ice",
+  "category": "Special",
+  "power": 60,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "inverted_cone:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["guaranteed_crit"]
+}
