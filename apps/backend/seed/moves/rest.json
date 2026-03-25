@@ -13,5 +13,5 @@
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["self:sleep:2", "self:heal:1"]
+  "effects": ["self:sleep", "self:heal:1"]
 }

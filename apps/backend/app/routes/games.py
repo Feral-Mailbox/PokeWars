@@ -300,7 +300,7 @@ def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
             # HP is not affected by stat boosts in battle
             effective_stats[stat_name] = base_stat
         elif stat_name.lower() == "range":
-            # Range is derived from speed after all modifiers.
+            # Range is derived from speed after all modifiers - will be calculated below
             continue
         else:
             # Other stats formula: floor((2 × Base × Level) / 100 + 5)
@@ -321,10 +321,26 @@ def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
 
     # Movement range scales with current speed (after boosts/debuffs/status).
     speed_value = effective_stats.get("speed")
-    if isinstance(speed_value, (int, float)):
+    if isinstance(speed_value, (int, float)) and speed_value > 0:
         effective_stats["range"] = max(0, int(2 + (speed_value / 50)))
     else:
         effective_stats["range"] = 0
+    
+    # Ensure no stat keys are missing by comparing against base_stats
+    for stat_name in unit_info.base_stats.keys():
+        if stat_name not in effective_stats:
+            # Fallback: if a stat key is missing, recalculate it
+            base_value = unit_info.base_stats[stat_name]
+            if stat_name.lower() == "hp":
+                effective_stats[stat_name] = int((2 * base_value * level) / 100) + level + 10
+            elif stat_name.lower() == "range":
+                # range already calculated above
+                if "range" not in effective_stats:
+                    effective_stats["range"] = 0
+            else:
+                base_stat = int((2 * base_value * level) / 100 + 5)
+                multiplier = get_stat_multiplier(unit.stat_boosts, stat_name)
+                effective_stats[stat_name] = int(base_stat * multiplier)
     
     return effective_stats
 
@@ -463,6 +479,32 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                 for target in targets:
                     if (target.current_hp or 0) > 0:
                         apply_status_effect(target, status_name, db)
+
+        elif effect_type == "heal":
+            if len(parts) < 3:
+                continue
+
+            try:
+                denominator = int(parts[2])
+                if denominator <= 0:
+                    continue
+            except ValueError:
+                continue
+
+            if recipient == "self":
+                # Get max HP from attacker's current_stats
+                max_hp = (attacker.current_stats or {}).get("hp", 1)
+                heal_amount = max(1, max_hp // denominator)
+                attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
+                db.add(attacker)
+            elif recipient == "target":
+                for target in targets:
+                    # Only heal if target is alive
+                    if (target.current_hp or 0) > 0:
+                        max_hp = (target.current_stats or {}).get("hp", 1)
+                        heal_amount = max(1, max_hp // denominator)
+                        target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
+                        db.add(target)
 
 
 def move_deals_direct_damage(move: Move) -> bool:
@@ -1213,6 +1255,19 @@ def get_game_units(
         elif not isinstance(unit.move_pp, list):
             unit.move_pp = list(unit.move_pp) if unit.move_pp else []
         unit.status_effects = normalize_status_effects(unit.status_effects)
+        
+        # Ensure current_stats is properly populated - recalculate if missing keys
+        if not isinstance(unit.current_stats, dict) or not unit.current_stats:
+            unit.current_stats = compute_effective_stats(unit, db)
+        else:
+            # Check if all expected stat keys are present
+            unit_info = db.query(Unit).filter_by(id=unit.unit_id).first()
+            if unit_info and isinstance(unit_info.base_stats, dict):
+                expected_keys = set(unit_info.base_stats.keys())
+                actual_keys = set(unit.current_stats.keys())
+                # If any expected stat is missing, recalculate
+                if not expected_keys.issubset(actual_keys):
+                    unit.current_stats = compute_effective_stats(unit, db)
     
     return units
 
@@ -1286,6 +1341,21 @@ def place_unit(
     
     # Recalculate current_stats to apply any initial stat boosts
     new_unit.current_stats = compute_effective_stats(new_unit, db)
+    # Ensure current_stats has all expected keys
+    unit_info_for_stats = db.query(Unit).filter_by(id=new_unit.unit_id).first()
+    if unit_info_for_stats and isinstance(unit_info_for_stats.base_stats, dict):
+        for stat_name in unit_info_for_stats.base_stats.keys():
+            if stat_name.lower() != "range" and stat_name not in new_unit.current_stats:
+                # Fallback calculation if stat is missing
+                base_value = unit_info_for_stats.base_stats[stat_name]
+                level = new_unit.level or 50
+                if stat_name.lower() == "hp":
+                    new_unit.current_stats[stat_name] = int((2 * base_value * level) / 100) + level + 10
+                else:
+                    base_stat = int((2 * base_value * level) / 100 + 5)
+                    multiplier = get_stat_multiplier(new_unit.stat_boosts, stat_name)
+                    new_unit.current_stats[stat_name] = int(base_stat * multiplier)
+    
     db.add(new_unit)
 
     # Step 2: Update player state

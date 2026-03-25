@@ -2210,38 +2210,38 @@ export default function GamePage() {
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div>
                   <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'attack') }}>
-                    {placedUnitAtTile?.current_stats?.attack ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'attack') }}>
+                    {activeUnit?.current_stats?.attack ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_defense') }}>
-                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'sp_defense') }}>
+                    {activeUnit?.current_stats?.sp_defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'defense') }}>
-                    {placedUnitAtTile?.current_stats?.defense ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'defense') }}>
+                    {activeUnit?.current_stats?.defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'speed') }}>
-                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'speed') }}>
+                    {activeUnit?.current_stats?.speed ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_attack') }}>
-                    {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'sp_attack') }}>
+                    {activeUnit?.current_stats?.sp_attack ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'range') }}>
-                    {placedUnitAtTile?.current_stats?.range ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'range') }}>
+                    {activeUnit?.current_stats?.range ?? "?"}
                   </span>
                 </div>
               </div>
@@ -2459,38 +2459,38 @@ export default function GamePage() {
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div>
                   <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'attack') }}>
-                    {placedUnitAtTile?.current_stats?.attack ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'attack') }}>
+                    {activeUnit?.current_stats?.attack ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_defense') }}>
-                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'sp_defense') }}>
+                    {activeUnit?.current_stats?.sp_defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'defense') }}>
-                    {placedUnitAtTile?.current_stats?.defense ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'defense') }}>
+                    {activeUnit?.current_stats?.defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'speed') }}>
-                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'speed') }}>
+                    {activeUnit?.current_stats?.speed ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_attack') }}>
-                    {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'sp_attack') }}>
+                    {activeUnit?.current_stats?.sp_attack ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(placedUnitAtTile, 'range') }}>
-                    {placedUnitAtTile?.current_stats?.range ?? "?"}
+                  <span style={{ color: getStatColor(activeUnit, 'range') }}>
+                    {activeUnit?.current_stats?.range ?? "?"}
                   </span>
                 </div>
               </div>

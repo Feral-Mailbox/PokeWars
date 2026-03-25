@@ -17,5 +17,5 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
   "sound_based": true,
-  "effects": ["target:apply_status:sleep:10", "target:switch_form"]
+  "effects": ["target:status:sleep:10", "target:switch_form"]
 }
