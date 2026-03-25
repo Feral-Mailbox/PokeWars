@@ -279,6 +279,77 @@ def get_stat_multiplier(stat_boosts: dict, stat: str) -> float:
     else:  # total_stage < 0
         return 2 / (2 - total_stage)
 
+
+def get_stat_stage(stat_boosts: dict, stat: str) -> int:
+    """Return summed stat stage for the stat, clamped to +/- 6."""
+    stat = normalize_stat_name(stat)
+    boosts = normalize_stat_boosts(stat_boosts)
+    if stat not in boosts:
+        return 0
+
+    instances = boosts.get(stat, [])
+    if not isinstance(instances, list):
+        return 0
+
+    total_stage = 0
+    for inst in instances:
+        if isinstance(inst, dict):
+            magnitude = inst.get("magnitude", 0)
+            if isinstance(magnitude, (int, float)):
+                total_stage += int(magnitude)
+
+    return max(-6, min(6, total_stage))
+
+
+def get_accuracy_stage_multiplier(attacker_accuracy_stage: int, target_evasion_stage: int) -> float:
+    """
+    Gen V+ style accuracy/evasion multiplier.
+    Uses adjusted stage = attacker accuracy stage - target evasion stage (clamped to +/- 6).
+    """
+    adjusted_stage = max(-6, min(6, attacker_accuracy_stage - target_evasion_stage))
+    if adjusted_stage >= 0:
+        return (3 + adjusted_stage) / 3
+    return 3 / (3 - adjusted_stage)
+
+
+def get_modified_accuracy_threshold(move_accuracy: int | None, attacker: GameUnit, target: GameUnit) -> float | None:
+    """
+    Compute the hit threshold from move base accuracy and accuracy/evasion stages.
+    Returns None for perfect-accuracy moves.
+    """
+    if move_accuracy is None:
+        return None
+
+    try:
+        base_accuracy = float(move_accuracy)
+    except (TypeError, ValueError):
+        return None
+
+    attacker_accuracy_stage = get_stat_stage(attacker.stat_boosts, "accuracy")
+    target_evasion_stage = get_stat_stage(target.stat_boosts, "evasion")
+    stage_multiplier = get_accuracy_stage_multiplier(attacker_accuracy_stage, target_evasion_stage)
+
+    # Modifier bucket (abilities, weather, etc.) can be layered in later.
+    modifier = 1.0
+    return max(0.0, base_accuracy * modifier * stage_multiplier)
+
+
+def move_lands_on_target(move: Move, attacker: GameUnit, target: GameUnit) -> bool:
+    """
+    True if move lands on target based on modified accuracy threshold.
+    If move has no accuracy (null), it is treated as perfect accuracy.
+    """
+    threshold = get_modified_accuracy_threshold(move.accuracy, attacker, target)
+    if threshold is None:
+        return True
+    if threshold <= 0:
+        return False
+    if threshold >= 100:
+        return True
+
+    roll = random.uniform(0, 100)
+    return roll <= threshold
+
 def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
     """
     Compute the effective stats for a unit, applying stat boost multipliers.
@@ -1680,10 +1751,20 @@ def execute_move(
             .all()
         )
 
-    targets_multiplier = 0.75 if len(targets) >= 2 else 1
+    landed_targets = targets
+    missed_target_ids: List[int] = []
+    if targets and move.accuracy is not None:
+        landed_targets = []
+        for target in targets:
+            if move_lands_on_target(move, gu, target):
+                landed_targets.append(target)
+            else:
+                missed_target_ids.append(target.id)
+
+    targets_multiplier = 0.75 if len(landed_targets) >= 2 else 1
     damage_results = []
     removed_ids: List[int] = []
-    if targets and move_deals_direct_damage(move):
+    if landed_targets and move_deals_direct_damage(move):
         category = (move.category or "").lower()
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
@@ -1692,7 +1773,7 @@ def execute_move(
         attacker_types = gu.unit.types or []
         stab = 1.5 if move.type in attacker_types else 1
 
-        for target in targets:
+        for target in landed_targets:
             attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
             defense = (target.current_stats or {}).get(defense_stat, 1) or 1
             safe_defense = defense if defense > 0 else 1
@@ -1710,9 +1791,9 @@ def execute_move(
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
-    process_move_effects(move, gu, targets, state.current_turn, db)
+    process_move_effects(move, gu, landed_targets, state.current_turn, db)
 
-    recoil_fainted_ids = apply_damage_based_move_effects(move, gu, targets, damage_results, db)
+    recoil_fainted_ids = apply_damage_based_move_effects(move, gu, landed_targets, damage_results, db)
     if recoil_fainted_ids:
         removed_ids.extend(recoil_fainted_ids)
         removed_ids = list(set(removed_ids))
@@ -1755,6 +1836,7 @@ def execute_move(
                 "unit_id": gu.id, 
                 "move_pp": gu.move_pp,
                 "targets": damage_results, 
+                "missed_target_ids": missed_target_ids,
                 "removed_ids": removed_ids
             }
 
@@ -1822,6 +1904,7 @@ def execute_move(
         "unit_id": gu.id, 
         "move_pp": gu.move_pp,
         "targets": damage_results, 
+        "missed_target_ids": missed_target_ids,
         "removed_ids": removed_ids
     }
 

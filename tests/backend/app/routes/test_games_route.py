@@ -8,6 +8,8 @@ from app.routes.games import (
     move_deals_direct_damage,
     movement_range_backend,
     apply_damage_based_move_effects,
+    get_modified_accuracy_threshold,
+    move_lands_on_target,
 )
 
 from app.main import app
@@ -658,3 +660,53 @@ def test_movement_range_backend_allies_are_pass_through_when_not_blocked():
 
     # This tile is reachable in 2 steps if no blocker is present.
     assert [2, 0] in tiles
+
+
+def test_get_modified_accuracy_threshold_returns_none_for_perfect_accuracy_move():
+    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+    target = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+
+    threshold = get_modified_accuracy_threshold(None, attacker, target)
+    assert threshold is None
+
+
+def test_get_modified_accuracy_threshold_applies_accuracy_minus_evasion_stages():
+    attacker = models.GameUnit(
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [{"magnitude": 2, "expires_turn": 4}],
+            "evasion": [],
+        }
+    )
+    target = models.GameUnit(
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [{"magnitude": 1, "expires_turn": 4}],
+        }
+    )
+
+    # adjusted stage = +2 - +1 = +1 -> multiplier = 4/3 (Gen V+)
+    threshold = get_modified_accuracy_threshold(75, attacker, target)
+    assert threshold is not None
+    assert threshold == pytest.approx(100.0)
+
+
+def test_move_lands_on_target_uses_accuracy_threshold(db, monkeypatch):
+    move = models.Move(name="Acc Test", category="Special", accuracy=80)
+    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+    target = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+
+    monkeypatch.setattr("app.routes.games.random.uniform", lambda _a, _b: 81.0)
+    assert move_lands_on_target(move, attacker, target) is False
+
+    monkeypatch.setattr("app.routes.games.random.uniform", lambda _a, _b: 80.0)
+    assert move_lands_on_target(move, attacker, target) is True
