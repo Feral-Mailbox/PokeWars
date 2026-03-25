@@ -2,7 +2,13 @@
 import pytest
 import app.db.models as models
 from fastapi.testclient import TestClient
-from app.routes.games import process_move_effects, decrement_and_expire_status_effects, move_deals_direct_damage, movement_range_backend
+from app.routes.games import (
+    process_move_effects,
+    decrement_and_expire_status_effects,
+    move_deals_direct_damage,
+    movement_range_backend,
+    apply_damage_based_move_effects,
+)
 
 from app.main import app
 from app.dependencies import get_db, get_current_user
@@ -518,6 +524,94 @@ def test_move_deals_direct_damage_for_special_with_power():
 def test_move_deals_direct_damage_false_for_status_zero_power():
     move = models.Move(name="Toxic", category="Status", power=0)
     assert move_deals_direct_damage(move) is False
+
+
+def test_apply_damage_based_move_effects_drain_uses_summed_damage(db):
+    move = models.Move(
+        name="Drain Test",
+        category="Special",
+        effects=["self:drain:2"],
+    )
+    attacker = models.GameUnit(current_hp=50, current_stats={"hp": 100})
+    target1 = models.GameUnit(current_hp=70, current_stats={"hp": 100})
+    target2 = models.GameUnit(current_hp=80, current_stats={"hp": 100})
+
+    damage_results = [
+        {"id": 1, "damage": 30, "current_hp": 70},
+        {"id": 2, "damage": 20, "current_hp": 80},
+    ]
+
+    fainted_ids = apply_damage_based_move_effects(move, attacker, [target1, target2], damage_results, db)
+
+    assert fainted_ids == []
+    assert attacker.current_hp == 75  # floor((30 + 20) / 2) = 25 healed
+
+
+def test_apply_damage_based_move_effects_recoil_uses_summed_damage(db):
+    move = models.Move(
+        name="Recoil Test",
+        category="Physical",
+        effects=["self:recoil:damage_dealt:4"],
+    )
+    attacker = models.GameUnit(id=10, current_hp=40, current_stats={"hp": 100})
+    target1 = models.GameUnit(id=1, current_hp=60, current_stats={"hp": 100})
+    target2 = models.GameUnit(id=2, current_hp=80, current_stats={"hp": 100})
+
+    damage_results = [
+        {"id": 1, "damage": 24, "current_hp": 60},
+        {"id": 2, "damage": 16, "current_hp": 80},
+    ]
+
+    fainted_ids = apply_damage_based_move_effects(move, attacker, [target1, target2], damage_results, db)
+
+    assert fainted_ids == []
+    assert attacker.current_hp == 30  # floor((24 + 16) / 4) = 10 recoil
+
+
+def test_apply_damage_based_move_effects_target_recoil_updates_targets_and_results(db):
+    move = models.Move(
+        name="Target Recoil Test",
+        category="Special",
+        effects=["target:recoil:damage_dealt:2"],
+    )
+    attacker = models.GameUnit(id=99, current_hp=100, current_stats={"hp": 100})
+    target1 = models.GameUnit(id=1, current_hp=20, current_stats={"hp": 100})
+    target2 = models.GameUnit(id=2, current_hp=50, current_stats={"hp": 100})
+
+    damage_results = [
+        {"id": 1, "damage": 18, "current_hp": 20},
+        {"id": 2, "damage": 12, "current_hp": 50},
+    ]
+
+    fainted_ids = apply_damage_based_move_effects(move, attacker, [target1, target2], damage_results, db)
+
+    # floor((18 + 12) / 2) = 15 recoil to each target recipient
+    assert target1.current_hp == 5
+    assert target2.current_hp == 35
+    assert fainted_ids == []
+    assert damage_results[0]["current_hp"] == 5
+    assert damage_results[1]["current_hp"] == 35
+
+
+def test_apply_damage_based_move_effects_recoil_maximum_hp_uses_recipient_max_hp(db):
+    move = models.Move(
+        name="Max HP Recoil Test",
+        category="Physical",
+        effects=["self:recoil:maximum_hp:4"],
+    )
+    attacker = models.GameUnit(id=10, current_hp=40, current_stats={"hp": 120})
+    target = models.GameUnit(id=1, current_hp=70, current_stats={"hp": 100})
+
+    # damage dealt should not affect maximum_hp recoil amount
+    damage_results = [
+        {"id": 1, "damage": 10, "current_hp": 70},
+    ]
+
+    fainted_ids = apply_damage_based_move_effects(move, attacker, [target], damage_results, db)
+
+    # floor(120 / 4) = 30 recoil
+    assert fainted_ids == []
+    assert attacker.current_hp == 10
 
 
 def test_move_deals_direct_damage_false_for_physical_zero_power():

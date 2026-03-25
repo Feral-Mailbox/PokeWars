@@ -507,6 +507,118 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                         db.add(target)
 
 
+def apply_damage_based_move_effects(
+    move: Move,
+    attacker: GameUnit,
+    targets: List[GameUnit],
+    damage_results: List[dict],
+    db: Session,
+) -> List[int]:
+    """
+    Apply effects that scale from total direct damage dealt by this move.
+    Supported effect formats:
+    - self:drain:num
+    - self:recoil:damage_dealt:num
+    - self:recoil:maximum_hp:num
+    - target:drain:num
+    - target:recoil:damage_dealt:num
+    - target:recoil:maximum_hp:num
+    Drain amount is floor(total_damage_dealt / num).
+    """
+    if not move.effects:
+        return []
+
+    total_damage_dealt = sum(max(0, int(result.get("damage", 0) or 0)) for result in damage_results)
+
+    fainted_unit_ids: set[int] = set()
+
+    def apply_to_unit(unit: GameUnit, effect_type: str, amount: int):
+        if amount <= 0 or (unit.current_hp or 0) <= 0:
+            return
+
+        if effect_type == "drain":
+            max_hp = (unit.current_stats or {}).get("hp", unit.current_hp or 0)
+            if max_hp <= 0:
+                return
+            unit.current_hp = min(max_hp, (unit.current_hp or 0) + amount)
+            db.add(unit)
+        elif effect_type == "recoil":
+            unit.current_hp = max(0, (unit.current_hp or 0) - amount)
+            if unit.current_hp <= 0:
+                fainted_unit_ids.add(unit.id)
+            db.add(unit)
+
+    for effect_str in move.effects:
+        parts = effect_str.split(":")
+        recipient = parts[0]
+        effect_type = parts[1]
+        if effect_type not in {"drain", "recoil"}:
+            continue
+
+        if effect_type == "drain":
+            if len(parts) != 3:
+                continue
+            try:
+                denominator = int(parts[2])
+                if denominator <= 0:
+                    continue
+            except ValueError:
+                continue
+
+            effect_amount = total_damage_dealt // denominator
+            if effect_amount <= 0:
+                continue
+
+            if recipient == "self":
+                apply_to_unit(attacker, effect_type, effect_amount)
+            elif recipient == "target":
+                for target in targets:
+                    apply_to_unit(target, effect_type, effect_amount)
+            continue
+
+        # Recoil format: recipient:recoil:damage_dealt|maximum_hp:num
+        if len(parts) != 4:
+            continue
+
+        recoil_basis = parts[2]
+        try:
+            denominator = int(parts[3])
+            if denominator <= 0:
+                continue
+        except ValueError:
+            continue
+
+        recipients = [attacker] if recipient == "self" else (targets if recipient == "target" else [])
+        if not recipients:
+            continue
+
+        for unit in recipients:
+            if recoil_basis == "damage_dealt":
+                effect_amount = total_damage_dealt // denominator
+            elif recoil_basis == "maximum_hp":
+                max_hp = (unit.current_stats or {}).get("hp", unit.current_hp or 0)
+                if max_hp <= 0:
+                    continue
+                effect_amount = max_hp // denominator
+            else:
+                continue
+
+            if effect_amount <= 0:
+                continue
+
+            apply_to_unit(unit, effect_type, effect_amount)
+
+    # Keep response payload synchronized if a target's HP changed from a target-based recoil/drain.
+    if damage_results:
+        hp_by_id = {target.id: target.current_hp for target in targets}
+        for result in damage_results:
+            target_id = result.get("id")
+            if target_id in hp_by_id:
+                result["current_hp"] = hp_by_id[target_id]
+
+    return list(fainted_unit_ids)
+
+
 def move_deals_direct_damage(move: Move) -> bool:
     category = (move.category or "").lower()
     power = move.power or 0
@@ -1599,6 +1711,11 @@ def execute_move(
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
     process_move_effects(move, gu, targets, state.current_turn, db)
+
+    recoil_fainted_ids = apply_damage_based_move_effects(move, gu, targets, damage_results, db)
+    if recoil_fainted_ids:
+        removed_ids.extend(recoil_fainted_ids)
+        removed_ids = list(set(removed_ids))
     
     # Broadcast stat updates for units that may have been affected
     # This includes the attacker (self-buffs) and all targets (debuffs/buffs)
@@ -1607,7 +1724,12 @@ def execute_move(
         redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
 
     if removed_ids:
-        removed_units = [t for t in targets if t.id in removed_ids]
+        removed_units = (
+            db.query(GameUnit)
+            .filter(GameUnit.game_id == game.id, GameUnit.id.in_(removed_ids))
+            .all()
+        )
+        removed_ids = [unit.id for unit in removed_units]
         for unit in removed_units:
             player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=unit.user_id).first()
             if player_state and unit.id in player_state.game_units:
@@ -1636,8 +1758,10 @@ def execute_move(
                 "removed_ids": removed_ids
             }
 
-    gu.can_move = False
-    db.flush()
+    attacker_removed = gu.id in removed_ids
+    if not attacker_removed:
+        gu.can_move = False
+        db.flush()
     remaining_units = db.query(GameUnit).filter(
         GameUnit.game_id == game.id,
         GameUnit.user_id == current_player_id,
