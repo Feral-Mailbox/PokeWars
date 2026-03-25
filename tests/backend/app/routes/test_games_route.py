@@ -2,7 +2,7 @@
 import pytest
 import app.db.models as models
 from fastapi.testclient import TestClient
-from app.routes.games import process_move_effects, decrement_and_expire_status_effects, move_deals_direct_damage
+from app.routes.games import process_move_effects, decrement_and_expire_status_effects, move_deals_direct_damage, movement_range_backend
 
 from app.main import app
 from app.dependencies import get_db, get_current_user
@@ -208,6 +208,52 @@ def test_process_move_effects_does_not_override_existing_status(db):
 
     assert target.status_effects[0] == "poison"
     assert target.status_effects[1] == 3
+
+
+def make_unit_definition(unit_types):
+    return models.Unit(
+        species_id=999,
+        form_id=None,
+        name="Testmon",
+        species="Testmon",
+        asset_folder="testmon",
+        types=unit_types,
+        base_stats={"hp": 100},
+        move_ids=[],
+        ability_ids=[],
+        cost=0,
+        portrait_credits=[],
+        sprite_credits=[]
+    )
+
+
+@pytest.mark.parametrize(
+    "status_name,unit_types",
+    [
+        ("paralysis", ["electric"]),
+        ("poison", ["poison"]),
+        ("badly_poison", ["steel"]),
+        ("burn", ["fire"]),
+        ("frozen", ["ice"]),
+    ],
+)
+def test_process_move_effects_respects_type_status_immunities(db, status_name, unit_types):
+    move = models.Move(
+        name=f"Status {status_name}",
+        type="normal",
+        category="Status",
+        effects=[f"target:status:{status_name}"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        current_hp=100,
+        unit=make_unit_definition(unit_types)
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.status_effects == []
 
 
 def test_decrement_and_expire_status_effects(db, user):
@@ -477,3 +523,44 @@ def test_move_deals_direct_damage_false_for_status_zero_power():
 def test_move_deals_direct_damage_false_for_physical_zero_power():
     move = models.Move(name="NonDamaging", category="Physical", power=0)
     assert move_deals_direct_damage(move) is False
+
+
+def test_movement_range_backend_enemy_tile_blocks_path():
+    # 1x4 corridor, all movement costs are 1. Start at (0, 0).
+    # With range 3 and enemy at (1, 0), tiles beyond are unreachable without passing through it.
+    movement_costs = [
+        [1, 1, 1, 1],
+    ]
+
+    tiles = movement_range_backend(
+        start=(0, 0),
+        rng=3,
+        movement_costs=movement_costs,
+        width=4,
+        height=1,
+        blocked_tiles={(1, 0)},
+    )
+
+    assert [1, 0] not in tiles
+    assert [2, 0] not in tiles
+    assert [3, 0] not in tiles
+
+
+def test_movement_range_backend_allies_are_pass_through_when_not_blocked():
+    movement_costs = [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+    ]
+
+    tiles = movement_range_backend(
+        start=(1, 1),
+        rng=2,
+        movement_costs=movement_costs,
+        width=3,
+        height=3,
+        blocked_tiles=set(),
+    )
+
+    # This tile is reachable in 2 steps if no blocker is present.
+    assert [2, 0] in tiles

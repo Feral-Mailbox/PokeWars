@@ -157,24 +157,50 @@ export default function GamePage() {
     Fairy: "#D685AD",
   };
 
-  // Helper function to calculate total stat boost stage for a given stat
-  function getStatBoostStage(unit: any, statName: string): number {
-    if (!unit?.stat_boosts || !unit.stat_boosts[statName]) return 0;
-    
-    const instances = unit.stat_boosts[statName];
-    if (!Array.isArray(instances)) return 0;
-    
-    // Sum all magnitudes from active instances
-    return instances.reduce((total: number, inst: any) => {
-      return total + (inst?.magnitude || 0);
-    }, 0);
+  function getBaseBattleStatValue(unitState: any, statName: string): number | null {
+    const baseStats = unitState?.unit?.base_stats;
+    if (!baseStats || typeof baseStats !== 'object') return null;
+
+    const level = typeof unitState?.level === 'number' ? unitState.level : 50;
+    if (statName === 'range') {
+      const baseSpeed = baseStats?.speed;
+      if (typeof baseSpeed !== 'number') return null;
+      const baseBattleSpeed = Math.floor((2 * baseSpeed * level) / 100 + 5);
+      return Math.max(0, Math.floor(2 + (baseBattleSpeed / 50)));
+    }
+
+    const baseValue = baseStats?.[statName];
+    if (typeof baseValue !== 'number') return null;
+
+    if (statName === 'hp') {
+      return Math.floor((2 * baseValue * level) / 100) + level + 10;
+    }
+    return Math.floor((2 * baseValue * level) / 100 + 5);
   }
 
-  // Helper function to get color based on stat boost stage
-  function getStatColor(stage: number): string {
-    if (stage > 0) return '#22c55e'; // green-500 for boosts
-    if (stage < 0) return '#ef4444'; // red-500 for reductions
-    return '#ffffff'; // white for neutral
+  function getCurrentMovementRange(unitState: any): number {
+    const explicitRange = unitState?.current_stats?.range;
+    if (typeof explicitRange === 'number') return Math.max(0, Math.floor(explicitRange));
+
+    const currentSpeed = unitState?.current_stats?.speed;
+    if (typeof currentSpeed === 'number') return Math.max(0, Math.floor(2 + (currentSpeed / 50)));
+
+    const baseRange = getBaseBattleStatValue(unitState, 'range');
+    if (typeof baseRange === 'number') return Math.max(0, Math.floor(baseRange));
+
+    return 0;
+  }
+
+  function getStatColor(unitState: any, statName: string): string {
+    const currentValue = unitState?.current_stats?.[statName];
+    if (typeof currentValue !== 'number') return '#ffffff';
+
+    const baseValue = getBaseBattleStatValue(unitState, statName);
+    if (typeof baseValue !== 'number') return '#ffffff';
+
+    if (currentValue > baseValue) return '#22c55e';
+    if (currentValue < baseValue) return '#ef4444';
+    return '#ffffff';
   }
 
   function getPlayerColor(playerId: number): string {
@@ -877,7 +903,7 @@ export default function GamePage() {
         setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitId));
         setUnitOriginalTile(cached.origin);
       } else if (gameData?.map) {
-        const movement = activeUnit?.unit?.base_stats?.range ?? 0;
+        const movement = getCurrentMovementRange(activeUnit);
         const costMap = gameData.map.tile_data.movement_cost;
         const width = gameData.map.width;
         const height = gameData.map.height;
@@ -925,7 +951,7 @@ export default function GamePage() {
           setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitId));
           setUnitOriginalTile(cached.origin);
         } else if (gameData?.map) {
-          const movement = locked?.unit?.base_stats?.range ?? 0;
+          const movement = getCurrentMovementRange(locked);
           const costMap = gameData.map.tile_data.movement_cost;
           const width = gameData.map.width;
           const height = gameData.map.height;
@@ -2043,7 +2069,7 @@ export default function GamePage() {
                       return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, stat_boosts: placedUnits.find(p => p.id === id)?.stat_boosts, status_effects: placedUnits.find(p => p.id === id)?.status_effects ?? [], can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
                     }
 
-                    const movement = unit?.base_stats?.range ?? 0;
+                    const movement = getCurrentMovementRange({ unit, current_stats: live?.current_stats, level: live?.level });
                     const costMap = gameData.map.tile_data.movement_cost;
                     const width = gameData.map.width;
                     const height = gameData.map.height;
@@ -2183,39 +2209,39 @@ export default function GamePage() {
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div>
-                  <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'sp_defense')) }}>
-                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
-                  </span>
-                </div>
-                <div>
                   <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'attack')) }}>
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'attack') }}>
                     {placedUnitAtTile?.current_stats?.attack ?? "?"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'speed')) }}>
-                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
+                  <span className="font-semibold">Sp. Def:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_defense') }}>
+                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'defense')) }}>
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'defense') }}>
                     {placedUnitAtTile?.current_stats?.defense ?? "?"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'range')) }}>
-                    {placedUnitAtTile?.current_stats?.range ?? "?"}
+                  <span className="font-semibold">Speed:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'speed') }}>
+                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(placedUnitAtTile, 'sp_attack')) }}>
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_attack') }}>
                     {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Range:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'range') }}>
+                    {placedUnitAtTile?.current_stats?.range ?? "?"}
                   </span>
                 </div>
               </div>
@@ -2432,39 +2458,39 @@ export default function GamePage() {
 
               <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
                 <div>
-                  <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'sp_defense')) }}>
-                    {activeUnit?.current_stats?.sp_defense ?? "?"}
-                  </span>
-                </div>
-                <div>
                   <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'attack')) }}>
-                    {activeUnit?.current_stats?.attack ?? "?"}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'attack') }}>
+                    {placedUnitAtTile?.current_stats?.attack ?? "?"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'speed')) }}>
-                    {activeUnit?.current_stats?.speed ?? "?"}
+                  <span className="font-semibold">Sp. Def:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_defense') }}>
+                    {placedUnitAtTile?.current_stats?.sp_defense ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'defense')) }}>
-                    {activeUnit?.current_stats?.defense ?? "?"}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'defense') }}>
+                    {placedUnitAtTile?.current_stats?.defense ?? "?"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'range')) }}>
-                    {activeUnit?.current_stats?.range ?? "?"}
+                  <span className="font-semibold">Speed:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'speed') }}>
+                    {placedUnitAtTile?.current_stats?.speed ?? "?"}
                   </span>
                 </div>
                 <div>
                   <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(getStatBoostStage(activeUnit, 'sp_attack')) }}>
-                    {activeUnit?.current_stats?.sp_attack ?? "?"}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'sp_attack') }}>
+                    {placedUnitAtTile?.current_stats?.sp_attack ?? "?"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold">Range:</span>{" "}
+                  <span style={{ color: getStatColor(placedUnitAtTile, 'range') }}>
+                    {placedUnitAtTile?.current_stats?.range ?? "?"}
                   </span>
                 </div>
               </div>
