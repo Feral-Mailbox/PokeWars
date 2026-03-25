@@ -612,7 +612,7 @@ export default function GamePage() {
 
   function getLineTiles([x, y]: [number, number], range: number) {
     // Line extends straight from the user, hitting MULTIPLE tiles in each direction
-    // line:1 hits 2 tiles per direction, line:2 hits 3 tiles, etc.
+    // line:1 hits 1 tile per direction, line:2 hits 2 tiles, etc.
     const tiles: [number, number][] = [];
 
     const pushIfIn = (tx: number, ty: number) => {
@@ -620,22 +620,22 @@ export default function GamePage() {
     };
 
     // Up (negative y direction)
-    for (let i = 1; i <= range + 1; i++) {
+    for (let i = 1; i <= range; i++) {
       pushIfIn(x, y - i);
     }
 
     // Down (positive y direction)
-    for (let i = 1; i <= range + 1; i++) {
+    for (let i = 1; i <= range; i++) {
       pushIfIn(x, y + i);
     }
 
     // Left (negative x direction)
-    for (let i = 1; i <= range + 1; i++) {
+    for (let i = 1; i <= range; i++) {
       pushIfIn(x - i, y);
     }
 
     // Right (positive x direction)
-    for (let i = 1; i <= range + 1; i++) {
+    for (let i = 1; i <= range; i++) {
       pushIfIn(x + i, y);
     }
 
@@ -782,6 +782,53 @@ export default function GamePage() {
     const useHorizontal = Math.abs(dx) >= Math.abs(dy);
     const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
     const overlayTiles = [...attackOverlay.normal, ...attackOverlay.invert];
+
+    // x_attack should resolve to the selected direction's X cluster, not a cone-style slice.
+    if (kind === "x_attack") {
+      const attackRange = offset > 0 ? offset : 1;
+      const cx = useHorizontal ? ox + dir * attackRange : ox;
+      const cy = useHorizontal ? oy : oy + dir * attackRange;
+      const xTiles: [number, number][] = [
+        [cx, cy],
+        [cx - 1, cy - 1],
+        [cx + 1, cy - 1],
+        [cx - 1, cy + 1],
+        [cx + 1, cy + 1],
+      ];
+      return xTiles.filter(([x, y]) => inBounds(x, y));
+    }
+
+    // bomb should resolve to a single directional diamond cluster.
+    if (kind === "bomb") {
+      const bombRange = offset > 0 ? offset : 1;
+      const distance = 2;
+      const cx = useHorizontal ? ox + dir * distance : ox;
+      const cy = useHorizontal ? oy : oy + dir * distance;
+      const includeCenter = bombRange >= 2;
+
+      return overlayTiles.filter(([x, y]) => {
+        const manhattan = Math.abs(x - cx) + Math.abs(y - cy);
+        if (includeCenter) {
+          return manhattan <= 1;
+        }
+        return manhattan === 1;
+      });
+    }
+
+    // blast should resolve to one directional 3x2 rectangle.
+    if (kind === "blast") {
+      const blastOffset = offset > 0 ? offset : 1;
+      return overlayTiles.filter(([x, y]) => {
+        const rx = x - ox;
+        const ry = y - oy;
+        if (useHorizontal) {
+          const onDepth = rx === dir * blastOffset || rx === dir * (blastOffset + 1);
+          return onDepth && Math.abs(ry) <= 1;
+        }
+        const onDepth = ry === dir * blastOffset || ry === dir * (blastOffset + 1);
+        return onDepth && Math.abs(rx) <= 1;
+      });
+    }
 
     // Sweep should only include the exact 3-tile band, not any extra diagonal spillover.
     if (kind === "sweep") {
