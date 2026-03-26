@@ -83,9 +83,9 @@ class Game(Base):
     link = Column(String, unique=True, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-    map = relationship("Map", back_populates="games")
     player_states = relationship("GamePlayer", back_populates="game")
     game_units = relationship("GameUnit", back_populates="game")
+    map_state = relationship("GameMapState", back_populates="game", uselist=False)
 
 
 # ======================
@@ -147,7 +147,36 @@ class Map(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     creator = relationship("User", back_populates="maps")
-    games = relationship("Game", back_populates="map")
+    game_map_states = relationship("GameMapState", back_populates="map")
+
+
+# ======================
+# GAME MAP STATE
+# ======================
+class GameMapState(Base):
+    __tablename__ = "game_map_states"
+
+    id = Column(Integer, primary_key=True)
+    game_id = Column(Integer, ForeignKey("games.id"), unique=True, nullable=False)
+    map_id = Column(Integer, ForeignKey("maps.id"), nullable=False)
+
+    # 2D arrays matching map dimensions.
+    # Each tile stores a single numeric effect id (0 means no effect).
+    weather_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    # Each hazard tile stores a list of [hazard_id, stack_amount] pairs.
+    hazard_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    room_effect_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    terrain_effect_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+    field_effect_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+
+    # Item identity (item IDs are nullable when no item exists).
+    item_id_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    game = relationship("Game", back_populates="map_state")
+    map = relationship("Map", back_populates="game_map_states")
 
 # ======================
 # UNITS

@@ -90,11 +90,13 @@ export default function GamePage() {
   const [unitSearchQuery, setUnitSearchQuery] = useState<string>("");
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
   const gameLinkRef = useRef<string | undefined>(undefined);
   const myTurnRef = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
 
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
@@ -268,6 +270,104 @@ export default function GamePage() {
     return `${getAssetBaseUrl()}/misc/status_icons/${iconFile}`;
   }
 
+  function build2DGrid<T>(height: number, width: number, fill: T): T[][] {
+    return Array.from({ length: Math.max(0, height) }, () =>
+      Array.from({ length: Math.max(0, width) }, () => fill)
+    );
+  }
+
+  function buildHazardGrid(height: number, width: number): [number, number][][][] {
+    return Array.from({ length: Math.max(0, height) }, () =>
+      Array.from({ length: Math.max(0, width) }, () => [] as [number, number][])
+    );
+  }
+
+  function normalizeGameMapState(game: any) {
+    const mapWidth = Number(game?.map?.width ?? 0);
+    const mapHeight = Number(game?.map?.height ?? 0);
+    const raw = game?.map_state ?? {};
+
+    const normalizeNumberGrid = (value: any) => {
+      if (!Array.isArray(value)) return build2DGrid(mapHeight, mapWidth, 0);
+      return Array.from({ length: mapHeight }, (_, y) => {
+        const row = value[y];
+        return Array.from({ length: mapWidth }, (_, x) => {
+          const n = Number(Array.isArray(row) ? row[x] : 0);
+          return Number.isFinite(n) ? n : 0;
+        });
+      });
+    };
+
+    const normalizeHazardGrid = (value: any) => {
+      if (!Array.isArray(value)) return buildHazardGrid(mapHeight, mapWidth);
+      return Array.from({ length: mapHeight }, (_, y) => {
+        const row = value[y];
+        return Array.from({ length: mapWidth }, (_, x) => {
+          const cell = Array.isArray(row) ? row[x] : [];
+          if (!Array.isArray(cell)) return [] as [number, number][];
+          return cell
+            .filter((entry: any) => Array.isArray(entry) && entry.length >= 2)
+            .map((entry: any) => [Number(entry[0]) || 0, Number(entry[1]) || 0] as [number, number]);
+        });
+      });
+    };
+
+    const normalizeItemIdGrid = (value: any) => {
+      if (!Array.isArray(value)) return build2DGrid<number | null>(mapHeight, mapWidth, null);
+      return Array.from({ length: mapHeight }, (_, y) => {
+        const row = value[y];
+        return Array.from({ length: mapWidth }, (_, x) => {
+          const v = Array.isArray(row) ? row[x] : null;
+          return v == null ? null : (Number(v) || null);
+        });
+      });
+    };
+
+    return {
+      ...raw,
+      weather_tiles: normalizeNumberGrid(raw.weather_tiles),
+      hazard_tiles: normalizeHazardGrid(raw.hazard_tiles),
+      room_effect_tiles: normalizeNumberGrid(raw.room_effect_tiles),
+      terrain_effect_tiles: normalizeNumberGrid(raw.terrain_effect_tiles),
+      field_effect_tiles: normalizeNumberGrid(raw.field_effect_tiles),
+      item_id_tiles: normalizeItemIdGrid(raw.item_id_tiles),
+    };
+  }
+
+  function normalizeGameData(game: any) {
+    if (!game || !game.map) return game;
+    return {
+      ...game,
+      map_state: normalizeGameMapState(game),
+    };
+  }
+
+  function getWeatherIconSrc(weatherId: number): string | null {
+    const iconByWeatherId: Record<number, string> = {
+      1: "weather_sun.png",
+      2: "weather_rain.png",
+      3: "weather_sandstorm.png",
+      4: "weather_hail.png",
+    };
+    const iconFile = iconByWeatherId[weatherId];
+    if (!iconFile) return null;
+    return `${getAssetBaseUrl()}/misc/weather_icons/${iconFile}`;
+  }
+
+  function getWeatherIconImage(weatherId: number): HTMLImageElement | null {
+    const src = getWeatherIconSrc(weatherId);
+    if (!src) return null;
+
+    const cached = weatherIconCacheRef.current[weatherId];
+    if (cached) return cached;
+
+    const img = new Image();
+    img.src = src;
+    img.onload = () => setWeatherIconRefresh((prev) => prev + 1);
+    weatherIconCacheRef.current[weatherId] = img;
+    return img;
+  }
+
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId != null && u.id === ignoreUnitId) return false;
@@ -372,6 +472,8 @@ export default function GamePage() {
         next.normal = getRangedTiles(origin, offset || 1);
       } else if (kind === "line") {
         next.normal = getLineTiles(origin, offset || 1);
+      } else if (kind === "pulse") {
+        next.normal = getPulseTiles(origin, offset || 1);
       } else if (kind === "bomb") {
         next.normal = getBombTiles(origin, offset || 1);
       } else if (kind === "cone") {
@@ -642,6 +744,50 @@ export default function GamePage() {
     return tiles;
   }
 
+  function getPulseTiles([x, y]: [number, number], pulse: number) {
+    // pulse:1 -> cardinal neighbors at radius 1 (no diagonals)
+    // pulse:2 -> radius 1 including diagonals, excluding self
+    // pulse:3 -> radius 1 including diagonals and self
+    // pulse:4/5/6 are the above, extended to radius 2
+    const tiles: [number, number][] = [];
+
+    const pushIfIn = (tx: number, ty: number) => {
+      if (inBounds(tx, ty)) tiles.push([tx, ty]);
+    };
+
+    const isExtended = pulse >= 4;
+    const radius = isExtended ? 2 : 1;
+    const baseMode = ((pulse - 1) % 3) + 1; // maps 1..6 to 1..3
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const tx = x + dx;
+        const ty = y + dy;
+        const manhattan = Math.abs(dx) + Math.abs(dy);
+        const chebyshev = Math.max(Math.abs(dx), Math.abs(dy));
+
+        if (baseMode === 1) {
+          // Cardinal-only pulse (no diagonals), exclude self.
+          if (manhattan >= 1 && manhattan <= radius && (dx === 0 || dy === 0)) {
+            pushIfIn(tx, ty);
+          }
+        } else if (baseMode === 2) {
+          // Full square pulse up to radius, exclude self.
+          if (chebyshev >= 1 && chebyshev <= radius) {
+            pushIfIn(tx, ty);
+          }
+        } else {
+          // Full square pulse up to radius, include self.
+          if (chebyshev <= radius) {
+            pushIfIn(tx, ty);
+          }
+        }
+      }
+    }
+
+    return tiles;
+  }
+
   function getBombTiles([x, y]: [number, number], range: number) {
     // Bomb attacks 2 tiles away in each cardinal direction,
     // and each attack point creates a plus pattern around it
@@ -782,6 +928,11 @@ export default function GamePage() {
     const useHorizontal = Math.abs(dx) >= Math.abs(dy);
     const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
     const overlayTiles = [...attackOverlay.normal, ...attackOverlay.invert];
+
+    // pulse affects all tiles in its pulse area; do not directional-slice it.
+    if (kind === "pulse") {
+      return overlayTiles;
+    }
 
     // x_attack should resolve to the selected direction's X cluster, not a cone-style slice.
     if (kind === "x_attack") {
@@ -1082,7 +1233,7 @@ export default function GamePage() {
     } catch {
       setToastMessage("Move failed; resyncing.");
       const r = await secureFetch(`/api/games/${gameData.link}`);
-      if (r.ok) setGameData(await r.json());
+      if (r.ok) setGameData(normalizeGameData(await r.json()));
     }
   }
 
@@ -1091,7 +1242,7 @@ export default function GamePage() {
     const res = await secureFetch(`/api/games/start/${gameData.id}`, { method: "POST" });
     if (res.ok) {
       const updated = await secureFetch(`/api/games/${gameData.link}`);
-      setGameData(await updated.json());
+      setGameData(normalizeGameData(await updated.json()));
     } else {
       alert("Unable to start game.");
     }
@@ -1230,7 +1381,7 @@ export default function GamePage() {
       try {
         const res = await secureFetch(`/api/games/${gameId}`);
         if (!res.ok) throw new Error("Game not found");
-        const data = await res.json();
+        const data = normalizeGameData(await res.json());
         setGameData(data);
         setCash(data.starting_cash ?? 0);
 
@@ -1521,6 +1672,27 @@ export default function GamePage() {
     if (moveTargeting && selectedDirectionalTiles.length) {
       drawTileOutline(ctx, selectedDirectionalTiles, 3);
     }
+
+    const weatherTiles = gameData?.map_state?.weather_tiles;
+    if (Array.isArray(weatherTiles)) {
+      const iconSize = Math.max(10, Math.floor(TILE_DRAW_SIZE * 0.42));
+      const iconPadding = 2;
+      for (let y = 0; y < weatherTiles.length; y++) {
+        const row = weatherTiles[y];
+        if (!Array.isArray(row)) continue;
+        for (let x = 0; x < row.length; x++) {
+          const weatherId = Number(row[x] ?? 0);
+          if (!Number.isFinite(weatherId) || weatherId <= 0) continue;
+
+          const icon = getWeatherIconImage(weatherId);
+          if (!icon || !icon.complete) continue;
+
+          const drawX = x * TILE_DRAW_SIZE + iconPadding;
+          const drawY = y * TILE_DRAW_SIZE + iconPadding;
+          ctx.drawImage(icon, drawX, drawY, iconSize, iconSize);
+        }
+      }
+    }
   }, [
     highlightedTiles,
     lockedUnit,
@@ -1533,7 +1705,9 @@ export default function GamePage() {
     moveTargeting,
     hoveredOverlayTile,
     selectedMoveTarget,
-    activeMove
+    activeMove,
+    gameData?.map_state,
+    weatherIconRefresh
   ]);
 
   useEffect(() => {
@@ -1803,7 +1977,7 @@ export default function GamePage() {
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
           if (!res.ok) return;
-          const updatedGame = await res.json();
+          const updatedGame = normalizeGameData(await res.json());
           setGameData(updatedGame);
 
           const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);

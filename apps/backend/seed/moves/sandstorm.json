@@ -6,7 +6,7 @@
   "category": "Status",
   "pp": 10,
   "range": "pulse:6",
-  "targeting": "all",
+  "targeting": "field",
   "cooldown": 1,
   "makes_contact": false,
   "affected_by_protect": false,

@@ -15,7 +15,7 @@
       "speed": 47,
       "range": 2
     },
-    "move_ids": [89, 423, 303],
+    "move_ids": [89, 423, 201],
     "ability_ids": [],
     "cost": 800,
     "evolution_cost": null,

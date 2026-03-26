@@ -6,11 +6,12 @@ from collections import deque
 import random
 import hashlib
 import json
+import re
 import redis
 
-from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move
+from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move, GameMapState
 from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
-from app.schemas.maps import MapDetail
+from app.schemas.maps import MapDetail, GameMapStateSchema
 from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
 from app.dependencies import get_db, get_current_user
 
@@ -61,6 +62,128 @@ STATUS_TYPE_IMMUNITIES = {
     "burn": {"fire"},
     "frozen": {"ice"},
 }
+
+WEATHER_TO_ID = {
+    "sun": 1,
+    "rain": 2,
+    "sandstorm": 3,
+    "hail": 4,
+}
+
+
+def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> int:
+    if not isinstance(weather_tiles, list) or y < 0 or x < 0 or y >= len(weather_tiles):
+        return 0
+    row = weather_tiles[y]
+    if not isinstance(row, list) or x >= len(row):
+        return 0
+    try:
+        return int(row[x] or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def get_unit_weather_id(unit: GameUnit, weather_tiles: list | None) -> int:
+    x = int(getattr(unit, "current_x", -1) or -1)
+    y = int(getattr(unit, "current_y", -1) or -1)
+    return get_weather_id_at_position(weather_tiles, x, y)
+
+
+def get_weather_move_multiplier(move_type: str | None, attacker_weather_id: int) -> float:
+    move_type_norm = str(move_type or "").lower()
+    if attacker_weather_id == WEATHER_TO_ID["rain"]:
+        if move_type_norm == "water":
+            return 1.5
+        if move_type_norm == "fire":
+            return 0.5
+    elif attacker_weather_id == WEATHER_TO_ID["sun"]:
+        if move_type_norm == "fire":
+            return 1.5
+        if move_type_norm == "water":
+            return 0.5
+    return 1.0
+
+
+def get_weather_defense_multiplier(target: GameUnit, defense_stat: str, target_weather_id: int, db: Session) -> float:
+    target_types = get_unit_types(target, db)
+
+    # Sandstorm boosts Rock-type special bulk.
+    if (
+        target_weather_id == WEATHER_TO_ID["sandstorm"]
+        and defense_stat == "sp_defense"
+        and "rock" in target_types
+    ):
+        return 1.5
+
+    # Hail boosts Ice-type physical bulk.
+    if (
+        target_weather_id == WEATHER_TO_ID["hail"]
+        and defense_stat == "defense"
+        and "ice" in target_types
+    ):
+        return 1.5
+
+    return 1.0
+
+
+def parse_move_range_spec(move: Move) -> tuple[str, int]:
+    raw = str(getattr(move, "range", "") or getattr(move, "targeting", "") or "").lower().strip()
+    m = re.match(r"^([a-z_]+)(?::(\d+))?$", raw)
+    if not m:
+        return "", 0
+    kind = m.group(1) or ""
+    offset = int(m.group(2)) if m.group(2) else 0
+    return kind, offset
+
+
+def get_pulse_tiles_backend(origin_x: int, origin_y: int, pulse: int, width: int, height: int) -> list[tuple[int, int]]:
+    # Must mirror frontend pulse semantics exactly.
+    # pulse:1 -> cardinal neighbors at radius 1 (no diagonals)
+    # pulse:2 -> radius 1 including diagonals, excluding self
+    # pulse:3 -> radius 1 including diagonals and self
+    # pulse:4/5/6 are the above, extended to radius 2
+    is_extended = pulse >= 4
+    radius = 2 if is_extended else 1
+    base_mode = ((pulse - 1) % 3) + 1  # maps 1..6 -> 1..3
+
+    tiles: list[tuple[int, int]] = []
+    for dy in range(-radius, radius + 1):
+        for dx in range(-radius, radius + 1):
+            tx = origin_x + dx
+            ty = origin_y + dy
+            if tx < 0 or ty < 0 or tx >= width or ty >= height:
+                continue
+
+            manhattan = abs(dx) + abs(dy)
+            chebyshev = max(abs(dx), abs(dy))
+
+            if base_mode == 1:
+                if manhattan >= 1 and manhattan <= radius and (dx == 0 or dy == 0):
+                    tiles.append((tx, ty))
+            elif base_mode == 2:
+                if chebyshev >= 1 and chebyshev <= radius:
+                    tiles.append((tx, ty))
+            else:
+                if chebyshev <= radius:
+                    tiles.append((tx, ty))
+
+    return tiles
+
+
+def get_move_affected_tiles(move: Move, attacker: GameUnit, width: int, height: int) -> list[tuple[int, int]]:
+    x = int(getattr(attacker, "current_x", 0) or 0)
+    y = int(getattr(attacker, "current_y", 0) or 0)
+    kind, offset = parse_move_range_spec(move)
+
+    if kind == "pulse":
+        pulse = offset if offset > 0 else 1
+        return get_pulse_tiles_backend(x, y, pulse, width, height)
+
+    # Conservative default for field moves that do not yet have backend tile logic:
+    # affect only user's tile instead of entire map.
+    if 0 <= x < width and 0 <= y < height:
+        return [(x, y)]
+    return []
 
 
 def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
@@ -497,6 +620,65 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
         parts = effect_str.split(":")
         if len(parts) < 2:
             continue  # Invalid format
+
+        # Field weather effect format: weather:sun|rain|sandstorm|hail
+        if parts[0] == "weather":
+            weather_name = parts[1].lower()
+            weather_id = WEATHER_TO_ID.get(weather_name)
+            if weather_id is None:
+                continue
+
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                if not map_obj:
+                    continue
+                map_state = _create_default_game_map_state(game, map_obj)
+                db.add(map_state)
+            else:
+                map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            if not isinstance(map_state.weather_tiles, list) or len(map_state.weather_tiles) != height:
+                map_state.weather_tiles = _build_2d_matrix(height, width, 0)
+            else:
+                normalized_rows = []
+                for row in map_state.weather_tiles:
+                    if not isinstance(row, list):
+                        normalized_rows.append([0 for _ in range(width)])
+                    elif len(row) != width:
+                        fixed = [0 for _ in range(width)]
+                        for i in range(min(width, len(row))):
+                            fixed[i] = int(row[i] or 0)
+                        normalized_rows.append(fixed)
+                    else:
+                        normalized_rows.append([int(cell or 0) for cell in row])
+                map_state.weather_tiles = normalized_rows
+
+            affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+            for tx, ty in affected_tiles:
+                map_state.weather_tiles[ty][tx] = weather_id
+            db.add(map_state)
+            continue
         
         recipient = parts[0]  # "self" or "target"
         effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
@@ -819,29 +1001,69 @@ def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> 
 
     for unit in units:
         status_effect = normalize_status_effects(unit.status_effects)
-        if not status_effect:
-            continue
-
-        status_name = status_effect[0]
         max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
         current_hp = int(unit.current_hp or 0)
+        hp_after_effects = current_hp
         modified = False
 
-        if status_name in {"burn", "poison"}:
-            damage = max(1, max_hp // 8) if max_hp > 0 else 0
-            unit.current_hp = max(0, current_hp - damage)
-            modified = damage > 0
-        elif status_name == "badly_poisoned":
-            bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
-            bad_poison_turn = max(1, bad_poison_turn)
-            damage = max(1, (max_hp * bad_poison_turn) // 16) if max_hp > 0 else 0
-            unit.current_hp = max(0, current_hp - damage)
-            unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
+        if status_effect:
+            status_name = status_effect[0]
+
+            if status_name in {"burn", "poison"}:
+                damage = max(1, max_hp // 8) if max_hp > 0 else 0
+                hp_after_effects = max(0, hp_after_effects - damage)
+                modified = modified or damage > 0
+            elif status_name == "badly_poisoned":
+                bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
+                bad_poison_turn = max(1, bad_poison_turn)
+                damage = max(1, (max_hp * bad_poison_turn) // 16) if max_hp > 0 else 0
+                hp_after_effects = max(0, hp_after_effects - damage)
+                unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
+                modified = True
+
+        if hp_after_effects != current_hp:
+            unit.current_hp = hp_after_effects
             modified = True
 
         if modified:
             db.add(unit)
             modified_unit_ids.append(unit.id)
+
+    return modified_unit_ids
+
+
+def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
+    """
+    Apply weather chip damage once per full round, after the last player finishes.
+    Returns list of unit IDs whose HP changed.
+    """
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
+    weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
+
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    modified_unit_ids = []
+
+    for unit in units:
+        max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+        current_hp = int(unit.current_hp or 0)
+        if current_hp <= 0:
+            continue
+
+        weather_id = get_unit_weather_id(unit, weather_tiles)
+        unit_types = get_unit_types(unit, db)
+        damage = 0
+
+        if weather_id == WEATHER_TO_ID["sandstorm"] and not unit_types.intersection({"rock", "ground", "steel"}):
+            damage = max(1, max_hp // 16) if max_hp > 0 else 0
+        elif weather_id == WEATHER_TO_ID["hail"] and "ice" not in unit_types:
+            damage = max(1, max_hp // 16) if max_hp > 0 else 0
+
+        if damage <= 0:
+            continue
+
+        unit.current_hp = max(0, current_hp - damage)
+        db.add(unit)
+        modified_unit_ids.append(unit.id)
 
     return modified_unit_ids
 
@@ -858,6 +1080,62 @@ def get_draw_player_ids(game: Game, state: GameState, db: Session) -> List[int]:
         return list(state.players or [])
     max_count = max(counts.values())
     return [pid for pid, count in counts.items() if count == max_count]
+
+
+def _build_2d_matrix(height: int, width: int, fill_value):
+    return [[fill_value for _ in range(width)] for _ in range(height)]
+
+
+def _build_hazard_2d_matrix(height: int, width: int):
+    return [[[] for _ in range(width)] for _ in range(height)]
+
+
+def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
+    return GameMapState(
+        game_id=game.id,
+        map_id=map_obj.id,
+        weather_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        hazard_tiles=_build_hazard_2d_matrix(map_obj.height, map_obj.width),
+        room_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        terrain_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        field_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        item_id_tiles=_build_2d_matrix(map_obj.height, map_obj.width, None),
+    )
+
+
+def _get_or_create_game_map_state(game: Game, db: Session) -> GameMapState:
+    map_state = (
+        db.query(GameMapState)
+        .options(joinedload(GameMapState.map))
+        .filter(GameMapState.game_id == game.id)
+        .first()
+    )
+    if map_state and map_state.map:
+        return map_state
+
+    # Fallback for legacy rows created before GameMapState existed.
+    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    if not map_obj:
+        raise HTTPException(status_code=500, detail="Map missing for game")
+
+    if map_state is None:
+        map_state = _create_default_game_map_state(game, map_obj)
+        db.add(map_state)
+    else:
+        map_state.map_id = map_obj.id
+        db.add(map_state)
+
+    db.commit()
+    return (
+        db.query(GameMapState)
+        .options(joinedload(GameMapState.map))
+        .filter(GameMapState.game_id == game.id)
+        .first()
+    )
+
+
+def _get_map_via_game_state(game: Game, db: Session) -> Map:
+    return _get_or_create_game_map_state(game, db).map
 
 def serialize_game_response(game: Game, db: Session) -> GameResponse:
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
@@ -876,7 +1154,8 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
             is_ready=ps.is_ready
         ))
 
-    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    map_obj = _get_map_via_game_state(game, db)
+    map_state_obj = _get_or_create_game_map_state(game, db)
 
     draw_player_ids = None
     if game_state.status == GameStatus.completed and game_state.winner_id is None:
@@ -889,6 +1168,7 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
         game_name=game.game_name,
         map_name=game.map_name,
         map=MapDetail.model_validate(map_obj),
+        map_state=GameMapStateSchema.model_validate(map_state_obj),
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
@@ -925,6 +1205,9 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     # Resolve end-of-turn status damage for the current player before advancing.
     current_player_id = state.players[state.current_turn % len(state.players)]
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
+    if should_apply_round_weather:
+        end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -1149,6 +1432,18 @@ def create_game(
     )
     db.add(player_state)
 
+    game_map_state = GameMapState(
+        game_id=new_game.id,
+        map_id=selected_map.id,
+        weather_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        hazard_tiles=_build_hazard_2d_matrix(selected_map.height, selected_map.width),
+        room_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        terrain_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        field_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        item_id_tiles=_build_2d_matrix(selected_map.height, selected_map.width, None),
+    )
+    db.add(game_map_state)
+
     db.commit()
     db.refresh(new_game)
 
@@ -1159,6 +1454,7 @@ def create_game(
         game_name=new_game.game_name,
         map_name=new_game.map_name,
         map=MapDetail.model_validate(selected_map),
+        map_state=GameMapStateSchema.model_validate(game_map_state),
         max_players=new_game.max_players,
         host_id=user.id,
         players=[PlayerInfo(
@@ -1241,7 +1537,8 @@ def join_game(
         is_private=game.is_private,
         game_name=game.game_name,
         map_name=game.map_name,
-        map=MapDetail.model_validate(game.map),
+        map=MapDetail.model_validate(_get_map_via_game_state(game, db)),
+        map_state=GameMapStateSchema.model_validate(_get_or_create_game_map_state(game, db)),
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
@@ -1321,7 +1618,7 @@ def get_game_by_link(
 ):
     game = (
         db.query(Game)
-        .options(joinedload(Game.map), joinedload(Game.player_states))
+        .options(joinedload(Game.map_state).joinedload(GameMapState.map), joinedload(Game.player_states))
         .filter(Game.link == link)
         .first()
     )
@@ -1350,7 +1647,8 @@ def get_game_by_link(
         is_private=game.is_private,
         game_name=game.game_name,
         map_name=game.map_name,
-        map=MapDetail.model_validate(game.map),
+        map=MapDetail.model_validate(_get_map_via_game_state(game, db)),
+        map_state=GameMapStateSchema.model_validate(_get_or_create_game_map_state(game, db)),
         max_players=game.max_players,
         host_id=game.host_id,
         players=players,
@@ -1633,6 +1931,9 @@ def end_turn(
 
     # Resolve end-of-turn status damage for the current player before advancing.
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
+    if should_apply_round_weather:
+        end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -1751,9 +2052,14 @@ def execute_move(
             .all()
         )
 
+    # Field-targeting moves affect map state and should ignore unit target resolution.
+    is_field_targeting = (move.targeting or "").lower() == "field"
+    if is_field_targeting:
+        targets = []
+
     landed_targets = targets
     missed_target_ids: List[int] = []
-    if targets and move.accuracy is not None:
+    if not is_field_targeting and targets and move.accuracy is not None:
         landed_targets = []
         for target in targets:
             if move_lands_on_target(move, gu, target):
@@ -1772,16 +2078,23 @@ def execute_move(
         power = move.power or 0
         attacker_types = gu.unit.types or []
         stab = 1.5 if move.type in attacker_types else 1
+        map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+        weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
+        attacker_weather_id = get_unit_weather_id(gu, weather_tiles)
+        weather_move_multiplier = get_weather_move_multiplier(move.type, attacker_weather_id)
 
         for target in landed_targets:
             attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
             defense = (target.current_stats or {}).get(defense_stat, 1) or 1
-            safe_defense = defense if defense > 0 else 1
+            target_weather_id = get_unit_weather_id(target, weather_tiles)
+            weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
+            effective_defense = defense * weather_defense_multiplier
+            safe_defense = effective_defense if effective_defense > 0 else 1
             random_factor = random.randint(85, 100) / 100
             critical = 1
             type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
             base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
-            damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier)
+            damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
 
             target.current_hp = max(0, (target.current_hp or 0) - damage)
             db.add(target)
@@ -1858,6 +2171,9 @@ def execute_move(
 
         # Resolve end-of-turn status damage for the current player before advancing.
         end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+        should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
+        if should_apply_round_weather:
+            end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
         current_player_units = db.query(GameUnit).filter(
             GameUnit.game_id == game.id,

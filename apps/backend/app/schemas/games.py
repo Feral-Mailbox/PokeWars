@@ -1,4 +1,4 @@
-from app.schemas.maps import MapDetail
+from app.schemas.maps import MapDetail, GameMapStateSchema
 from pydantic import BaseModel, ConfigDict, field_validator
 from datetime import datetime
 from typing import List, Optional, Any
@@ -46,6 +46,7 @@ class GameResponse(BaseModel):
     game_name: str
     map_name: str
     map: MapDetail
+    map_state: Optional[GameMapStateSchema] = None
     max_players: int
     host_id: int
     players: List[PlayerInfo]

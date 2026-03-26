@@ -710,3 +710,121 @@ def test_move_lands_on_target_uses_accuracy_threshold(db, monkeypatch):
 
     monkeypatch.setattr("app.routes.games.random.uniform", lambda _a, _b: 80.0)
     assert move_lands_on_target(move, attacker, target) is True
+
+
+def test_process_move_effects_weather_only_updates_tiles_in_move_range(db, user):
+    map_obj = models.Map(
+        name="Weather Range Map",
+        creator_id=user.id,
+        is_official=True,
+        width=7,
+        height=7,
+        tileset_names=["grass"],
+        tile_data={"movement_cost": [[1] * 7 for _ in range(7)]},
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+    )
+    db.add(map_obj)
+    db.flush()
+
+    game = models.Game(
+        game_name="Weather Range Game",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="weather-range-game",
+    )
+    db.add(game)
+    db.flush()
+
+    weather_grid = [[0 for _ in range(7)] for _ in range(7)]
+    weather_grid[0][0] = 4  # out-of-range sentinel value (hail)
+
+    map_state = models.GameMapState(
+        game_id=game.id,
+        map_id=map_obj.id,
+        weather_tiles=weather_grid,
+        hazard_tiles=[[[] for _ in range(7)] for _ in range(7)],
+        room_effect_tiles=[[0 for _ in range(7)] for _ in range(7)],
+        terrain_effect_tiles=[[0 for _ in range(7)] for _ in range(7)],
+        field_effect_tiles=[[0 for _ in range(7)] for _ in range(7)],
+        item_id_tiles=[[None for _ in range(7)] for _ in range(7)],
+    )
+    db.add(map_state)
+    db.commit()
+
+    move = models.Move(
+        name="Rain Dance",
+        type="water",
+        category="Status",
+        range="pulse:6",
+        targeting="field",
+        effects=["weather:rain"],
+    )
+    attacker = models.GameUnit(game_id=game.id, current_x=3, current_y=3, status_effects=[])
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+    db.refresh(map_state)
+
+    # pulse:6 -> full radius-2 square including center around (3,3)
+    for y in range(7):
+        for x in range(7):
+            in_range = abs(x - 3) <= 2 and abs(y - 3) <= 2
+            if in_range:
+                assert map_state.weather_tiles[y][x] == 2  # rain
+
+    # Out-of-range sentinel should remain unchanged.
+    assert map_state.weather_tiles[0][0] == 4
+
+
+def test_process_move_effects_weather_updates_entire_field(db, user):
+    map_obj = models.Map(
+        name="Weather Map",
+        creator_id=user.id,
+        is_official=True,
+        width=3,
+        height=2,
+        tileset_names=["grass"],
+        tile_data={"movement_cost": [[1, 1, 1], [1, 1, 1]]},
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+    )
+    db.add(map_obj)
+    db.flush()
+
+    game = models.Game(
+        game_name="Weather Test",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="weather-test",
+    )
+    db.add(game)
+    db.flush()
+
+    db.add(models.GameMapState(
+        game_id=game.id,
+        map_id=map_obj.id,
+        weather_tiles=[[0, 0, 0], [0, 0, 0]],
+        hazard_tiles=[[[], [], []], [[], [], []]],
+        room_effect_tiles=[[0, 0, 0], [0, 0, 0]],
+        terrain_effect_tiles=[[0, 0, 0], [0, 0, 0]],
+        field_effect_tiles=[[0, 0, 0], [0, 0, 0]],
+        item_id_tiles=[[None, None, None], [None, None, None]],
+    ))
+    db.commit()
+
+    move = models.Move(name="Rain Dance", type="water", category="Status", effects=["weather:rain"], targeting="field")
+    attacker = models.GameUnit(game_id=game.id, status_effects=[])
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
+    assert map_state is not None
+    assert map_state.weather_tiles == [[2, 2, 2], [2, 2, 2]]
