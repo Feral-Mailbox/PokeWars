@@ -318,6 +318,190 @@ def test_process_move_effects_normalizes_badly_poisoned_name(db):
     assert target.status_effects[0] == "badly_poisoned"
 
 
+def test_process_move_effects_conditional_status_applies_when_condition_matches(db):
+    move = models.Move(
+        name="Poison Powder Test",
+        type="poison",
+        category="Status",
+        effects=["target:status:condition:not_type:grass:status:poison"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        current_hp=100,
+        unit=make_unit_definition(["water"])
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert len(target.status_effects) == 2
+    assert target.status_effects[0] == "poison"
+
+
+def test_process_move_effects_conditional_status_skips_when_condition_fails(db):
+    move = models.Move(
+        name="Poison Powder Test",
+        type="poison",
+        category="Status",
+        effects=["target:status:condition:not_type:grass:status:poison"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        current_hp=100,
+        unit=make_unit_definition(["grass"])
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.status_effects == []
+
+
+def test_process_move_effects_conditional_status_type_condition(db):
+    move = models.Move(
+        name="Type Match Sleep",
+        type="grass",
+        category="Status",
+        effects=["target:status:condition:type:grass:status:sleep"]
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        current_hp=100,
+        unit=make_unit_definition(["grass"])
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert len(target.status_effects) == 2
+    assert target.status_effects[0] == "sleep"
+
+
+def test_process_move_effects_conditional_heal_sunny_weather(db):
+    """Test that conditional heal applies correct amount in sunny weather."""
+    move = models.Move(
+        name="Moonlight",
+        type="fairy",
+        category="Status",
+        effects=[
+            "self:heal:condition:weather:sun:2",
+            "self:heal:condition:weather:clear:4",
+            "self:heal:condition:weather:*:8"
+        ]
+    )
+    
+    # Create attacker with 100 max HP
+    attacker = models.GameUnit(
+        status_effects=[],
+        current_hp=30,
+        current_stats={"hp": 100}
+    )
+    
+    # Create weather tiles with sun at attacker's position (0, 0)
+    # WEATHER_TO_ID: sun=1, rain=2, sandstorm=3, hail=4
+    # So weather_tiles[0][0] = 1 means sunny weather
+    weather_tiles = [[1, 0], [0, 0]]
+    
+    # Add attacker position
+    attacker.current_x = 0
+    attacker.current_y = 0
+    
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+    
+    # In sun: heal 1/2 max HP = 50
+    assert attacker.current_hp == 80  # 30 + 50 = 80
+
+
+def test_process_move_effects_conditional_heal_clear_weather(db):
+    """Test that conditional heal applies correct amount in clear weather."""
+    move = models.Move(
+        name="Moonlight",
+        type="fairy",
+        category="Status",
+        effects=[
+            "self:heal:condition:weather:sun:2",
+            "self:heal:condition:weather:clear:4",
+            "self:heal:condition:weather:*:8"
+        ]
+    )
+    
+    attacker = models.GameUnit(
+        status_effects=[],
+        current_hp=30,
+        current_stats={"hp": 100}
+    )
+    
+    # Clear weather is ID 0
+    weather_tiles = [[0, 0], [0, 0]]
+    attacker.current_x = 0
+    attacker.current_y = 0
+    
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+    
+    # In clear: heal 1/4 max HP = 25
+    assert attacker.current_hp == 55  # 30 + 25 = 55
+
+
+def test_process_move_effects_conditional_heal_wildcard_weather(db):
+    """Test that conditional heal applies wildcard amount in other weather."""
+    move = models.Move(
+        name="Moonlight",
+        type="fairy",
+        category="Status",
+        effects=[
+            "self:heal:condition:weather:sun:2",
+            "self:heal:condition:weather:clear:4",
+            "self:heal:condition:weather:*:8"
+        ]
+    )
+    
+    attacker = models.GameUnit(
+        status_effects=[],
+        current_hp=30,
+        current_stats={"hp": 100}
+    )
+    
+    # Rain weather (ID 2)
+    weather_tiles = [[2, 0], [0, 0]]
+    attacker.current_x = 0
+    attacker.current_y = 0
+    
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+    
+    # In other weather: heal 1/8 max HP = 12
+    assert attacker.current_hp == 42  # 30 + 12 = 42
+
+
+def test_process_move_effects_conditional_heal_only_matches_first_condition(db):
+    """Test that healing only applies the first matching condition, not multiple."""
+    move = models.Move(
+        name="Moonlight",
+        type="fairy",
+        category="Status",
+        effects=[
+            "self:heal:condition:weather:sun:2",
+            "self:heal:condition:weather:*:8"
+        ]
+    )
+    
+    attacker = models.GameUnit(
+        status_effects=[],
+        current_hp=50,
+        current_stats={"hp": 100}
+    )
+    
+    # Sun weather
+    weather_tiles = [[1, 0], [0, 0]]
+    attacker.current_x = 0
+    attacker.current_y = 0
+    
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+    
+    # Should only apply the first match (sun: 1/2), not the wildcard (1/8)
+    # heal 1/2 max HP = 50
+    assert attacker.current_hp == 100  # 50 + 50 = 100 (capped)
+
+
 def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, user):
     game = models.Game(
         game_name="Burn Tick Game",

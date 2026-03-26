@@ -14,9 +14,8 @@
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
   "effects": [
-    "self:conditional_heal:weather:sun:2:max_hp",
-    "self:conditional_heal:weather:none:4:max_hp",
-    "self:conditional_heal:weather:other:8:max_hp",
-    "self:conditional_heal:time:night:2:max_hp"
+    "self:heal:condition:weather:sun:2",
+    "self:heal:condition:weather:clear:4",
+    "self:heal:condition:weather:*:8"
   ]
 }

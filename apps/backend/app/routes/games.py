@@ -89,6 +89,41 @@ def get_unit_weather_id(unit: GameUnit, weather_tiles: list | None) -> int:
     return get_weather_id_at_position(weather_tiles, x, y)
 
 
+def get_weather_name_from_id(weather_id: int) -> str:
+    """Convert weather ID back to name. ID 0 is 'clear'."""
+    for name, wid in WEATHER_TO_ID.items():
+        if wid == weather_id:
+            return name
+    return "clear"
+
+
+def weather_condition_matches(weather_id: int, condition: str) -> bool:
+    """Check if a weather condition matches the current weather_id.
+    
+    Args:
+        weather_id: Current weather ID (0=clear, 1=sun, 2=rain, 3=sandstorm, 4=hail)
+        condition: Condition string ('sun', 'clear', '*', etc.)
+    
+    Returns:
+        True if condition matches current weather
+    """
+    condition_lower = str(condition or "").lower()
+    
+    # Wildcard always matches
+    if condition_lower == "*":
+        return True
+    
+    # Map condition name to ID and compare
+    if condition_lower == "clear":
+        return weather_id == 0
+    
+    condition_id = WEATHER_TO_ID.get(condition_lower)
+    if condition_id is not None:
+        return weather_id == condition_id
+    
+    return False
+
+
 def get_weather_move_multiplier(move_type: str | None, attacker_weather_id: int) -> float:
     move_type_norm = str(move_type or "").lower()
     if attacker_weather_id == WEATHER_TO_ID["rain"]:
@@ -334,6 +369,21 @@ def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
     unit.current_stats = compute_effective_stats(unit, db)
     db.add(unit)
     return True
+
+
+def matches_effect_condition(unit: GameUnit, condition: str, value: str, db: Session) -> bool:
+    condition_name = str(condition or "").lower()
+    condition_value = str(value or "").lower()
+    if not condition_value:
+        return False
+
+    unit_types = get_unit_types(unit, db)
+    if condition_name == "type":
+        return condition_value in unit_types
+    if condition_name == "not_type":
+        return condition_value not in unit_types
+
+    return False
 
 
 def normalize_stat_boosts(raw: dict | None) -> dict:
@@ -607,11 +657,12 @@ def apply_stat_change(unit: GameUnit, stat: str, magnitude: int, current_turn: i
     
     db.add(unit)
 
-def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit], current_turn: int, db: Session):
+def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit], current_turn: int, db: Session, weather_tiles: list | None = None):
     """
     Process all effects from a move (stat changes, status conditions, etc.)
     Format: recipient:effect_type:param1:param2[:accuracy]
     For stat changes: recipient:raise_stat/lower_stat:stat_name:magnitude[:accuracy]
+    For conditional effects: recipient:effect_type:condition:condition_type:condition_value:...:value
     """
     if not move.effects:
         return
@@ -712,52 +763,124 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                     apply_stat_change(target, stat_name, magnitude, current_turn, db)
 
         elif effect_type == "status":
-            if len(parts) < 3:
-                continue
+            # Check if this status has a condition
+            # Format: recipient:status:condition:condition_type:condition_value:status:status_name[:accuracy]
+            if len(parts) >= 7 and parts[2] == "condition":
+                condition_type = parts[3]
+                condition_value = parts[4]
+                if parts[5] != "status":
+                    continue
 
-            status_name = parts[2]
-            accuracy = 100
-            if len(parts) >= 4:
-                try:
-                    accuracy = int(parts[3])
-                except ValueError:
-                    pass
+                status_name = parts[6]
+                accuracy = 100
+                if len(parts) >= 8:
+                    try:
+                        accuracy = int(parts[7])
+                    except ValueError:
+                        pass
 
-            if random.randint(1, 100) > accuracy:
-                continue
+                if random.randint(1, 100) > accuracy:
+                    continue
 
-            if recipient == "self":
-                apply_status_effect(attacker, status_name, db)
-            elif recipient == "target":
-                for target in targets:
-                    if (target.current_hp or 0) > 0:
-                        apply_status_effect(target, status_name, db)
+                if recipient == "self":
+                    if matches_effect_condition(attacker, condition_type, condition_value, db):
+                        apply_status_effect(attacker, status_name, db)
+                elif recipient == "target":
+                    for target in targets:
+                        if (target.current_hp or 0) <= 0:
+                            continue
+                        if matches_effect_condition(target, condition_type, condition_value, db):
+                            apply_status_effect(target, status_name, db)
+            else:
+                # Plain status effect without condition
+                if len(parts) < 3:
+                    continue
+
+                status_name = parts[2]
+                accuracy = 100
+                if len(parts) >= 4:
+                    try:
+                        accuracy = int(parts[3])
+                    except ValueError:
+                        pass
+
+                if random.randint(1, 100) > accuracy:
+                    continue
+
+                if recipient == "self":
+                    apply_status_effect(attacker, status_name, db)
+                elif recipient == "target":
+                    for target in targets:
+                        if (target.current_hp or 0) > 0:
+                            apply_status_effect(target, status_name, db)
 
         elif effect_type == "heal":
-            if len(parts) < 3:
-                continue
-
-            try:
-                denominator = int(parts[2])
-                if denominator <= 0:
+            # Check if this heal has a condition
+            # Format: recipient:heal:condition:condition_type:condition_value:denominator
+            if len(parts) >= 6 and parts[2] == "condition":
+                condition_type = parts[3]
+                condition_value = parts[4]
+                try:
+                    denominator = int(parts[5])
+                    if denominator <= 0:
+                        continue
+                except ValueError:
                     continue
-            except ValueError:
-                continue
 
-            if recipient == "self":
-                # Get max HP from attacker's current_stats
-                max_hp = (attacker.current_stats or {}).get("hp", 1)
-                heal_amount = max(1, max_hp // denominator)
-                attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
-                db.add(attacker)
-            elif recipient == "target":
-                for target in targets:
-                    # Only heal if target is alive
-                    if (target.current_hp or 0) > 0:
-                        max_hp = (target.current_stats or {}).get("hp", 1)
+                # For conditional healing based on weather
+                if condition_type.lower() == "weather":
+                    # Determine weather_id for attacker or target
+                    if recipient == "self":
+                        weather_id = get_unit_weather_id(attacker, weather_tiles)
+                    else:
+                        # For target healing, use first target's weather
+                        if not targets:
+                            continue
+                        weather_id = get_unit_weather_id(targets[0], weather_tiles)
+
+                    # Check if condition matches
+                    if not weather_condition_matches(weather_id, condition_value):
+                        continue
+
+                    # Apply the conditional heal
+                    if recipient == "self":
+                        max_hp = (attacker.current_stats or {}).get("hp", 1)
                         heal_amount = max(1, max_hp // denominator)
-                        target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
-                        db.add(target)
+                        attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
+                        db.add(attacker)
+                    elif recipient == "target":
+                        for target in targets:
+                            if (target.current_hp or 0) > 0:
+                                max_hp = (target.current_stats or {}).get("hp", 1)
+                                heal_amount = max(1, max_hp // denominator)
+                                target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
+                                db.add(target)
+            else:
+                # Plain heal effect without condition
+                if len(parts) < 3:
+                    continue
+
+                try:
+                    denominator = int(parts[2])
+                    if denominator <= 0:
+                        continue
+                except ValueError:
+                    continue
+
+                if recipient == "self":
+                    # Get max HP from attacker's current_stats
+                    max_hp = (attacker.current_stats or {}).get("hp", 1)
+                    heal_amount = max(1, max_hp // denominator)
+                    attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
+                    db.add(attacker)
+                elif recipient == "target":
+                    for target in targets:
+                        # Only heal if target is alive
+                        if (target.current_hp or 0) > 0:
+                            max_hp = (target.current_stats or {}).get("hp", 1)
+                            heal_amount = max(1, max_hp // denominator)
+                            target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
+                            db.add(target)
 
 
 def apply_damage_based_move_effects(
@@ -2070,6 +2193,11 @@ def execute_move(
     targets_multiplier = 0.75 if len(landed_targets) >= 2 else 1
     damage_results = []
     removed_ids: List[int] = []
+    
+    # Get weather tiles for move effect processing (needed for conditional effects like healing)
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+    weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
+    
     if landed_targets and move_deals_direct_damage(move):
         category = (move.category or "").lower()
         is_special = category == "special"
@@ -2078,8 +2206,6 @@ def execute_move(
         power = move.power or 0
         attacker_types = gu.unit.types or []
         stab = 1.5 if move.type in attacker_types else 1
-        map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
-        weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
         attacker_weather_id = get_unit_weather_id(gu, weather_tiles)
         weather_move_multiplier = get_weather_move_multiplier(move.type, attacker_weather_id)
 
@@ -2104,7 +2230,7 @@ def execute_move(
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
-    process_move_effects(move, gu, landed_targets, state.current_turn, db)
+    process_move_effects(move, gu, landed_targets, state.current_turn, db, weather_tiles)
 
     recoil_fainted_ids = apply_damage_based_move_effects(move, gu, landed_targets, damage_results, db)
     if recoil_fainted_ids:
