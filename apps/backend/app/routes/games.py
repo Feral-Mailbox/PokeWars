@@ -258,6 +258,7 @@ def default_stat_boosts() -> dict:
         "speed": [],
         "accuracy": [],
         "evasion": [],
+        "crit": [],
     }
 
 
@@ -553,12 +554,26 @@ def get_critical_hit_chance(crit_stage: int) -> float:
     else:  # stage >= 4
         return 1 / 2   # 50%
 
-def attempt_critical_hit(attacker: GameUnit) -> bool:
+def move_has_high_crit_ratio(move: Move) -> bool:
+    """Return True when a move includes a high_crit_ratio effect token."""
+    if not move or not isinstance(move.effects, list):
+        return False
+
+    for effect in move.effects:
+        token = str(effect or "").strip().lower()
+        if token == "high_crit_ratio":
+            return True
+        if token.endswith(":high_crit_ratio"):
+            return True
+    return False
+
+
+def attempt_critical_hit(attacker: GameUnit, additional_stage: int = 0) -> bool:
     """
     Determine if an attack is a critical hit based on attacker's crit stage.
     Returns True if the attack should be a critical hit, False otherwise.
     """
-    crit_stage = get_stat_stage(attacker.stat_boosts, "crit")
+    crit_stage = get_stat_stage(attacker.stat_boosts, "crit") + int(additional_stage or 0)
     crit_chance = get_critical_hit_chance(crit_stage)
     
     if crit_chance <= 0:
@@ -991,6 +1006,8 @@ def apply_damage_based_move_effects(
 
     for effect_str in move.effects:
         parts = effect_str.split(":")
+        if len(parts) < 2:
+            continue
         recipient = parts[0]
         effect_type = parts[1]
         if effect_type not in {"drain", "recoil"}:
@@ -2268,6 +2285,7 @@ def execute_move(
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
         defense_stat = "sp_defense" if is_special else "defense"
+        move_crit_stage_bonus = 1 if move_has_high_crit_ratio(move) else 0
         power = move.power or 0
         attacker_types = gu.unit.types or []
         stab = 1.5 if move.type in attacker_types else 1
@@ -2282,7 +2300,7 @@ def execute_move(
             effective_defense = defense * weather_defense_multiplier
             safe_defense = effective_defense if effective_defense > 0 else 1
             random_factor = random.randint(85, 100) / 100
-            critical = 1.5 if attempt_critical_hit(gu) else 1
+            critical = 1.5 if attempt_critical_hit(gu, move_crit_stage_bonus) else 1
             type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
             base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
             damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)

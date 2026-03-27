@@ -15,6 +15,7 @@ from app.routes.games import (
 from app.routes.games import (
     get_critical_hit_chance,
     attempt_critical_hit,
+    move_has_high_crit_ratio,
 )
 
 from app.main import app
@@ -1132,3 +1133,32 @@ def test_process_move_effects_high_crit_ratio(db):
     # Check that crit stage was raised to 1
     assert len(attacker.stat_boosts["crit"]) == 1
     assert attacker.stat_boosts["crit"][0]["magnitude"] == 1
+
+
+def test_apply_damage_based_move_effects_ignores_single_token_effects(db):
+    """Single-token effects like high_crit_ratio should not crash damage-based effect parsing."""
+    move = models.Move(
+        name="Attack Order",
+        category="Physical",
+        effects=["high_crit_ratio"],
+    )
+    attacker = models.GameUnit(id=10, current_hp=40, current_stats={"hp": 100})
+    target = models.GameUnit(id=1, current_hp=70, current_stats={"hp": 100})
+
+    damage_results = [{"id": 1, "damage": 10, "current_hp": 70}]
+
+    fainted_ids = apply_damage_based_move_effects(move, attacker, [target], damage_results, db)
+
+    assert fainted_ids == []
+    assert attacker.current_hp == 40
+    assert target.current_hp == 70
+
+
+def test_move_has_high_crit_ratio_supports_both_effect_formats():
+    move_shorthand = models.Move(name="Air Cutter", effects=["high_crit_ratio"])
+    move_prefixed = models.Move(name="Focus Energy", effects=["self:high_crit_ratio"])
+    move_other = models.Move(name="Slash", effects=["target:status:burn"])
+
+    assert move_has_high_crit_ratio(move_shorthand) is True
+    assert move_has_high_crit_ratio(move_prefixed) is True
+    assert move_has_high_crit_ratio(move_other) is False

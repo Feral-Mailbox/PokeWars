@@ -229,7 +229,8 @@ class GameUnit(Base):
         "sp_defense": [],
         "speed": [],
         "accuracy": [],
-        "evasion": []
+        "evasion": [],
+        "crit": []
     })  # Each stat holds list of active boost instances
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
     is_fainted = Column(Boolean, default=False)

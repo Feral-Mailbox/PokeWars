@@ -13,5 +13,5 @@
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["self:apply_state:focus_energy"]
+  "effects": ["self:raise_stat:crit:2", "self:apply_state:focus_energy"]
 }
