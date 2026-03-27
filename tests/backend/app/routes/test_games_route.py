@@ -12,6 +12,11 @@ from app.routes.games import (
     move_lands_on_target,
 )
 
+from app.routes.games import (
+    get_critical_hit_chance,
+    attempt_critical_hit,
+)
+
 from app.main import app
 from app.dependencies import get_db, get_current_user
 
@@ -1012,3 +1017,118 @@ def test_process_move_effects_weather_updates_entire_field(db, user):
     map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
     assert map_state is not None
     assert map_state.weather_tiles == [[2, 2, 2], [2, 2, 2]]
+
+
+# ---------- Critical Hit Tests ----------
+
+def test_get_critical_hit_chance_stage_0():
+    """Test critical hit chance at stage 0 (base chance)."""
+    chance = get_critical_hit_chance(0)
+    assert chance == 1 / 16  # 6.25%
+
+def test_get_critical_hit_chance_stage_1():
+    """Test critical hit chance at stage 1."""
+    chance = get_critical_hit_chance(1)
+    assert chance == 1 / 8  # 12.5%
+
+def test_get_critical_hit_chance_stage_2():
+    """Test critical hit chance at stage 2."""
+    chance = get_critical_hit_chance(2)
+    assert chance == 1 / 4  # 25%
+
+def test_get_critical_hit_chance_stage_3():
+    """Test critical hit chance at stage 3."""
+    chance = get_critical_hit_chance(3)
+    assert abs(chance - 1 / 3) < 0.001  # ~33.3%
+
+def test_get_critical_hit_chance_stage_4_plus():
+    """Test critical hit chance at stage 4 and above."""
+    chance = get_critical_hit_chance(4)
+    assert chance == 1 / 2  # 50%
+    
+    chance_high = get_critical_hit_chance(10)
+    assert chance_high == 1 / 2  # 50% (capped)
+
+def test_get_critical_hit_chance_negative_stage():
+    """Test critical hit chance at negative stages (impossible to crit)."""
+    chance = get_critical_hit_chance(-1)
+    assert chance == 0.0
+    
+    chance_low = get_critical_hit_chance(-6)
+    assert chance_low == 0.0
+
+def test_attempt_critical_hit_no_crit_stage(db):
+    """Test that attacker with no crit stages has low crit chance."""
+    attacker = models.GameUnit(stat_boosts={
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": [],
+        "crit": []
+    })
+    
+    # Run many times to check that crits are rare (1/16 chance)
+    crit_count = 0
+    trials = 1000
+    for _ in range(trials):
+        if attempt_critical_hit(attacker):
+            crit_count += 1
+    
+    # Should average around 62-63 crits (1000/16 = 62.5)
+    # Allow some variance: 40-90 crits out of 1000
+    assert 40 <= crit_count <= 90, f"Expected ~62 crits out of {trials}, got {crit_count}"
+
+def test_attempt_critical_hit_with_crit_stage(db):
+    """Test that attacker with +1 crit stage has increased crit chance."""
+    attacker = models.GameUnit(stat_boosts={
+        "attack": [],
+        "defense": [],
+        "sp_attack": [],
+        "sp_defense": [],
+        "speed": [],
+        "accuracy": [],
+        "evasion": [],
+        "crit": [{"magnitude": 1, "expires_turn": 100}]
+    })
+    
+    # Run many times to check that crits are more common (1/8 chance)
+    crit_count = 0
+    trials = 1000
+    for _ in range(trials):
+        if attempt_critical_hit(attacker):
+            crit_count += 1
+    
+    # Should average around 125 crits (1000/8 = 125)
+    # Allow some variance: 100-150 crits out of 1000
+    assert 100 <= crit_count <= 150, f"Expected ~125 crits out of {trials}, got {crit_count}"
+
+def test_process_move_effects_high_crit_ratio(db):
+    """Test that high_crit_ratio effect raises crit stat."""
+    move = models.Move(
+        name="Focus Energy",
+        type="normal",
+        category="Status",
+        effects=["self:high_crit_ratio"]
+    )
+    attacker = models.GameUnit(
+        status_effects=[],
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": []
+        }
+    )
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    # Check that crit stage was raised to 1
+    assert len(attacker.stat_boosts["crit"]) == 1
+    assert attacker.stat_boosts["crit"][0]["magnitude"] == 1

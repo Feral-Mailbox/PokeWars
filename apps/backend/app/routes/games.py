@@ -523,6 +523,52 @@ def move_lands_on_target(move: Move, attacker: GameUnit, target: GameUnit) -> bo
     roll = random.uniform(0, 100)
     return roll <= threshold
 
+def get_critical_hit_chance(crit_stage: int) -> float:
+    """
+    Get the critical hit chance based on crit stage.
+    Uses Pokémon Gen III-V critical hit rates.
+    Stages are clamped to -6 to +4 range.
+    
+    Stage thresholds:
+    - Stage 0: 1/16 (6.25%)
+    - Stage 1: 1/8 (12.5%)
+    - Stage 2: 1/4 (25%)
+    - Stage 3: 1/3 (~33.3%)
+    - Stage 4+: 1/2 (50%)
+    - Negative stages: 0% (impossible to crit)
+    """
+    # Clamp stage to reasonable range
+    stage = max(-6, min(4, crit_stage))
+    
+    if stage < 0:
+        return 0.0
+    elif stage == 0:
+        return 1 / 16  # 6.25%
+    elif stage == 1:
+        return 1 / 8   # 12.5%
+    elif stage == 2:
+        return 1 / 4   # 25%
+    elif stage == 3:
+        return 1 / 3   # ~33.3%
+    else:  # stage >= 4
+        return 1 / 2   # 50%
+
+def attempt_critical_hit(attacker: GameUnit) -> bool:
+    """
+    Determine if an attack is a critical hit based on attacker's crit stage.
+    Returns True if the attack should be a critical hit, False otherwise.
+    """
+    crit_stage = get_stat_stage(attacker.stat_boosts, "crit")
+    crit_chance = get_critical_hit_chance(crit_stage)
+    
+    if crit_chance <= 0:
+        return False
+    if crit_chance >= 1.0:
+        return True
+    
+    roll = random.random()
+    return roll < crit_chance
+
 def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
     """
     Compute the effective stats for a unit, applying stat boost multipliers.
@@ -761,6 +807,25 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
             elif recipient == "target":
                 for target in targets:
                     apply_stat_change(target, stat_name, magnitude, current_turn, db)
+
+        elif effect_type == "high_crit_ratio":
+            # Format: recipient:high_crit_ratio[:accuracy]
+            # Applies a +1 boost to the target's crit rate
+            accuracy = 100
+            if len(parts) >= 3:
+                try:
+                    accuracy = int(parts[2])
+                except ValueError:
+                    pass
+
+            if random.randint(1, 100) > accuracy:
+                continue
+
+            if recipient == "self":
+                apply_stat_change(attacker, "crit", 1, current_turn, db)
+            elif recipient == "target":
+                for target in targets:
+                    apply_stat_change(target, "crit", 1, current_turn, db)
 
         elif effect_type == "status":
             # Check if this status has a condition
@@ -2217,7 +2282,7 @@ def execute_move(
             effective_defense = defense * weather_defense_multiplier
             safe_defense = effective_defense if effective_defense > 0 else 1
             random_factor = random.randint(85, 100) / 100
-            critical = 1
+            critical = 1.5 if attempt_critical_hit(gu) else 1
             type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
             base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
             damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
