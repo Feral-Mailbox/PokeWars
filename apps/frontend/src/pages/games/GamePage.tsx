@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 import UnitPortrait from "@/components/units/UnitPortrait";
@@ -88,6 +88,10 @@ export default function GamePage() {
   const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
   const [highlightedTiles, setHighlightedTiles] = useState<[number, number][]>([]);
   const [unitSearchQuery, setUnitSearchQuery] = useState<string>("");
+  const [unitTypeFilterPrimary, setUnitTypeFilterPrimary] = useState<string>("");
+  const [unitTypeFilterSecondary, setUnitTypeFilterSecondary] = useState<string>("");
+  const [unitSortBy, setUnitSortBy] = useState<"id" | "name" | "cost">("id");
+  const [unitSortDirection, setUnitSortDirection] = useState<"asc" | "desc">("asc");
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
@@ -158,6 +162,19 @@ export default function GamePage() {
     Steel: "#B7B7CE",
     Fairy: "#D685AD",
   };
+
+  const unitTypeOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const unit of availableUnits) {
+      const types = Array.isArray(unit?.types) ? unit.types : [];
+      for (const t of types) {
+        if (typeof t === "string" && t.trim().length > 0) {
+          seen.add(t);
+        }
+      }
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [availableUnits]);
 
   function getBaseBattleStatValue(unitState: any, statName: string): number | null {
     const baseStats = unitState?.unit?.base_stats;
@@ -1605,8 +1622,18 @@ export default function GamePage() {
   useEffect(() => {
     if (!isUnitSelectMenuVisible) {
       setUnitSearchQuery("");
+      setUnitTypeFilterPrimary("");
+      setUnitTypeFilterSecondary("");
+      setUnitSortBy("id");
+      setUnitSortDirection("asc");
     }
   }, [isUnitSelectMenuVisible]);
+
+  useEffect(() => {
+    if (unitTypeFilterPrimary && unitTypeFilterPrimary === unitTypeFilterSecondary) {
+      setUnitTypeFilterSecondary("");
+    }
+  }, [unitTypeFilterPrimary, unitTypeFilterSecondary]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -2531,24 +2558,98 @@ export default function GamePage() {
 
         // Case 2: Preparation phase + empty tile = Select Unit Menu
         if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
-          const filteredUnits = availableUnits.filter((unit) =>
-            String(unit.name || "").toLowerCase().includes(unitSearchQuery.toLowerCase().trim())
-          );
+          const query = unitSearchQuery.toLowerCase().trim();
+          const typeFilters = [unitTypeFilterPrimary, unitTypeFilterSecondary].filter(Boolean);
+
+          const filteredUnits = availableUnits
+            .filter((unit) => {
+              const unitName = String(unit.name || "").toLowerCase();
+              if (!unitName.includes(query)) return false;
+
+              const unitTypes = Array.isArray(unit.types) ? unit.types : [];
+              return typeFilters.every((type) => unitTypes.includes(type));
+            })
+            .sort((a, b) => {
+              let comparison = 0;
+              if (unitSortBy === "name") {
+                comparison = String(a.name || "").localeCompare(String(b.name || ""));
+              } else if (unitSortBy === "cost") {
+                comparison = Number(a.cost ?? 0) - Number(b.cost ?? 0);
+              } else {
+                comparison = Number(a.id ?? 0) - Number(b.id ?? 0);
+              }
+              return unitSortDirection === "asc" ? comparison : -comparison;
+            });
 
           return (
-            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
-              <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
-              <input
-                type="text"
-                value={unitSearchQuery}
-                onChange={(e) => setUnitSearchQuery(e.target.value)}
-                placeholder="Search units..."
-                className="w-full mb-3 px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
-              />
-              <ul className="space-y-2 text-sm">
+            <div className="w-72 bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[32rem] overflow-hidden">
+              <div className="p-4 border-b border-yellow-500 bg-gray-800 sticky top-0 z-10 rounded-t-lg">
+                <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
+                <input
+                  type="text"
+                  value={unitSearchQuery}
+                  onChange={(e) => setUnitSearchQuery(e.target.value)}
+                  placeholder="Search units..."
+                  className="w-full mb-3 px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
+                />
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <select
+                    value={unitTypeFilterPrimary}
+                    onChange={(e) => setUnitTypeFilterPrimary(e.target.value)}
+                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="">Type 1: Any</option>
+                    {unitTypeOptions.map((type) => (
+                      <option key={`primary-${type}`} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={unitTypeFilterSecondary}
+                    onChange={(e) => setUnitTypeFilterSecondary(e.target.value)}
+                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="">Type 2: Any</option>
+                    {unitTypeOptions.map((type) => (
+                      <option
+                        key={`secondary-${type}`}
+                        value={type}
+                        disabled={type === unitTypeFilterPrimary}
+                      >
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={unitSortBy}
+                    onChange={(e) => setUnitSortBy(e.target.value as "id" | "name" | "cost")}
+                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="id">Sort: ID</option>
+                    <option value="name">Sort: Name</option>
+                    <option value="cost">Sort: Price</option>
+                  </select>
+                  <select
+                    value={unitSortDirection}
+                    onChange={(e) => setUnitSortDirection(e.target.value as "asc" | "desc")}
+                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm overflow-y-auto p-4 flex-1 -mt-px">
+                {filteredUnits.length === 0 && (
+                  <li className="px-2 py-2 text-gray-400 border border-dashed border-gray-600 rounded">
+                    No units match the current filters.
+                  </li>
+                )}
                 {filteredUnits.map((unit) => (
                   <li
                     key={unit.id}
+                    data-unit
                     className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
                     onClick={async () => {
                       if (!selectedTile) return;
