@@ -70,133 +70,6 @@ WEATHER_TO_ID = {
     "hail": 4,
 }
 
-WEATHER_EFFECT_DURATION_TURNS = 5
-TERRAIN_EFFECT_DURATION_TURNS = 5
-ROOM_EFFECT_DURATION_TURNS = 5
-
-
-def parse_timed_tile_effect(value, legacy_turns_default: int = 0) -> tuple[int, int]:
-    """Parse a timed field effect tile from either legacy int or [id, turns]."""
-    if isinstance(value, (list, tuple)) and len(value) >= 2:
-        try:
-            effect_id = int(value[0] or 0)
-            turns_remaining = int(value[1] or 0)
-        except (TypeError, ValueError):
-            return 0, 0
-        if effect_id <= 0 or turns_remaining <= 0:
-            return 0, 0
-        return effect_id, turns_remaining
-
-    try:
-        effect_id = int(value or 0)
-    except (TypeError, ValueError):
-        return 0, 0
-
-    if effect_id <= 0:
-        return 0, 0
-
-    if legacy_turns_default <= 0:
-        return effect_id, 0
-    return effect_id, legacy_turns_default
-
-
-def normalize_timed_tile_matrix(
-    tiles: list | None,
-    height: int,
-    width: int,
-    legacy_turns_default: int,
-) -> list[list[list[int]]]:
-    normalized_rows: list[list[list[int]]] = []
-
-    for y in range(height):
-        if isinstance(tiles, list) and y < len(tiles) and isinstance(tiles[y], list):
-            row = tiles[y]
-        else:
-            row = []
-
-        normalized_row: list[list[int]] = []
-        for x in range(width):
-            cell = row[x] if x < len(row) else 0
-            effect_id, turns_remaining = parse_timed_tile_effect(cell, legacy_turns_default)
-            if effect_id <= 0 or turns_remaining <= 0:
-                normalized_row.append([0, 0])
-            else:
-                normalized_row.append([effect_id, turns_remaining])
-        normalized_rows.append(normalized_row)
-
-    return normalized_rows
-
-
-def decrement_round_field_effect_durations(game_id: int, db: Session) -> None:
-    """Decrement timed field durations once per full round and clear expired effects."""
-    map_state = (
-        db.query(GameMapState)
-        .options(joinedload(GameMapState.map))
-        .filter(GameMapState.game_id == game_id)
-        .first()
-    )
-    if not map_state:
-        return
-
-    map_obj = map_state.map if map_state.map else db.query(Map).filter(Map.id == map_state.map_id).first()
-    if not map_obj:
-        return
-
-    height = int(getattr(map_obj, "height", 0) or 0)
-    width = int(getattr(map_obj, "width", 0) or 0)
-    if height <= 0 or width <= 0:
-        return
-
-    weather_tiles = normalize_timed_tile_matrix(
-        map_state.weather_tiles,
-        height,
-        width,
-        WEATHER_EFFECT_DURATION_TURNS,
-    )
-    terrain_tiles = normalize_timed_tile_matrix(
-        map_state.terrain_effect_tiles,
-        height,
-        width,
-        TERRAIN_EFFECT_DURATION_TURNS,
-    )
-    room_tiles = normalize_timed_tile_matrix(
-        map_state.room_effect_tiles,
-        height,
-        width,
-        ROOM_EFFECT_DURATION_TURNS,
-    )
-
-    for y in range(height):
-        for x in range(width):
-            weather_id, weather_turns = parse_timed_tile_effect(weather_tiles[y][x], WEATHER_EFFECT_DURATION_TURNS)
-            if weather_id > 0 and weather_turns > 0:
-                weather_turns -= 1
-                if weather_turns <= 0:
-                    weather_tiles[y][x] = [0, 0]
-                else:
-                    weather_tiles[y][x] = [weather_id, weather_turns]
-
-            terrain_id, terrain_turns = parse_timed_tile_effect(terrain_tiles[y][x], TERRAIN_EFFECT_DURATION_TURNS)
-            if terrain_id > 0 and terrain_turns > 0:
-                terrain_turns -= 1
-                if terrain_turns <= 0:
-                    terrain_tiles[y][x] = [0, 0]
-                else:
-                    terrain_tiles[y][x] = [terrain_id, terrain_turns]
-
-            room_id, room_turns = parse_timed_tile_effect(room_tiles[y][x], ROOM_EFFECT_DURATION_TURNS)
-            if room_id > 0 and room_turns > 0:
-                room_turns -= 1
-                if room_turns <= 0:
-                    room_tiles[y][x] = [0, 0]
-                else:
-                    room_tiles[y][x] = [room_id, room_turns]
-
-    map_state.weather_tiles = weather_tiles
-    map_state.terrain_effect_tiles = terrain_tiles
-    map_state.room_effect_tiles = room_tiles
-    db.add(map_state)
-
 
 def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> int:
     if not isinstance(weather_tiles, list) or y < 0 or x < 0 or y >= len(weather_tiles):
@@ -204,16 +77,8 @@ def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> in
     row = weather_tiles[y]
     if not isinstance(row, list) or x >= len(row):
         return 0
-
-    cell = row[x]
-    if isinstance(cell, (list, tuple)) and len(cell) >= 1:
-        try:
-            return int(cell[0] or 0)
-        except (TypeError, ValueError):
-            return 0
-
     try:
-        return int(cell or 0)
+        return int(row[x] or 0)
     except (TypeError, ValueError):
         return 0
 
@@ -1082,16 +947,25 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
             if height <= 0 or width <= 0:
                 continue
 
-            map_state.weather_tiles = normalize_timed_tile_matrix(
-                map_state.weather_tiles,
-                height,
-                width,
-                WEATHER_EFFECT_DURATION_TURNS,
-            )
+            if not isinstance(map_state.weather_tiles, list) or len(map_state.weather_tiles) != height:
+                map_state.weather_tiles = _build_2d_matrix(height, width, 0)
+            else:
+                normalized_rows = []
+                for row in map_state.weather_tiles:
+                    if not isinstance(row, list):
+                        normalized_rows.append([0 for _ in range(width)])
+                    elif len(row) != width:
+                        fixed = [0 for _ in range(width)]
+                        for i in range(min(width, len(row))):
+                            fixed[i] = int(row[i] or 0)
+                        normalized_rows.append(fixed)
+                    else:
+                        normalized_rows.append([int(cell or 0) for cell in row])
+                map_state.weather_tiles = normalized_rows
 
             affected_tiles = get_move_affected_tiles(move, attacker, width, height)
             for tx, ty in affected_tiles:
-                map_state.weather_tiles[ty][tx] = [weather_id, WEATHER_EFFECT_DURATION_TURNS]
+                map_state.weather_tiles[ty][tx] = weather_id
             db.add(map_state)
             continue
         
@@ -1625,12 +1499,112 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
 
     return modified_unit_ids
 
+
+def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
+    """
+    Remove all units with HP at or below 0 from active play.
+    Returns removed unit IDs.
+    """
+    fainted_units = (
+        db.query(GameUnit)
+        .filter(
+            GameUnit.game_id == game_id,
+            GameUnit.current_hp <= 0,
+        )
+        .all()
+    )
+    if not fainted_units:
+        return []
+
+    removed_ids: list[int] = []
+    for unit in fainted_units:
+        unit.is_fainted = True
+        player_state = db.query(GamePlayer).filter_by(game_id=game_id, player_id=unit.user_id).first()
+        if player_state and unit.id in player_state.game_units:
+            player_state.game_units.remove(unit.id)
+            db.add(player_state)
+
+        removed_ids.append(unit.id)
+        db.delete(unit)
+
+    return removed_ids
+
 def get_remaining_unit_counts(game_id: int, db: Session) -> dict:
     counts: dict[int, int] = {}
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
     for unit in units:
         counts[unit.user_id] = counts.get(unit.user_id, 0) + 1
     return counts
+
+
+def get_playable_player_ids_in_order(state: GameState, game_id: int, db: Session) -> List[int]:
+    player_order = list(state.players or [])
+    alive_player_rows = (
+        db.query(GameUnit.user_id)
+        .filter(GameUnit.game_id == game_id)
+        .distinct()
+        .all()
+    )
+    alive_player_ids = {int(row[0]) for row in alive_player_rows}
+    return [player_id for player_id in player_order if player_id in alive_player_ids]
+
+
+def reconcile_playable_players(game: Game, state: GameState, db: Session) -> tuple[List[int], List[int], bool]:
+    """
+    Keep turn order synced to players that still have at least one unit in play.
+    Returns (playable_player_ids, eliminated_player_ids, game_completed_now).
+    """
+    previous_players = list(state.players or [])
+
+    # Only enforce elimination/playable-turn logic during active gameplay.
+    # Preparation/open/closed should preserve lobby player order even with zero units placed.
+    if state.status != GameStatus.in_progress:
+        if state.current_turn is None:
+            state.current_turn = 0
+        return previous_players, [], False
+
+    playable_players = get_playable_player_ids_in_order(state, game.id, db)
+    eliminated_players = [player_id for player_id in previous_players if player_id not in playable_players]
+
+    if playable_players != previous_players:
+        state.players = playable_players
+
+    if state.current_turn is None:
+        state.current_turn = 0
+
+    completed_now = False
+    if state.status == GameStatus.in_progress:
+        if len(playable_players) == 1:
+            state.status = GameStatus.completed
+            state.winner_id = playable_players[0]
+            completed_now = True
+        elif len(playable_players) == 0:
+            state.status = GameStatus.completed
+            state.winner_id = None
+            completed_now = True
+
+    return playable_players, eliminated_players, completed_now
+
+
+def set_next_playable_turn_after_current(game: Game, state: GameState, current_player_id: int, db: Session) -> tuple[List[int], List[int], bool]:
+    """
+    Advance turn ownership to the next player in original order who still has units.
+    Also synchronizes state.players to only playable players and resolves game completion.
+    """
+    playable_players, eliminated_players, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now or not playable_players:
+        return playable_players, eliminated_players, completed_now
+
+    if state.current_turn is None:
+        state.current_turn = 0
+    else:
+        state.current_turn = int(state.current_turn) + 1
+
+    # Keep turn owner aligned with currently playable players after increment.
+    if playable_players:
+        _ = playable_players[state.current_turn % len(playable_players)]
+
+    return playable_players, eliminated_players, completed_now
 
 def get_draw_player_ids(game: Game, state: GameState, db: Session) -> List[int]:
     counts = get_remaining_unit_counts(game.id, db)
@@ -1648,18 +1622,14 @@ def _build_hazard_2d_matrix(height: int, width: int):
     return [[[] for _ in range(width)] for _ in range(height)]
 
 
-def _build_timed_effect_2d_matrix(height: int, width: int):
-    return [[[0, 0] for _ in range(width)] for _ in range(height)]
-
-
 def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
     return GameMapState(
         game_id=game.id,
         map_id=map_obj.id,
-        weather_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
+        weather_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         hazard_tiles=_build_hazard_2d_matrix(map_obj.height, map_obj.width),
-        room_effect_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
-        terrain_effect_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
+        room_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        terrain_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         field_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         item_id_tiles=_build_2d_matrix(map_obj.height, map_obj.width, None),
     )
@@ -1754,6 +1724,15 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     """Advance to the next player if the turn timer elapsed. Returns True if advanced."""
     if state.status != GameStatus.in_progress or not state.turn_deadline:
         return False
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return True
+    if not playable_players:
+        return False
+
     now = datetime.now(timezone.utc)
     if now < state.turn_deadline:
         return False
@@ -1769,8 +1748,9 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
-        decrement_round_field_effect_durations(game.id, db)
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+
+    removed_ids = remove_fainted_units_from_play(game.id, db)
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -1780,18 +1760,16 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     for unit in current_player_units:
         unit.can_move = True
 
-    # Advance to next player by position in state.players (list of user_ids)
-    if not state.players:
+    playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return True
+    if not playable_players:
         return False
 
-    # Increment turn counter
-    if state.current_turn is None:
-        state.current_turn = 0
-    else:
-        state.current_turn += 1
-    
     # Decrement and expire stat boosts/statuses for the new current player's units.
-    new_current_player_id = state.players[state.current_turn % len(state.players)]
+    new_current_player_id = playable_players[state.current_turn % len(playable_players)]
     modified_unit_ids = set(end_turn_modified_unit_ids)
     modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
     modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
@@ -1799,6 +1777,15 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     # Broadcast stat updates for units that had boosts expire
     for unit_id in modified_unit_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+
+    for unit_id in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return True
     
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
@@ -1848,11 +1835,12 @@ def movement_range_backend(start, rng, movement_costs, width, height, blocked_ti
 
 def compute_turn_locks(game: Game, state: GameState, db: Session):
     """Cache {unit_id: {origin:[x,y], tiles:[[...],...]}} for the player whose turn it is."""
-    if state.current_turn is None or not state.players:
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now or state.current_turn is None or not playable_players:
         return
 
     # Derive the current player from the turn counter
-    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
     costs = map_obj.tile_data["movement_cost"]
@@ -1998,10 +1986,10 @@ def create_game(
     game_map_state = GameMapState(
         game_id=new_game.id,
         map_id=selected_map.id,
-        weather_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
+        weather_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         hazard_tiles=_build_hazard_2d_matrix(selected_map.height, selected_map.width),
-        room_effect_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
-        terrain_effect_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
+        room_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        terrain_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         field_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         item_id_tiles=_build_2d_matrix(selected_map.height, selected_map.width, None),
     )
@@ -2188,7 +2176,18 @@ def get_game_by_link(
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
+    removed_ids = remove_fainted_units_from_play(game.id, db)
+    if removed_ids:
+        db.commit()
+        for unit_id in removed_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
+    _, _, completed_now = reconcile_playable_players(game, game_state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+
     advance_if_expired(game, game_state, db)
 
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
@@ -2282,13 +2281,29 @@ def get_game_units(
     link: str,
     db: Session = Depends(get_db)
 ):
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    removed_ids = remove_fainted_units_from_play(game.id, db)
+    if removed_ids:
+        db.commit()
+        for unit_id in removed_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if state and state.status == GameStatus.in_progress:
+        _, _, completed_now = reconcile_playable_players(game, state, db)
+        if completed_now:
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+
     # Expire session objects to ensure fresh data from database
     db.expire_all()
     units = (
         db.query(GameUnit)
-        .join(Game)
         .options(joinedload(GameUnit.unit))
-        .filter(Game.link == link)
+        .filter(GameUnit.game_id == game.id)
         .all()
     )
     
@@ -2458,11 +2473,19 @@ def get_turnlock(
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
     state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state:
+        return {}
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {}
 
     # Return the locks for the player whose turn it is (i.e., the “frozen” sets)
-    if not state.players or state.current_turn is None:
+    if not playable_players or state.current_turn is None:
         return {}
-    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
     key = f"turnlock:{game.link}:{current_player_id}"
     raw = redis_client.hgetall(key)
     return {int(k): json.loads(v) for k, v in raw.items()}
@@ -2480,10 +2503,16 @@ def end_turn(
     state = db.query(GameState).filter_by(game_id=game.id).first()
     if not state or state.status != GameStatus.in_progress:
         raise HTTPException(status_code=400, detail="Game not in progress")
-    if not state.players or state.current_turn is None:
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {"detail": "Game completed"}
+
+    if not playable_players or state.current_turn is None:
         raise HTTPException(status_code=400, detail="Invalid game state")
 
-    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
     if current_player_id != user.id:
         raise HTTPException(status_code=403, detail="Not your turn")
 
@@ -2496,8 +2525,9 @@ def end_turn(
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
-        decrement_round_field_effect_durations(game.id, db)
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+
+    removed_ids = remove_fainted_units_from_play(game.id, db)
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -2507,15 +2537,30 @@ def end_turn(
     for unit in current_player_units:
         unit.can_move = True
 
-    state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
+    playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {"detail": "Game completed"}
+    if not playable_players:
+        raise HTTPException(status_code=400, detail="Invalid game state")
 
-    new_current_player_id = state.players[state.current_turn % len(state.players)]
+    new_current_player_id = playable_players[state.current_turn % len(playable_players)]
     modified_unit_ids = set(end_turn_modified_unit_ids)
     modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
     modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
 
     for unit_id in modified_unit_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+
+    for unit_id in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {"detail": "Game completed"}
 
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
@@ -2559,10 +2604,16 @@ def execute_move(
     state = db.query(GameState).filter_by(game_id=game.id).first()
     if not state or state.status != GameStatus.in_progress:
         raise HTTPException(status_code=400, detail="Game not in progress")
-    if not state.players or state.current_turn is None:
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
         raise HTTPException(status_code=400, detail="Invalid game state")
 
-    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
     if current_player_id != user.id:
         raise HTTPException(status_code=403, detail="Not your turn")
 
@@ -2755,6 +2806,8 @@ def execute_move(
         GameUnit.can_move == True
     ).count()
 
+    end_turn_removed_ids: List[int] = []
+
     if remaining_units == 0:
         units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
         for unit in units_to_sync:
@@ -2765,8 +2818,30 @@ def execute_move(
         end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
         should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
         if should_apply_round_weather:
-            decrement_round_field_effect_durations(game.id, db)
             end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+
+        end_turn_removed_ids = remove_fainted_units_from_play(game.id, db)
+        if end_turn_removed_ids:
+            removed_ids = list(set(removed_ids + end_turn_removed_ids))
+
+        remaining_units_after_end_turn_damage = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+        remaining_players_after_end_turn_damage = {unit.user_id for unit in remaining_units_after_end_turn_damage}
+        if len(remaining_players_after_end_turn_damage) == 1:
+            state.status = GameStatus.completed
+            state.winner_id = next(iter(remaining_players_after_end_turn_damage))
+            db.commit()
+            for unit_id in removed_ids:
+                redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
+            return {
+                "ok": True,
+                "unit_id": gu.id,
+                "move_pp": gu.move_pp,
+                "targets": damage_results,
+                "missed_target_ids": missed_target_ids,
+                "removed_ids": removed_ids,
+            }
 
         current_player_units = db.query(GameUnit).filter(
             GameUnit.game_id == game.id,
@@ -2775,10 +2850,24 @@ def execute_move(
         for unit in current_player_units:
             unit.can_move = True
 
-        state.current_turn = (state.current_turn + 1) if state.current_turn is not None else 0
+        playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
+        if completed_now:
+            db.commit()
+            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
+            return {
+                "ok": True,
+                "unit_id": gu.id,
+                "move_pp": gu.move_pp,
+                "targets": damage_results,
+                "missed_target_ids": missed_target_ids,
+                "removed_ids": removed_ids,
+            }
+        if not playable_players:
+            raise HTTPException(status_code=400, detail="Invalid game state")
 
         # Decrement and expire stat boosts/statuses for the new current player's units.
-        new_current_player_id = state.players[state.current_turn % len(state.players)]
+        new_current_player_id = playable_players[state.current_turn % len(playable_players)]
         modified_unit_ids = set(end_turn_modified_unit_ids)
         modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
         modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
@@ -2841,9 +2930,15 @@ def move_unit(
         raise HTTPException(status_code=400, detail="Game not in progress")
 
     # Check for player turn - derive active player from turn counter
-    if not state.players or state.current_turn is None:
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
         raise HTTPException(status_code=400, detail="Invalid game state")
-    current_player_id = state.players[state.current_turn % len(state.players)]
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
     if current_player_id != user.id:
         raise HTTPException(status_code=403, detail="Not your turn")
 

@@ -2404,7 +2404,7 @@ export default function GamePage() {
           {gameData?.game_name || "Untitled Game"} <span className="text-sm text-gray-400">({gameData?.gamemode})</span>
         </h1>
         
-        {gameData?.max_turns && gameData.current_turn !== null && gameData.current_turn !== undefined && gameData.player_order && gameData.host_id && (gameData?.status === "in_progress" || gameData?.status === "completed") && (
+        {gameData?.max_turns && gameData.current_turn !== null && gameData.current_turn !== undefined && gameData.player_order && gameData.host_id && gameData?.status === "in_progress" && (
           (() => {
             // Calculate display turn based on host's turn only
             const hostIndex = gameData.player_order.indexOf(gameData.host_id);
