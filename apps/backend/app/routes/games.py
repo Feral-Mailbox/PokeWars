@@ -70,6 +70,133 @@ WEATHER_TO_ID = {
     "hail": 4,
 }
 
+WEATHER_EFFECT_DURATION_TURNS = 5
+TERRAIN_EFFECT_DURATION_TURNS = 5
+ROOM_EFFECT_DURATION_TURNS = 5
+
+
+def parse_timed_tile_effect(value, legacy_turns_default: int = 0) -> tuple[int, int]:
+    """Parse a timed field effect tile from either legacy int or [id, turns]."""
+    if isinstance(value, (list, tuple)) and len(value) >= 2:
+        try:
+            effect_id = int(value[0] or 0)
+            turns_remaining = int(value[1] or 0)
+        except (TypeError, ValueError):
+            return 0, 0
+        if effect_id <= 0 or turns_remaining <= 0:
+            return 0, 0
+        return effect_id, turns_remaining
+
+    try:
+        effect_id = int(value or 0)
+    except (TypeError, ValueError):
+        return 0, 0
+
+    if effect_id <= 0:
+        return 0, 0
+
+    if legacy_turns_default <= 0:
+        return effect_id, 0
+    return effect_id, legacy_turns_default
+
+
+def normalize_timed_tile_matrix(
+    tiles: list | None,
+    height: int,
+    width: int,
+    legacy_turns_default: int,
+) -> list[list[list[int]]]:
+    normalized_rows: list[list[list[int]]] = []
+
+    for y in range(height):
+        if isinstance(tiles, list) and y < len(tiles) and isinstance(tiles[y], list):
+            row = tiles[y]
+        else:
+            row = []
+
+        normalized_row: list[list[int]] = []
+        for x in range(width):
+            cell = row[x] if x < len(row) else 0
+            effect_id, turns_remaining = parse_timed_tile_effect(cell, legacy_turns_default)
+            if effect_id <= 0 or turns_remaining <= 0:
+                normalized_row.append([0, 0])
+            else:
+                normalized_row.append([effect_id, turns_remaining])
+        normalized_rows.append(normalized_row)
+
+    return normalized_rows
+
+
+def decrement_round_field_effect_durations(game_id: int, db: Session) -> None:
+    """Decrement timed field durations once per full round and clear expired effects."""
+    map_state = (
+        db.query(GameMapState)
+        .options(joinedload(GameMapState.map))
+        .filter(GameMapState.game_id == game_id)
+        .first()
+    )
+    if not map_state:
+        return
+
+    map_obj = map_state.map if map_state.map else db.query(Map).filter(Map.id == map_state.map_id).first()
+    if not map_obj:
+        return
+
+    height = int(getattr(map_obj, "height", 0) or 0)
+    width = int(getattr(map_obj, "width", 0) or 0)
+    if height <= 0 or width <= 0:
+        return
+
+    weather_tiles = normalize_timed_tile_matrix(
+        map_state.weather_tiles,
+        height,
+        width,
+        WEATHER_EFFECT_DURATION_TURNS,
+    )
+    terrain_tiles = normalize_timed_tile_matrix(
+        map_state.terrain_effect_tiles,
+        height,
+        width,
+        TERRAIN_EFFECT_DURATION_TURNS,
+    )
+    room_tiles = normalize_timed_tile_matrix(
+        map_state.room_effect_tiles,
+        height,
+        width,
+        ROOM_EFFECT_DURATION_TURNS,
+    )
+
+    for y in range(height):
+        for x in range(width):
+            weather_id, weather_turns = parse_timed_tile_effect(weather_tiles[y][x], WEATHER_EFFECT_DURATION_TURNS)
+            if weather_id > 0 and weather_turns > 0:
+                weather_turns -= 1
+                if weather_turns <= 0:
+                    weather_tiles[y][x] = [0, 0]
+                else:
+                    weather_tiles[y][x] = [weather_id, weather_turns]
+
+            terrain_id, terrain_turns = parse_timed_tile_effect(terrain_tiles[y][x], TERRAIN_EFFECT_DURATION_TURNS)
+            if terrain_id > 0 and terrain_turns > 0:
+                terrain_turns -= 1
+                if terrain_turns <= 0:
+                    terrain_tiles[y][x] = [0, 0]
+                else:
+                    terrain_tiles[y][x] = [terrain_id, terrain_turns]
+
+            room_id, room_turns = parse_timed_tile_effect(room_tiles[y][x], ROOM_EFFECT_DURATION_TURNS)
+            if room_id > 0 and room_turns > 0:
+                room_turns -= 1
+                if room_turns <= 0:
+                    room_tiles[y][x] = [0, 0]
+                else:
+                    room_tiles[y][x] = [room_id, room_turns]
+
+    map_state.weather_tiles = weather_tiles
+    map_state.terrain_effect_tiles = terrain_tiles
+    map_state.room_effect_tiles = room_tiles
+    db.add(map_state)
+
 
 def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> int:
     if not isinstance(weather_tiles, list) or y < 0 or x < 0 or y >= len(weather_tiles):
@@ -77,8 +204,16 @@ def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> in
     row = weather_tiles[y]
     if not isinstance(row, list) or x >= len(row):
         return 0
+
+    cell = row[x]
+    if isinstance(cell, (list, tuple)) and len(cell) >= 1:
+        try:
+            return int(cell[0] or 0)
+        except (TypeError, ValueError):
+            return 0
+
     try:
-        return int(row[x] or 0)
+        return int(cell or 0)
     except (TypeError, ValueError):
         return 0
 
@@ -947,25 +1082,16 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
             if height <= 0 or width <= 0:
                 continue
 
-            if not isinstance(map_state.weather_tiles, list) or len(map_state.weather_tiles) != height:
-                map_state.weather_tiles = _build_2d_matrix(height, width, 0)
-            else:
-                normalized_rows = []
-                for row in map_state.weather_tiles:
-                    if not isinstance(row, list):
-                        normalized_rows.append([0 for _ in range(width)])
-                    elif len(row) != width:
-                        fixed = [0 for _ in range(width)]
-                        for i in range(min(width, len(row))):
-                            fixed[i] = int(row[i] or 0)
-                        normalized_rows.append(fixed)
-                    else:
-                        normalized_rows.append([int(cell or 0) for cell in row])
-                map_state.weather_tiles = normalized_rows
+            map_state.weather_tiles = normalize_timed_tile_matrix(
+                map_state.weather_tiles,
+                height,
+                width,
+                WEATHER_EFFECT_DURATION_TURNS,
+            )
 
             affected_tiles = get_move_affected_tiles(move, attacker, width, height)
             for tx, ty in affected_tiles:
-                map_state.weather_tiles[ty][tx] = weather_id
+                map_state.weather_tiles[ty][tx] = [weather_id, WEATHER_EFFECT_DURATION_TURNS]
             db.add(map_state)
             continue
         
@@ -1522,14 +1648,18 @@ def _build_hazard_2d_matrix(height: int, width: int):
     return [[[] for _ in range(width)] for _ in range(height)]
 
 
+def _build_timed_effect_2d_matrix(height: int, width: int):
+    return [[[0, 0] for _ in range(width)] for _ in range(height)]
+
+
 def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
     return GameMapState(
         game_id=game.id,
         map_id=map_obj.id,
-        weather_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        weather_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
         hazard_tiles=_build_hazard_2d_matrix(map_obj.height, map_obj.width),
-        room_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
-        terrain_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
+        room_effect_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
+        terrain_effect_tiles=_build_timed_effect_2d_matrix(map_obj.height, map_obj.width),
         field_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         item_id_tiles=_build_2d_matrix(map_obj.height, map_obj.width, None),
     )
@@ -1639,6 +1769,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
+        decrement_round_field_effect_durations(game.id, db)
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
     # Reset can_move for the current player's units before advancing turn
@@ -1867,10 +1998,10 @@ def create_game(
     game_map_state = GameMapState(
         game_id=new_game.id,
         map_id=selected_map.id,
-        weather_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        weather_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
         hazard_tiles=_build_hazard_2d_matrix(selected_map.height, selected_map.width),
-        room_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
-        terrain_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
+        room_effect_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
+        terrain_effect_tiles=_build_timed_effect_2d_matrix(selected_map.height, selected_map.width),
         field_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         item_id_tiles=_build_2d_matrix(selected_map.height, selected_map.width, None),
     )
@@ -2365,6 +2496,7 @@ def end_turn(
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
+        decrement_round_field_effect_durations(game.id, db)
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
     # Reset can_move for the current player's units before advancing turn
@@ -2633,6 +2765,7 @@ def execute_move(
         end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
         should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
         if should_apply_round_weather:
+            decrement_round_field_effect_durations(game.id, db)
             end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
 
         current_player_units = db.query(GameUnit).filter(

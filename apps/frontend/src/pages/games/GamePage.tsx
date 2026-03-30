@@ -101,6 +101,7 @@ export default function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
+  const weatherIconLoadFailedRef = useRef<Record<number, boolean>>({});
 
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
@@ -304,6 +305,21 @@ export default function GamePage() {
     const mapHeight = Number(game?.map?.height ?? 0);
     const raw = game?.map_state ?? {};
 
+    const parseTimedEffectCell = (cell: any): [number, number] => {
+      if (Array.isArray(cell) && cell.length >= 2) {
+        const effectId = Number(cell[0]);
+        const turns = Number(cell[1]);
+        if (!Number.isFinite(effectId) || !Number.isFinite(turns)) return [0, 0];
+        if (effectId <= 0 || turns <= 0) return [0, 0];
+        return [Math.trunc(effectId), Math.trunc(turns)];
+      }
+
+      const legacyId = Number(cell ?? 0);
+      if (!Number.isFinite(legacyId) || legacyId <= 0) return [0, 0];
+      // Legacy backend payloads may send a plain weather/terrain id.
+      return [Math.trunc(legacyId), 0];
+    };
+
     const normalizeNumberGrid = (value: any) => {
       if (!Array.isArray(value)) return build2DGrid(mapHeight, mapWidth, 0);
       return Array.from({ length: mapHeight }, (_, y) => {
@@ -311,6 +327,17 @@ export default function GamePage() {
         return Array.from({ length: mapWidth }, (_, x) => {
           const n = Number(Array.isArray(row) ? row[x] : 0);
           return Number.isFinite(n) ? n : 0;
+        });
+      });
+    };
+
+    const normalizeTimedEffectGrid = (value: any) => {
+      if (!Array.isArray(value)) return build2DGrid<[number, number]>(mapHeight, mapWidth, [0, 0]);
+      return Array.from({ length: mapHeight }, (_, y) => {
+        const row = value[y];
+        return Array.from({ length: mapWidth }, (_, x) => {
+          const cell = Array.isArray(row) ? row[x] : 0;
+          return parseTimedEffectCell(cell);
         });
       });
     };
@@ -342,10 +369,10 @@ export default function GamePage() {
 
     return {
       ...raw,
-      weather_tiles: normalizeNumberGrid(raw.weather_tiles),
+      weather_tiles: normalizeTimedEffectGrid(raw.weather_tiles),
       hazard_tiles: normalizeHazardGrid(raw.hazard_tiles),
-      room_effect_tiles: normalizeNumberGrid(raw.room_effect_tiles),
-      terrain_effect_tiles: normalizeNumberGrid(raw.terrain_effect_tiles),
+      room_effect_tiles: normalizeTimedEffectGrid(raw.room_effect_tiles),
+      terrain_effect_tiles: normalizeTimedEffectGrid(raw.terrain_effect_tiles),
       field_effect_tiles: normalizeNumberGrid(raw.field_effect_tiles),
       item_id_tiles: normalizeItemIdGrid(raw.item_id_tiles),
     };
@@ -372,6 +399,8 @@ export default function GamePage() {
   }
 
   function getWeatherIconImage(weatherId: number): HTMLImageElement | null {
+    if (weatherIconLoadFailedRef.current[weatherId]) return null;
+
     const src = getWeatherIconSrc(weatherId);
     if (!src) return null;
 
@@ -381,8 +410,44 @@ export default function GamePage() {
     const img = new Image();
     img.src = src;
     img.onload = () => setWeatherIconRefresh((prev) => prev + 1);
+    img.onerror = () => {
+      weatherIconLoadFailedRef.current[weatherId] = true;
+      setWeatherIconRefresh((prev) => prev + 1);
+    };
     weatherIconCacheRef.current[weatherId] = img;
     return img;
+  }
+
+  function drawWeatherFallback(ctx: CanvasRenderingContext2D, weatherId: number, tileX: number, tileY: number) {
+    const labelByWeatherId: Record<number, string> = {
+      1: "SUN",
+      2: "RAIN",
+      3: "SAND",
+      4: "HAIL",
+    };
+    const colorByWeatherId: Record<number, string> = {
+      1: "rgba(255, 181, 60, 0.9)",
+      2: "rgba(80, 150, 255, 0.9)",
+      3: "rgba(194, 154, 92, 0.9)",
+      4: "rgba(180, 220, 255, 0.9)",
+    };
+
+    const label = labelByWeatherId[weatherId];
+    if (!label) return;
+
+    const chipW = Math.max(16, Math.floor(TILE_DRAW_SIZE * 0.9));
+    const chipH = Math.max(8, Math.floor(TILE_DRAW_SIZE * 0.28));
+    const drawX = tileX * TILE_DRAW_SIZE + 1;
+    const drawY = tileY * TILE_DRAW_SIZE + 1;
+
+    ctx.save();
+    ctx.fillStyle = colorByWeatherId[weatherId] ?? "rgba(255,255,255,0.9)";
+    ctx.fillRect(drawX, drawY, chipW, chipH);
+    ctx.font = "bold 7px sans-serif";
+    ctx.fillStyle = "#111";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, drawX + 2, drawY + Math.floor(chipH / 2));
+    ctx.restore();
   }
 
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
@@ -1708,15 +1773,18 @@ export default function GamePage() {
         const row = weatherTiles[y];
         if (!Array.isArray(row)) continue;
         for (let x = 0; x < row.length; x++) {
-          const weatherId = Number(row[x] ?? 0);
+          const cell = row[x];
+          const weatherId = Number(Array.isArray(cell) ? cell[0] : cell ?? 0);
           if (!Number.isFinite(weatherId) || weatherId <= 0) continue;
 
           const icon = getWeatherIconImage(weatherId);
-          if (!icon || !icon.complete) continue;
-
           const drawX = x * TILE_DRAW_SIZE + iconPadding;
           const drawY = y * TILE_DRAW_SIZE + iconPadding;
-          ctx.drawImage(icon, drawX, drawY, iconSize, iconSize);
+          if (icon && icon.complete && icon.naturalWidth > 0) {
+            ctx.drawImage(icon, drawX, drawY, iconSize, iconSize);
+          } else {
+            drawWeatherFallback(ctx, weatherId, x, y);
+          }
         }
       }
     }

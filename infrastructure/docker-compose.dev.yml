@@ -28,8 +28,7 @@ services:
       - backend
     volumes:
       - ../apps/frontend:/app:cached   
-      - ./apps/frontend/assets/sprites:/app/assets/sprites
-      - ./apps/frontend/assets/tilesets:/app/assets/tilesets
+      - ../assets:/app/assets:ro
       - /app/node_modules
       - ../infrastructure/certs:/app/certs:ro 
     environment:
