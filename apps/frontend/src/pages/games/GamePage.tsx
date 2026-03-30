@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
-import UnitPortrait from "@/components/units/UnitPortrait";
-import UnitIdleSprite from "@/components/units/UnitIdleSprite";
+import GameMapStage from "./components/GameMapStage";
+import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
+import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
+import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
 import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
@@ -291,35 +293,6 @@ export default function GamePage() {
     return `${getAssetBaseUrl()}/misc/status_icons/${iconFile}`;
   }
 
-  function normalizeCredits(credits: any): string[] {
-    if (!Array.isArray(credits)) return [];
-    return credits
-      .map((entry) => String(entry ?? "").trim())
-      .filter((entry) => entry.length > 0);
-  }
-
-  function renderUnitCredits(unit: any) {
-    const portraitCredits = normalizeCredits(unit?.portrait_credits);
-    const spriteCredits = normalizeCredits(unit?.sprite_credits);
-
-    if (portraitCredits.length === 0 && spriteCredits.length === 0) return null;
-
-    return (
-      <div className="mt-4 pt-3 border-t border-gray-600 text-xs text-gray-300 space-y-1">
-        {portraitCredits.length > 0 && (
-          <p>
-            <span className="font-semibold text-gray-200">Portrait:</span> {portraitCredits.join(", ")}
-          </p>
-        )}
-        {spriteCredits.length > 0 && (
-          <p>
-            <span className="font-semibold text-gray-200">Sprite:</span> {spriteCredits.join(", ")}
-          </p>
-        )}
-      </div>
-    );
-  }
-
   function build2DGrid<T>(height: number, width: number, fill: T): T[][] {
     return Array.from({ length: Math.max(0, height) }, () =>
       Array.from({ length: Math.max(0, width) }, () => fill)
@@ -519,10 +492,24 @@ export default function GamePage() {
 
   function getActiveOrigin(): [number, number] | null {
     const u = lockedUnit ?? hoveredUnit;
-    if (!u) return null;
-    const unitId = u.instanceId ?? u.id;
-    const live = placedUnitsRef.current.find(p => p.id === unitId);
-    return (live?.tile as [number, number]) ?? (u.tile as [number, number]) ?? null;
+    if (u) {
+      const unitId = u.instanceId ?? u.id;
+      const live = placedUnitsRef.current.find(p => p.id === unitId);
+      return (live?.tile as [number, number]) ?? (u.tile as [number, number]) ?? null;
+    }
+
+    // Preparation mode does not lock/select a unit for move execution, but move hover
+    // should still preview range from the currently selected placed unit.
+    if (gameData?.status === "preparation" && selectedTile) {
+      const selected = placedUnitsRef.current.find(
+        (p) => p.tile[0] === selectedTile[0] && p.tile[1] === selectedTile[1]
+      );
+      if (selected) {
+        return selected.tile as [number, number];
+      }
+    }
+
+    return null;
   }
 
   /* ----- ATTACK RANGE FUNCTIONS ------ */
@@ -1282,45 +1269,6 @@ export default function GamePage() {
       }
     }
     preMoveStateRef.current = null;
-  }
-
-  function MoveButton({ move, moveIndex, TYPE_COLORS }: { move: any; moveIndex: number; TYPE_COLORS: Record<string,string> }) {
-    const isLocked = activeUnit?.can_move === false;
-    const movePP = activeUnit?.move_pp?.[moveIndex] ?? move.pp ?? 0;
-    const maxPP = move.pp ?? 0;
-    const ppPercentage = maxPP > 0 ? (movePP / maxPP) * 100 : 0;
-    
-    let ppColor = '#ffffff'; // white
-    if (ppPercentage <= 10) {
-      ppColor = '#ef4444'; // red
-    } else if (ppPercentage <= 50) {
-      ppColor = '#eab308'; // yellow
-    }
-    
-    return (
-      <button
-        type="button"
-        onMouseEnter={() => !isLocked && handleMoveHoverStart(move)}
-        onMouseLeave={handleMoveHoverEnd}
-        onClick={() => handleMoveSelect(move)}
-        disabled={moveTargeting || isLocked}
-        className={`w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        <div className="flex justify-between font-bold">
-          <span>{move.name}</span>
-          <span
-            className="text-xs font-medium px-2 py-0.5 rounded"
-            style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}
-          >
-            {move.type}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Power: {move.power ?? "—"}</span>
-          <span style={{ color: ppColor }}>PP: {movePP}/{maxPP}</span>
-        </div>
-      </button>
-    );
   }
 
   function fmt(seconds: number): string {
@@ -2283,6 +2231,166 @@ export default function GamePage() {
     )
   : null;
 
+  const handleRemovePlacedUnit = async () => {
+    if (!placedUnitAtTile?.id || !gameData?.link) return;
+
+    const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${placedUnitAtTile.id}`, {
+      method: "DELETE"
+    });
+
+    if (!res.ok) {
+      setToastMessage("Failed to remove unit.");
+      return;
+    }
+
+    setCash((prev) => prev + (placedUnitAtTile.unit?.cost ?? 0));
+    setPlacedUnits((prev) => prev.filter((u) => u.id !== placedUnitAtTile.id));
+    setSelectedTile(null);
+  };
+
+  const handlePlacePreparationUnit = async (unit: any) => {
+    if (!selectedTile || !gameData?.link) return;
+    if (unit.cost > cash) {
+      setToastMessage("You don't have enough cash to buy this unit!");
+      return;
+    }
+
+    const payload = {
+      unit_id: unit.id,
+      x: selectedTile[0],
+      y: selectedTile[1],
+      current_hp: 100,
+      stat_boosts: {},
+      status_effects: [],
+      is_fainted: false,
+    };
+
+    const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      setToastMessage("Failed to place unit.");
+      return;
+    }
+
+    const placedUnit = await res.json();
+    const movePP = placedUnit.move_pp ?? [];
+
+    setPlacedUnits((prev) => [
+      ...prev,
+      {
+        id: placedUnit.id,
+        unit: placedUnit.unit,
+        tile: [placedUnit.current_x, placedUnit.current_y],
+        current_hp: placedUnit.current_hp,
+        user_id: placedUnit.user_id,
+        status_effects: placedUnit.status_effects ?? [],
+        level: placedUnit.level,
+        current_stats: placedUnit.current_stats,
+        can_move: placedUnit.can_move ?? true,
+        move_pp: movePP,
+      }
+    ]);
+    setCash((prev) => prev - unit.cost);
+    setSelectedTile(null);
+  };
+
+  const handleMapUnitMouseEnter = (unitState: any) => {
+    if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
+      const live = placedUnits.find((p) => p.id === unitState.id);
+      setHoveredUnit({
+        unit: unitState.unit,
+        user_id: unitState.user_id,
+        current_hp: unitState.current_hp,
+        instanceId: unitState.id,
+        tile: unitState.tile,
+        current_stats: live?.current_stats,
+        stat_boosts: live?.stat_boosts,
+        status_effects: live?.status_effects ?? [],
+        can_move: live?.can_move ?? true,
+        move_pp: live?.move_pp ?? [],
+      });
+    }
+  };
+
+  const handleMapUnitMouseLeave = () => {
+    if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
+      setHoveredUnit(null);
+    }
+  };
+
+  const handleMapUnitClick = (unitState: any) => {
+    if (moveTargeting) return;
+
+    if (gameData?.status === "preparation") {
+      if (isReady) return;
+      setSelectedTile(unitState.tile);
+      return;
+    }
+
+    if (gameData?.status !== "in_progress") return;
+
+    const live = placedUnits.find((p) => p.id === unitState.id);
+    setLockedUnit((prev) => {
+      const isSameInstance = prev?.instanceId === unitState.id;
+      if (isSameInstance) {
+        setHighlightedTiles([]);
+        setUnitOriginalTile(null);
+        return null;
+      }
+
+      const cached = frozenMovesRef.current[unitState.id];
+      if (cached) {
+        setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitState.id));
+        setUnitOriginalTile(cached.origin);
+        return {
+          unit: unitState.unit,
+          user_id: unitState.user_id,
+          current_hp: unitState.current_hp,
+          instanceId: unitState.id,
+          tile: unitState.tile,
+          current_stats: live?.current_stats,
+          stat_boosts: live?.stat_boosts,
+          status_effects: live?.status_effects ?? [],
+          can_move: live?.can_move ?? true,
+          move_pp: live?.move_pp ?? [],
+        };
+      }
+
+      const movement = getCurrentMovementRange({
+        unit: unitState.unit,
+        current_stats: live?.current_stats,
+        level: live?.level,
+      });
+      const costMap = gameData.map.tile_data.movement_cost;
+      const width = gameData.map.width;
+      const height = gameData.map.height;
+
+      const newOrigin: [number, number] = unitState.tile;
+      const newTiles = getMovementOverlayTiles(newOrigin, movement, costMap, width, height, unitState.user_id, unitState.id);
+
+      frozenMovesRef.current[unitState.id] = { origin: newOrigin, tiles: newTiles };
+      setHighlightedTiles(newTiles);
+      setUnitOriginalTile(newOrigin);
+
+      return {
+        unit: unitState.unit,
+        user_id: unitState.user_id,
+        current_hp: unitState.current_hp,
+        instanceId: unitState.id,
+        tile: unitState.tile,
+        current_stats: live?.current_stats,
+        stat_boosts: live?.stat_boosts,
+        status_effects: live?.status_effects ?? [],
+        can_move: live?.can_move ?? true,
+        move_pp: live?.move_pp ?? [],
+      };
+    });
+  };
+
   return (
     <div className="relative p-8 text-white flex flex-row items-start gap-6">
       {toastMessage && (
@@ -2400,128 +2508,22 @@ export default function GamePage() {
           </div>
         )}
 
-        <div ref={mapStageRef} className="relative" style={{ width: mapWidth, height: mapHeight }}>
-          <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
-          <canvas
-            ref={overlayRef}
-            id="overlayCanvas"
-            width={mapWidth}
-            height={mapHeight}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              pointerEvents: (lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting ? "auto" : "none",
-            }}
-          />
-
-          {placedUnits.map(({ id, unit, tile, current_hp, user_id, can_move }) => (
-            <div
-              key={id}
-              data-unit
-              onMouseEnter={() => {
-                if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
-                  const live = placedUnits.find(p => p.id === id);
-                  setHoveredUnit({ unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, status_effects: live?.status_effects ?? [], can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] });
-                }
-              }}
-              onMouseLeave={() => {
-                if (gameData.status === "in_progress" && !lockedUnit && !moveTargeting) {
-                  setHoveredUnit(null);
-                }
-              }}
-              onClick={() => {
-                if (moveTargeting) return;
-                if (gameData.status === "preparation") {
-                  if (isReady) return;
-                  setSelectedTile(tile);
-                } else if (gameData.status === "in_progress") {
-                  const live = placedUnits.find(p => p.id === id);
-                  setLockedUnit(prev => {
-                    const isSameInstance = prev?.instanceId === id;
-                    if (isSameInstance) {
-                      setHighlightedTiles([]);
-                      setUnitOriginalTile(null);
-                      return null;
-                    }
-
-                    const cached = frozenMovesRef.current[id];
-                    if (cached) {
-                      setHighlightedTiles(filterOccupiedTiles(cached.tiles, id));
-                      setUnitOriginalTile(cached.origin);
-                      return { unit, user_id, current_hp, instanceId: id, tile, current_stats: placedUnits.find(p => p.id === id)?.current_stats, stat_boosts: placedUnits.find(p => p.id === id)?.stat_boosts, status_effects: placedUnits.find(p => p.id === id)?.status_effects ?? [], can_move: placedUnits.find(p => p.id === id)?.can_move ?? true, move_pp: placedUnits.find(p => p.id === id)?.move_pp ?? [] };
-                    }
-
-                    const movement = getCurrentMovementRange({ unit, current_stats: live?.current_stats, level: live?.level });
-                    const costMap = gameData.map.tile_data.movement_cost;
-                    const width = gameData.map.width;
-                    const height = gameData.map.height;
-
-                    const newOrigin: [number, number] = tile;
-                    const newTiles = getMovementOverlayTiles(newOrigin, movement, costMap, width, height, user_id, id);
-
-                    frozenMovesRef.current[id] = { origin: newOrigin, tiles: newTiles };
-                    setHighlightedTiles(newTiles);
-                    
-                    setUnitOriginalTile(newOrigin);
-                    return { unit, user_id, current_hp, instanceId: id, tile, current_stats: live?.current_stats, stat_boosts: live?.stat_boosts, status_effects: live?.status_effects ?? [], can_move: live?.can_move ?? true, move_pp: live?.move_pp ?? [] };
-                  });
-                }
-              }}
-              style={{
-                position: "absolute",
-                left: tile[0] * TILE_DRAW_SIZE,
-                top: tile[1] * TILE_DRAW_SIZE,
-                width: TILE_DRAW_SIZE,
-                height: TILE_DRAW_SIZE,
-                pointerEvents: moveTargeting ? "none" : "auto",
-                cursor: moveTargeting ? "default" : "pointer",
-              }}
-            >
-              <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "flex-end",
-                    justifyContent: "center",
-                    pointerEvents: "none",
-                  }}
-                >
-                </div>
-
-                <UnitIdleSprite
-                  assetFolder={unit.asset_folder}
-                  onFrameSize={([, h]) => setSpriteHeight(h)}
-                  isMapPlacement                  
-                  overlayColor={can_move === false ? "#777777" : getPlayerColor(user_id)}
-                />
-
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 1,
-                    right: 2,
-                    fontSize: "10px",
-                    color: "white",
-                    fontWeight: 600,
-                    zIndex: 2,
-                    pointerEvents: "none",
-                    textShadow: `
-                      -1px -1px 0 #000,
-                      1px -1px 0 #000,
-                      -1px  1px 0 #000,
-                      1px  1px 0 #000
-                    `,
-                  }}
-                >
-                  {current_hp ?? "?"}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <GameMapStage
+          mapWidth={mapWidth}
+          mapHeight={mapHeight}
+          canvasRef={canvasRef}
+          overlayRef={overlayRef}
+          mapStageRef={mapStageRef}
+          overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
+          placedUnits={placedUnits}
+          tileDrawSize={TILE_DRAW_SIZE}
+          moveTargeting={moveTargeting}
+          getPlayerColor={getPlayerColor}
+          onSpriteFrameSize={([, h]) => setSpriteHeight(h)}
+          onUnitMouseEnter={handleMapUnitMouseEnter}
+          onUnitMouseLeave={handleMapUnitMouseLeave}
+          onUnitClick={handleMapUnitClick}
+        />
 
         {gameData && (
           <>
@@ -2549,456 +2551,57 @@ export default function GamePage() {
       {(() => {
         let panel: any = null;
 
-        // Case 1: Preparation phase + tile has a unit = show Unit Info
         if (isPreparationPhase && selectedTile && placedUnitAtTile !== undefined) {
-          const unit = placedUnitAtTile.unit;
-          const level = placedUnitAtTile.level;
-          const currentHp = placedUnitAtTile.current_hp;
-          const statusEffects = placedUnitAtTile.status_effects ?? [];
-          const statusIconSrc = getStatusIconSrc(statusEffects);
-
           panel = (
-            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <UnitPortrait assetFolder={unit.asset_folder} />
-                  <div className="font-semibold text-lg flex items-center gap-2">
-                    <span>{unit.name}</span>
-                    {statusIconSrc && (
-                      <img
-                        src={statusIconSrc}
-                        alt="Status"
-                        className="w-12 h-12 object-contain"
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className="text-sm text-gray-300 font-medium">
-                  {currentHp ?? "?"}/{placedUnitAtTile?.current_stats?.hp ?? "?"}
-                </div>
-              </div>
-
-              {unit.types?.length > 0 && (
-                <div className="text-sm mb-2">
-                  {" "}
-                  {unit.types.map((type: string, idx: number) => (
-                    <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
-                      {type}
-                      {idx < unit.types.length - 1 && <span className="text-white">/</span>}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="text-sm mb-2 font-medium">Level: {level}</div>
-
-              <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div>
-                  <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'attack') }}>
-                    {activeUnit?.current_stats?.attack ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'sp_defense') }}>
-                    {activeUnit?.current_stats?.sp_defense ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'defense') }}>
-                    {activeUnit?.current_stats?.defense ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'speed') }}>
-                    {activeUnit?.current_stats?.speed ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'sp_attack') }}>
-                    {activeUnit?.current_stats?.sp_attack ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'range') }}>
-                    {activeUnit?.current_stats?.range ?? "?"}
-                  </span>
-                </div>
-              </div>
-
-              {unit.move_ids?.length > 0 && (
-                <div className="mt-3">
-                  <h3 className="text-md font-semibold mb-1">Moves:</h3>
-                  <ul className="space-y-2 text-sm">
-                    {unit.move_ids.map((id: number, moveIndex: number) => {
-                      const move = moveMap[id];
-                      if (!move) return null;
-                      const movePP = placedUnitAtTile?.move_pp?.[moveIndex] ?? move.pp ?? 0;
-                      const maxPP = move.pp ?? 0;
-                      const ppPercentage = maxPP > 0 ? (movePP / maxPP) * 100 : 0;
-                      
-                      let ppColor = '#ffffff'; // white
-                      if (ppPercentage <= 10) {
-                        ppColor = '#ef4444'; // red
-                      } else if (ppPercentage <= 50) {
-                        ppColor = '#eab308'; // yellow
-                      }
-                      
-                      return (
-                        <li key={id} className="border border-gray-600 p-2 rounded">
-                          <div className="flex justify-between font-bold">
-                            <span>{move.name}</span>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: TYPE_COLORS[move.type] ?? "#444" }}>
-                              {move.type}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Power: {move.power ?? "—"}</span>
-                            <span style={{ color: ppColor }}>PP: {movePP}/{maxPP}</span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-              <button
-                className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                onClick={async () => {
-                  if (!placedUnitAtTile?.id || !gameData?.link) return;
-
-                  const res = await secureFetch(`/api/games/${gameData.link}/units/remove/${placedUnitAtTile.id}`, {
-                    method: "DELETE"
-                  });
-
-                  if (!res.ok) {
-                    setToastMessage("Failed to remove unit.");
-                    return;
-                  }
-
-                  // Refund the cost and remove the unit from placedUnits
-                  setCash(prev => prev + (placedUnitAtTile.unit?.cost ?? 0));
-                  setPlacedUnits(prev => prev.filter(u => u.id !== placedUnitAtTile.id));
-                  setSelectedTile(null);
-                }}
-              >
-                Remove Unit
-              </button>
-
-              {renderUnitCredits(unit)}
-            </div>
+            <PreparationPlacedUnitMenu
+              placedUnitAtTile={placedUnitAtTile}
+              moveMap={moveMap}
+              typeColors={TYPE_COLORS}
+              statusIconSrc={getStatusIconSrc(placedUnitAtTile?.status_effects ?? [])}
+              getStatColor={getStatColor}
+              onRemoveUnit={handleRemovePlacedUnit}
+              onMoveHoverStart={handleMoveHoverStart}
+              onMoveHoverEnd={handleMoveHoverEnd}
+            />
           );
         }
-
-        // Case 2: Preparation phase + empty tile = Select Unit Menu
         else if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
-          const query = unitSearchQuery.toLowerCase().trim();
-          const typeFilters = [unitTypeFilterPrimary, unitTypeFilterSecondary].filter(Boolean);
-
-          const filteredUnits = availableUnits
-            .filter((unit) => {
-              const unitName = String(unit.name || "").toLowerCase();
-              if (!unitName.includes(query)) return false;
-
-              const unitTypes = Array.isArray(unit.types) ? unit.types : [];
-              return typeFilters.every((type) => unitTypes.includes(type));
-            })
-            .sort((a, b) => {
-              let comparison = 0;
-              if (unitSortBy === "name") {
-                comparison = String(a.name || "").localeCompare(String(b.name || ""));
-              } else if (unitSortBy === "cost") {
-                comparison = Number(a.cost ?? 0) - Number(b.cost ?? 0);
-              } else {
-                comparison = Number(a.id ?? 0) - Number(b.id ?? 0);
-              }
-              return unitSortDirection === "asc" ? comparison : -comparison;
-            });
-
           panel = (
-            <div className="w-72 bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[calc(100vh-8rem)] overflow-hidden">
-              <div className="p-4 border-b border-yellow-500 bg-gray-800 sticky top-0 z-10 rounded-t-lg">
-                <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
-                <input
-                  type="text"
-                  value={unitSearchQuery}
-                  onChange={(e) => setUnitSearchQuery(e.target.value)}
-                  placeholder="Search units..."
-                  className="w-full mb-3 px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
-                />
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <select
-                    value={unitTypeFilterPrimary}
-                    onChange={(e) => setUnitTypeFilterPrimary(e.target.value)}
-                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
-                  >
-                    <option value="">Type 1: Any</option>
-                    {unitTypeOptions.map((type) => (
-                      <option key={`primary-${type}`} value={type}>{type}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={unitTypeFilterSecondary}
-                    onChange={(e) => setUnitTypeFilterSecondary(e.target.value)}
-                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
-                  >
-                    <option value="">Type 2: Any</option>
-                    {unitTypeOptions.map((type) => (
-                      <option
-                        key={`secondary-${type}`}
-                        value={type}
-                        disabled={type === unitTypeFilterPrimary}
-                      >
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={unitSortBy}
-                    onChange={(e) => setUnitSortBy(e.target.value as "id" | "name" | "cost")}
-                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
-                  >
-                    <option value="id">Sort: ID</option>
-                    <option value="name">Sort: Name</option>
-                    <option value="cost">Sort: Price</option>
-                  </select>
-                  <select
-                    value={unitSortDirection}
-                    onChange={(e) => setUnitSortDirection(e.target.value as "asc" | "desc")}
-                    className="w-full px-2 py-1 rounded bg-gray-900 border border-gray-600 text-white focus:outline-none focus:border-yellow-500"
-                  >
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                  </select>
-                </div>
-              </div>
-              <ul className="space-y-2 text-sm overflow-y-auto p-4 flex-1 -mt-px">
-                {filteredUnits.length === 0 && (
-                  <li className="px-2 py-2 text-gray-400 border border-dashed border-gray-600 rounded">
-                    No units match the current filters.
-                  </li>
-                )}
-                {filteredUnits.map((unit) => (
-                  <li
-                    key={unit.id}
-                    data-unit
-                    className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
-                    onClick={async () => {
-                      if (!selectedTile) return;
-                      if (unit.cost > cash) {
-                        setToastMessage("You don't have enough cash to buy this unit!");
-                        return;
-                      }
-
-                      const payload = {
-                        unit_id: unit.id,
-                        x: selectedTile[0],
-                        y: selectedTile[1],
-                        current_hp: 100, // Backend will set this from calculated current_stats
-                        stat_boosts: {},
-                        status_effects: [],
-                        is_fainted: false,
-                      };
-
-                      const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                      });
-
-                      if (!res.ok) {
-                        setToastMessage("Failed to place unit.");
-                        return;
-                      }
-
-                      const placedUnit = await res.json();
-                      
-                      // Use move_pp directly from backend response
-                      const movePP = placedUnit.move_pp ?? [];
-                      
-                      setPlacedUnits((prev) => [
-                        ...prev,
-                        {
-                          id: placedUnit.id,
-                          unit: placedUnit.unit,
-                          tile: [placedUnit.current_x, placedUnit.current_y],
-                          current_hp: placedUnit.current_hp,
-                          user_id: placedUnit.user_id,
-                          status_effects: placedUnit.status_effects ?? [],
-                          level: placedUnit.level,
-                          current_stats: placedUnit.current_stats,
-                          can_move: placedUnit.can_move ?? true,
-                          move_pp: movePP,
-                        }
-                      ]);
-                      setCash((prev) => prev - unit.cost);
-                      setSelectedTile(null);
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <UnitPortrait assetFolder={unit.asset_folder} />
-                      <div className="leading-tight">
-                        <div className="font-semibold">{unit.name}</div>
-                        {unit.types?.length > 0 && (
-                          <div className="text-sm text-gray-300">
-                            (
-                            {unit.types.map((type: string, idx: number) => (
-                              <span key={idx}>
-                                <span className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
-                                  {type}
-                                </span>
-                                {idx < unit.types.length - 1 && <span className="text-white">/</span>}
-                              </span>
-                            ))}
-                            )
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <span>${unit.cost}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <PreparationUnitSelectMenu
+              availableUnits={availableUnits}
+              unitSearchQuery={unitSearchQuery}
+              unitTypeFilterPrimary={unitTypeFilterPrimary}
+              unitTypeFilterSecondary={unitTypeFilterSecondary}
+              unitSortBy={unitSortBy}
+              unitSortDirection={unitSortDirection}
+              unitTypeOptions={unitTypeOptions}
+              typeColors={TYPE_COLORS}
+              onSearchChange={setUnitSearchQuery}
+              onPrimaryTypeChange={setUnitTypeFilterPrimary}
+              onSecondaryTypeChange={setUnitTypeFilterSecondary}
+              onSortByChange={setUnitSortBy}
+              onSortDirectionChange={setUnitSortDirection}
+              onSelectUnit={handlePlacePreparationUnit}
+            />
           );
         }
-
-        // Case 3: In Progress = Unit Info (via click)
         else if (gameData?.status === "in_progress" && activeUnit) {
-          const unit = activeUnit.unit;
-          const level = activeUnit.level;
-          const currentHp = activeUnit.current_hp;
-          const statusEffects = activeUnit.status_effects ?? [];
-          const statusIconSrc = getStatusIconSrc(statusEffects);
-
           panel = (
-            <div
-              data-unit-info
-              className="w-72 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto"
-              style={{ border: `2px solid ${getPlayerColor(activeUnit.user_id)}` }}
-            >
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <UnitPortrait assetFolder={unit.asset_folder} />
-                  <div className="font-semibold text-lg flex items-center gap-2">
-                    <span>{unit.name}</span>
-                    {statusIconSrc && (
-                      <img
-                        src={statusIconSrc}
-                        alt="Status"
-                        className="w-12 h-12 object-contain"
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className="text-sm text-gray-300 font-medium">
-                  {currentHp ?? "?"}/{activeUnit?.current_stats?.hp ?? "?"}
-                </div>
-              </div>
-
-              {unit.types?.length > 0 && (
-                <div className="text-sm mb-2">
-                  {" "}
-                  {unit.types.map((type: string, idx: number) => (
-                    <span key={idx} className="font-medium" style={{ color: TYPE_COLORS[type] || "#fff" }}>
-                      {type}
-                      {idx < unit.types.length - 1 && <span className="text-white">/</span>}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="text-sm mb-2 font-medium">Level: {level}</div>
-
-              <div className="grid grid-cols-2 gap-y-1 text-sm mb-2">
-                <div>
-                  <span className="font-semibold">Attack:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'attack') }}>
-                    {activeUnit?.current_stats?.attack ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Sp. Def:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'sp_defense') }}>
-                    {activeUnit?.current_stats?.sp_defense ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Defense:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'defense') }}>
-                    {activeUnit?.current_stats?.defense ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Speed:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'speed') }}>
-                    {activeUnit?.current_stats?.speed ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Sp. Atk:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'sp_attack') }}>
-                    {activeUnit?.current_stats?.sp_attack ?? "?"}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-semibold">Range:</span>{" "}
-                  <span style={{ color: getStatColor(activeUnit, 'range') }}>
-                    {activeUnit?.current_stats?.range ?? "?"}
-                  </span>
-                </div>
-              </div>
-
-              {unit.move_ids?.length > 0 && (
-                <div className="mt-3">
-                  <h3 className="text-md font-semibold mb-1">Moves:</h3>
-                  <ul className="space-y-2 text-sm">
-                    {unit.move_ids.map((id: number, moveIndex: number) => {
-                      const move = moveMap[id];
-                      if (!move) return null;
-                      return (
-                        <li key={id}>
-                          <MoveButton move={move} moveIndex={moveIndex} TYPE_COLORS={TYPE_COLORS} />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {moveTargeting && selectedMove && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExecuteMove();
-                        }}
-                        className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                      >
-                        Execute Move
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMoveCancel();
-                        }}
-                        className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                      >
-                        Cancel Move
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {renderUnitCredits(unit)}
-            </div>
+            <InProgressUnitMenu
+              activeUnit={activeUnit}
+              typeColors={TYPE_COLORS}
+              statusIconSrc={getStatusIconSrc(activeUnit?.status_effects ?? [])}
+              getStatColor={getStatColor}
+              moveMap={moveMap}
+              moveTargeting={moveTargeting}
+              selectedMove={selectedMove}
+              onMoveHoverStart={handleMoveHoverStart}
+              onMoveHoverEnd={handleMoveHoverEnd}
+              onMoveSelect={handleMoveSelect}
+              onExecuteMove={handleExecuteMove}
+              onCancelMove={handleMoveCancel}
+              getPlayerColor={getPlayerColor}
+            />
           );
         }
 
