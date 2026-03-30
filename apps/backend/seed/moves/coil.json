@@ -16,5 +16,6 @@
   "effects": [
     "self:raise_stat:attack:1",
     "self:raise_stat:defense:1",
-    "self:raise_stat:accuracy:1"]
+    "self:raise_stat:accuracy:1"
+  ]
 }

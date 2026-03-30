@@ -17,5 +17,5 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
   "affected_by_bulletproof": true,
-  "effects": ["multi_hit:2:5"]
+  "effects": ["multi_hit:variable"]
 }

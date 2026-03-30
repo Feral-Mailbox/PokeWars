@@ -15,5 +15,5 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": true,
-  "effects": ["target:damage_equal_to_user_hp", "self:instant_ko"]
+  "effects": ["target:fixed_damage:equal_to_user_hp", "self:instant_ko"]
 }

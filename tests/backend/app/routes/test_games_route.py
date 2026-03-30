@@ -6,7 +6,11 @@ from app.routes.games import (
     process_move_effects,
     decrement_and_expire_status_effects,
     move_deals_direct_damage,
+    move_can_critical_hit,
+    move_has_target_fixed_damage_effect,
+    get_move_hit_count,
     movement_range_backend,
+    apply_fixed_damage_move_effects,
     apply_damage_based_move_effects,
     get_modified_accuracy_threshold,
     move_lands_on_target,
@@ -222,6 +226,153 @@ def test_process_move_effects_does_not_override_existing_status(db):
 
     assert target.status_effects[0] == "poison"
     assert target.status_effects[1] == 3
+
+
+def test_process_move_effects_instant_ko_target_sets_target_hp_to_zero(db):
+    move = models.Move(
+        name="OHKO Target",
+        type="normal",
+        category="Status",
+        effects=["target:instant_ko"]
+    )
+    attacker = models.GameUnit(current_hp=100)
+    target = models.GameUnit(current_hp=88)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.current_hp == 0
+    assert attacker.current_hp == 100
+
+
+def test_process_move_effects_instant_ko_self_sets_attacker_hp_to_zero(db):
+    move = models.Move(
+        name="Self KO",
+        type="normal",
+        category="Status",
+        effects=["self:instant_ko"]
+    )
+    attacker = models.GameUnit(current_hp=72)
+    target = models.GameUnit(current_hp=90)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert attacker.current_hp == 0
+    assert target.current_hp == 90
+
+
+def test_process_move_effects_cure_status_all_clears_target_status(db):
+    move = models.Move(
+        name="Aromatherapy",
+        type="grass",
+        category="Status",
+        effects=["target:cure_status:all"],
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(status_effects=["burn", 4], current_hp=100)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.status_effects == []
+
+
+def test_process_move_effects_cure_status_specific_only_cures_matching_status(db):
+    move = models.Move(
+        name="Sparkling Aria",
+        type="water",
+        category="Special",
+        effects=["target:cure_status:burn"],
+    )
+    attacker = models.GameUnit(status_effects=[])
+    burned_target = models.GameUnit(status_effects=["burn", 5], current_hp=100)
+    poisoned_target = models.GameUnit(status_effects=["poison", 5], current_hp=100)
+
+    process_move_effects(move, attacker, [burned_target, poisoned_target], current_turn=0, db=db)
+
+    assert burned_target.status_effects == []
+    assert poisoned_target.status_effects == ["poison", 5]
+
+
+def test_process_move_effects_cure_status_supports_comma_list(db):
+    move = models.Move(
+        name="Refresh",
+        type="normal",
+        category="Status",
+        effects=["self:cure_status:poison,burn,paralysis"],
+    )
+    attacker = models.GameUnit(status_effects=["paralysis", 4], current_hp=100)
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    assert attacker.status_effects == []
+
+
+def test_process_move_effects_raise_stat_all_applies_to_core_battle_stats_only(db):
+    move = models.Move(
+        name="Ancient Power",
+        type="rock",
+        category="Special",
+        effects=["self:raise_stat:all:1:100"],
+    )
+    attacker = models.GameUnit(
+        status_effects=[],
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": [],
+        },
+    )
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed"]:
+        assert len(attacker.stat_boosts[stat_name]) == 1
+        assert attacker.stat_boosts[stat_name][0]["magnitude"] == 1
+
+    # Omniboost should not include non-core stage tracks.
+    assert attacker.stat_boosts["accuracy"] == []
+    assert attacker.stat_boosts["evasion"] == []
+    assert attacker.stat_boosts["crit"] == []
+
+
+def test_process_move_effects_lower_stat_all_respects_accuracy_roll(db, monkeypatch):
+    move = models.Move(
+        name="Universal Debuff",
+        type="normal",
+        category="Status",
+        effects=["target:lower_stat:all:2:50"],
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": [],
+        },
+    )
+
+    # Miss the effect chance.
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 100)
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+    for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed"]:
+        assert target.stat_boosts[stat_name] == []
+
+    # Land the effect chance.
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 1)
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+    for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed"]:
+        assert len(target.stat_boosts[stat_name]) == 1
+        assert target.stat_boosts[stat_name][0]["magnitude"] == -2
 
 
 def make_unit_definition(unit_types):
@@ -718,6 +869,113 @@ def test_move_deals_direct_damage_false_for_status_zero_power():
     assert move_deals_direct_damage(move) is False
 
 
+def test_move_has_target_fixed_damage_effect_detects_token():
+    move = models.Move(name="Seismic Toss", effects=["target:fixed_damage:level"])
+    assert move_has_target_fixed_damage_effect(move) is True
+
+
+def test_move_deals_direct_damage_true_for_fixed_damage_effect_even_without_power():
+    move = models.Move(name="Night Shade", category="Status", power=0, effects=["target:fixed_damage:level"])
+    assert move_deals_direct_damage(move) is True
+
+
+def test_apply_fixed_damage_move_effects_level_uses_attacker_level(db):
+    move = models.Move(name="Seismic Toss", effects=["target:fixed_damage:level"])
+    attacker = models.GameUnit(level=50, current_hp=100)
+    target = models.GameUnit(id=7, current_hp=90, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
+
+    assert damage_results == [{"id": 7, "damage": 50, "current_hp": 40}]
+    assert target.current_hp == 40
+
+
+def test_apply_fixed_damage_move_effects_equal_to_user_hp(db):
+    move = models.Move(name="Final Gambit", effects=["target:fixed_damage:equal_to_user_hp"])
+    attacker = models.GameUnit(level=50, current_hp=73)
+    target = models.GameUnit(id=8, current_hp=90, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
+
+    assert damage_results == [{"id": 8, "damage": 73, "current_hp": 17}]
+    assert target.current_hp == 17
+
+
+def test_apply_fixed_damage_move_effects_reduce_to_user_hp(db):
+    move = models.Move(name="Endeavor", effects=["target:fixed_damage:reduce_to_user_hp"])
+    attacker = models.GameUnit(level=50, current_hp=22)
+    target = models.GameUnit(id=9, current_hp=80, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
+
+    assert damage_results == [{"id": 9, "damage": 58, "current_hp": 22}]
+    assert target.current_hp == 22
+
+
+def test_apply_fixed_damage_move_effects_current_hp_fraction(db):
+    move = models.Move(name="Super Fang", effects=["target:fixed_damage:current_hp:2"])
+    attacker = models.GameUnit(level=50, current_hp=100)
+    target = models.GameUnit(id=10, current_hp=41, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
+
+    assert damage_results == [{"id": 10, "damage": 20, "current_hp": 21}]
+    assert target.current_hp == 21
+
+
+def test_get_move_hit_count_defaults_to_single_hit_when_no_effect():
+    move = models.Move(name="Tackle", effects=[])
+    assert get_move_hit_count(move) == 1
+
+
+def test_get_move_hit_count_uses_fixed_count_from_effect():
+    move = models.Move(name="Double Kick", effects=["multi_hit:2"])
+    assert get_move_hit_count(move) == 2
+
+
+def test_get_move_hit_count_variable_probability_mapping(monkeypatch):
+    move = models.Move(name="Arm Thrust", effects=["multi_hit:variable"])
+
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 1)
+    assert get_move_hit_count(move) == 2
+
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 8)
+    assert get_move_hit_count(move) == 3
+
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 15)
+    assert get_move_hit_count(move) == 4
+
+    monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 20)
+    assert get_move_hit_count(move) == 5
+
+
+def test_apply_fixed_damage_move_effects_respects_hit_count(db):
+    move = models.Move(name="Sonic Boom", effects=["target:fixed_damage:20"])
+    attacker = models.GameUnit(level=50, current_hp=100)
+    target = models.GameUnit(id=12, current_hp=95, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db, hit_count=2)
+
+    assert damage_results == [{"id": 12, "damage": 40, "current_hp": 55}]
+    assert target.current_hp == 55
+
+
+def test_apply_fixed_damage_move_effects_numeric_value_uses_exact_amount(db):
+    move = models.Move(name="Dragon Rage", effects=["target:fixed_damage:40"])
+    attacker = models.GameUnit(level=50, current_hp=100)
+    target = models.GameUnit(id=13, current_hp=100, current_stats={"hp": 120})
+
+    damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
+
+    assert damage_results == [{"id": 13, "damage": 40, "current_hp": 60}]
+    assert target.current_hp == 60
+
+
+def test_move_can_critical_hit_false_for_fixed_damage_moves():
+    move = models.Move(name="Dragon Rage", category="Special", effects=["target:fixed_damage:40"])
+    assert move_can_critical_hit(move) is False
+
+
 def test_apply_damage_based_move_effects_drain_uses_summed_damage(db):
     move = models.Move(
         name="Drain Test",
@@ -1162,3 +1420,62 @@ def test_move_has_high_crit_ratio_supports_both_effect_formats():
     assert move_has_high_crit_ratio(move_shorthand) is True
     assert move_has_high_crit_ratio(move_prefixed) is True
     assert move_has_high_crit_ratio(move_other) is False
+
+
+def test_process_move_effects_reset_stats_self_clears_all_boosts(db):
+    move = models.Move(
+        name="Clear Smog",
+        type="poison",
+        category="Special",
+        effects=["self:reset_stats"],
+    )
+    attacker = models.GameUnit(
+        status_effects=[],
+        current_stats={"hp": 100, "attack": 105, "defense": 100, "sp_attack": 104, "sp_defense": 100, "speed": 100},
+        stat_boosts={
+            "attack": [{"magnitude": 2, "expires_turn": None}],
+            "defense": [{"magnitude": -1, "expires_turn": None}],
+            "sp_attack": [{"magnitude": 1, "expires_turn": None}],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": [],
+        },
+    )
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    # All stat boosts should be cleared
+    for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion", "crit"]:
+        assert attacker.stat_boosts[stat_name] == []
+
+
+def test_process_move_effects_reset_stats_target_clears_all_boosts(db):
+    move = models.Move(
+        name="Haze",
+        type="ice",
+        category="Status",
+        effects=["target:reset_stats"],
+    )
+    attacker = models.GameUnit(status_effects=[])
+    target = models.GameUnit(
+        status_effects=[],
+        current_stats={"hp": 100, "attack": 60, "defense": 150, "sp_attack": 80, "sp_defense": 100, "speed": 100},
+        stat_boosts={
+            "attack": [{"magnitude": 1, "expires_turn": None}],
+            "defense": [{"magnitude": 2, "expires_turn": None}],
+            "sp_attack": [{"magnitude": -2, "expires_turn": None}],
+            "sp_defense": [{"magnitude": -1, "expires_turn": None}],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": [],
+        },
+    )
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    # All target stat boosts should be cleared
+    for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion", "crit"]:
+        assert target.stat_boosts[stat_name] == []

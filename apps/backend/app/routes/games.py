@@ -262,6 +262,11 @@ def default_stat_boosts() -> dict:
     }
 
 
+# Omniboost/omnidebuff effects (e.g., Ancient Power) affect battle stats only.
+# Range is excluded because it is derived from speed.
+ALL_STAT_EFFECT_KEYS = ["attack", "defense", "sp_attack", "sp_defense", "speed"]
+
+
 def normalize_status_name(status: str) -> str:
     normalized = str(status).lower().strip()
     return STATUS_NAME_ALIASES.get(normalized, normalized)
@@ -367,6 +372,35 @@ def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
     else:
         unit.status_effects = [status, duration]
 
+    unit.current_stats = compute_effective_stats(unit, db)
+    db.add(unit)
+    return True
+
+
+def cure_status_effect(unit: GameUnit, status_spec: str, db: Session) -> bool:
+    """Cure a unit's current status when it matches status_spec."""
+    current_status_effects = normalize_status_effects(unit.status_effects)
+    if not current_status_effects:
+        return False
+
+    current_status_name = str(current_status_effects[0]).lower()
+    normalized_spec = str(status_spec or "").strip().lower()
+
+    should_cure = False
+    if normalized_spec in {"all", "any"}:
+        should_cure = True
+    else:
+        requested_statuses = {
+            normalize_status_name(token)
+            for token in normalized_spec.split(",")
+            if token and token.strip()
+        }
+        should_cure = current_status_name in requested_statuses
+
+    if not should_cure:
+        return False
+
+    unit.status_effects = []
     unit.current_stats = compute_effective_stats(unit, db)
     db.add(unit)
     return True
@@ -566,6 +600,149 @@ def move_has_high_crit_ratio(move: Move) -> bool:
         if token.endswith(":high_crit_ratio"):
             return True
     return False
+
+
+def move_has_target_fixed_damage_effect(move: Move) -> bool:
+    """Return True when a move has a target fixed-damage effect token."""
+    if not move or not isinstance(move.effects, list):
+        return False
+
+    for effect in move.effects:
+        token = str(effect or "").strip().lower()
+        if token.startswith("target:fixed_damage:"):
+            return True
+    return False
+
+
+def get_move_hit_count(move: Move) -> int:
+    """Resolve how many times a move should hit from its multi_hit effect token."""
+    if not move or not isinstance(move.effects, list):
+        return 1
+
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) < 2 or parts[0] != "multi_hit":
+            continue
+
+        hit_mode = parts[1]
+
+        if hit_mode == "variable":
+            roll = random.randint(1, 20)
+            if roll <= 7:
+                return 2
+            if roll <= 14:
+                return 3
+            if roll <= 17:
+                return 4
+            return 5
+
+        # Placeholder for specialized multi-hit formats not yet implemented.
+        if hit_mode == "party":
+            return 1
+
+        try:
+            minimum_hits = max(1, int(hit_mode))
+        except ValueError:
+            return 1
+
+        maximum_hits = minimum_hits
+        if len(parts) >= 3:
+            try:
+                maximum_hits = max(minimum_hits, int(parts[2]))
+            except ValueError:
+                maximum_hits = minimum_hits
+
+        if minimum_hits == maximum_hits:
+            return minimum_hits
+        return random.randint(minimum_hits, maximum_hits)
+
+    return 1
+
+
+def compute_fixed_damage_effect(effect_str: str, attacker: GameUnit, target: GameUnit) -> int:
+    """Resolve fixed-damage amount from an effect string for a specific attacker/target pair."""
+    parts = str(effect_str or "").split(":")
+    if len(parts) < 3:
+        return 0
+
+    effect_mode = str(parts[2] or "").strip().lower()
+    attacker_hp = max(0, int(attacker.current_hp or 0))
+    target_hp = max(0, int(target.current_hp or 0))
+
+    raw_damage = 0
+    if effect_mode == "level":
+        raw_damage = max(0, int(attacker.level or 0))
+    elif effect_mode == "equal_to_user_hp":
+        raw_damage = attacker_hp
+    elif effect_mode == "reduce_to_user_hp":
+        raw_damage = max(0, target_hp - attacker_hp)
+    elif effect_mode == "current_hp":
+        if len(parts) < 4:
+            return 0
+        try:
+            denominator = int(parts[3])
+            if denominator <= 0:
+                return 0
+        except ValueError:
+            return 0
+        raw_damage = target_hp // denominator
+        if target_hp > 0:
+            raw_damage = max(1, raw_damage)
+    else:
+        try:
+            raw_damage = max(0, int(effect_mode))
+        except ValueError:
+            return 0
+
+    return min(target_hp, raw_damage)
+
+
+def apply_fixed_damage_move_effects(
+    move: Move,
+    attacker: GameUnit,
+    targets: List[GameUnit],
+    db: Session,
+    hit_count: int = 1,
+) -> List[dict]:
+    """Apply fixed-damage move effects to targets and return damage payload rows."""
+    if not move or not isinstance(move.effects, list) or not targets:
+        return []
+
+    fixed_damage_effects = []
+    for effect in move.effects:
+        token = str(effect or "").strip().lower()
+        if token.startswith("target:fixed_damage:"):
+            fixed_damage_effects.append(effect)
+
+    if not fixed_damage_effects:
+        return []
+
+    damage_results: List[dict] = []
+    for target in targets:
+        if (target.current_hp or 0) <= 0:
+            continue
+
+        total_damage = 0
+        hits_to_apply = max(1, int(hit_count or 1))
+        for _ in range(hits_to_apply):
+            if (target.current_hp or 0) <= 0:
+                break
+
+            damage = 0
+            for effect_str in fixed_damage_effects:
+                damage = compute_fixed_damage_effect(effect_str, attacker, target)
+                break
+
+            if damage <= 0:
+                continue
+
+            target.current_hp = max(0, int(target.current_hp or 0) - damage)
+            total_damage += damage
+
+        db.add(target)
+        damage_results.append({"id": target.id, "damage": total_damage, "current_hp": target.current_hp})
+
+    return damage_results
 
 
 def attempt_critical_hit(attacker: GameUnit, additional_stage: int = 0) -> bool:
@@ -799,7 +976,7 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
             if len(parts) < 4:
                 continue
 
-            stat_name = parts[2]
+            stat_name = normalize_stat_name(parts[2])
             try:
                 magnitude_val = int(parts[3])
             except ValueError:
@@ -816,12 +993,15 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                 continue
 
             magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
+            target_stats = ALL_STAT_EFFECT_KEYS if stat_name == "all" else [stat_name]
 
             if recipient == "self":
-                apply_stat_change(attacker, stat_name, magnitude, current_turn, db)
+                for target_stat in target_stats:
+                    apply_stat_change(attacker, target_stat, magnitude, current_turn, db)
             elif recipient == "target":
                 for target in targets:
-                    apply_stat_change(target, stat_name, magnitude, current_turn, db)
+                    for target_stat in target_stats:
+                        apply_stat_change(target, target_stat, magnitude, current_turn, db)
 
         elif effect_type == "high_crit_ratio":
             # Format: recipient:high_crit_ratio[:accuracy]
@@ -962,6 +1142,40 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                             target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
                             db.add(target)
 
+        elif effect_type == "cure_status":
+            if len(parts) < 3:
+                continue
+
+            status_spec = parts[2]
+            if recipient == "self":
+                cure_status_effect(attacker, status_spec, db)
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) > 0:
+                        cure_status_effect(target, status_spec, db)
+
+        elif effect_type == "reset_stats":
+            if recipient == "self":
+                attacker.stat_boosts = default_stat_boosts()
+                attacker.current_stats = compute_effective_stats(attacker, db)
+                db.add(attacker)
+            elif recipient == "target":
+                for target in targets:
+                    target.stat_boosts = default_stat_boosts()
+                    target.current_stats = compute_effective_stats(target, db)
+                    db.add(target)
+
+        elif effect_type == "instant_ko":
+            if recipient == "self":
+                if (attacker.current_hp or 0) > 0:
+                    attacker.current_hp = 0
+                    db.add(attacker)
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) > 0:
+                        target.current_hp = 0
+                        db.add(target)
+
 
 def apply_damage_based_move_effects(
     move: Move,
@@ -1078,6 +1292,19 @@ def apply_damage_based_move_effects(
 
 
 def move_deals_direct_damage(move: Move) -> bool:
+    if move_has_target_fixed_damage_effect(move):
+        return True
+
+    category = (move.category or "").lower()
+    power = move.power or 0
+    return category in {"physical", "special"} and power > 0
+
+
+def move_can_critical_hit(move: Move) -> bool:
+    """Return whether this move is eligible to roll critical hits."""
+    if move_has_target_fixed_damage_effect(move):
+        return False
+
     category = (move.category or "").lower()
     power = move.power or 0
     return category in {"physical", "special"} and power > 0
@@ -2262,9 +2489,12 @@ def execute_move(
     if is_field_targeting:
         targets = []
 
+    has_target_fixed_damage = move_has_target_fixed_damage_effect(move)
+    hit_count = get_move_hit_count(move)
+
     landed_targets = targets
     missed_target_ids: List[int] = []
-    if not is_field_targeting and targets and move.accuracy is not None:
+    if not is_field_targeting and targets and move.accuracy is not None and not has_target_fixed_damage:
         landed_targets = []
         for target in targets:
             if move_lands_on_target(move, gu, target):
@@ -2280,7 +2510,13 @@ def execute_move(
     map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
     weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
     
-    if landed_targets and move_deals_direct_damage(move):
+    if landed_targets and has_target_fixed_damage:
+        damage_results = apply_fixed_damage_move_effects(move, gu, landed_targets, db, hit_count=hit_count)
+        for result in damage_results:
+            if int(result.get("current_hp", 0) or 0) <= 0:
+                removed_ids.append(result["id"])
+    elif landed_targets and move_deals_direct_damage(move):
+        can_critical_hit = move_can_critical_hit(move)
         category = (move.category or "").lower()
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
@@ -2293,27 +2529,42 @@ def execute_move(
         weather_move_multiplier = get_weather_move_multiplier(move.type, attacker_weather_id)
 
         for target in landed_targets:
-            attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
-            defense = (target.current_stats or {}).get(defense_stat, 1) or 1
-            target_weather_id = get_unit_weather_id(target, weather_tiles)
-            weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
-            effective_defense = defense * weather_defense_multiplier
-            safe_defense = effective_defense if effective_defense > 0 else 1
-            random_factor = random.randint(85, 100) / 100
-            critical = 1.5 if attempt_critical_hit(gu, move_crit_stage_bonus) else 1
-            type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
-            base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
-            damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
+            total_damage = 0
+            hits_to_apply = max(1, int(hit_count or 1))
+            for _ in range(hits_to_apply):
+                if (target.current_hp or 0) <= 0:
+                    break
 
-            target.current_hp = max(0, (target.current_hp or 0) - damage)
+                attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
+                defense = (target.current_stats or {}).get(defense_stat, 1) or 1
+                target_weather_id = get_unit_weather_id(target, weather_tiles)
+                weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
+                effective_defense = defense * weather_defense_multiplier
+                safe_defense = effective_defense if effective_defense > 0 else 1
+                random_factor = random.randint(85, 100) / 100
+                critical = 1.5 if can_critical_hit and attempt_critical_hit(gu, move_crit_stage_bonus) else 1
+                type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
+                base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
+                damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
+
+                target.current_hp = max(0, (target.current_hp or 0) - damage)
+                total_damage += damage
+
             db.add(target)
             if target.current_hp <= 0:
                 removed_ids.append(target.id)
-            damage_results.append({"id": target.id, "damage": damage, "current_hp": target.current_hp})
+            damage_results.append({"id": target.id, "damage": total_damage, "current_hp": target.current_hp})
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
     process_move_effects(move, gu, landed_targets, state.current_turn, db, weather_tiles)
+
+    # Capture any KOs caused by non-damage effects (e.g., instant_ko).
+    post_effect_units = [gu] + targets
+    for unit in post_effect_units:
+        if int(unit.current_hp or 0) <= 0:
+            removed_ids.append(unit.id)
+    removed_ids = list(set(removed_ids))
 
     recoil_fainted_ids = apply_damage_based_move_effects(move, gu, landed_targets, damage_results, db)
     if recoil_fainted_ids:
