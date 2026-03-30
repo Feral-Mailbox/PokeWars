@@ -32,6 +32,13 @@ export default function InProgressUnitMenu({
   getPlayerColor,
 }: InProgressUnitMenuProps) {
   const unit = activeUnit.unit;
+  const currentHp = Number(activeUnit?.current_hp ?? 0);
+  const maxHp = Number(activeUnit?.current_stats?.hp ?? 0);
+  const isDizzyPortrait = maxHp > 0 && currentHp <= maxHp / 5;
+  const isPainPortrait = !isDizzyPortrait && maxHp > 0 && currentHp <= maxHp / 2;
+
+  const portraitFrameX = isDizzyPortrait ? 120 : isPainPortrait ? 80 : 0;
+  const portraitFrameY = isDizzyPortrait ? 80 : 0;
 
   return (
     <div
@@ -41,10 +48,12 @@ export default function InProgressUnitMenu({
     >
       <UnitInfoHeader
         unit={unit}
-        currentHp={activeUnit?.current_hp ?? 0}
-        maxHp={activeUnit?.current_stats?.hp ?? 0}
+        currentHp={currentHp}
+        maxHp={maxHp}
         statusIconSrc={statusIconSrc}
         typeColors={typeColors}
+        portraitFrameX={portraitFrameX}
+        portraitFrameY={portraitFrameY}
       />
 
       <UnitInfoStats unitState={activeUnit} getStatColor={getStatColor} />

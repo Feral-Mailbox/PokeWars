@@ -35,18 +35,22 @@ export function UnitInfoHeader({
   maxHp,
   statusIconSrc,
   typeColors,
+  portraitFrameX = 0,
+  portraitFrameY = 0,
 }: {
   unit: any;
   currentHp: number;
   maxHp: number;
   statusIconSrc: string | null;
   typeColors: Record<string, string>;
+  portraitFrameX?: number;
+  portraitFrameY?: number;
 }) {
   return (
     <>
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <UnitPortrait assetFolder={unit.asset_folder} />
+          <UnitPortrait assetFolder={unit.asset_folder} frameX={portraitFrameX} frameY={portraitFrameY} />
           <div className="font-semibold text-lg flex items-center gap-2">
             <span>{unit.name}</span>
             {statusIconSrc && (
