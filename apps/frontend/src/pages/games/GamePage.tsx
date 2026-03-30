@@ -95,11 +95,14 @@ export default function GamePage() {
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
+  const [menuScreenPosition, setMenuScreenPosition] = useState<{ left: number; top: number }>({ left: 24, top: 96 });
   const gameLinkRef = useRef<string | undefined>(undefined);
   const myTurnRef = useRef(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const mapStageRef = useRef<HTMLDivElement>(null);
+  const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
   const weatherIconLoadFailedRef = useRef<Record<number, boolean>>({});
 
@@ -286,6 +289,35 @@ export default function GamePage() {
     if (!iconFile) return null;
 
     return `${getAssetBaseUrl()}/misc/status_icons/${iconFile}`;
+  }
+
+  function normalizeCredits(credits: any): string[] {
+    if (!Array.isArray(credits)) return [];
+    return credits
+      .map((entry) => String(entry ?? "").trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  function renderUnitCredits(unit: any) {
+    const portraitCredits = normalizeCredits(unit?.portrait_credits);
+    const spriteCredits = normalizeCredits(unit?.sprite_credits);
+
+    if (portraitCredits.length === 0 && spriteCredits.length === 0) return null;
+
+    return (
+      <div className="mt-4 pt-3 border-t border-gray-600 text-xs text-gray-300 space-y-1">
+        {portraitCredits.length > 0 && (
+          <p>
+            <span className="font-semibold text-gray-200">Portrait:</span> {portraitCredits.join(", ")}
+          </p>
+        )}
+        {spriteCredits.length > 0 && (
+          <p>
+            <span className="font-semibold text-gray-200">Sprite:</span> {spriteCredits.join(", ")}
+          </p>
+        )}
+      </div>
+    );
   }
 
   function build2DGrid<T>(height: number, width: number, fill: T): T[][] {
@@ -1514,6 +1546,8 @@ export default function GamePage() {
                 cost: u.unit.cost,
                 base_stats: u.unit.base_stats,
                 move_ids: u.unit.move_ids,
+                portrait_credits: u.unit.portrait_credits,
+                sprite_credits: u.unit.sprite_credits,
               },
               tile: [u.current_x, u.current_y],
               current_hp: u.current_hp,
@@ -2099,6 +2133,8 @@ export default function GamePage() {
               cost: u.unit.cost,
               base_stats: u.unit.base_stats,
               move_ids: u.unit.move_ids,
+              portrait_credits: u.unit.portrait_credits,
+              sprite_credits: u.unit.sprite_credits,
             },
             tile: [u.current_x, u.current_y],
             current_hp: u.current_hp,
@@ -2163,6 +2199,37 @@ export default function GamePage() {
     }
   }, [toastMessage]);
 
+  useEffect(() => {
+    const updateMenuPosition = () => {
+      const stage = mapStageRef.current;
+      if (!stage) return;
+      const header = gameHeaderRef.current;
+
+      const rect = stage.getBoundingClientRect();
+      const headerRect = header?.getBoundingClientRect();
+      const panelWidth = 288; // Tailwind w-72
+      const gap = 24;
+      const viewportPadding = 12;
+
+      const desiredLeft = rect.right + gap;
+      const maxLeft = window.innerWidth - panelWidth - viewportPadding;
+      const clampedLeft = Math.max(viewportPadding, Math.min(desiredLeft, maxLeft));
+      const anchorTop = typeof headerRect?.top === "number" ? headerRect.top : rect.top;
+      const clampedTop = Math.max(viewportPadding, anchorTop);
+
+      setMenuScreenPosition({ left: clampedLeft, top: clampedTop });
+    };
+
+    updateMenuPosition();
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [mapWidth, mapHeight, gameData?.status, selectedTile, activeUnit]);
+
   useEffect(() => { gameLinkRef.current = gameData?.link; }, [gameData?.link]);
   useEffect(() => { myTurnRef.current = isMyTurn; }, [isMyTurn]);
 
@@ -2217,7 +2284,7 @@ export default function GamePage() {
   : null;
 
   return (
-    <div className="p-8 text-white flex flex-row items-start gap-6">
+    <div className="relative p-8 text-white flex flex-row items-start gap-6">
       {toastMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50">
           {toastMessage}
@@ -2225,7 +2292,7 @@ export default function GamePage() {
       )}
 
       <div className="flex-1">
-        <h1 className="text-3xl font-bold mb-2">
+        <h1 ref={gameHeaderRef} className="text-3xl font-bold mb-2">
           {gameData?.game_name || "Untitled Game"} <span className="text-sm text-gray-400">({gameData?.gamemode})</span>
         </h1>
         
@@ -2333,7 +2400,7 @@ export default function GamePage() {
           </div>
         )}
 
-        <div className="relative" style={{ width: mapWidth, height: mapHeight }}>
+        <div ref={mapStageRef} className="relative" style={{ width: mapWidth, height: mapHeight }}>
           <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
           <canvas
             ref={overlayRef}
@@ -2480,6 +2547,8 @@ export default function GamePage() {
       </div>
 
       {(() => {
+        let panel: any = null;
+
         // Case 1: Preparation phase + tile has a unit = show Unit Info
         if (isPreparationPhase && selectedTile && placedUnitAtTile !== undefined) {
           const unit = placedUnitAtTile.unit;
@@ -2488,8 +2557,8 @@ export default function GamePage() {
           const statusEffects = placedUnitAtTile.status_effects ?? [];
           const statusIconSrc = getStatusIconSrc(statusEffects);
 
-          return (
-            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto">
+          panel = (
+            <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
                   <UnitPortrait assetFolder={unit.asset_folder} />
@@ -2620,12 +2689,14 @@ export default function GamePage() {
               >
                 Remove Unit
               </button>
+
+              {renderUnitCredits(unit)}
             </div>
           );
         }
 
         // Case 2: Preparation phase + empty tile = Select Unit Menu
-        if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
+        else if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
           const query = unitSearchQuery.toLowerCase().trim();
           const typeFilters = [unitTypeFilterPrimary, unitTypeFilterSecondary].filter(Boolean);
 
@@ -2649,8 +2720,8 @@ export default function GamePage() {
               return unitSortDirection === "asc" ? comparison : -comparison;
             });
 
-          return (
-            <div className="w-72 bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[32rem] overflow-hidden">
+          panel = (
+            <div className="w-72 bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[calc(100vh-8rem)] overflow-hidden">
               <div className="p-4 border-b border-yellow-500 bg-gray-800 sticky top-0 z-10 rounded-t-lg">
                 <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
                 <input
@@ -2800,17 +2871,17 @@ export default function GamePage() {
         }
 
         // Case 3: In Progress = Unit Info (via click)
-        if (gameData?.status === "in_progress" && activeUnit) {
+        else if (gameData?.status === "in_progress" && activeUnit) {
           const unit = activeUnit.unit;
           const level = activeUnit.level;
           const currentHp = activeUnit.current_hp;
           const statusEffects = activeUnit.status_effects ?? [];
           const statusIconSrc = getStatusIconSrc(statusEffects);
 
-          return (
+          panel = (
             <div
               data-unit-info
-              className="w-72 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-[32rem] overflow-y-auto"
+              className="w-72 bg-gray-800 text-white p-4 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto"
               style={{ border: `2px solid ${getPlayerColor(activeUnit.user_id)}` }}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -2925,11 +2996,22 @@ export default function GamePage() {
                   )}
                 </div>
               )}
+
+              {renderUnitCredits(unit)}
             </div>
           );
         }
 
-        return null;
+        if (!panel) return null;
+
+        return (
+          <div
+            className="fixed z-40 pointer-events-auto"
+            style={{ left: `${menuScreenPosition.left}px`, top: `${menuScreenPosition.top}px` }}
+          >
+            {panel}
+          </div>
+        );
       })()}
 
     </div>
