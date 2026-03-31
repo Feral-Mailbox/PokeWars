@@ -18,6 +18,164 @@ from app.dependencies import get_db, get_current_user
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
 
+
+def publish_game_ws_event(game_link: str, payload: dict) -> None:
+    try:
+        redis_client.publish(f"game_updates:{game_link}", json.dumps(payload))
+    except Exception:
+        # Logging failures should not block game actions.
+        return
+
+
+def append_replay_log_event(game_state: GameState | None, payload: dict) -> None:
+    if game_state is None:
+        return
+
+    replay = list(game_state.replay_log or [])
+    replay.append(payload)
+
+    # Keep replay payload bounded so game responses remain manageable.
+    if len(replay) > 500:
+        replay = replay[-500:]
+
+    game_state.replay_log = replay
+
+
+def publish_chat_message_event(
+    game_link: str,
+    player_id: int,
+    username: str,
+    message: str,
+    game_state: GameState | None = None,
+    db: Session | None = None,
+) -> None:
+    payload = {
+        "event": "chat_message",
+        "player_id": int(player_id),
+        "username": str(username),
+        "message": str(message),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    append_replay_log_event(game_state, payload)
+    if game_state is not None and db is not None:
+        db.add(game_state)
+    publish_game_ws_event(game_link, payload)
+
+
+def publish_system_log_event(
+    game_link: str,
+    message: str,
+    game_state: GameState | None = None,
+    db: Session | None = None,
+) -> None:
+    payload = {
+        "event": "system_log",
+        "message": str(message),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    append_replay_log_event(game_state, payload)
+    if game_state is not None and db is not None:
+        db.add(game_state)
+    publish_game_ws_event(game_link, payload)
+
+
+def publish_turn_remaining_warning_if_needed(
+    game: Game,
+    state: GameState,
+    db: Session,
+    now: datetime,
+) -> bool:
+    if state.status != GameStatus.in_progress or not state.turn_deadline:
+        return False
+
+    players = list(state.players or [])
+    if not players or state.current_turn is None:
+        return False
+
+    warning_seconds = 30 if int(game.turn_seconds or 0) <= 60 else 60
+    remaining_seconds = int((state.turn_deadline - now).total_seconds())
+    if remaining_seconds > warning_seconds or remaining_seconds <= 0:
+        return False
+
+    current_turn_index = int(state.current_turn)
+    current_player_id = int(players[current_turn_index % len(players)])
+
+    def _as_int(value: object, default: int = -1) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    replay = list(state.replay_log or [])
+    for row in reversed(replay):
+        if not isinstance(row, dict):
+            continue
+        if row.get("event") != "system_log":
+            continue
+        if row.get("warning_type") != "turn_remaining":
+            continue
+        if _as_int(row.get("turn_index")) != current_turn_index:
+            continue
+        if _as_int(row.get("warning_seconds")) != warning_seconds:
+            continue
+        if _as_int(row.get("player_id")) != current_player_id:
+            continue
+        return False
+
+    current_player_name = get_username_by_id(current_player_id, db)
+    payload = {
+        "event": "system_log",
+        "message": f"{current_player_name} has {warning_seconds} seconds remaining...",
+        "created_at": now.isoformat(),
+        "warning_type": "turn_remaining",
+        "turn_index": current_turn_index,
+        "warning_seconds": warning_seconds,
+        "player_id": current_player_id,
+    }
+    append_replay_log_event(state, payload)
+    db.add(state)
+    publish_game_ws_event(game.link, payload)
+    return True
+
+
+def get_username_by_id(user_id: int, db: Session) -> str:
+    user = db.query(User).filter(User.id == user_id).first()
+    if user and user.username:
+        return str(user.username)
+    return f"Player {user_id}"
+
+
+def get_unit_display_name(unit: GameUnit, db: Session) -> str:
+    owner_name = get_username_by_id(int(unit.user_id or 0), db)
+
+    if getattr(unit, "unit", None) is not None and getattr(unit.unit, "name", None):
+        return f"{owner_name}'s {str(unit.unit.name)}"
+
+    unit_meta = db.query(Unit).filter(Unit.id == unit.unit_id).first()
+    if unit_meta and unit_meta.name:
+        return f"{owner_name}'s {str(unit_meta.name)}"
+    return f"{owner_name}'s Unit {unit.id}"
+
+
+def publish_turn_start_logs(game: Game, state: GameState, db: Session) -> None:
+    if state.current_turn is None:
+        return
+
+    players = list(state.players or [])
+    if not players:
+        return
+
+    current_turn_index = int(state.current_turn)
+    players_count = len(players)
+    is_round_start = (current_turn_index % players_count) == 0
+    if is_round_start:
+        round_number = (current_turn_index // players_count) + 1
+        publish_system_log_event(game.link, f"Turn {round_number}", state, db)
+
+    current_player_id = players[current_turn_index % players_count]
+    current_player_name = get_username_by_id(int(current_player_id), db)
+    publish_system_log_event(game.link, f"{current_player_name}'s turn", state, db)
+
 TYPE_EFFECTIVENESS = {
     "normal": {"weak": [], "resist": ["rock", "steel"], "immune": ["ghost"]},
     "fire": {"weak": ["grass", "ice", "bug", "steel"], "resist": ["fire", "water", "rock", "dragon"], "immune": []},
@@ -53,6 +211,26 @@ SHORT_DURATION_STATUS_EFFECTS = {"sleep", "frozen"}
 STATUS_NAME_ALIASES = {
     "badly_poison": "badly_poisoned",
     "badly_poisoned": "badly_poisoned",
+}
+
+STAT_LOG_LABELS = {
+    "attack": "attack",
+    "defense": "defense",
+    "sp_attack": "special attack",
+    "sp_defense": "special defense",
+    "speed": "speed",
+    "accuracy": "accuracy",
+    "evasion": "evasion",
+    "crit": "critical hit rate",
+}
+
+STATUS_LOG_LABELS = {
+    "burn": "burned",
+    "sleep": "asleep",
+    "poison": "poisoned",
+    "badly_poisoned": "badly poisoned",
+    "frozen": "frozen",
+    "paralysis": "paralyzed",
 }
 
 STATUS_TYPE_IMMUNITIES = {
@@ -329,6 +507,39 @@ ALL_STAT_EFFECT_KEYS = ["attack", "defense", "sp_attack", "sp_defense", "speed"]
 def normalize_status_name(status: str) -> str:
     normalized = str(status).lower().strip()
     return STATUS_NAME_ALIASES.get(normalized, normalized)
+
+
+def format_stat_log_label(stat: str) -> str:
+    normalized_stat = normalize_stat_name(stat)
+    if normalized_stat == "all":
+        return "all stats"
+    return STAT_LOG_LABELS.get(normalized_stat, normalized_stat.replace("_", " "))
+
+
+def format_status_log_label(status: str) -> str:
+    normalized_status = normalize_status_name(status)
+    return STATUS_LOG_LABELS.get(normalized_status, normalized_status.replace("_", " "))
+
+
+def format_stat_change_outcome_phrase(delta_stage: int, attempted_direction: int) -> str:
+    """Format user-facing stat change outcome text from applied stage delta."""
+    if delta_stage > 0:
+        if delta_stage == 1:
+            return "rose."
+        if delta_stage == 2:
+            return "rose sharply."
+        return "rose drastically."
+
+    if delta_stage < 0:
+        if delta_stage == -1:
+            return "fell."
+        if delta_stage == -2:
+            return "harshly fell."
+        return "severely fell."
+
+    if attempted_direction >= 0:
+        return "won't go higher."
+    return "won't go lower."
 
 
 def normalize_status_effects(raw: list | dict | str | None) -> list:
@@ -962,6 +1173,8 @@ def process_move_effects(
     db: Session,
     weather_tiles: list | None = None,
     affected_tiles_override: list[tuple[int, int]] | None = None,
+    game: "Game | None" = None,
+    game_state: "GameState | None" = None,
 ):
     """
     Process all effects from a move (stat changes, status conditions, etc.)
@@ -1146,11 +1359,31 @@ def process_move_effects(
 
             if recipient == "self":
                 for target_stat in target_stats:
+                    before_stage = get_stat_stage(attacker.stat_boosts, target_stat)
                     apply_stat_change(attacker, target_stat, magnitude, current_turn, db)
+                    after_stage = get_stat_stage(attacker.stat_boosts, target_stat)
+                    if game and game_state:
+                        outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(attacker, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                            game_state,
+                            db,
+                        )
             elif recipient == "target":
                 for target in targets:
                     for target_stat in target_stats:
+                        before_stage = get_stat_stage(target.stat_boosts, target_stat)
                         apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                        after_stage = get_stat_stage(target.stat_boosts, target_stat)
+                        if game and game_state:
+                            outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                            publish_system_log_event(
+                                game.link,
+                                f"{get_unit_display_name(target, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                                game_state,
+                                db,
+                            )
 
         elif effect_type == "high_crit_ratio":
             # Format: recipient:high_crit_ratio[:accuracy]
@@ -1166,10 +1399,30 @@ def process_move_effects(
                 continue
 
             if recipient == "self":
+                before_stage = get_stat_stage(attacker.stat_boosts, "crit")
                 apply_stat_change(attacker, "crit", 1, current_turn, db)
+                after_stage = get_stat_stage(attacker.stat_boosts, "crit")
+                if game and game_state:
+                    outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1)
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(attacker, db)}'s {format_stat_log_label('crit')} {outcome_phrase}",
+                        game_state,
+                        db,
+                    )
             elif recipient == "target":
                 for target in targets:
+                    before_stage = get_stat_stage(target.stat_boosts, "crit")
                     apply_stat_change(target, "crit", 1, current_turn, db)
+                    after_stage = get_stat_stage(target.stat_boosts, "crit")
+                    if game and game_state:
+                        outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1)
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(target, db)}'s {format_stat_log_label('crit')} {outcome_phrase}",
+                            game_state,
+                            db,
+                        )
 
         elif effect_type == "status":
             # Check if this status has a condition
@@ -1193,13 +1446,27 @@ def process_move_effects(
 
                 if recipient == "self":
                     if matches_effect_condition(attacker, condition_type, condition_value, db):
-                        apply_status_effect(attacker, status_name, db)
+                        applied = apply_status_effect(attacker, status_name, db)
+                        if applied and game and game_state:
+                            publish_system_log_event(
+                                game.link,
+                                f"{get_unit_display_name(attacker, db)} was {format_status_log_label(status_name)}",
+                                game_state,
+                                db,
+                            )
                 elif recipient == "target":
                     for target in targets:
                         if (target.current_hp or 0) <= 0:
                             continue
                         if matches_effect_condition(target, condition_type, condition_value, db):
-                            apply_status_effect(target, status_name, db)
+                            applied = apply_status_effect(target, status_name, db)
+                            if applied and game and game_state:
+                                publish_system_log_event(
+                                    game.link,
+                                    f"{get_unit_display_name(target, db)} was {format_status_log_label(status_name)}",
+                                    game_state,
+                                    db,
+                                )
             else:
                 # Plain status effect without condition
                 if len(parts) < 3:
@@ -1217,11 +1484,25 @@ def process_move_effects(
                     continue
 
                 if recipient == "self":
-                    apply_status_effect(attacker, status_name, db)
+                    applied = apply_status_effect(attacker, status_name, db)
+                    if applied and game and game_state:
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(attacker, db)} was {format_status_log_label(status_name)}",
+                            game_state,
+                            db,
+                        )
                 elif recipient == "target":
                     for target in targets:
                         if (target.current_hp or 0) > 0:
-                            apply_status_effect(target, status_name, db)
+                            applied = apply_status_effect(target, status_name, db)
+                            if applied and game and game_state:
+                                publish_system_log_event(
+                                    game.link,
+                                    f"{get_unit_display_name(target, db)} was {format_status_log_label(status_name)}",
+                                    game_state,
+                                    db,
+                                )
 
         elif effect_type == "heal":
             # Check if this heal has a condition
@@ -1255,15 +1536,23 @@ def process_move_effects(
                     if recipient == "self":
                         max_hp = (attacker.current_stats or {}).get("hp", 1)
                         heal_amount = max(1, max_hp // denominator)
-                        attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
+                        old_hp = attacker.current_hp or 0
+                        attacker.current_hp = min(max_hp, old_hp + heal_amount)
+                        restored_hp = max(0, int(attacker.current_hp or 0) - int(old_hp or 0))
                         db.add(attacker)
+                        if restored_hp > 0 and game and game_state:
+                            publish_system_log_event(game.link, f"{get_unit_display_name(attacker, db)} regained {restored_hp} health", game_state, db)
                     elif recipient == "target":
                         for target in targets:
                             if (target.current_hp or 0) > 0:
                                 max_hp = (target.current_stats or {}).get("hp", 1)
                                 heal_amount = max(1, max_hp // denominator)
-                                target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
+                                old_hp = target.current_hp or 0
+                                target.current_hp = min(max_hp, old_hp + heal_amount)
+                                restored_hp = max(0, int(target.current_hp or 0) - int(old_hp or 0))
                                 db.add(target)
+                                if restored_hp > 0 and game and game_state:
+                                    publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} regained {restored_hp} health", game_state, db)
             else:
                 # Plain heal effect without condition
                 if len(parts) < 3:
@@ -1280,16 +1569,24 @@ def process_move_effects(
                     # Get max HP from attacker's current_stats
                     max_hp = (attacker.current_stats or {}).get("hp", 1)
                     heal_amount = max(1, max_hp // denominator)
-                    attacker.current_hp = min(max_hp, (attacker.current_hp or 0) + heal_amount)
+                    old_hp = attacker.current_hp or 0
+                    attacker.current_hp = min(max_hp, old_hp + heal_amount)
+                    restored_hp = max(0, int(attacker.current_hp or 0) - int(old_hp or 0))
                     db.add(attacker)
+                    if restored_hp > 0 and game and game_state:
+                        publish_system_log_event(game.link, f"{get_unit_display_name(attacker, db)} regained {restored_hp} health", game_state, db)
                 elif recipient == "target":
                     for target in targets:
                         # Only heal if target is alive
                         if (target.current_hp or 0) > 0:
                             max_hp = (target.current_stats or {}).get("hp", 1)
                             heal_amount = max(1, max_hp // denominator)
-                            target.current_hp = min(max_hp, (target.current_hp or 0) + heal_amount)
+                            old_hp = target.current_hp or 0
+                            target.current_hp = min(max_hp, old_hp + heal_amount)
+                            restored_hp = max(0, int(target.current_hp or 0) - int(old_hp or 0))
                             db.add(target)
+                            if restored_hp > 0 and game and game_state:
+                                publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} regained {restored_hp} health", game_state, db)
 
         elif effect_type == "cure_status":
             if len(parts) < 3:
@@ -1332,6 +1629,9 @@ def apply_damage_based_move_effects(
     targets: List[GameUnit],
     damage_results: List[dict],
     db: Session,
+    game: "Game | None" = None,
+    game_state: "GameState | None" = None,
+    faint_logged_ids: set[int] | None = None,
 ) -> List[int]:
     """
     Apply effects that scale from total direct damage dealt by this move.
@@ -1362,9 +1662,26 @@ def apply_damage_based_move_effects(
             unit.current_hp = min(max_hp, (unit.current_hp or 0) + amount)
             db.add(unit)
         elif effect_type == "recoil":
+            damage_taken = min(amount, int(unit.current_hp or 0))
             unit.current_hp = max(0, (unit.current_hp or 0) - amount)
+            if damage_taken > 0 and game and game_state:
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(unit, db)} took {damage_taken} damage as recoil",
+                    game_state,
+                    db,
+                )
             if unit.current_hp <= 0:
                 fainted_unit_ids.add(unit.id)
+                if game and game_state and (faint_logged_ids is None or unit.id not in faint_logged_ids):
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(unit, db)} fainted!",
+                        game_state,
+                        db,
+                    )
+                    if faint_logged_ids is not None:
+                        faint_logged_ids.add(unit.id)
             db.add(unit)
 
     for effect_str in move.effects:
@@ -1623,6 +1940,8 @@ def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> 
     ).all()
 
     modified_unit_ids = []
+    game = db.query(Game).filter(Game.id == game_id).first()
+    game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
 
     for unit in units:
         status_effect = normalize_status_effects(unit.status_effects)
@@ -1638,6 +1957,9 @@ def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> 
                 damage = max(1, max_hp // 8) if max_hp > 0 else 0
                 hp_after_effects = max(0, hp_after_effects - damage)
                 modified = modified or damage > 0
+                if damage > 0 and game:
+                    unit_name = get_unit_display_name(unit, db)
+                    publish_system_log_event(game.link, f"{unit_name} took {damage} damage from {status_name}", game_state, db)
             elif status_name == "badly_poisoned":
                 bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
                 bad_poison_turn = max(1, bad_poison_turn)
@@ -1645,6 +1967,9 @@ def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> 
                 hp_after_effects = max(0, hp_after_effects - damage)
                 unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
                 modified = True
+                if damage > 0 and game:
+                    unit_name = get_unit_display_name(unit, db)
+                    publish_system_log_event(game.link, f"{unit_name} took {damage} from badly poisoned", game_state, db)
 
         if hp_after_effects != current_hp:
             unit.current_hp = hp_after_effects
@@ -1665,6 +1990,8 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
     map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
     weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
 
+    game = db.query(Game).filter(Game.id == game_id).first()
+    game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
     modified_unit_ids = []
 
@@ -1680,8 +2007,14 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
 
         if weather_id == WEATHER_TO_ID["sandstorm"] and not unit_types.intersection({"rock", "ground", "steel"}):
             damage = max(1, max_hp // 16) if max_hp > 0 else 0
+            if damage > 0 and game:
+                unit_name = get_unit_display_name(unit, db)
+                publish_system_log_event(game.link, f"{unit_name} took {damage} damage from the sandstorm", game_state, db)
         elif weather_id == WEATHER_TO_ID["hail"] and "ice" not in unit_types:
             damage = max(1, max_hp // 16) if max_hp > 0 else 0
+            if damage > 0 and game:
+                unit_name = get_unit_display_name(unit, db)
+                publish_system_log_event(game.link, f"{unit_name} took {damage} damage from hail", game_state, db)
 
         if damage <= 0:
             continue
@@ -1707,6 +2040,8 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
     if not isinstance(hazard_tiles, list):
         return []
 
+    game = db.query(Game).filter(Game.id == game_id).first()
+    game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
     modified_unit_ids: list[int] = []
 
@@ -1742,6 +2077,9 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
                 damage = max(1, max_hp // 8)
             hp_after_effects = max(0, hp_after_effects - damage)
             modified = True
+            if game:
+                unit_name = get_unit_display_name(unit, db)
+                publish_system_log_event(game.link, f"{unit_name} took {damage} damage from spikes", game_state, db)
 
         if has_stealth_rock and max_hp > 0:
             type_multiplier = get_type_multiplier("rock", list(unit_types))
@@ -1749,6 +2087,9 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
                 rock_damage = max(1, int((max_hp * type_multiplier) // 8))
                 hp_after_effects = max(0, hp_after_effects - rock_damage)
                 modified = True
+                if game:
+                    unit_name = get_unit_display_name(unit, db)
+                    publish_system_log_event(game.link, f"{unit_name} took {rock_damage} damage from floating rocks", game_state, db)
 
         if toxic_spikes_layers > 0 and not is_flying:
             status_to_apply = "badly_poisoned" if toxic_spikes_layers >= 2 else "poison"
@@ -1785,13 +2126,33 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
     if not fainted_units:
         return []
 
+    game = db.query(Game).filter(Game.id == game_id).first()
+    game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
+    units_by_player: dict[int, int] = {}
+    all_units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    for gu in all_units:
+        units_by_player[gu.user_id] = units_by_player.get(gu.user_id, 0) + 1
+
     removed_ids: list[int] = []
     for unit in fainted_units:
         unit.is_fainted = True
+        if game:
+            publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", game_state, db)
+
         player_state = db.query(GamePlayer).filter_by(game_id=game_id, player_id=unit.user_id).first()
         if player_state and unit.id in player_state.game_units:
             player_state.game_units.remove(unit.id)
             db.add(player_state)
+
+        units_by_player[unit.user_id] = max(0, units_by_player.get(unit.user_id, 0) - 1)
+        if game and units_by_player.get(unit.user_id, 0) == 0:
+            username = get_username_by_id(unit.user_id, db)
+            publish_system_log_event(
+                game.link,
+                f"{username} has no more units and is unable to battle!",
+                game_state,
+                db,
+            )
 
         removed_ids.append(unit.id)
         db.delete(unit)
@@ -1846,6 +2207,8 @@ def reconcile_playable_players(game: Game, state: GameState, db: Session) -> tup
         if len(playable_players) == 1:
             state.status = GameStatus.completed
             state.winner_id = playable_players[0]
+            winner_name = get_username_by_id(playable_players[0], db)
+            publish_system_log_event(game.link, f"{winner_name} won", state, db)
             completed_now = True
         elif len(playable_players) == 0:
             state.status = GameStatus.completed
@@ -2003,7 +2366,10 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         return False
 
     now = datetime.now(timezone.utc)
+    warning_published = publish_turn_remaining_warning_if_needed(game, state, db, now)
     if now < state.turn_deadline:
+        if warning_published:
+            db.commit()
         return False
 
     # Sync all units' starting positions to current positions before advancing turn
@@ -2073,6 +2439,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
 
     compute_turn_locks(game, state, db)
+    publish_turn_start_logs(game, state, db)
     db.commit()
     redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
     redis_client.publish(f"game_updates:{game.link}", "turn_started")
@@ -2266,6 +2633,8 @@ def create_game(
     )
     db.add(game_map_state)
 
+    publish_system_log_event(new_game.link, f"{user.username} created the lobby", game_state, db)
+
     db.commit()
     db.refresh(new_game)
 
@@ -2338,6 +2707,8 @@ def join_game(
         game_state.status = GameStatus.closed
         redis_client.publish(f"game_updates:{game.link}", "player_joined")
 
+    publish_system_log_event(game.link, f"{user.username} joined the game", game_state, db)
+
     db.commit()
     db.refresh(game)
 
@@ -2403,6 +2774,12 @@ def start_game(
     if game.gamemode in ["Conquest", "Capture The Flag"]:
         if game_state.status == GameStatus.closed:
             game_state.status = GameStatus.preparation
+            publish_system_log_event(
+                game.link,
+                "The game has begun! All players may now select their units",
+                game_state,
+                db,
+            )
             db.commit()
             redis_client.publish(f"game_updates:{game.link}", "game_preparation")
             return {"detail": "Game moved to preparation phase"}
@@ -2417,6 +2794,9 @@ def start_game(
             db.commit()
             redis_client.publish(f"game_updates:{game.link}", "game_started")        
             redis_client.publish(f"game_updates:{game.link}", "turn_started")
+            publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
+            publish_turn_start_logs(game, game_state, db)
+            db.commit()
             return {"detail": "Game started"}
         else:
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
@@ -2431,7 +2811,36 @@ def start_game(
         db.commit()
         redis_client.publish(f"game_updates:{game.link}", "game_started")
         redis_client.publish(f"game_updates:{game.link}", "turn_started")
+        publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
+        publish_turn_start_logs(game, game_state, db)
+        db.commit()
         return {"detail": "Game started"}
+
+
+@router.post("/{link}/chat")
+def send_chat_message(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter(GameState.game_id == game.id).first()
+    if not state or user.id not in (state.players or []):
+        raise HTTPException(status_code=403, detail="You are not in this game")
+
+    message = str(payload.get("message") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    if len(message) > 300:
+        raise HTTPException(status_code=400, detail="Message too long")
+
+    publish_chat_message_event(game.link, user.id, user.username, message, state, db)
+    db.commit()
+    return {"ok": True}
 
 @router.get("/{link}", response_model=GameResponse)
 def get_game_by_link(
@@ -2542,6 +2951,12 @@ def toggle_ready_state(
 
     # Toggle the boolean
     player_state.is_ready = not player_state.is_ready
+
+    if player_state.is_ready:
+        publish_system_log_event(game.link, f"{user.username} is ready to start", game_state, db)
+    else:
+        publish_system_log_event(game.link, f"{user.username} needs more time", game_state, db)
+
     db.commit()
 
     redis_client.publish(f"game_updates:{game.link}", "player_ready")
@@ -2851,6 +3266,7 @@ def end_turn(
     state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
 
     compute_turn_locks(game, state, db)
+    publish_turn_start_logs(game, state, db)
     db.commit()
     redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
     redis_client.publish(f"game_updates:{game.link}", "turn_started")
@@ -2915,6 +3331,8 @@ def execute_move(
     if not move:
         raise HTTPException(status_code=404, detail="Move not found")
 
+    publish_system_log_event(game.link, f"{get_unit_display_name(gu, db)} used {move.name}", state, db)
+
     # Check and decrement PP
     unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
     if not unit_info or not unit_info.move_ids:
@@ -2971,9 +3389,20 @@ def execute_move(
             else:
                 missed_target_ids.append(target.id)
 
+    if missed_target_ids:
+        missed_targets = [target for target in targets if target.id in missed_target_ids]
+        for missed_target in missed_targets:
+            publish_system_log_event(
+                game.link,
+                f"{get_unit_display_name(missed_target, db)} dodged the attack",
+                state,
+                db,
+            )
+
     targets_multiplier = 0.75 if len(landed_targets) >= 2 else 1
     damage_results = []
     removed_ids: List[int] = []
+    faint_logged_ids: set[int] = set()
     
     # Get weather tiles for move effect processing (needed for conditional effects like healing)
     map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
@@ -2982,8 +3411,15 @@ def execute_move(
     if landed_targets and has_target_fixed_damage:
         damage_results = apply_fixed_damage_move_effects(move, gu, landed_targets, db, hit_count=hit_count)
         for result in damage_results:
+            dealt_damage = int(result.get("damage", 0) or 0)
+            target_unit = next((t for t in landed_targets if t.id == int(result.get("id", -1))), None)
+            if dealt_damage > 0 and target_unit is not None:
+                publish_system_log_event(game.link, f"{get_unit_display_name(target_unit, db)} took {dealt_damage} damage", state, db)
             if int(result.get("current_hp", 0) or 0) <= 0:
                 removed_ids.append(result["id"])
+                if target_unit is not None and target_unit.id not in faint_logged_ids:
+                    publish_system_log_event(game.link, f"{get_unit_display_name(target_unit, db)} fainted!", state, db)
+                    faint_logged_ids.add(target_unit.id)
     elif landed_targets and move_deals_direct_damage(move):
         can_critical_hit = move_can_critical_hit(move)
         category = (move.category or "").lower()
@@ -2999,6 +3435,7 @@ def execute_move(
 
         for target in landed_targets:
             total_damage = 0
+            critical_hit_landed = False
             hits_to_apply = max(1, int(hit_count or 1))
             for _ in range(hits_to_apply):
                 if (target.current_hp or 0) <= 0:
@@ -3012,6 +3449,8 @@ def execute_move(
                 safe_defense = effective_defense if effective_defense > 0 else 1
                 random_factor = random.randint(85, 100) / 100
                 critical = 1.5 if can_critical_hit and attempt_critical_hit(gu, move_crit_stage_bonus) else 1
+                if critical > 1:
+                    critical_hit_landed = True
                 type_multiplier = get_type_multiplier(move.type, getattr(target.unit, "types", None) or [])
                 base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
                 damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
@@ -3023,6 +3462,17 @@ def execute_move(
             if target.current_hp <= 0:
                 removed_ids.append(target.id)
             damage_results.append({"id": target.id, "damage": total_damage, "current_hp": target.current_hp})
+            if total_damage > 0:
+                damage_suffix = " (Critical Hit!)" if critical_hit_landed else ""
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(target, db)} took {total_damage} damage{damage_suffix}",
+                    state,
+                    db,
+                )
+                if target.current_hp <= 0 and target.id not in faint_logged_ids:
+                    publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} fainted!", state, db)
+                    faint_logged_ids.add(target.id)
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
@@ -3034,6 +3484,8 @@ def execute_move(
         db,
         weather_tiles,
         affected_tiles_override=effect_tiles,
+        game=game,
+        game_state=state,
     )
 
     # Capture any KOs caused by non-damage effects (e.g., instant_ko).
@@ -3043,7 +3495,16 @@ def execute_move(
             removed_ids.append(unit.id)
     removed_ids = list(set(removed_ids))
 
-    recoil_fainted_ids = apply_damage_based_move_effects(move, gu, landed_targets, damage_results, db)
+    recoil_fainted_ids = apply_damage_based_move_effects(
+        move,
+        gu,
+        landed_targets,
+        damage_results,
+        db,
+        game=game,
+        game_state=state,
+        faint_logged_ids=faint_logged_ids,
+    )
     if recoil_fainted_ids:
         removed_ids.extend(recoil_fainted_ids)
         removed_ids = list(set(removed_ids))
@@ -3060,12 +3521,29 @@ def execute_move(
             .filter(GameUnit.game_id == game.id, GameUnit.id.in_(removed_ids))
             .all()
         )
+        units_by_player: dict[int, int] = {}
+        for unit in db.query(GameUnit).filter(GameUnit.game_id == game.id).all():
+            units_by_player[unit.user_id] = units_by_player.get(unit.user_id, 0) + 1
+
         removed_ids = [unit.id for unit in removed_units]
         for unit in removed_units:
+            if unit.id not in faint_logged_ids:
+                publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", state, db)
+
             player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=unit.user_id).first()
             if player_state and unit.id in player_state.game_units:
                 player_state.game_units.remove(unit.id)
                 db.add(player_state)
+
+            units_by_player[unit.user_id] = max(0, units_by_player.get(unit.user_id, 0) - 1)
+            if units_by_player.get(unit.user_id, 0) == 0:
+                username = get_username_by_id(unit.user_id, db)
+                publish_system_log_event(
+                    game.link,
+                    f"{username} has no more units and is unable to battle!",
+                    state,
+                    db,
+                )
             db.delete(unit)
 
     if removed_ids:
@@ -3075,6 +3553,8 @@ def execute_move(
         if len(remaining_players) == 1:
             state.status = GameStatus.completed
             state.winner_id = next(iter(remaining_players))
+            winner_name = get_username_by_id(state.winner_id, db)
+            publish_system_log_event(game.link, f"{winner_name} won", state, db)
             gu.can_move = False
             db.commit()
             for unit_id in removed_ids:
@@ -3125,6 +3605,8 @@ def execute_move(
         if len(remaining_players_after_end_turn_damage) == 1:
             state.status = GameStatus.completed
             state.winner_id = next(iter(remaining_players_after_end_turn_damage))
+            winner_name = get_username_by_id(state.winner_id, db)
+            publish_system_log_event(game.link, f"{winner_name} won", state, db)
             db.commit()
             for unit_id in removed_ids:
                 redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
@@ -3180,6 +3662,7 @@ def execute_move(
             now = datetime.now(timezone.utc)
             state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
             compute_turn_locks(game, state, db)
+            publish_turn_start_logs(game, state, db)
             db.commit()
             redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
             redis_client.publish(f"game_updates:{game.link}", "turn_started")

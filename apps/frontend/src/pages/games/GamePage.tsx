@@ -8,6 +8,7 @@ import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSe
 import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
+import ChatPanel from "./components/ChatPanel";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -67,7 +68,16 @@ function getBlockedTilesByEnemy(placedUnits: any[], unitUserId: number): Set<str
   return blocked;
 }
 
+export type ChatEntry = {
+  id: string;
+  kind: "chat" | "system";
+  text: string;
+  username?: string;
+  playerId?: number;
+};
+
 export default function GamePage() {
+
   const { gameId } = useParams();
   const [userId, setUserId] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
@@ -99,6 +109,8 @@ export default function GamePage() {
   const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
   const [hazardIconRefresh, setHazardIconRefresh] = useState<number>(0);
   const [menuScreenPosition, setMenuScreenPosition] = useState<{ left: number; top: number }>({ left: 24, top: 96 });
+  const [chatEntries, setChatEntries] = useState<ChatEntry[]>([]);
+  const [chatInput, setChatInput] = useState<string>("");
   const gameLinkRef = useRef<string | undefined>(undefined);
   const myTurnRef = useRef(false);
 
@@ -233,6 +245,47 @@ export default function GamePage() {
 
   function getPlayerColor(playerId: number): string {
     return playerColorMap[playerId] ?? "#00000000";
+  }
+
+
+
+  function addSystemChat(text: string) {
+    setChatEntries((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        kind: "system",
+        text,
+      },
+    ]);
+  }
+
+  function mapReplayLogToChatEntries(replayLog: any): ChatEntry[] {
+    if (!Array.isArray(replayLog)) return [];
+
+    const out: ChatEntry[] = [];
+    for (let i = 0; i < replayLog.length; i++) {
+      const row = replayLog[i];
+      if (!row || typeof row !== "object") continue;
+
+      if (row.event === "chat_message") {
+        out.push({
+          id: `replay-${i}-${String(row.created_at ?? "")}`,
+          kind: "chat",
+          text: String(row.message ?? ""),
+          username: String(row.username ?? "Unknown"),
+          playerId: Number(row.player_id),
+        });
+      } else if (row.event === "system_log") {
+        out.push({
+          id: `replay-${i}-${String(row.created_at ?? "")}`,
+          kind: "system",
+          text: String(row.message ?? ""),
+        });
+      }
+    }
+
+    return out;
   }
 
   function getOverlayColor(unit: any | null): string {
@@ -1984,6 +2037,34 @@ export default function GamePage() {
     ws.onerror = (e) => console.error("[Game WS] Error", e);
 
     ws.onmessage = (event) => {
+      if (typeof event.data === "string" && event.data.startsWith("{")) {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload?.event === "chat_message") {
+            setChatEntries((prev) => [
+              ...prev,
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                kind: "chat",
+                text: String(payload.message ?? ""),
+                username: String(payload.username ?? "Unknown"),
+                playerId: Number(payload.player_id),
+              },
+            ]);
+            return;
+          }
+          if (payload?.event === "system_log") {
+            const message = String(payload.message ?? "").trim();
+            if (message) {
+              addSystemChat(message);
+            }
+            return;
+          }
+        } catch {
+          // Ignore malformed payloads and continue with legacy string handlers.
+        }
+      }
+
       if (typeof event.data === "string" && event.data.startsWith("unit_moved:")) {
         const [, unitIdStr, , xStr, yStr] = event.data.split(":");
         const unitId = Number(unitIdStr);
@@ -2203,6 +2284,11 @@ export default function GamePage() {
   }, [toastMessage]);
 
   useEffect(() => {
+    setChatEntries(mapReplayLogToChatEntries(gameData?.replay_log));
+    setChatInput("");
+  }, [gameData?.link, gameData?.replay_log]);
+
+  useEffect(() => {
     const updateMenuPosition = () => {
       const stage = mapStageRef.current;
       if (!stage) return;
@@ -2211,11 +2297,12 @@ export default function GamePage() {
       const rect = stage.getBoundingClientRect();
       const headerRect = header?.getBoundingClientRect();
       const panelWidth = 288; // Tailwind w-72
+      const chatPanelWidth = 360;
       const gap = 24;
       const viewportPadding = 12;
 
       const desiredLeft = rect.right + gap;
-      const maxLeft = window.innerWidth - panelWidth - viewportPadding;
+      const maxLeft = window.innerWidth - panelWidth - chatPanelWidth - gap;
       const clampedLeft = Math.max(viewportPadding, Math.min(desiredLeft, maxLeft));
       const anchorTop = typeof headerRect?.top === "number" ? headerRect.top : rect.top;
       const clampedTop = Math.max(viewportPadding, anchorTop);
@@ -2279,6 +2366,18 @@ export default function GamePage() {
   const drawPlayers = (gameData?.draw_player_ids ?? [])
     .map((id: number) => gameData?.players?.find((p: any) => p.player_id === id)?.username)
     .filter((name: string | undefined) => Boolean(name));
+  const usernameColorMap = useMemo(() => {
+    const out: Record<string, string> = {};
+    const players = Array.isArray(gameData?.players) ? gameData.players : [];
+    for (const player of players) {
+      const username = String(player?.username ?? "").trim();
+      const playerId = Number(player?.player_id);
+      const color = playerColorMap[playerId];
+      if (!username || !Number.isFinite(playerId) || !color) continue;
+      out[username] = color;
+    }
+    return out;
+  }, [gameData?.players, playerColorMap]);
 
   const placedUnitAtTile = selectedTile
   ? placedUnits.find(
@@ -2446,6 +2545,25 @@ export default function GamePage() {
     });
   };
 
+  const handleSendChat = async () => {
+    if (!gameData?.link) return;
+    const message = chatInput.trim();
+    if (!message) return;
+
+    const res = await secureFetch(`/api/games/${gameData.link}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+
+    if (!res.ok) {
+      setToastMessage("Unable to send chat message.");
+      return;
+    }
+
+    setChatInput("");
+  };
+
   return (
     <div className="relative p-8 text-white flex flex-row items-start gap-6">
       {toastMessage && (
@@ -2602,6 +2720,15 @@ export default function GamePage() {
         {gameData?.gamemode === "War" && <WarGame gameData={gameData} userId={userId!} />}
         {gameData?.gamemode === "Capture The Flag" && <CaptureTheFlagGame gameData={gameData} userId={userId!} />}
       </div>
+
+      <ChatPanel
+        chatEntries={chatEntries}
+        chatInput={chatInput}
+        onChatInputChange={setChatInput}
+        onSendChat={handleSendChat}
+        playerColorMap={playerColorMap}
+        usernameColorMap={usernameColorMap}
+      />
 
       {(() => {
         let panel: any = null;
