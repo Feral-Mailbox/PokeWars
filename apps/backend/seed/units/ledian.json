@@ -5,7 +5,7 @@
     "name": "Ledian",
     "species": "Five Star Pokémon",
     "asset_folder": "013_ledian",
-    "types": ["Bug", "Fighting"],
+    "types": ["Bug", "Flying"],
     "base_stats": {
       "hp": 55,
       "attack": 35,
