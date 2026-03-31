@@ -70,6 +70,56 @@ WEATHER_TO_ID = {
     "hail": 4,
 }
 
+FIELD_HAZARD_TO_ID = {
+    "spikes": 1,
+    "toxic_spikes": 2,
+    "stealth_rock": 3,
+    "sticky_web": 4,
+}
+
+FIELD_HAZARD_STACK_LIMITS = {
+    1: 3,  # spikes
+    2: 2,  # toxic spikes
+    3: 1,  # stealth rock
+    4: 1,  # sticky web
+}
+
+FIELD_HAZARD_DEFAULT_DURATION = 5
+
+
+def normalize_hazard_cell(cell: list | None) -> list[list[int]]:
+    normalized: list[list[int]] = []
+    if not isinstance(cell, list):
+        return normalized
+
+    for entry in cell:
+        if not isinstance(entry, list) or len(entry) < 2:
+            continue
+        try:
+            hazard_id = int(entry[0])
+            turns_remaining = int(entry[1])
+        except (TypeError, ValueError):
+            continue
+
+        if hazard_id <= 0 or turns_remaining <= 0:
+            continue
+        normalized.append([hazard_id, turns_remaining])
+
+    return normalized
+
+
+def try_add_hazard_stack(hazard_entries: list[list[int]], hazard_id: int, duration_turns: int) -> bool:
+    if hazard_id <= 0 or duration_turns <= 0:
+        return False
+
+    max_stacks = int(FIELD_HAZARD_STACK_LIMITS.get(hazard_id, 1))
+    current_stacks = sum(1 for entry in hazard_entries if int(entry[0]) == hazard_id)
+    if current_stacks >= max_stacks:
+        return False
+
+    hazard_entries.append([hazard_id, duration_turns])
+    return True
+
 
 def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> int:
     if not isinstance(weather_tiles, list) or y < 0 or x < 0 or y >= len(weather_tiles):
@@ -87,6 +137,15 @@ def get_unit_weather_id(unit: GameUnit, weather_tiles: list | None) -> int:
     x = int(getattr(unit, "current_x", -1) or -1)
     y = int(getattr(unit, "current_y", -1) or -1)
     return get_weather_id_at_position(weather_tiles, x, y)
+
+
+def get_hazard_entries_at_position(hazard_tiles: list | None, x: int, y: int) -> list[list[int]]:
+    if not isinstance(hazard_tiles, list) or y < 0 or x < 0 or y >= len(hazard_tiles):
+        return []
+    row = hazard_tiles[y]
+    if not isinstance(row, list) or x >= len(row):
+        return []
+    return normalize_hazard_cell(row[x])
 
 
 def get_weather_name_from_id(weather_id: int) -> str:
@@ -895,7 +954,15 @@ def apply_stat_change(unit: GameUnit, stat: str, magnitude: int, current_turn: i
     
     db.add(unit)
 
-def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit], current_turn: int, db: Session, weather_tiles: list | None = None):
+def process_move_effects(
+    move: Move,
+    attacker: GameUnit,
+    targets: List[GameUnit],
+    current_turn: int,
+    db: Session,
+    weather_tiles: list | None = None,
+    affected_tiles_override: list[tuple[int, int]] | None = None,
+):
     """
     Process all effects from a move (stat changes, status conditions, etc.)
     Format: recipient:effect_type:param1:param2[:accuracy]
@@ -963,9 +1030,91 @@ def process_move_effects(move: Move, attacker: GameUnit, targets: List[GameUnit]
                         normalized_rows.append([int(cell or 0) for cell in row])
                 map_state.weather_tiles = normalized_rows
 
-            affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+            if affected_tiles_override:
+                seen_tiles: set[tuple[int, int]] = set()
+                affected_tiles = []
+                for tx, ty in affected_tiles_override:
+                    if not (0 <= tx < width and 0 <= ty < height):
+                        continue
+                    tile = (int(tx), int(ty))
+                    if tile in seen_tiles:
+                        continue
+                    seen_tiles.add(tile)
+                    affected_tiles.append(tile)
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
             for tx, ty in affected_tiles:
                 map_state.weather_tiles[ty][tx] = weather_id
+            db.add(map_state)
+            continue
+
+        # Field hazard effect format: field_hazard:spikes|toxic_spikes|stealth_rock|sticky_web
+        if parts[0] == "field_hazard":
+            hazard_name = parts[1].lower()
+            hazard_id = FIELD_HAZARD_TO_ID.get(hazard_name)
+            if hazard_id is None:
+                continue
+
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                if not map_obj:
+                    continue
+                map_state = _create_default_game_map_state(game, map_obj)
+                db.add(map_state)
+            else:
+                map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            normalized_hazards: list[list[list[list[int]]]] = []
+            for y in range(height):
+                row = map_state.hazard_tiles[y] if isinstance(map_state.hazard_tiles, list) and y < len(map_state.hazard_tiles) else []
+                normalized_row: list[list[list[int]]] = []
+                for x in range(width):
+                    cell = row[x] if isinstance(row, list) and x < len(row) else []
+                    normalized_row.append(normalize_hazard_cell(cell))
+                normalized_hazards.append(normalized_row)
+            map_state.hazard_tiles = normalized_hazards
+
+            if affected_tiles_override:
+                seen_tiles: set[tuple[int, int]] = set()
+                affected_tiles = []
+                for tx, ty in affected_tiles_override:
+                    if not (0 <= tx < width and 0 <= ty < height):
+                        continue
+                    tile = (int(tx), int(ty))
+                    if tile in seen_tiles:
+                        continue
+                    seen_tiles.add(tile)
+                    affected_tiles.append(tile)
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+            for tx, ty in affected_tiles:
+                try_add_hazard_stack(
+                    map_state.hazard_tiles[ty][tx],
+                    hazard_id,
+                    FIELD_HAZARD_DEFAULT_DURATION,
+                )
+
             db.add(map_state)
             continue
         
@@ -1418,6 +1567,50 @@ def decrement_and_expire_status_effects(user_id: int, game_id: int, db: Session)
     return modified_unit_ids
 
 
+def decrement_and_expire_hazards(game_id: int, db: Session) -> bool:
+    """Decrement duration for all active hazard stacks and remove expired stacks."""
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
+    if not map_state or not isinstance(map_state.hazard_tiles, list):
+        return False
+
+    changed = False
+    next_grid: list[list[list[list[int]]]] = []
+
+    for row in map_state.hazard_tiles:
+        if not isinstance(row, list):
+            next_grid.append([])
+            changed = True
+            continue
+
+        next_row: list[list[list[int]]] = []
+        for cell in row:
+            normalized_entries = normalize_hazard_cell(cell)
+            next_entries: list[list[int]] = []
+
+            if normalized_entries != cell:
+                changed = True
+
+            for hazard_id, turns_remaining in normalized_entries:
+                next_turns = int(turns_remaining) - 1
+                if next_turns > 0:
+                    next_entries.append([int(hazard_id), next_turns])
+                else:
+                    changed = True
+
+            next_row.append(next_entries)
+
+            if next_entries != normalized_entries:
+                changed = True
+
+        next_grid.append(next_row)
+
+    if changed:
+        map_state.hazard_tiles = next_grid
+        db.add(map_state)
+
+    return changed
+
+
 def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> list[int]:
     """
     Apply end-of-turn status damage for a player's units.
@@ -1496,6 +1689,82 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
         unit.current_hp = max(0, current_hp - damage)
         db.add(unit)
         modified_unit_ids.append(unit.id)
+
+    return modified_unit_ids
+
+
+def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db: Session) -> list[int]:
+    """
+    Apply tile entry-hazard effects once per full round, aligned with weather timing.
+    Hazard behavior:
+    - spikes(1): 1 stack=1/8, 2 stacks=1/6, 3+ stacks=1/4 max HP; no effect on flying.
+    - toxic_spikes(2): 1 stack=poison, 2+ stacks=badly_poisoned; no effect on flying; no overwrite.
+    - stealth_rock(3): (max_hp / 8) scaled by rock-type effectiveness.
+    - sticky_web(4): lower speed by one stage.
+    """
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
+    hazard_tiles = map_state.hazard_tiles if map_state and isinstance(map_state.hazard_tiles, list) else None
+    if not isinstance(hazard_tiles, list):
+        return []
+
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    modified_unit_ids: list[int] = []
+
+    for unit in units:
+        max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+        current_hp = int(unit.current_hp or 0)
+        if current_hp <= 0:
+            continue
+
+        x = int(getattr(unit, "current_x", -1) or -1)
+        y = int(getattr(unit, "current_y", -1) or -1)
+        entries = get_hazard_entries_at_position(hazard_tiles, x, y)
+        if not entries:
+            continue
+
+        unit_types = get_unit_types(unit, db)
+        is_flying = "flying" in unit_types
+
+        spikes_layers = sum(1 for hazard_id, _ in entries if int(hazard_id) == 1)
+        toxic_spikes_layers = sum(1 for hazard_id, _ in entries if int(hazard_id) == 2)
+        has_stealth_rock = any(int(hazard_id) == 3 for hazard_id, _ in entries)
+        has_sticky_web = any(int(hazard_id) == 4 for hazard_id, _ in entries)
+
+        hp_after_effects = current_hp
+        modified = False
+
+        if spikes_layers > 0 and not is_flying and max_hp > 0:
+            if spikes_layers >= 3:
+                damage = max(1, max_hp // 4)
+            elif spikes_layers == 2:
+                damage = max(1, max_hp // 6)
+            else:
+                damage = max(1, max_hp // 8)
+            hp_after_effects = max(0, hp_after_effects - damage)
+            modified = True
+
+        if has_stealth_rock and max_hp > 0:
+            type_multiplier = get_type_multiplier("rock", list(unit_types))
+            if type_multiplier > 0:
+                rock_damage = max(1, int((max_hp * type_multiplier) // 8))
+                hp_after_effects = max(0, hp_after_effects - rock_damage)
+                modified = True
+
+        if toxic_spikes_layers > 0 and not is_flying:
+            status_to_apply = "badly_poisoned" if toxic_spikes_layers >= 2 else "poison"
+            if apply_status_effect(unit, status_to_apply, db):
+                modified = True
+
+        if has_sticky_web:
+            apply_stat_change(unit, "speed", -1, current_turn, db)
+            modified = True
+
+        if hp_after_effects != current_hp:
+            unit.current_hp = hp_after_effects
+            db.add(unit)
+
+        if modified:
+            modified_unit_ids.append(unit.id)
 
     return modified_unit_ids
 
@@ -1749,6 +2018,8 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+        end_turn_modified_unit_ids.update(apply_end_of_round_entry_hazard_effects(game.id, state.current_turn, db))
+        decrement_and_expire_hazards(game.id, db)
 
     removed_ids = remove_fainted_units_from_play(game.id, db)
 
@@ -2526,6 +2797,8 @@ def end_turn(
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+        end_turn_modified_unit_ids.update(apply_end_of_round_entry_hazard_effects(game.id, state.current_turn, db))
+        decrement_and_expire_hazards(game.id, db)
 
     removed_ids = remove_fainted_units_from_play(game.id, db)
 
@@ -2596,6 +2869,19 @@ def execute_move(
         target_ids = payload.get("target_ids") or []
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid payload")
+
+    raw_effect_tiles = payload.get("effect_tiles") or []
+    effect_tiles: list[tuple[int, int]] = []
+    if isinstance(raw_effect_tiles, list):
+        for tile in raw_effect_tiles:
+            if not isinstance(tile, list) or len(tile) < 2:
+                continue
+            try:
+                tx = int(tile[0])
+                ty = int(tile[1])
+            except (TypeError, ValueError):
+                continue
+            effect_tiles.append((tx, ty))
 
     game = db.query(Game).filter(Game.link == link).first()
     if not game:
@@ -2740,7 +3026,15 @@ def execute_move(
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
-    process_move_effects(move, gu, landed_targets, state.current_turn, db, weather_tiles)
+    process_move_effects(
+        move,
+        gu,
+        landed_targets,
+        state.current_turn,
+        db,
+        weather_tiles,
+        affected_tiles_override=effect_tiles,
+    )
 
     # Capture any KOs caused by non-damage effects (e.g., instant_ko).
     post_effect_units = [gu] + targets
@@ -2819,6 +3113,8 @@ def execute_move(
         should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
         if should_apply_round_weather:
             end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+            end_turn_modified_unit_ids.update(apply_end_of_round_entry_hazard_effects(game.id, state.current_turn, db))
+            decrement_and_expire_hazards(game.id, db)
 
         end_turn_removed_ids = remove_fainted_units_from_play(game.id, db)
         if end_turn_removed_ids:

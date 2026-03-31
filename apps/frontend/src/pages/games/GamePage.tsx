@@ -97,6 +97,7 @@ export default function GamePage() {
   const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
+  const [hazardIconRefresh, setHazardIconRefresh] = useState<number>(0);
   const [menuScreenPosition, setMenuScreenPosition] = useState<{ left: number; top: number }>({ left: 24, top: 96 });
   const gameLinkRef = useRef<string | undefined>(undefined);
   const myTurnRef = useRef(false);
@@ -107,6 +108,8 @@ export default function GamePage() {
   const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
   const weatherIconLoadFailedRef = useRef<Record<number, boolean>>({});
+  const hazardIconRef = useRef<HTMLImageElement | null>(null);
+  const hazardIconLoadFailedRef = useRef<boolean>(false);
 
   const placedUnitsRef = useRef(placedUnits);
   const activeUnit = lockedUnit ?? hoveredUnit;
@@ -356,7 +359,8 @@ export default function GamePage() {
           if (!Array.isArray(cell)) return [] as [number, number][];
           return cell
             .filter((entry: any) => Array.isArray(entry) && entry.length >= 2)
-            .map((entry: any) => [Number(entry[0]) || 0, Number(entry[1]) || 0] as [number, number]);
+            .map((entry: any) => [Number(entry[0]) || 0, Number(entry[1]) || 0] as [number, number])
+            .filter(([hazardId, turns]) => Number.isFinite(hazardId) && Number.isFinite(turns) && hazardId > 0 && turns > 0);
         });
       });
     };
@@ -420,6 +424,27 @@ export default function GamePage() {
       setWeatherIconRefresh((prev) => prev + 1);
     };
     weatherIconCacheRef.current[weatherId] = img;
+    return img;
+  }
+
+  function getHazardIconSrc(): string {
+    return `${getAssetBaseUrl()}/misc/hazard_icon.png`;
+  }
+
+  function getHazardIconImage(): HTMLImageElement | null {
+    if (hazardIconLoadFailedRef.current) return null;
+
+    const cached = hazardIconRef.current;
+    if (cached) return cached;
+
+    const img = new Image();
+    img.src = getHazardIconSrc();
+    img.onload = () => setHazardIconRefresh((prev) => prev + 1);
+    img.onerror = () => {
+      hazardIconLoadFailedRef.current = true;
+      setHazardIconRefresh((prev) => prev + 1);
+    };
+    hazardIconRef.current = img;
     return img;
   }
 
@@ -1351,7 +1376,8 @@ export default function GamePage() {
       body: JSON.stringify({
         unit_id: activeId,
         move_id: selectedMove.id,
-        target_ids: receivingTargets.map(t => t.id)
+        target_ids: receivingTargets.map(t => t.id),
+        effect_tiles: attackTiles
       })
     });
     if (!res.ok) {
@@ -1770,6 +1796,34 @@ export default function GamePage() {
         }
       }
     }
+
+    const hazardTiles = gameData?.map_state?.hazard_tiles;
+    if (Array.isArray(hazardTiles)) {
+      const iconSize = Math.max(10, Math.floor(TILE_DRAW_SIZE * 0.42));
+      const iconPadding = 2;
+      const hazardIcon = getHazardIconImage();
+      for (let y = 0; y < hazardTiles.length; y++) {
+        const row = hazardTiles[y];
+        if (!Array.isArray(row)) continue;
+        for (let x = 0; x < row.length; x++) {
+          const cell = row[x];
+          if (!Array.isArray(cell) || cell.length === 0) continue;
+
+          const drawX = (x + 1) * TILE_DRAW_SIZE - iconSize - iconPadding;
+          const drawY = y * TILE_DRAW_SIZE + iconPadding;
+          if (hazardIcon && hazardIcon.complete && hazardIcon.naturalWidth > 0) {
+            ctx.drawImage(hazardIcon, drawX, drawY, iconSize, iconSize);
+          } else {
+            ctx.save();
+            ctx.fillStyle = "rgba(220, 80, 80, 0.9)";
+            ctx.beginPath();
+            ctx.arc(drawX + iconSize / 2, drawY + iconSize / 2, iconSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+      }
+    }
   }, [
     highlightedTiles,
     lockedUnit,
@@ -1784,7 +1838,8 @@ export default function GamePage() {
     selectedMoveTarget,
     activeMove,
     gameData?.map_state,
-    weatherIconRefresh
+    weatherIconRefresh,
+    hazardIconRefresh
   ]);
 
   useEffect(() => {

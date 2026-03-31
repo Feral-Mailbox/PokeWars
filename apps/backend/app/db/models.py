@@ -163,7 +163,7 @@ class GameMapState(Base):
     # 2D arrays matching map dimensions.
     # Each tile stores a single numeric effect id (0 means no effect).
     weather_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
-    # Each hazard tile stores a list of [hazard_id, stack_amount] pairs.
+    # Each hazard tile stores a list of [hazard_id, turns_remaining] pairs.
     hazard_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
     room_effect_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
     terrain_effect_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
