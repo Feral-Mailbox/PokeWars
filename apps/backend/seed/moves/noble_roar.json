@@ -1,0 +1,19 @@
+{
+  "id": 568,
+  "name": "Noble Roar",
+  "description": "Letting out a noble roar, the user intimidates the target and lowers its Attack and Sp. Atk stats.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "range": "adjacent",
+  "targeting": "sweep:1",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": ["target:lower_stat:attack:1", "target:lower_stat:special_attack:1"]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 610,
+  "name": "Hold Back",
+  "description": "The user holds back when it attacks, and the target is left with at least 1 HP.",
+  "type": "Normal",
+  "category": "Physical",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 40,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:leave_1hp"]
+}

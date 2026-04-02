@@ -1,0 +1,18 @@
+{
+  "id": 604,
+  "name": "Electric Terrain",
+  "description": "The user electrifies the ground for five turns, powering up Electric-type moves. Pokémon on the ground no longer fall asleep.",
+  "type": "Electric",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "terrain",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["terrain:electric"]
+}

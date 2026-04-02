@@ -1,0 +1,18 @@
+{
+  "id": 597,
+  "name": "Aromatic Mist",
+  "description": "The user raises the Sp. Def stat of an ally Pokémon by using a mysterious aroma.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:raise_stat:special_defense:1"]
+}

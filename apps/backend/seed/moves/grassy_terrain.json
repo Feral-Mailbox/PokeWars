@@ -1,0 +1,18 @@
+{
+  "id": 580,
+  "name": "Grassy Terrain",
+  "description": "The user turns the ground to grass for five turns. This restores the HP of Pokémon on the ground a little every turn and powers up Grass type-moves.",
+  "type": "Grass",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "field",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["terrain:grassy"]
+}

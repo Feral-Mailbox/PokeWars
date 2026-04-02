@@ -1,0 +1,21 @@
+{
+  "id": 601,
+  "name": "Geomancy",
+  "description": "The user absorbs energy from the atmosphere and becomes one with the earth. This raises the user's Sp. Atk, Sp. Def, and Speed stats.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["delayed_hit:1",
+    "self:raise_stat:special_attack:2",
+    "self:raise_stat:special_defense:2",
+    "self:raise_stat:speed:2"
+  ]
+}

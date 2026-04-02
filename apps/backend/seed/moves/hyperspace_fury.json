@@ -1,0 +1,19 @@
+{
+  "id": 621,
+  "name": "Hyperspace Fury",
+  "description": "Using its many arms, the user unleashes a barrage of attacks that ignore the effects of moves like Protect and Detect. But the user's Defense stat falls.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:lower_stat:defense:1"]
+}

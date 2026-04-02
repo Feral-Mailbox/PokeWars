@@ -1,0 +1,20 @@
+{
+  "id": 570,
+  "name": "Parabolic Charge",
+  "description": "The user attacks everything around it. The user's HP is restored by half the damage taken by those hit.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 65,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "pulse:2",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:drain:2"]
+}

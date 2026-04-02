@@ -1,0 +1,20 @@
+{
+  "id": 617,
+  "name": "Light of Ruin",
+  "description": "Drawing power from the Eternal Flower, the user fires a powerful beam of light. This also damages the user quite a lot.",
+  "type": "Fairy",
+  "category": "Special",
+  "power": 140,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["self:recoil:2"]
+}

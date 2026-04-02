@@ -1,0 +1,20 @@
+{
+  "id": 583,
+  "name": "Play Rough",
+  "description": "The user plays rough with the target and attacks it. This may also lower the target's Attack stat.",
+  "type": "Fairy",
+  "category": "Physical",
+  "power": 90,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:lower_stat:attack:1:10"]
+}

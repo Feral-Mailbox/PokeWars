@@ -18,7 +18,7 @@
   "affected_by_kings_rock": true,
   "effects": [
     "self:lower_stat:defense:1",
-    "self:lower_stat:sp_defense:1",
+    "self:lower_stat:special_defense:1",
     "self:lower_stat:range:1"
   ]
 }

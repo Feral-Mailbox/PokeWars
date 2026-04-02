@@ -1,0 +1,20 @@
+{
+  "id": 560,
+  "name": "Flying Press",
+  "description": "The user dives down onto the target from the sky. This move is Fighting-type and Flying-type.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 95,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["uses_type:flying"]
+}

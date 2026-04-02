@@ -1,0 +1,18 @@
+{
+  "id": 581,
+  "name": "Misty Terrain",
+  "description": "The user covers the ground under everyone's feet with mist for five turns. This protects Pokémon on the ground from status conditions and halves damage from Dragon-type moves.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "field",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["terrain:misty"]
+}

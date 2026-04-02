@@ -1,0 +1,21 @@
+{
+  "id": 574,
+  "name": "Disarming Voice",
+  "description": "Letting out a charming cry, the user does emotional damage to opposing Pokémon. This attack never misses.",
+  "type": "Fairy",
+  "category": "Special",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "sweep:1",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": []
+}

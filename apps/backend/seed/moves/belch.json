@@ -1,0 +1,20 @@
+{
+  "id": 562,
+  "name": "Belch",
+  "description": "The user lets out a damaging belch at the target. The user must eat a held Berry to use this move.",
+  "type": "Poison",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "inverted_cone:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": ["condition:consuming_berry"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": 579,
+  "name": "Flower Shield",
+  "description": "The user raises the Defense stat of all Grass-type Pokémon in battle with a mysterious power.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:3",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:raise_stat:condition:is_type:grass:1"]
+}

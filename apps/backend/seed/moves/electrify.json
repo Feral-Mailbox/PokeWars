@@ -1,0 +1,18 @@
+{
+  "id": 582,
+  "name": "Electrify",
+  "description": "If the target is electrified before it uses a move during that turn, the target's move becomes Electric type.",
+  "type": "Electric",
+  "category": "Status",
+  "pp": 20,
+  "range": "blast:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:electrified"]
+}

@@ -19,7 +19,7 @@
   "effects": [
     "target:status:paralysis:10",
     "self:lower_stat:defense:1",
-    "self:lower_stat:sp_defense:1",
+    "self:lower_stat:special_defense:1",
     "self:lower_stat:range:1"
   ]
 }

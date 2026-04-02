@@ -1,0 +1,20 @@
+{
+  "id": 602,
+  "name": "Magnetic Flux",
+  "description": "The user manipulates magnetic fields, which raises the Defense and Sp. Def stats of ally Pokémon with the Plus or Minus Ability.",
+  "type": "Electric",
+  "category": "Status",
+  "pp": 20,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:raise_stat:condition:target:has_ability:plus,minus:defense:1",
+              "target:raise_stat:condition:target:has_ability:plus,minus:special_defense:1"
+            ]
+}

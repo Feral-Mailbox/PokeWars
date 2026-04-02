@@ -1,0 +1,18 @@
+{
+  "id": 561,
+  "name": "Mat Block",
+  "description": "Using a pulled-up mat as a shield, the user protects itself and its allies from damaging moves. This does not stop status moves.",
+  "type": "Fighting",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:mat_block"]
+}

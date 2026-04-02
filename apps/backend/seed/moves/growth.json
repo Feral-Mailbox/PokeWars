@@ -14,5 +14,5 @@
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["self:raise_stat:attack:1", "self:raise_stat:sp_attack:1"]
+  "effects": ["self:raise_stat:attack:1", "self:raise_stat:special_attack:1"]
 }

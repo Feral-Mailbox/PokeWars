@@ -1,0 +1,18 @@
+{
+  "id": 588,
+  "name": "King's Shield",
+  "description": "The user takes a defensive stance while it protects itself from damage. It also harshly lowers the Attack stat of any attacker who makes direct contact.",
+  "type": "Steel",
+  "category": "Status",
+  "pp": 10,
+  "range": "user",
+  "targeting": "user",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["self:apply_state:kings_shield"]
+}

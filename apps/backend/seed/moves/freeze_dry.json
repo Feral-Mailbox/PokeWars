@@ -1,0 +1,20 @@
+{
+  "id": 573,
+  "name": "Freeze-Dry",
+  "description": "The user rapidly cools the target. This may also leave the target frozen. This move is super effective on Water types.",
+  "type": "Ice",
+  "category": "Special",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["target:apply_status:frozen:10", "target:super_effective:condition:is_type:water"]
+}

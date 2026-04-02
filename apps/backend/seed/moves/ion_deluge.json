@@ -1,0 +1,18 @@
+{
+  "id": 569,
+  "name": "Ion Deluge",
+  "description": "The user disperses electrically charged particles, which changes Normal-type moves to Electric-type moves.",
+  "type": "Electric",
+  "category": "Status",
+  "pp": 25,
+  "range": "pulse:6",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": ["target:apply_state:ion_deluge"]
+}

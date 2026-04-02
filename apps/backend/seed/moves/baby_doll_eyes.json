@@ -1,0 +1,19 @@
+{
+  "id": 608,
+  "name": "Baby-Doll Eyes",
+  "description": "The user stares at the target with its baby-doll eyes, which lowers its Attack stat.",
+  "type": "Fairy",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 30,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": ["target:lower_stat:attack:1"]
+}
