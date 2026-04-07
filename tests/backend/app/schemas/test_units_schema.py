@@ -21,9 +21,10 @@ def test_unit_detail_fields():
 def test_game_unit_create_request():
     model = GameUnitCreateRequest(
         unit_id=5, x=3, y=4, current_hp=30,
-        stat_boosts={"attack": 1}, status_effects=["poison"], is_fainted=False
+        stat_boosts={"attack": 1}, status_effects=["poison"], states=["confusion", 2], is_fainted=False
     )
     assert model.status_effects == ["poison"]
+    assert model.states == ["confusion", 2]
 
 def test_game_unit_schema():
     unit = UnitSummary(
@@ -33,8 +34,9 @@ def test_game_unit_schema():
     )
     model = GameUnitSchema(
         id=1, game_id=2, unit_id=3, user_id=4,
-        x=1, y=1, current_hp=39,
-        stat_boosts={}, status_effects=[],
-        is_fainted=False, unit=unit
+        starting_x=1, starting_y=1, current_x=1, current_y=1,
+        level=50, current_hp=39, current_stats={"hp": 39},
+        stat_boosts={}, status_effects=[], states=[],
+        is_fainted=False, can_move=True, move_pp=[], unit=unit
     )
     assert model.unit.name == "Charmander"

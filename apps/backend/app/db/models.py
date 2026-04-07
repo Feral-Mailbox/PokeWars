@@ -233,6 +233,7 @@ class GameUnit(Base):
         "crit": []
     })  # Each stat holds list of active boost instances
     status_effects = Column(JSON, default=list)  # e.g., ["poison", "paralysis"]
+    states = Column(JSON, default=list)  # e.g., ["confusion", 2]
     is_fainted = Column(Boolean, default=False)
     can_move = Column(Boolean, default=True, nullable=False)
     move_pp = Column(MutableList.as_mutable(JSON), default=list)  # e.g., [10, 8, 5, 15] for 4 moves

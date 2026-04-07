@@ -207,6 +207,7 @@ VALID_STATUS_EFFECTS = {
 }
 
 SHORT_DURATION_STATUS_EFFECTS = {"sleep", "frozen"}
+VALID_STATE_EFFECTS = {"confusion"}
 
 STATUS_NAME_ALIASES = {
     "badly_poison": "badly_poisoned",
@@ -595,6 +596,75 @@ def normalize_status_effects(raw: list | dict | str | None) -> list:
                 return parsed_entry
 
     return []
+
+
+def normalize_states(raw: list | str | None) -> list:
+    if raw is None:
+        return []
+
+    if isinstance(raw, str):
+        state = raw.strip().lower()
+        return [state, 1] if state else []
+
+    if isinstance(raw, list) and len(raw) >= 2:
+        state = str(raw[0]).strip().lower()
+        turns_remaining = raw[1]
+        if not state or not isinstance(turns_remaining, (int, float)):
+            return []
+        return [state, int(turns_remaining)]
+
+    return []
+
+
+def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
+    state_name = str(state_name or "").strip().lower()
+    if state_name not in VALID_STATE_EFFECTS:
+        return False
+
+    current_state = normalize_states(unit.states)
+    has_active_state = len(current_state) == 2 and int(current_state[1]) > 0
+    if has_active_state:
+        return False
+
+    if state_name == "confusion":
+        unit.states = [state_name, random.randint(2, 5)]
+        db.add(unit)
+        return True
+
+    return False
+
+
+def apply_confusion_self_damage(
+    unit: GameUnit,
+    db: Session,
+    game: Game | None = None,
+    game_state: GameState | None = None,
+) -> int:
+    current_stats = unit.current_stats if isinstance(unit.current_stats, dict) else {}
+    max_hp = int(current_stats.get("hp", 0) or 0)
+    if max_hp <= 0:
+        return 0
+
+    attack = int(current_stats.get("attack", 0) or 0)
+    defense = int(current_stats.get("defense", 1) or 1)
+    safe_defense = defense if defense > 0 else 1
+    level = int(unit.level or 0)
+    random_factor = random.randint(85, 100) / 100
+    base_damage = (((2 * level) / 5 + 2) * 40 * (attack / safe_defense)) / 50 + 2
+    damage = max(1, min(max_hp, int(base_damage * random_factor)))
+
+    unit.current_hp = max(0, int(unit.current_hp or 0) - damage)
+    db.add(unit)
+
+    if game and game_state:
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(unit, db)} hits themselves in confusion for {damage} damage",
+            game_state,
+            db,
+        )
+
+    return damage
 
 
 def get_status_duration(status: str) -> int:
@@ -1504,6 +1574,43 @@ def process_move_effects(
                                     db,
                                 )
 
+        elif effect_type in {"state", "apply_state"}:
+            if len(parts) < 3:
+                continue
+
+            state_name = parts[2]
+            accuracy = 100
+            if len(parts) >= 4:
+                try:
+                    accuracy = int(parts[3])
+                except ValueError:
+                    pass
+
+            if random.randint(1, 100) > accuracy:
+                continue
+
+            if recipient == "self":
+                applied = apply_state_effect(attacker, state_name, db)
+                if applied and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(attacker, db)} is confused",
+                        game_state,
+                        db,
+                    )
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) <= 0:
+                        continue
+                    applied = apply_state_effect(target, state_name, db)
+                    if applied and game and game_state:
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(target, db)} is confused",
+                            game_state,
+                            db,
+                        )
+
         elif effect_type == "heal":
             # Check if this heal has a condition
             # Format: recipient:heal:condition:condition_type:condition_value:denominator
@@ -1822,7 +1929,13 @@ def decrement_and_expire_stat_boosts(user_id: int, game_id: int, db: Session) ->
     return modified_unit_ids
 
 
-def decrement_and_expire_status_effects(user_id: int, game_id: int, db: Session) -> list[int]:
+def decrement_and_expire_status_effects(
+    user_id: int,
+    game_id: int,
+    db: Session,
+    game: Game | None = None,
+    game_state: GameState | None = None,
+) -> list[int]:
     """
     Decrement status timers for a player's units and remove expired statuses.
     Status checks that affect movement are resolved at turn start.
@@ -1849,34 +1962,53 @@ def decrement_and_expire_status_effects(user_id: int, game_id: int, db: Session)
                 unit.current_stats = compute_effective_stats(unit, db)
                 db.add(unit)
                 modified_unit_ids.append(unit.id)
-            continue
-
-        status_name = status_effect[0]
-        turns_remaining = int(status_effect[1]) - 1
-
-        # Expire first; if cured this turn, skip all status effects.
-        if turns_remaining <= 0:
-            unit.status_effects = []
-            unit.current_stats = compute_effective_stats(unit, db)
-            db.add(unit)
-            modified_unit_ids.append(unit.id)
-            continue
-
-        if status_name == "sleep":
-            unit.can_move = False
-        elif status_name == "frozen":
-            unit.can_move = False
-        elif status_name == "paralysis":
-            if random.randint(1, 100) <= 25:
-                unit.can_move = False
-
-        if status_name == "badly_poisoned":
-            bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
-            unit.status_effects = [status_name, turns_remaining, max(1, bad_poison_turn)]
         else:
-            unit.status_effects = [status_name, turns_remaining]
+            status_name = status_effect[0]
+            turns_remaining = int(status_effect[1]) - 1
 
-        unit.current_stats = compute_effective_stats(unit, db)
+            # Expire first; if cured this turn, skip status-specific effects.
+            if turns_remaining <= 0:
+                unit.status_effects = []
+                unit.current_stats = compute_effective_stats(unit, db)
+                db.add(unit)
+                modified_unit_ids.append(unit.id)
+            else:
+                if status_name == "sleep":
+                    unit.can_move = False
+                elif status_name == "frozen":
+                    unit.can_move = False
+                elif status_name == "paralysis":
+                    if random.randint(1, 100) <= 25:
+                        unit.can_move = False
+
+                if status_name == "badly_poisoned":
+                    bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
+                    unit.status_effects = [status_name, turns_remaining, max(1, bad_poison_turn)]
+                else:
+                    unit.status_effects = [status_name, turns_remaining]
+
+                unit.current_stats = compute_effective_stats(unit, db)
+        state_effect = normalize_states(unit.states)
+        if state_effect:
+            state_name = str(state_effect[0]).lower()
+            state_turns_remaining = int(state_effect[1]) - 1
+            if state_turns_remaining <= 0:
+                unit.states = []
+                db.add(unit)
+                if state_name == "confusion" and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(unit, db)} is no longer confused",
+                        game_state,
+                        db,
+                    )
+                modified_unit_ids.append(unit.id)
+                continue
+
+            unit.states = [state_name, state_turns_remaining]
+            if state_name == "confusion" and unit.can_move and random.randint(1, 100) <= 33:
+                apply_confusion_self_damage(unit, db, game, game_state)
+                unit.can_move = False
 
         db.add(unit)
         modified_unit_ids.append(unit.id)
@@ -2409,7 +2541,10 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     new_current_player_id = playable_players[state.current_turn % len(playable_players)]
     modified_unit_ids = set(end_turn_modified_unit_ids)
     modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
-    modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
+    modified_unit_ids.update(
+        decrement_and_expire_status_effects(new_current_player_id, game.id, db, game, state)
+    )
+    removed_ids.extend(remove_fainted_units_from_play(game.id, db))
     
     # Broadcast stat updates for units that had boosts expire
     for unit_id in modified_unit_ids:
@@ -2553,7 +2688,10 @@ def get_in_progress_games(
     games = (
         db.query(Game)
         .join(GameState, GameState.game_id == Game.id)
-        .filter(GameState.status == GameStatus.in_progress, Game.is_private == False)
+        .filter(
+            GameState.status.in_([GameStatus.in_progress, GameStatus.preparation]),
+            Game.is_private == False,
+        )
         .order_by(Game.timestamp.desc())
         .all()
     )
@@ -3000,6 +3138,7 @@ def get_game_units(
         elif not isinstance(unit.move_pp, list):
             unit.move_pp = list(unit.move_pp) if unit.move_pp else []
         unit.status_effects = normalize_status_effects(unit.status_effects)
+        unit.states = normalize_states(unit.states)
         
         # Ensure current_stats is properly populated - recalculate if missing keys
         if not isinstance(unit.current_stats, dict) or not unit.current_stats:
@@ -3078,6 +3217,7 @@ def place_unit(
         current_stats=current_stats,  # Initial stats without boosts
         stat_boosts=normalize_stat_boosts(unit_data.stat_boosts),
         status_effects=normalize_status_effects(unit_data.status_effects),
+        states=normalize_states(unit_data.states),
         is_fainted=unit_data.is_fainted,
         move_pp=move_pp,
     )
@@ -3236,7 +3376,10 @@ def end_turn(
     new_current_player_id = playable_players[state.current_turn % len(playable_players)]
     modified_unit_ids = set(end_turn_modified_unit_ids)
     modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
-    modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
+    modified_unit_ids.update(
+        decrement_and_expire_status_effects(new_current_player_id, game.id, db, game, state)
+    )
+    removed_ids.extend(remove_fainted_units_from_play(game.id, db))
 
     for unit_id in modified_unit_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
@@ -3648,7 +3791,10 @@ def execute_move(
         new_current_player_id = playable_players[state.current_turn % len(playable_players)]
         modified_unit_ids = set(end_turn_modified_unit_ids)
         modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
-        modified_unit_ids.update(decrement_and_expire_status_effects(new_current_player_id, game.id, db))
+        modified_unit_ids.update(
+            decrement_and_expire_status_effects(new_current_player_id, game.id, db, game, state)
+        )
+        removed_ids.extend(remove_fainted_units_from_play(game.id, db))
         
         # Broadcast stat updates for units that had boosts expire
         for unit_id in modified_unit_ids:

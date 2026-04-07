@@ -20,6 +20,6 @@
     "weather_effect:rain:accuracy:100",
     "weather_effect:sun:accuracy:50",
     "",
-    "target:confusion:30"
+    "target:apply_state:confusion:30"
   ]
 }

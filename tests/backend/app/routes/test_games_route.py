@@ -209,6 +209,41 @@ def test_process_move_effects_applies_status_to_target(db):
     assert 4 <= target.status_effects[1] <= 7
 
 
+def test_process_move_effects_applies_confusion_with_apply_state_to_target(db):
+    move = models.Move(
+        name="Confuse Ray",
+        type="ghost",
+        category="Status",
+        effects=["target:apply_state:confusion"],
+    )
+    attacker = models.GameUnit(states=[])
+    target = models.GameUnit(states=[], current_hp=100)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert isinstance(target.states, list)
+    assert len(target.states) == 2
+    assert target.states[0] == "confusion"
+    assert 2 <= target.states[1] <= 5
+
+
+def test_process_move_effects_applies_confusion_with_apply_state_to_self(db):
+    move = models.Move(
+        name="Outrage",
+        type="dragon",
+        category="Physical",
+        effects=["self:apply_state:confusion"],
+    )
+    attacker = models.GameUnit(states=[])
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    assert isinstance(attacker.states, list)
+    assert len(attacker.states) == 2
+    assert attacker.states[0] == "confusion"
+    assert 2 <= attacker.states[1] <= 5
+
+
 def test_process_move_effects_does_not_override_existing_status(db):
     move = models.Move(
         name="Status Test 2",
