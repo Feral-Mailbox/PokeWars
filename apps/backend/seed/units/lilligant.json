@@ -1,28 +1,44 @@
 {
-    "id": 47,
-    "species_id": 38,
-    "form_id": null,
-    "name": "Lilligant",
-    "species": "Flowering Pokémon",
-    "asset_folder": "038_lilligant",
-    "types": ["Grass"],
-    "base_stats": {
-      "hp": 70,
-      "attack": 60,
-      "defense": 75,
-      "sp_attack": 110,
-      "sp_defense": 75,
-      "speed": 90,
-      "range": 3
-    },
-    "move_ids": [483, 79, 72],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "cleric_dps",
-    "description": "The fragrance of the garland on its head has a relaxing effect, but taking care of it is very difficult.",
-    "portrait_credits": ["Garbage"],
-    "sprite_credits": ["powercristal", "baronessfaron", "Garbage"]
+  "id": 47,
+  "species_id": 38,
+  "form_id": null,
+  "name": "Lilligant",
+  "species": "Flowering Pokémon",
+  "asset_folder": "038_lilligant",
+  "types": [
+    "Grass"
+  ],
+  "base_stats": {
+    "hp": 70,
+    "attack": 60,
+    "defense": 75,
+    "sp_attack": 110,
+    "sp_defense": 75,
+    "speed": 90,
+    "range": 3
+  },
+  "move_ids": [
+    483,
+    79,
+    72
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "cleric_dps",
+  "description": "The fragrance of the garland on its head has a relaxing effect, but taking care of it is very difficult.",
+  "measurements": {
+    "height": 1.1,
+    "weight": 16.3
+  },
+  "portrait_credits": [
+    "Garbage"
+  ],
+  "sprite_credits": [
+    "powercristal",
+    "baronessfaron",
+    "Garbage"
+  ]
 }

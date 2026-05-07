@@ -1,28 +1,45 @@
 {
-    "id": 122,
-    "species_id": 107,
-    "form_id": null,
-    "name": "Clefairy",
-    "species": "Fairy Pokémon",
-    "asset_folder": "107_clefairy",
-    "types": ["Fairy"],
-    "base_stats": {
-      "hp": 70,
-      "attack": 45,
-      "defense": 48,
-      "sp_attack": 60,
-      "sp_defense": 65,
-      "speed": 35,
-      "range": 3
-    },
-    "move_ids": [585, 236, 266],
-    "archetype": "healer_buffer",
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": 1000,
-    "evolves_into": [108],
-    "is_legendary": false,
-    "description": "It is said that happiness will come to those who see a gathering of Clefairy dancing under a full moon.",
-    "portrait_credits": ["CHUNSOFT", "estelstarlight"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 122,
+  "species_id": 107,
+  "form_id": null,
+  "name": "Clefairy",
+  "species": "Fairy Pokémon",
+  "asset_folder": "107_clefairy",
+  "types": [
+    "Fairy"
+  ],
+  "base_stats": {
+    "hp": 70,
+    "attack": 45,
+    "defense": 48,
+    "sp_attack": 60,
+    "sp_defense": 65,
+    "speed": 35,
+    "range": 3
+  },
+  "move_ids": [
+    585,
+    236,
+    266
+  ],
+  "archetype": "healer_buffer",
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    108
+  ],
+  "is_legendary": false,
+  "description": "It is said that happiness will come to those who see a gathering of Clefairy dancing under a full moon.",
+  "measurements": {
+    "height": 0.6,
+    "weight": 7.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "estelstarlight"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

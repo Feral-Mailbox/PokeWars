@@ -1,28 +1,45 @@
 {
-    "id": 139,
-    "species_id": 124,
-    "form_id": null,
-    "name": "Crawdaunt",
-    "species": "Rogue Pokémon",
-    "asset_folder": "124_crawdaunt",
-    "types": ["Water", "Dark"],
-    "base_stats": {
-      "hp": 63,
-      "attack": 120,
-      "defense": 85,
-      "sp_attack": 90,
-      "sp_defense": 55,
-      "speed": 55,
-      "range": 3
-    },
-    "move_ids": [152, 282, 349],
-    "archetype": "assassin",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "A brutish Pokémon that loves to battle. It will crash itself into any foe that approaches its nest.",
-    "portrait_credits": ["CHUNSOFT", "0palite", "Topc_Kec"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 139,
+  "species_id": 124,
+  "form_id": null,
+  "name": "Crawdaunt",
+  "species": "Rogue Pokémon",
+  "asset_folder": "124_crawdaunt",
+  "types": [
+    "Water",
+    "Dark"
+  ],
+  "base_stats": {
+    "hp": 63,
+    "attack": 120,
+    "defense": 85,
+    "sp_attack": 90,
+    "sp_defense": 55,
+    "speed": 55,
+    "range": 3
+  },
+  "move_ids": [
+    152,
+    282,
+    349
+  ],
+  "archetype": "assassin",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "A brutish Pokémon that loves to battle. It will crash itself into any foe that approaches its nest.",
+  "measurements": {
+    "height": 1.1,
+    "weight": 32.8
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "0palite",
+    "Topc_Kec"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

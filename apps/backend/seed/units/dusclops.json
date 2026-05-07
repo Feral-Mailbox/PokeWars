@@ -1,28 +1,46 @@
 {
-    "id": 131,
-    "species_id": 116,
-    "form_id": null,
-    "name": "Dusclops",
-    "species": "Beckon Pokémon",
-    "asset_folder": "116_dusclops",
-    "types": ["Ghost"],
-    "base_stats": {
-      "hp": 40,
-      "attack": 70,
-      "defense": 130,
-      "sp_attack": 60,
-      "sp_defense": 130,
-      "speed": 25,
-      "range": 3
-    },
-    "move_ids": [101, 261, 220],
-    "archetype": "wall",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1000,
-    "evolves_into": [117],
-    "is_legendary": false,
-    "description": "It seeks drifting will-o’-the-wisps and sucks them into its empty body. What happens inside is a mystery.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron", "Garbage"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 131,
+  "species_id": 116,
+  "form_id": null,
+  "name": "Dusclops",
+  "species": "Beckon Pokémon",
+  "asset_folder": "116_dusclops",
+  "types": [
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 40,
+    "attack": 70,
+    "defense": 130,
+    "sp_attack": 60,
+    "sp_defense": 130,
+    "speed": 25,
+    "range": 3
+  },
+  "move_ids": [
+    101,
+    261,
+    220
+  ],
+  "archetype": "wall",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    117
+  ],
+  "is_legendary": false,
+  "description": "It seeks drifting will-o’-the-wisps and sucks them into its empty body. What happens inside is a mystery.",
+  "measurements": {
+    "height": 1.6,
+    "weight": 30.6
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron",
+    "Garbage"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

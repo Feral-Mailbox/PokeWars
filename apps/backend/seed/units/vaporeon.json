@@ -1,28 +1,43 @@
 {
-    "id": 60,
-    "species_id": 50,
-    "form_id": null,
-    "name": "Vaporeon",
-    "species": "Bubble Jet Pokémon",
-    "asset_folder": "050_vaporeon",
-    "types": ["Water"],
-    "base_stats": {
-      "hp": 130,
-      "attack": 65,
-      "defense": 60,
-      "sp_attack": 110,
-      "sp_defense": 95,
-      "speed": 65,
-      "range": 4
-    },
-    "move_ids": [151, 57, 273],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "glass_cannon",
-    "description": "Its cell composition is similar to water molecules. As a result, it can't be seen when it melts away into water.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 60,
+  "species_id": 50,
+  "form_id": null,
+  "name": "Vaporeon",
+  "species": "Bubble Jet Pokémon",
+  "asset_folder": "050_vaporeon",
+  "types": [
+    "Water"
+  ],
+  "base_stats": {
+    "hp": 130,
+    "attack": 65,
+    "defense": 60,
+    "sp_attack": 110,
+    "sp_defense": 95,
+    "speed": 65,
+    "range": 4
+  },
+  "move_ids": [
+    151,
+    57,
+    273
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "glass_cannon",
+  "description": "Its cell composition is similar to water molecules. As a result, it can't be seen when it melts away into water.",
+  "measurements": {
+    "height": 1.0,
+    "weight": 29.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

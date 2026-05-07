@@ -1,28 +1,45 @@
 {
-    "id": 61,
-    "species_id": 51,
-    "form_id": null,
-    "name": "Jolteon",
-    "species": "Lightning Pokémon",
-    "asset_folder": "051_jolteon",
-    "types": ["Electric"],
-    "base_stats": {
-      "hp": 65,
-      "attack": 65,
-      "defense": 60,
-      "sp_attack": 110,
-      "sp_defense": 95,
-      "speed": 130,
-      "range": 4
-    },
-    "move_ids": [85, 521, 86],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "special_sweeper",
-    "description": "It concentrates the weak electric charges emitted by its cells and launches wicked lightning bolts.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron", "ShyStarryRain"],
-    "sprite_credits": ["CHUNSOFT", "dmDash"]
+  "id": 61,
+  "species_id": 51,
+  "form_id": null,
+  "name": "Jolteon",
+  "species": "Lightning Pokémon",
+  "asset_folder": "051_jolteon",
+  "types": [
+    "Electric"
+  ],
+  "base_stats": {
+    "hp": 65,
+    "attack": 65,
+    "defense": 60,
+    "sp_attack": 110,
+    "sp_defense": 95,
+    "speed": 130,
+    "range": 4
+  },
+  "move_ids": [
+    85,
+    521,
+    86
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "special_sweeper",
+  "description": "It concentrates the weak electric charges emitted by its cells and launches wicked lightning bolts.",
+  "measurements": {
+    "height": 0.8,
+    "weight": 24.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron",
+    "ShyStarryRain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "dmDash"
+  ]
 }

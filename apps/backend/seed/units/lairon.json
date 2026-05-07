@@ -1,28 +1,46 @@
 {
-    "id": 128,
-    "species_id": 113,
-    "form_id": null,
-    "name": "Lairon",
-    "species": "Iron Armor Pokémon",
-    "asset_folder": "113_lairon",
-    "types": ["Steel", "Rock"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 90,
-      "defense": 140,
-      "sp_attack": 50,
-      "sp_defense": 50,
-      "speed": 40,
-      "range": 3
-    },
-    "move_ids": [442, 157, 334],
-    "archetype": "heavy_tank",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1000,
-    "evolves_into": [114],
-    "is_legendary": false,
-    "description": "During territorial disputes, Lairon fight by slamming into each other. Close inspection of their steel armor reveals scratches and dents.",
-    "portrait_credits": ["CHUNSOFT", "Magu"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 128,
+  "species_id": 113,
+  "form_id": null,
+  "name": "Lairon",
+  "species": "Iron Armor Pokémon",
+  "asset_folder": "113_lairon",
+  "types": [
+    "Steel",
+    "Rock"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 90,
+    "defense": 140,
+    "sp_attack": 50,
+    "sp_defense": 50,
+    "speed": 40,
+    "range": 3
+  },
+  "move_ids": [
+    442,
+    157,
+    334
+  ],
+  "archetype": "heavy_tank",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    114
+  ],
+  "is_legendary": false,
+  "description": "During territorial disputes, Lairon fight by slamming into each other. Close inspection of their steel armor reveals scratches and dents.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 120.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Magu"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

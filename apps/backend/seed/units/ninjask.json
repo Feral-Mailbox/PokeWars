@@ -1,28 +1,44 @@
 {
-    "id": 100,
-    "species_id": 86,
-    "form_id": null,
-    "name": "Ninjask",
-    "species": "Ninja Pokémon",
-    "asset_folder": "086_ninjask",
-    "types": ["Bug", "Flying"],
-    "base_stats": {
-      "hp": 61,
-      "attack": 90,
-      "defense": 45,
-      "sp_attack": 50,
-      "sp_defense": 50,
-      "speed": 160,
-      "range": 5
-    },
-    "move_ids": [404, 14, 369],
-    "archetype": "speedster",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Because they move so quickly, they sometimes become unseeable. They congregate around tree sap.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 100,
+  "species_id": 86,
+  "form_id": null,
+  "name": "Ninjask",
+  "species": "Ninja Pokémon",
+  "asset_folder": "086_ninjask",
+  "types": [
+    "Bug",
+    "Flying"
+  ],
+  "base_stats": {
+    "hp": 61,
+    "attack": 90,
+    "defense": 45,
+    "sp_attack": 50,
+    "sp_defense": 50,
+    "speed": 160,
+    "range": 5
+  },
+  "move_ids": [
+    404,
+    14,
+    369
+  ],
+  "archetype": "speedster",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Because they move so quickly, they sometimes become unseeable. They congregate around tree sap.",
+  "measurements": {
+    "height": 0.8,
+    "weight": 12.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

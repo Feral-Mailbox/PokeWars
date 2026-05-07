@@ -1,28 +1,45 @@
 {
-    "id": 123,
-    "species_id": 108,
-    "form_id": null,
-    "name": "Clefable",
-    "species": "Fairy Pokémon",
-    "asset_folder": "108_clefable",
-    "types": ["Fairy"],
-    "base_stats": {
-      "hp": 95,
-      "attack": 70,
-      "defense": 73,
-      "sp_attack": 95,
-      "sp_defense": 90,
-      "speed": 60,
-      "range": 3
-    },
-    "move_ids": [585, 236, 266, 322],
-    "archetype": "paladin_tank",
-    "ability_ids": [],
-    "cost": 1000,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Their ears are sensitive enough to hear a pin drop from over a mile away, so they’re usually found in quiet places.",
-    "portrait_credits": ["CHUNSOFT", "jackolanternjackalope", "Gust"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 123,
+  "species_id": 108,
+  "form_id": null,
+  "name": "Clefable",
+  "species": "Fairy Pokémon",
+  "asset_folder": "108_clefable",
+  "types": [
+    "Fairy"
+  ],
+  "base_stats": {
+    "hp": 95,
+    "attack": 70,
+    "defense": 73,
+    "sp_attack": 95,
+    "sp_defense": 90,
+    "speed": 60,
+    "range": 3
+  },
+  "move_ids": [
+    585,
+    236,
+    266,
+    322
+  ],
+  "archetype": "paladin_tank",
+  "ability_ids": [],
+  "cost": 1000,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Their ears are sensitive enough to hear a pin drop from over a mile away, so they’re usually found in quiet places.",
+  "measurements": {
+    "height": 1.3,
+    "weight": 40.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "jackolanternjackalope",
+    "Gust"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

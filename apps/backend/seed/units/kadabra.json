@@ -1,28 +1,46 @@
 {
-    "id": 22,
-    "species_id": 20,
-    "form_id": null,
-    "name": "Kadabra",
-    "species": "Psi Pokémon",
-    "asset_folder": "020_kadabra",
-    "types": ["Psychic"],
-    "base_stats": {
-      "hp": 40,
-      "attack": 35,
-      "defense": 30,
-      "sp_attack": 120,
-      "sp_defense": 70,
-      "speed": 105,
-      "range": 3
-    },
-    "move_ids": [100, 94, 101],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1200,
-    "evolves_into": [21],
-    "is_legendary": false,
-    "archetype": "glass_cannon",
-    "description": "This Pokémon's telekinesis is immensely powerful. To prepare for evolution, Kadabra stores up psychic energy in the star on its forehead.",
-    "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
-  }
+  "id": 22,
+  "species_id": 20,
+  "form_id": null,
+  "name": "Kadabra",
+  "species": "Psi Pokémon",
+  "asset_folder": "020_kadabra",
+  "types": [
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 40,
+    "attack": 35,
+    "defense": 30,
+    "sp_attack": 120,
+    "sp_defense": 70,
+    "speed": 105,
+    "range": 3
+  },
+  "move_ids": [
+    100,
+    94,
+    101
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1200,
+  "evolves_into": [
+    21
+  ],
+  "is_legendary": false,
+  "archetype": "glass_cannon",
+  "description": "This Pokémon's telekinesis is immensely powerful. To prepare for evolution, Kadabra stores up psychic energy in the star on its forehead.",
+  "measurements": {
+    "height": 1.3,
+    "weight": 56.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "0palite",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
+}

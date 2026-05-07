@@ -1,28 +1,44 @@
 {
-    "id": 63,
-    "species_id": 53,
-    "form_id": null,
-    "name": "Espeon",
-    "species": "Sun Pokémon",
-    "asset_folder": "053_espeon",
-    "types": ["Psychic"],
-    "base_stats": {
-      "hp": 65,
-      "attack": 65,
-      "defense": 60,
-      "sp_attack": 130,
-      "sp_defense": 95,
-      "speed": 110,
-      "range": 4
-    },
-    "move_ids": [235, 94, 92],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "bruiser",
-    "description": "It uses the fine hair that covers its body to sense air currents and predict its enemy's actions.",
-    "portrait_credits": ["CHUNSOFT", "0palite", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 63,
+  "species_id": 53,
+  "form_id": null,
+  "name": "Espeon",
+  "species": "Sun Pokémon",
+  "asset_folder": "053_espeon",
+  "types": [
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 65,
+    "attack": 65,
+    "defense": 60,
+    "sp_attack": 130,
+    "sp_defense": 95,
+    "speed": 110,
+    "range": 4
+  },
+  "move_ids": [
+    235,
+    94,
+    92
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "bruiser",
+  "description": "It uses the fine hair that covers its body to sense air currents and predict its enemy's actions.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 26.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "0palite",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

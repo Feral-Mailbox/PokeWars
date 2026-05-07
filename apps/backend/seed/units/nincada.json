@@ -1,28 +1,45 @@
 {
-    "id": 99,
-    "species_id": 85,
-    "form_id": null,
-    "name": "Nincada",
-    "species": "Trainee Pokémon",
-    "asset_folder": "085_nincada",
-    "types": ["Bug", "Ground"],
-    "base_stats": {
-      "hp": 31,
-      "attack": 45,
-      "defense": 90,
-      "sp_attack": 30,
-      "sp_defense": 30,
-      "speed": 40,
-      "range": 4
-    },
-    "move_ids": [450, 28],
-    "archetype": "scout",
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [86],
-    "is_legendary": false,
-    "description": "It grows underground, sensing its surroundings using antennae instead of its virtually blind eyes.",
-    "portrait_credits": ["CHUNSOFT", "Caitemis"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 99,
+  "species_id": 85,
+  "form_id": null,
+  "name": "Nincada",
+  "species": "Trainee Pokémon",
+  "asset_folder": "085_nincada",
+  "types": [
+    "Bug",
+    "Ground"
+  ],
+  "base_stats": {
+    "hp": 31,
+    "attack": 45,
+    "defense": 90,
+    "sp_attack": 30,
+    "sp_defense": 30,
+    "speed": 40,
+    "range": 4
+  },
+  "move_ids": [
+    450,
+    28
+  ],
+  "archetype": "scout",
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    86
+  ],
+  "is_legendary": false,
+  "description": "It grows underground, sensing its surroundings using antennae instead of its virtually blind eyes.",
+  "measurements": {
+    "height": 0.5,
+    "weight": 5.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Caitemis"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

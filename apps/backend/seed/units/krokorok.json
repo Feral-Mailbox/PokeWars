@@ -1,28 +1,45 @@
 {
-    "id": 125,
-    "species_id": 110,
-    "form_id": null,
-    "name": "Krokorok",
-    "species": "Desert Croc Pokémon",
-    "asset_folder": "110_krokorok",
-    "types": ["Ground", "Dark"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 82,
-      "defense": 45,
-      "sp_attack": 45,
-      "sp_defense": 45,
-      "speed": 74,
-      "range": 3
-    },
-    "move_ids": [242, 91, 207],
-    "archetype": "disruptor",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1000,
-    "evolves_into": [111],
-    "is_legendary": false,
-    "description": "Thanks to the special membrane covering its eyes, it can see its surroundings clearly, even in the middle of the night.",
-    "portrait_credits": ["Emmuffin"],
-    "sprite_credits": ["Soulja"]
+  "id": 125,
+  "species_id": 110,
+  "form_id": null,
+  "name": "Krokorok",
+  "species": "Desert Croc Pokémon",
+  "asset_folder": "110_krokorok",
+  "types": [
+    "Ground",
+    "Dark"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 82,
+    "defense": 45,
+    "sp_attack": 45,
+    "sp_defense": 45,
+    "speed": 74,
+    "range": 3
+  },
+  "move_ids": [
+    242,
+    91,
+    207
+  ],
+  "archetype": "disruptor",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    111
+  ],
+  "is_legendary": false,
+  "description": "Thanks to the special membrane covering its eyes, it can see its surroundings clearly, even in the middle of the night.",
+  "measurements": {
+    "height": 1.0,
+    "weight": 33.4
+  },
+  "portrait_credits": [
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "Soulja"
+  ]
 }

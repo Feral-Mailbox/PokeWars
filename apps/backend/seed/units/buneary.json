@@ -1,28 +1,45 @@
 {
-    "id": 81,
-    "species_id": 71,
-    "form_id": null,
-    "name": "Buneary",
-    "species": "Rabbit Pokémon",
-    "asset_folder": "071_buneary",
-    "types": ["Normal"],
-    "base_stats": {
-      "hp": 55,
-      "attack": 66,
-      "defense": 44,
-      "sp_attack": 44,
-      "sp_defense": 56,
-      "speed": 85,
-      "range": 3
-    },
-    "move_ids": [98, 608],
-    "ability_ids": [],
-    "cost": 100,
-    "evolution_cost": 400,
-    "evolves_into": [52],
-    "is_legendary": false,
-    "archetype": "speedster",
-    "description": "It slams foes by sharply uncoiling its rolled ears. It stings enough to make a grown-up cry in pain.",
-    "portrait_credits": ["CHUNSOFT", "Gust"],
-    "sprite_credits": ["CHUNSOFT", "JFain"]
+  "id": 81,
+  "species_id": 71,
+  "form_id": null,
+  "name": "Buneary",
+  "species": "Rabbit Pokémon",
+  "asset_folder": "071_buneary",
+  "types": [
+    "Normal"
+  ],
+  "base_stats": {
+    "hp": 55,
+    "attack": 66,
+    "defense": 44,
+    "sp_attack": 44,
+    "sp_defense": 56,
+    "speed": 85,
+    "range": 3
+  },
+  "move_ids": [
+    98,
+    608
+  ],
+  "ability_ids": [],
+  "cost": 100,
+  "evolution_cost": 400,
+  "evolves_into": [
+    52
+  ],
+  "is_legendary": false,
+  "archetype": "speedster",
+  "description": "It slams foes by sharply uncoiling its rolled ears. It stings enough to make a grown-up cry in pain.",
+  "measurements": {
+    "height": 0.4,
+    "weight": 5.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Gust"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ]
 }

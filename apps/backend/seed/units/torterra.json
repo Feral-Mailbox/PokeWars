@@ -5,7 +5,10 @@
   "name": "Torterra",
   "species": "Continent Pokémon",
   "asset_folder": "003_torterra",
-  "types": ["Grass", "Ground"],
+  "types": [
+    "Grass",
+    "Ground"
+  ],
   "base_stats": {
     "hp": 95,
     "attack": 109,
@@ -15,7 +18,12 @@
     "speed": 56,
     "range": 2
   },
-  "move_ids": [452, 89, 235, 446],
+  "move_ids": [
+    452,
+    89,
+    235,
+    446
+  ],
   "ability_ids": [],
   "archetype": "heavy_tank",
   "cost": 1000,
@@ -23,7 +31,15 @@
   "evolves_into": null,
   "is_legendary": false,
   "description": "Ancient people imagined that beneath the ground dwelt a gigantic Torterra.",
-    "portrait_credits": ["CHUNSOFT", "JFain"],
-    "sprite_credits": ["CHUNSOFT"]
+  "measurements": {
+    "height": 2.2,
+    "weight": 310.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }
-  

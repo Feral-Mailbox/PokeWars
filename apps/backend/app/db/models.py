@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from fastapi import Request, HTTPException
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine, Float
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -202,7 +202,8 @@ class Unit(Base):
     portrait_credits = Column(JSON, nullable=False, default=list)
     sprite_credits = Column(JSON, nullable=False, default=list)
     archetype = Column(String, nullable=True)
-
+    height = Column(Float, nullable=False, default=0.0)
+    weight = Column(Float, nullable=False, default=0.0)
     game_units = relationship("GameUnit", back_populates="unit")
 
 # ======================

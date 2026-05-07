@@ -1,28 +1,45 @@
 {
-    "id": 14,
-    "species_id": 14,
-    "form_id": null,
-    "name": "Taillow",
-    "species": "Tiny Swallow Pokémon",
-    "asset_folder": "014_taillow",
-    "types": ["Normal", "Flying"],
-    "base_stats": {
-      "hp": 40,
-      "attack": 55,
-      "defense": 30,
-      "sp_attack": 30,
-      "sp_defense": 30,
-      "speed": 85,
-      "range": 4
-    },
-    "move_ids": [64, 98],
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [15],
-    "is_legendary": false,
-    "archetype": "scout",
-    "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates.",
-    "portrait_credits": ["CHUNSOFT", "Top_Kec"],
-    "sprite_credits": ["CHUNSOFT"]
-  }
+  "id": 14,
+  "species_id": 14,
+  "form_id": null,
+  "name": "Taillow",
+  "species": "Tiny Swallow Pokémon",
+  "asset_folder": "014_taillow",
+  "types": [
+    "Normal",
+    "Flying"
+  ],
+  "base_stats": {
+    "hp": 40,
+    "attack": 55,
+    "defense": 30,
+    "sp_attack": 30,
+    "sp_defense": 30,
+    "speed": 85,
+    "range": 4
+  },
+  "move_ids": [
+    64,
+    98
+  ],
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    15
+  ],
+  "is_legendary": false,
+  "archetype": "scout",
+  "description": "It has a gutsy spirit that makes it bravely take on tough foes. It flies in search of warm climates.",
+  "measurements": {
+    "height": 0.3,
+    "weight": 2.3
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Top_Kec"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
+}

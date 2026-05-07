@@ -1,28 +1,45 @@
 {
-    "id": 147,
-    "species_id": 132,
-    "form_id": null,
-    "name": "Ekans",
-    "species": "Snake Pokémon",
-    "asset_folder": "132_ekans",
-    "types": ["Poison"],
-    "base_stats": {
-      "hp": 35,
-      "attack": 60,
-      "defense": 44,
-      "sp_attack": 40,
-      "sp_defense": 54,
-      "speed": 55,
-      "range": 3
-    },
-    "move_ids": [40, 137],
-    "ability_ids": [],
-    "archetype": "disruptor",
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [133],
-    "is_legendary": false,
-    "description": "By dislocating its jaw, it can swallow prey larger than itself. After a meal, it curls up and rests.",
-    "portrait_credits": ["CHUNSOFT", "Fearless-Quit", "TawnySoup"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 147,
+  "species_id": 132,
+  "form_id": null,
+  "name": "Ekans",
+  "species": "Snake Pokémon",
+  "asset_folder": "132_ekans",
+  "types": [
+    "Poison"
+  ],
+  "base_stats": {
+    "hp": 35,
+    "attack": 60,
+    "defense": 44,
+    "sp_attack": 40,
+    "sp_defense": 54,
+    "speed": 55,
+    "range": 3
+  },
+  "move_ids": [
+    40,
+    137
+  ],
+  "ability_ids": [],
+  "archetype": "disruptor",
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    133
+  ],
+  "is_legendary": false,
+  "description": "By dislocating its jaw, it can swallow prey larger than itself. After a meal, it curls up and rests.",
+  "measurements": {
+    "height": 2.0,
+    "weight": 6.9
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Fearless-Quit",
+    "TawnySoup"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

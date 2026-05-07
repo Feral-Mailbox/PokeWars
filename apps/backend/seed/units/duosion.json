@@ -1,28 +1,49 @@
 {
-    "id": 97,
-    "species_id": 83,
-    "form_id": null,
-    "name": "Duosion",
-    "species": "Mitosis Pokémon",
-    "asset_folder": "083_duosion",
-    "types": ["Psychic"],
-    "base_stats": {
-      "hp": 65,
-      "attack": 40,
-      "defense": 50,
-      "sp_attack": 125,
-      "sp_defense": 60,
-      "speed": 30,
-      "range": 3
-    },
-    "move_ids": [94, 105, 113],
-    "archetype": "special_tank",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": [1000],
-    "evolves_into": [84],
-    "is_legendary": false,
-    "description": "Its brain has split into two, and the two halves rarely think alike. Its actions are utterly unpredictable.",
-    "portrait_credits": ["Anonymous", "Magu"],
-    "sprite_credits": ["powercristal", "baronessfaron", "Emmuffin"]
+  "id": 97,
+  "species_id": 83,
+  "form_id": null,
+  "name": "Duosion",
+  "species": "Mitosis Pokémon",
+  "asset_folder": "083_duosion",
+  "types": [
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 65,
+    "attack": 40,
+    "defense": 50,
+    "sp_attack": 125,
+    "sp_defense": 60,
+    "speed": 30,
+    "range": 3
+  },
+  "move_ids": [
+    94,
+    105,
+    113
+  ],
+  "archetype": "special_tank",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": [
+    1000
+  ],
+  "evolves_into": [
+    84
+  ],
+  "is_legendary": false,
+  "description": "Its brain has split into two, and the two halves rarely think alike. Its actions are utterly unpredictable.",
+  "measurements": {
+    "height": 0.6,
+    "weight": 8.0
+  },
+  "portrait_credits": [
+    "Anonymous",
+    "Magu"
+  ],
+  "sprite_credits": [
+    "powercristal",
+    "baronessfaron",
+    "Emmuffin"
+  ]
 }

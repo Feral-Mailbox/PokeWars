@@ -20,6 +20,8 @@ class UnitSummary(BaseModel):
     move_ids: List[int]
     portrait_credits: List[str]
     sprite_credits: List[str]
+    weight: float
+    height: float
     archetype: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -41,6 +43,8 @@ class UnitDetail(BaseModel):
     description: Optional[str]
     portrait_credits: List[str]
     sprite_credits: List[str]
+    weight: float
+    height: float
     archetype: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

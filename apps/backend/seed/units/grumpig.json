@@ -1,28 +1,43 @@
 {
-    "id": 39,
-    "species_id": 31,
-    "form_id": null,
-    "name": "Grumpig",
-    "species": "Manipulate Pokémon",
-    "asset_folder": "031_grumpig",
-    "types": ["Psychic"],
-    "base_stats": {
-      "hp": 80,
-      "attack": 45,
-      "defense": 65,
-      "sp_attack": 90,
-      "sp_defense": 110,
-      "speed": 80,
-      "range": 3
-    },
-    "move_ids": [94, 408, 298],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "disruptor_buffer",
-    "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds.",
-    "portrait_credits": ["CHUNSOFT", "JFain"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 39,
+  "species_id": 31,
+  "form_id": null,
+  "name": "Grumpig",
+  "species": "Manipulate Pokémon",
+  "asset_folder": "031_grumpig",
+  "types": [
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 80,
+    "attack": 45,
+    "defense": 65,
+    "sp_attack": 90,
+    "sp_defense": 110,
+    "speed": 80,
+    "range": 3
+  },
+  "move_ids": [
+    94,
+    408,
+    298
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "disruptor_buffer",
+  "description": "It uses black pearls to amplify its psychic power. It does a strange dance to control foes' minds.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 71.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

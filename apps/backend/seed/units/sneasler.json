@@ -1,28 +1,44 @@
 {
-    "id": 120,
-    "species_id": 105,
-    "form_id": null,
-    "name": "Sneasler",
-    "species": "Free Climb Pokémon",
-    "asset_folder": "105_sneasler",
-    "types": ["Fighting", "Poison"],
-    "base_stats": {
-      "hp": 80,
-      "attack": 130,
-      "defense": 60,
-      "sp_attack": 40,
-      "sp_defense": 80,
-      "speed": 120,
-      "range": 3
-    },
-    "move_ids": [827, 370, 252],
-    "archetype": "assassin",
-    "ability_ids": [],
-    "cost": 800,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Because of Sneasler’s virulent poison and daunting physical prowess, no other species could hope to best it on the frozen highlands. Preferring solitude, this species does not form packs.",
-    "portrait_credits": ["Emmuffin", "baronessfaron"],
-    "sprite_credits": ["Soulja"]
+  "id": 120,
+  "species_id": 105,
+  "form_id": null,
+  "name": "Sneasler",
+  "species": "Free Climb Pokémon",
+  "asset_folder": "105_sneasler",
+  "types": [
+    "Fighting",
+    "Poison"
+  ],
+  "base_stats": {
+    "hp": 80,
+    "attack": 130,
+    "defense": 60,
+    "sp_attack": 40,
+    "sp_defense": 80,
+    "speed": 120,
+    "range": 3
+  },
+  "move_ids": [
+    827,
+    370,
+    252
+  ],
+  "archetype": "assassin",
+  "ability_ids": [],
+  "cost": 800,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Because of Sneasler’s virulent poison and daunting physical prowess, no other species could hope to best it on the frozen highlands. Preferring solitude, this species does not form packs.",
+  "measurements": {
+    "height": 1.3,
+    "weight": 43.0
+  },
+  "portrait_credits": [
+    "Emmuffin",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "Soulja"
+  ]
 }

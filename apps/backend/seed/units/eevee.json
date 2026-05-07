@@ -1,27 +1,49 @@
 {
-    "id": 59,
-    "species_id": 49,
-    "form_id": null,
-    "name": "Eevee",
-    "species": "Evolution Pokémon",
-    "asset_folder": "049_eevee",
-    "types": ["Normal"],
-    "base_stats": {
-      "hp": 55,
-      "attack": 55,
-      "defense": 50,
-      "sp_attack": 45,
-      "sp_defense": 65,
-      "speed": 55,
-      "range": 4
-    },
-    "move_ids": [98, 608],
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [50, 51, 52, 53, 54, 55, 56, 57],
-    "is_legendary": false,
-    "description": "Its ability to evolve into many forms allows it to adapt smoothly and perfectly to any environment.",
-    "portrait_credits": ["CHUNSOFT"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 59,
+  "species_id": 49,
+  "form_id": null,
+  "name": "Eevee",
+  "species": "Evolution Pokémon",
+  "asset_folder": "049_eevee",
+  "types": [
+    "Normal"
+  ],
+  "base_stats": {
+    "hp": 55,
+    "attack": 55,
+    "defense": 50,
+    "sp_attack": 45,
+    "sp_defense": 65,
+    "speed": 55,
+    "range": 4
+  },
+  "move_ids": [
+    98,
+    608
+  ],
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57
+  ],
+  "is_legendary": false,
+  "description": "Its ability to evolve into many forms allows it to adapt smoothly and perfectly to any environment.",
+  "measurements": {
+    "height": 0.3,
+    "weight": 6.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

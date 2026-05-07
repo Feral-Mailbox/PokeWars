@@ -1,28 +1,44 @@
 {
-    "id": 95,
-    "species_id": 81,
-    "form_id": 2,
-    "name": "Gastrodon",
-    "species": "Sea Slug Pokémon",
-    "asset_folder": "081b_gastrodon_east",
-    "types": ["Water", "Ground"],
-    "base_stats": {
-      "hp": 111,
-      "attack": 83,
-      "defense": 68,
-      "sp_attack": 92,
-      "sp_defense": 82,
-      "speed": 39,
-      "range": 2
-    },
-    "move_ids": [414, 57, 105],
-    "archetype": "heavy_tank",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Fishers say that they didn’t see many of these Pokémon in the past, but this form of Gastrodon is now increasing in number.",
-    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 95,
+  "species_id": 81,
+  "form_id": 2,
+  "name": "Gastrodon",
+  "species": "Sea Slug Pokémon",
+  "asset_folder": "081b_gastrodon_east",
+  "types": [
+    "Water",
+    "Ground"
+  ],
+  "base_stats": {
+    "hp": 111,
+    "attack": 83,
+    "defense": 68,
+    "sp_attack": 92,
+    "sp_defense": 82,
+    "speed": 39,
+    "range": 2
+  },
+  "move_ids": [
+    414,
+    57,
+    105
+  ],
+  "archetype": "heavy_tank",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Fishers say that they didn’t see many of these Pokémon in the past, but this form of Gastrodon is now increasing in number.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 29.9
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

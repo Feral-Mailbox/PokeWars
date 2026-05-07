@@ -1,29 +1,46 @@
 {
-    "id": 8,
-    "species_id": 8,
-    "form_id": null,
-    "name": "Brionne",
-    "species": "Pop Star Pokémon",
-    "asset_folder": "008_brionne",
-    "types": ["Water"],
-    "base_stats": {
-        "hp": 60,
-        "attack": 69,
-        "defense": 69,
-        "sp_attack": 91,
-        "sp_defense": 81,
-        "speed": 50,
-        "range": 3
-    },
-    "move_ids": [61, 196, 392],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1600,
-    "evolves_into": [9],
-    "is_legendary": false,
-    "archetype": "healer_slower",
-    "description": "It cares deeply for its companions. When its Trainer is feeling down, it performs a cheery dance to try to help.",
-    "portrait_credits": ["baronessfaron", "Top_Kec"],
-    "sprite_credits": ["Anonymous", "baronessfaron"]
+  "id": 8,
+  "species_id": 8,
+  "form_id": null,
+  "name": "Brionne",
+  "species": "Pop Star Pokémon",
+  "asset_folder": "008_brionne",
+  "types": [
+    "Water"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 69,
+    "defense": 69,
+    "sp_attack": 91,
+    "sp_defense": 81,
+    "speed": 50,
+    "range": 3
+  },
+  "move_ids": [
+    61,
+    196,
+    392
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1600,
+  "evolves_into": [
+    9
+  ],
+  "is_legendary": false,
+  "archetype": "healer_slower",
+  "description": "It cares deeply for its companions. When its Trainer is feeling down, it performs a cheery dance to try to help.",
+  "measurements": {
+    "height": 0.6,
+    "weight": 17.5
+  },
+  "portrait_credits": [
+    "baronessfaron",
+    "Top_Kec"
+  ],
+  "sprite_credits": [
+    "Anonymous",
+    "baronessfaron"
+  ]
 }
-  

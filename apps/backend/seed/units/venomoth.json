@@ -1,28 +1,45 @@
 {
-    "id": 76,
-    "species_id": 66,
-    "form_id": null,
-    "name": "Venomoth",
-    "species": "Poison Moth Pokémon",
-    "asset_folder": "066_venomoth",
-    "types": ["Bug", "Poison"],
-    "base_stats": {
-      "hp": 70,
-      "attack": 65,
-      "defense": 60,
-      "sp_attack": 90,
-      "sp_defense": 75,
-      "speed": 90,
-      "range": 3
-    },
-    "move_ids": [405, 94, 483],
-    "ability_ids": [],
-    "cost": 500,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "special_sweeper",
-    "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust.",
-    "portrait_credits": ["CHUNSOFT", "skygummi", "Mooncaller"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 76,
+  "species_id": 66,
+  "form_id": null,
+  "name": "Venomoth",
+  "species": "Poison Moth Pokémon",
+  "asset_folder": "066_venomoth",
+  "types": [
+    "Bug",
+    "Poison"
+  ],
+  "base_stats": {
+    "hp": 70,
+    "attack": 65,
+    "defense": 60,
+    "sp_attack": 90,
+    "sp_defense": 75,
+    "speed": 90,
+    "range": 3
+  },
+  "move_ids": [
+    405,
+    94,
+    483
+  ],
+  "ability_ids": [],
+  "cost": 500,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "special_sweeper",
+  "description": "The wings are covered with dustlike scales. Every time it flaps its wings, it looses highly toxic dust.",
+  "measurements": {
+    "height": 1.5,
+    "weight": 12.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "skygummi",
+    "Mooncaller"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

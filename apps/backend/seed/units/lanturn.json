@@ -1,28 +1,45 @@
 {
-    "id": 112,
-    "species_id": 98,
-    "form_id": null,
-    "name": "Lanturn",
-    "species": "Light Pokémon",
-    "asset_folder": "098_lanturn",
-    "types": ["Water", "Electric"],
-    "base_stats": {
-      "hp": 125,
-      "attack": 58,
-      "defense": 58,
-      "sp_attack": 76,
-      "sp_defense": 76,
-      "speed": 67,
-      "range": 3
-    },
-    "move_ids": [56, 435, 109],
-    "archetype": "special_tank",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "This Pokémon flashes a bright light that blinds its prey. This creates an opening for it to deliver an electrical attack.",
-    "portrait_credits": ["CHUNSOFT", "JFain"],
-    "sprite_credits": ["CHUNSOFT", "JFain"]
+  "id": 112,
+  "species_id": 98,
+  "form_id": null,
+  "name": "Lanturn",
+  "species": "Light Pokémon",
+  "asset_folder": "098_lanturn",
+  "types": [
+    "Water",
+    "Electric"
+  ],
+  "base_stats": {
+    "hp": 125,
+    "attack": 58,
+    "defense": 58,
+    "sp_attack": 76,
+    "sp_defense": 76,
+    "speed": 67,
+    "range": 3
+  },
+  "move_ids": [
+    56,
+    435,
+    109
+  ],
+  "archetype": "special_tank",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "This Pokémon flashes a bright light that blinds its prey. This creates an opening for it to deliver an electrical attack.",
+  "measurements": {
+    "height": 1.2,
+    "weight": 22.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ]
 }

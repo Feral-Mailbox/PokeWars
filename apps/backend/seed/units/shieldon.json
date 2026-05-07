@@ -1,28 +1,45 @@
 {
-    "id": 134,
-    "species_id": 119,
-    "form_id": null,
-    "name": "Shieldon",
-    "species": "Shield Pokémon",
-    "asset_folder": "119_shieldon",
-    "types": ["Rock", "Steel"],
-    "base_stats": {
-      "hp": 30,
-      "attack": 42,
-      "defense": 118,
-      "sp_attack": 42,
-      "sp_defense": 88,
-      "speed": 30,
-      "range": 3
-    },
-    "move_ids": [334, 368],
-    "ability_ids": [],
-    "archetype": "tank",
-    "cost": 400,
-    "evolution_cost": 800,
-    "evolves_into": [120],
-    "is_legendary": false,
-    "description": "It habitually polishes its face by rubbing it against tree trunks. It is weak to attacks from behind.",
-    "portrait_credits": ["CHUNSOFT", "A_Lettuce"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 134,
+  "species_id": 119,
+  "form_id": null,
+  "name": "Shieldon",
+  "species": "Shield Pokémon",
+  "asset_folder": "119_shieldon",
+  "types": [
+    "Rock",
+    "Steel"
+  ],
+  "base_stats": {
+    "hp": 30,
+    "attack": 42,
+    "defense": 118,
+    "sp_attack": 42,
+    "sp_defense": 88,
+    "speed": 30,
+    "range": 3
+  },
+  "move_ids": [
+    334,
+    368
+  ],
+  "ability_ids": [],
+  "archetype": "tank",
+  "cost": 400,
+  "evolution_cost": 800,
+  "evolves_into": [
+    120
+  ],
+  "is_legendary": false,
+  "description": "It habitually polishes its face by rubbing it against tree trunks. It is weak to attacks from behind.",
+  "measurements": {
+    "height": 0.5,
+    "weight": 57.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "A_Lettuce"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

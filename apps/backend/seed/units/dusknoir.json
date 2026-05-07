@@ -1,28 +1,44 @@
 {
-    "id": 132,
-    "species_id": 117,
-    "form_id": null,
-    "name": "Dusclops",
-    "species": "Gripper Pokémon",
-    "asset_folder": "117_dusknoir",
-    "types": ["Ghost"],
-    "base_stats": {
-      "hp": 45,
-      "attack": 100,
-      "defense": 135,
-      "sp_attack": 65,
-      "sp_defense": 135,
-      "speed": 45,
-      "range": 2
-    },
-    "move_ids": [325, 89, 261, 220],
-    "archetype": "tank_bruiser",
-    "ability_ids": [],
-    "cost": 1000,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "At the bidding of transmissions from the spirit world, it steals people and Pokémon away. No one knows whether it has a will of its own.",
-    "portrait_credits": ["CHUNSOFT", "Garbage"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 132,
+  "species_id": 117,
+  "form_id": null,
+  "name": "Dusclops",
+  "species": "Gripper Pokémon",
+  "asset_folder": "117_dusknoir",
+  "types": [
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 45,
+    "attack": 100,
+    "defense": 135,
+    "sp_attack": 65,
+    "sp_defense": 135,
+    "speed": 45,
+    "range": 2
+  },
+  "move_ids": [
+    325,
+    89,
+    261,
+    220
+  ],
+  "archetype": "tank_bruiser",
+  "ability_ids": [],
+  "cost": 1000,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "At the bidding of transmissions from the spirit world, it steals people and Pokémon away. No one knows whether it has a will of its own.",
+  "measurements": {
+    "height": 2.2,
+    "weight": 106.6
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Garbage"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

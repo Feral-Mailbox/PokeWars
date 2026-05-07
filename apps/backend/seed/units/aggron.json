@@ -1,28 +1,45 @@
 {
-    "id": 129,
-    "species_id": 114,
-    "form_id": null,
-    "name": "Aggron",
-    "species": "Iron Armor Pokémon",
-    "asset_folder": "114_aggron",
-    "types": ["Steel", "Rock"],
-    "base_stats": {
-      "hp": 70,
-      "attack": 110,
-      "defense": 180,
-      "sp_attack": 60,
-      "sp_defense": 60,
-      "speed": 50,
-      "range": 2
-    },
-    "move_ids": [484, 444, 334, 182],
-    "archetype": "wall",
-    "ability_ids": [],
-    "cost": 1000,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Aggron has a horn sharp enough to perforate thick iron sheets. It brings down its opponents by ramming into them horn first.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 129,
+  "species_id": 114,
+  "form_id": null,
+  "name": "Aggron",
+  "species": "Iron Armor Pokémon",
+  "asset_folder": "114_aggron",
+  "types": [
+    "Steel",
+    "Rock"
+  ],
+  "base_stats": {
+    "hp": 70,
+    "attack": 110,
+    "defense": 180,
+    "sp_attack": 60,
+    "sp_defense": 60,
+    "speed": 50,
+    "range": 2
+  },
+  "move_ids": [
+    484,
+    444,
+    334,
+    182
+  ],
+  "archetype": "wall",
+  "ability_ids": [],
+  "cost": 1000,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Aggron has a horn sharp enough to perforate thick iron sheets. It brings down its opponents by ramming into them horn first.",
+  "measurements": {
+    "height": 2.1,
+    "weight": 360.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

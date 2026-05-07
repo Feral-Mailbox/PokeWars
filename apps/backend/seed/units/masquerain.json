@@ -1,28 +1,44 @@
 {
-    "id": 150,
-    "species_id": 135,
-    "form_id": null,
-    "name": "Masquerain",
-    "species": "Eyeball Pokémon",
-    "asset_folder": "135_masquerain",
-    "types": ["Bug", "Flying"],
-    "base_stats": {
-      "hp": 70,
-      "attack": 60,
-      "defense": 62,
-      "sp_attack": 100,
-      "sp_defense": 82,
-      "speed": 80,
-      "range": 3
-    },
-    "move_ids": [405, 403, 483],
-    "ability_ids": [],
-    "archetype": "special_sweeper",
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "The antennae have distinctive patterns that look like eyes. When it rains, they grow heavy, making flight impossible.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 150,
+  "species_id": 135,
+  "form_id": null,
+  "name": "Masquerain",
+  "species": "Eyeball Pokémon",
+  "asset_folder": "135_masquerain",
+  "types": [
+    "Bug",
+    "Flying"
+  ],
+  "base_stats": {
+    "hp": 70,
+    "attack": 60,
+    "defense": 62,
+    "sp_attack": 100,
+    "sp_defense": 82,
+    "speed": 80,
+    "range": 3
+  },
+  "move_ids": [
+    405,
+    403,
+    483
+  ],
+  "ability_ids": [],
+  "archetype": "special_sweeper",
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "The antennae have distinctive patterns that look like eyes. When it rains, they grow heavy, making flight impossible.",
+  "measurements": {
+    "height": 0.8,
+    "weight": 3.6
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

@@ -1,28 +1,44 @@
 {
-    "id": 27,
-    "species_id": 24,
-    "form_id": 2,
-    "name": "Deerling",
-    "species": "Season Pokémon",
-    "asset_folder": "024b_deerling_summer",
-    "types": ["Normal", "Grass"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 60,
-      "defense": 50,
-      "sp_attack": 40,
-      "sp_defense": 50,
-      "speed": 75,
-      "range": 3
-    },
-    "move_ids": [36, 331],
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [25],
-    "is_legendary": false,
-    "archetype": "scout",
-    "description": "Deerling have different scents depending on the season. When a distinct grassy smell starts to waft from one, you know that summer has begun.",
-    "portrait_credits": ["Emmuffin"],
-    "sprite_credits": ["baronessfaron"]
+  "id": 27,
+  "species_id": 24,
+  "form_id": 2,
+  "name": "Deerling",
+  "species": "Season Pokémon",
+  "asset_folder": "024b_deerling_summer",
+  "types": [
+    "Normal",
+    "Grass"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 60,
+    "defense": 50,
+    "sp_attack": 40,
+    "sp_defense": 50,
+    "speed": 75,
+    "range": 3
+  },
+  "move_ids": [
+    36,
+    331
+  ],
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    25
+  ],
+  "is_legendary": false,
+  "archetype": "scout",
+  "description": "Deerling have different scents depending on the season. When a distinct grassy smell starts to waft from one, you know that summer has begun.",
+  "measurements": {
+    "height": 0.6,
+    "weight": 19.5
+  },
+  "portrait_credits": [
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "baronessfaron"
+  ]
 }

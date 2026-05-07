@@ -5,7 +5,9 @@
   "name": "Turtwig",
   "species": "Tiny Leaf Pokémon",
   "asset_folder": "001_turtwig",
-  "types": ["Grass"],
+  "types": [
+    "Grass"
+  ],
   "base_stats": {
     "hp": 55,
     "attack": 68,
@@ -15,15 +17,27 @@
     "speed": 31,
     "range": 3
   },
-  "move_ids": [75, 110],
+  "move_ids": [
+    75,
+    110
+  ],
   "ability_ids": [],
   "archetype": "tank",
   "cost": 200,
   "evolution_cost": 600,
-  "evolves_into": [1],
+  "evolves_into": [
+    1
+  ],
   "is_legendary": false,
   "description": "It uses its whole body to photosynthesize when exposed to sunlight. Its shell is made from hardened soil.",
-    "portrait_credits": ["CHUNSOFT"],
-    "sprite_credits": ["CHUNSOFT"]
+  "measurements": {
+    "height": 0.4,
+    "weight": 10.2
+  },
+  "portrait_credits": [
+    "CHUNSOFT"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }
-  

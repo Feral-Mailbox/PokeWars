@@ -244,6 +244,69 @@ def test_process_move_effects_applies_confusion_with_apply_state_to_self(db):
     assert 2 <= attacker.states[1] <= 5
 
 
+def test_process_move_effects_applies_flinch_logs_flinched(db, monkeypatch):
+    logged_messages = []
+
+    def capture_log(_game_link, message, *_args, **_kwargs):
+        logged_messages.append(message)
+
+    monkeypatch.setattr("app.routes.games.publish_system_log_event", capture_log)
+
+    move = models.Move(
+        name="Headbutt",
+        type="normal",
+        category="Physical",
+        effects=["target:apply_state:flinch:100"],
+    )
+    attacker = models.GameUnit(states=[])
+    target = models.GameUnit(states=[], current_hp=100)
+
+    process_move_effects(move, attacker, [target], current_turn=0, db=db)
+
+    assert target.states == ["flinch", 1]
+    assert any("flinched" in message for message in logged_messages)
+
+
+def test_decrement_and_expire_status_effects_flinch_blocks_next_turn(db, user):
+    game = models.Game(
+        game_name="Flinch Game",
+        map_id=None,
+        map_name="n/a",
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="flinch-game",
+    )
+    db.add(game)
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=None,
+        user_id=user.id,
+        starting_x=0,
+        starting_y=0,
+        current_x=0,
+        current_y=0,
+        current_hp=50,
+        current_stats={"hp": 50},
+        states=["flinch", 1],
+        can_move=True,
+        is_fainted=False,
+        move_pp=[],
+    )
+    db.add(unit)
+    db.commit()
+
+    modified = decrement_and_expire_status_effects(user.id, game.id, db)
+
+    db.refresh(unit)
+    assert unit.id in modified
+    assert unit.can_move is False
+    assert unit.states == []
+
+
 def test_process_move_effects_does_not_override_existing_status(db):
     move = models.Move(
         name="Status Test 2",

@@ -1,28 +1,46 @@
 {
-    "id": 57,
-    "species_id": 47,
-    "form_id": null,
-    "name": "Steenee",
-    "species": "Fruit Pokémon",
-    "asset_folder": "047_steenee",
-    "types": ["Grass"],
-    "base_stats": {
-      "hp": 52,
-      "attack": 40,
-      "defense": 48,
-      "sp_attack": 40,
-      "sp_defense": 48,
-      "speed": 62,
-      "range": 3
-    },
-    "move_ids": [688, 438, 136],
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": 1000,
-    "evolves_into": [48],
-    "is_legendary": false,
-    "archetype": "tank_healer",
-    "description": "Steenee bounces energetically through forests. If the rind that peels off its body is pulverized, it can be used to treat stomach pains.",
-    "portrait_credits": ["JFain", "Murpi", "Garbage"],
-    "sprite_credits": ["JFain"]
+  "id": 57,
+  "species_id": 47,
+  "form_id": null,
+  "name": "Steenee",
+  "species": "Fruit Pokémon",
+  "asset_folder": "047_steenee",
+  "types": [
+    "Grass"
+  ],
+  "base_stats": {
+    "hp": 52,
+    "attack": 40,
+    "defense": 48,
+    "sp_attack": 40,
+    "sp_defense": 48,
+    "speed": 62,
+    "range": 3
+  },
+  "move_ids": [
+    688,
+    438,
+    136
+  ],
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    48
+  ],
+  "is_legendary": false,
+  "archetype": "tank_healer",
+  "description": "Steenee bounces energetically through forests. If the rind that peels off its body is pulverized, it can be used to treat stomach pains.",
+  "measurements": {
+    "height": 0.7,
+    "weight": 8.2
+  },
+  "portrait_credits": [
+    "JFain",
+    "Murpi",
+    "Garbage"
+  ],
+  "sprite_credits": [
+    "JFain"
+  ]
 }

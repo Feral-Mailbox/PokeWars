@@ -1,28 +1,46 @@
 {
-    "id": 155,
-    "species_id": 140,
-    "form_id": null,
-    "name": "Dragonite",
-    "species": "Dragon Pokémon",
-    "asset_folder": "140_dragonite",
-    "types": ["Dragon", "Flying"],
-    "base_stats": {
-      "hp": 91,
-      "attack": 134,
-      "defense": 95,
-      "sp_attack": 100,
-      "sp_defense": 100,
-      "speed": 80,
-      "range": 2
-    },
-    "move_ids": [337, 542, 7, 245],
-    "ability_ids": [],
-    "archetype": "all_rounder_boss",
-    "cost": 1400,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "It can fly in spite of its big and bulky physique. It circles the globe in just 16 hours.",
-    "portrait_credits": ["CHUNSOFT", "Emboarger", "AlexGroeger"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 155,
+  "species_id": 140,
+  "form_id": null,
+  "name": "Dragonite",
+  "species": "Dragon Pokémon",
+  "asset_folder": "140_dragonite",
+  "types": [
+    "Dragon",
+    "Flying"
+  ],
+  "base_stats": {
+    "hp": 91,
+    "attack": 134,
+    "defense": 95,
+    "sp_attack": 100,
+    "sp_defense": 100,
+    "speed": 80,
+    "range": 2
+  },
+  "move_ids": [
+    337,
+    542,
+    7,
+    245
+  ],
+  "ability_ids": [],
+  "archetype": "all_rounder_boss",
+  "cost": 1400,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "It can fly in spite of its big and bulky physique. It circles the globe in just 16 hours.",
+  "measurements": {
+    "height": 2.2,
+    "weight": 210.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Emboarger",
+    "AlexGroeger"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

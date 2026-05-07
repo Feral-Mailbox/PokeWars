@@ -1,28 +1,46 @@
 {
-    "id": 142,
-    "species_id": 127,
-    "form_id": null,
-    "name": "Misdreavus",
-    "species": "Screech Pokémon",
-    "asset_folder": "127_misdreavus",
-    "types": ["Ghost"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 60,
-      "defense": 60,
-      "sp_attack": 85,
-      "sp_defense": 85,
-      "speed": 85,
-      "range": 3
-    },
-    "move_ids": [247, 109],
-    "archetype": "disruptor",
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": 800,
-    "evolves_into": [128],
-    "is_legendary": false,
-    "description": "It loves to bite and yank people’s hair from behind without warning, just to see their shocked reactions.",
-    "portrait_credits": ["CHUNSOFT", "RoyalRust", "Murpi"],
-    "sprite_credits": ["CHUNSOFT", "Emboarger"]
+  "id": 142,
+  "species_id": 127,
+  "form_id": null,
+  "name": "Misdreavus",
+  "species": "Screech Pokémon",
+  "asset_folder": "127_misdreavus",
+  "types": [
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 60,
+    "defense": 60,
+    "sp_attack": 85,
+    "sp_defense": 85,
+    "speed": 85,
+    "range": 3
+  },
+  "move_ids": [
+    247,
+    109
+  ],
+  "archetype": "disruptor",
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": 800,
+  "evolves_into": [
+    128
+  ],
+  "is_legendary": false,
+  "description": "It loves to bite and yank people’s hair from behind without warning, just to see their shocked reactions.",
+  "measurements": {
+    "height": 0.7,
+    "weight": 1.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "RoyalRust",
+    "Murpi"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "Emboarger"
+  ]
 }

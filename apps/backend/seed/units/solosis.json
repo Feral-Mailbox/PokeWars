@@ -1,28 +1,45 @@
 {
-    "id": 96,
-    "species_id": 82,
-    "form_id": null,
-    "name": "Solosis",
-    "species": "Cell Pokémon",
-    "asset_folder": "082_solosis",
-    "types": ["Psychic"],
-    "base_stats": {
-      "hp": 45,
-      "attack": 30,
-      "defense": 40,
-      "sp_attack": 105,
-      "sp_defense": 50,
-      "speed": 20,
-      "range": 3
-    },
-    "move_ids": [149, 115],
-    "archetype": "special_tank",
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [83],
-    "is_legendary": false,
-    "description": "It communicates with others telepathically. Its body is encapsulated in liquid, but if it takes a heavy blow, the liquid will leak out.",
-    "portrait_credits": ["Emmuffin", "NOLASMOR"],
-    "sprite_credits": ["Anonymous", "Uni"]
+  "id": 96,
+  "species_id": 82,
+  "form_id": null,
+  "name": "Solosis",
+  "species": "Cell Pokémon",
+  "asset_folder": "082_solosis",
+  "types": [
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 45,
+    "attack": 30,
+    "defense": 40,
+    "sp_attack": 105,
+    "sp_defense": 50,
+    "speed": 20,
+    "range": 3
+  },
+  "move_ids": [
+    149,
+    115
+  ],
+  "archetype": "special_tank",
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    83
+  ],
+  "is_legendary": false,
+  "description": "It communicates with others telepathically. Its body is encapsulated in liquid, but if it takes a heavy blow, the liquid will leak out.",
+  "measurements": {
+    "height": 0.3,
+    "weight": 1.0
+  },
+  "portrait_credits": [
+    "Emmuffin",
+    "NOLASMOR"
+  ],
+  "sprite_credits": [
+    "Anonymous",
+    "Uni"
+  ]
 }

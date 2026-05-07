@@ -1,28 +1,45 @@
 {
-    "id": 40,
-    "species_id": 32,
-    "form_id": null,
-    "name": "Pachirisu",
-    "species": "EleSquirrel Pokémon",
-    "asset_folder": "032_pachirisu",
-    "types": ["Electric"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 45,
-      "defense": 70,
-      "sp_attack": 45,
-      "sp_defense": 90,
-      "speed": 95,
-      "range": 4
-    },
-    "move_ids": [609, 266, 162],
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "disruptor",
-    "description": "A pair may be seen rubbing their cheek pouches together in an effort to share stored electricity.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT", "JFain", "baronessfaron"]
+  "id": 40,
+  "species_id": 32,
+  "form_id": null,
+  "name": "Pachirisu",
+  "species": "EleSquirrel Pokémon",
+  "asset_folder": "032_pachirisu",
+  "types": [
+    "Electric"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 45,
+    "defense": 70,
+    "sp_attack": 45,
+    "sp_defense": 90,
+    "speed": 95,
+    "range": 4
+  },
+  "move_ids": [
+    609,
+    266,
+    162
+  ],
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "disruptor",
+  "description": "A pair may be seen rubbing their cheek pouches together in an effort to share stored electricity.",
+  "measurements": {
+    "height": 0.4,
+    "weight": 3.9
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "JFain",
+    "baronessfaron"
+  ]
 }

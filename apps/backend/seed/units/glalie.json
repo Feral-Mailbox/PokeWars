@@ -1,28 +1,43 @@
 {
-    "id": 73,
-    "species_id": 63,
-    "form_id": null,
-    "name": "Glalie",
-    "species": "Face Pokémon",
-    "asset_folder": "063_glalie",
-    "types": ["Ice"],
-    "base_stats": {
-      "hp": 80,
-      "attack": 80,
-      "defense": 80,
-      "sp_attack": 80,
-      "sp_defense": 80,
-      "speed": 80,
-      "range": 3
-    },
-    "move_ids": [573, 242, 191],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "disruptor",
-    "description": "Its prey is instantaneously frozen stiff by the cold air it exhales from its huge mouth. While they’re in that frozen state, it gobbles them up.",
-    "portrait_credits": ["CHUNSOFT", "JFain"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 73,
+  "species_id": 63,
+  "form_id": null,
+  "name": "Glalie",
+  "species": "Face Pokémon",
+  "asset_folder": "063_glalie",
+  "types": [
+    "Ice"
+  ],
+  "base_stats": {
+    "hp": 80,
+    "attack": 80,
+    "defense": 80,
+    "sp_attack": 80,
+    "sp_defense": 80,
+    "speed": 80,
+    "range": 3
+  },
+  "move_ids": [
+    573,
+    242,
+    191
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "disruptor",
+  "description": "Its prey is instantaneously frozen stiff by the cold air it exhales from its huge mouth. While they’re in that frozen state, it gobbles them up.",
+  "measurements": {
+    "height": 1.5,
+    "weight": 256.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

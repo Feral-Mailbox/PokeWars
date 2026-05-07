@@ -1,28 +1,44 @@
 {
-    "id": 163,
-    "species_id": 148,
-    "form_id": null,
-    "name": "Marshadow",
-    "species": "Gloomdweller Pokemon",
-    "asset_folder": "148_marshadow",
-    "types": ["Fighting", "Ghost"],
-    "base_stats": {
-      "hp": 90,
-      "attack": 125,
-      "defense": 80,
-      "sp_attack": 90,
-      "sp_defense": 90,
-      "speed": 125,
-      "range": 4
-    },
-    "move_ids": [712, 370, 425, 339],
-    "ability_ids": [],
-    "archetype": "assassin",
-    "cost": 1600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": true,
-    "description": "By slipping into the shadow of a martial arts master and copying their movements, this Pokémon learned the ultimate techniques.",
-    "portrait_credits": ["Top_Kec"],
-    "sprite_credits": ["Dejais"]
+  "id": 163,
+  "species_id": 148,
+  "form_id": null,
+  "name": "Marshadow",
+  "species": "Gloomdweller Pokemon",
+  "asset_folder": "148_marshadow",
+  "types": [
+    "Fighting",
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 90,
+    "attack": 125,
+    "defense": 80,
+    "sp_attack": 90,
+    "sp_defense": 90,
+    "speed": 125,
+    "range": 4
+  },
+  "move_ids": [
+    712,
+    370,
+    425,
+    339
+  ],
+  "ability_ids": [],
+  "archetype": "assassin",
+  "cost": 1600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": true,
+  "description": "By slipping into the shadow of a martial arts master and copying their movements, this Pokémon learned the ultimate techniques.",
+  "measurements": {
+    "height": 0.7,
+    "weight": 22.2
+  },
+  "portrait_credits": [
+    "Top_Kec"
+  ],
+  "sprite_credits": [
+    "Dejais"
+  ]
 }

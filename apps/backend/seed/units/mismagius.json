@@ -1,28 +1,43 @@
 {
-    "id": 143,
-    "species_id": 128,
-    "form_id": null,
-    "name": "Mismagius",
-    "species": "Magical Pokémon",
-    "asset_folder": "128_mismagius",
-    "types": ["Ghost"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 60,
-      "defense": 60,
-      "sp_attack": 105,
-      "sp_defense": 105,
-      "speed": 105,
-      "range": 3
-    },
-    "move_ids": [247, 408, 417],
-    "archetype": "special_sweeper",
-    "ability_ids": [],
-    "cost": 800,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Its cry sounds like an incantation. It is said the cry may rarely be imbued with happiness-giving power.",
-    "portrait_credits": ["CHUNSOFT", "baronessfaron"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 143,
+  "species_id": 128,
+  "form_id": null,
+  "name": "Mismagius",
+  "species": "Magical Pokémon",
+  "asset_folder": "128_mismagius",
+  "types": [
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 60,
+    "defense": 60,
+    "sp_attack": 105,
+    "sp_defense": 105,
+    "speed": 105,
+    "range": 3
+  },
+  "move_ids": [
+    247,
+    408,
+    417
+  ],
+  "archetype": "special_sweeper",
+  "ability_ids": [],
+  "cost": 800,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Its cry sounds like an incantation. It is said the cry may rarely be imbued with happiness-giving power.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 4.4
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

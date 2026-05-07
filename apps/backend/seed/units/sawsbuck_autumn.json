@@ -1,28 +1,43 @@
 {
-    "id": 32,
-    "species_id": 25,
-    "form_id": 3,
-    "name": "Sawsbuck",
-    "species": "Season Pokémon",
-    "asset_folder": "025c_sawsbuck_autumn",
-    "types": ["Normal", "Grass"],
-    "base_stats": {
-      "hp": 80,
-      "attack": 100,
-      "defense": 70,
-      "sp_attack": 60,
-      "sp_defense": 70,
-      "speed": 95,
-      "range": 3
-    },
-    "move_ids": [532, 38, 26],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "bruiser",
-    "description": "There are many Sawsbuck enthusiasts. The darker the red of the foliage that hangs from its antlers, the more stylish the Sawsbuck is thought to be.",
-    "portrait_credits": ["baronessfaron"],
-    "sprite_credits": ["baronessfaron"]
+  "id": 32,
+  "species_id": 25,
+  "form_id": 3,
+  "name": "Sawsbuck",
+  "species": "Season Pokémon",
+  "asset_folder": "025c_sawsbuck_autumn",
+  "types": [
+    "Normal",
+    "Grass"
+  ],
+  "base_stats": {
+    "hp": 80,
+    "attack": 100,
+    "defense": 70,
+    "sp_attack": 60,
+    "sp_defense": 70,
+    "speed": 95,
+    "range": 3
+  },
+  "move_ids": [
+    532,
+    38,
+    26
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "bruiser",
+  "description": "There are many Sawsbuck enthusiasts. The darker the red of the foliage that hangs from its antlers, the more stylish the Sawsbuck is thought to be.",
+  "measurements": {
+    "height": 1.9,
+    "weight": 92.5
+  },
+  "portrait_credits": [
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "baronessfaron"
+  ]
 }

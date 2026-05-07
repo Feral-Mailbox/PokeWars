@@ -1,26 +1,44 @@
 {
-    "id": 64,
-    "species_id": 54,
-    "form_id": null,
-    "name": "Umbeon",
-    "species": "Moonlight Pokémon",
-    "asset_folder": "054_umbreon",
-    "types": ["Dark"],
-    "base_stats": {
-      "hp": 95,
-      "attack": 65,
-      "defense": 110,
-      "sp_attack": 60,
-      "sp_defense": 130,
-      "speed": 65,
-      "range": 4
-    },
-    "move_ids": [399, 92, 174],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,    "archetype": "wall",    "description": "When exposed to the moon’s aura, the rings on its body glow faintly and it gains a mysterious power.",
-    "portrait_credits": ["CHUNSOFT", "Emmuffin"],
-    "sprite_credits": ["CHUNSOFT", "Emmuffin"]
+  "id": 64,
+  "species_id": 54,
+  "form_id": null,
+  "name": "Umbeon",
+  "species": "Moonlight Pokémon",
+  "asset_folder": "054_umbreon",
+  "types": [
+    "Dark"
+  ],
+  "base_stats": {
+    "hp": 95,
+    "attack": 65,
+    "defense": 110,
+    "sp_attack": 60,
+    "sp_defense": 130,
+    "speed": 65,
+    "range": 4
+  },
+  "move_ids": [
+    399,
+    92,
+    174
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "wall",
+  "description": "When exposed to the moon’s aura, the rings on its body glow faintly and it gains a mysterious power.",
+  "measurements": {
+    "height": 1.0,
+    "weight": 27.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "Emmuffin"
+  ]
 }

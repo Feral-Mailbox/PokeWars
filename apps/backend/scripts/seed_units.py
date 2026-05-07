@@ -40,7 +40,14 @@ def load_units():
                 description=data.get("description", ""),
                 portrait_credits=data.get("portrait_credits", []),
                 sprite_credits=data.get("sprite_credits", []),
-                archetype=data.get("archetype")
+                archetype=data.get("archetype"),
+                # Height/weight: prefer nested measurements object, fall back to top-level fields
+                height=(data.get("measurements", {}).get("height")
+                    if isinstance(data.get("measurements"), dict)
+                    else data.get("height", 0.0)),
+                weight=(data.get("measurements", {}).get("weight")
+                    if isinstance(data.get("measurements"), dict)
+                    else data.get("weight", 0.0)),
             )
 
             db.add(new_unit)

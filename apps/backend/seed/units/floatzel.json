@@ -1,28 +1,43 @@
 {
-    "id": 152,
-    "species_id": 137,
-    "form_id": null,
-    "name": "Floatzel",
-    "species": "Sea Weasel Pokémon",
-    "asset_folder": "137_floatzel",
-    "types": ["Water"],
-    "base_stats": {
-      "hp": 85,
-      "attack": 105,
-      "defense": 55,
-      "sp_attack": 85,
-      "sp_defense": 50,
-      "speed": 115,
-      "range": 3
-    },
-    "move_ids": [127, 8, 339],
-    "ability_ids": [],
-    "archetype": "speedster",
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "With its flotation sac inflated, it can carry people on its back. It deflates the sac before it dives.",
-    "portrait_credits": ["CHUNSOFT", "Caitemis"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 152,
+  "species_id": 137,
+  "form_id": null,
+  "name": "Floatzel",
+  "species": "Sea Weasel Pokémon",
+  "asset_folder": "137_floatzel",
+  "types": [
+    "Water"
+  ],
+  "base_stats": {
+    "hp": 85,
+    "attack": 105,
+    "defense": 55,
+    "sp_attack": 85,
+    "sp_defense": 50,
+    "speed": 115,
+    "range": 3
+  },
+  "move_ids": [
+    127,
+    8,
+    339
+  ],
+  "ability_ids": [],
+  "archetype": "speedster",
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "With its flotation sac inflated, it can carry people on its back. It deflates the sac before it dives.",
+  "measurements": {
+    "height": 1.1,
+    "weight": 33.5
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Caitemis"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

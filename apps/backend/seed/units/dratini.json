@@ -1,28 +1,45 @@
 {
-    "id": 153,
-    "species_id": 138,
-    "form_id": null,
-    "name": "Dratini",
-    "species": "Dragon Pokémon",
-    "asset_folder": "138_dratini",
-    "types": ["Dragon"],
-    "base_stats": {
-      "hp": 41,
-      "attack": 64,
-      "defense": 45,
-      "sp_attack": 50,
-      "sp_defense": 50,
-      "speed": 50,
-      "range": 3
-    },
-    "move_ids": [225, 86],
-    "ability_ids": [],
-    "archetype": "scout_trainee",
-    "cost": 300,
-    "evolution_cost": 800,
-    "evolves_into": [139],
-    "is_legendary": false,
-    "description": "It sheds many layers of skin as it grows larger. During this process, it is protected by a rapid waterfall.",
-    "portrait_credits": ["CHUNSOFT", "Gust"],
-    "sprite_credits": ["CHUNSOFT", "JFain"]
+  "id": 153,
+  "species_id": 138,
+  "form_id": null,
+  "name": "Dratini",
+  "species": "Dragon Pokémon",
+  "asset_folder": "138_dratini",
+  "types": [
+    "Dragon"
+  ],
+  "base_stats": {
+    "hp": 41,
+    "attack": 64,
+    "defense": 45,
+    "sp_attack": 50,
+    "sp_defense": 50,
+    "speed": 50,
+    "range": 3
+  },
+  "move_ids": [
+    225,
+    86
+  ],
+  "ability_ids": [],
+  "archetype": "scout_trainee",
+  "cost": 300,
+  "evolution_cost": 800,
+  "evolves_into": [
+    139
+  ],
+  "is_legendary": false,
+  "description": "It sheds many layers of skin as it grows larger. During this process, it is protected by a rapid waterfall.",
+  "measurements": {
+    "height": 1.8,
+    "weight": 3.3
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Gust"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ]
 }

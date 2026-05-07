@@ -1,28 +1,46 @@
 {
-    "id": 136,
-    "species_id": 121,
-    "form_id": null,
-    "name": "Tyrunt",
-    "species": "Royal Heir Pokémon",
-    "asset_folder": "121_tyrunt",
-    "types": ["Rock", "Dragon"],
-    "base_stats": {
-      "hp": 58,
-      "attack": 89,
-      "defense": 77,
-      "sp_attack": 45,
-      "sp_defense": 45,
-      "speed": 48,
-      "range": 3
-    },
-    "move_ids": [246, 44],
-    "archetype": "bruiser",
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": 800,
-    "evolves_into": [122],
-    "is_legendary": false,
-    "description": "This is an ancient Pokémon, revived in modern times. It has a violent disposition, and it’ll tear apart anything it gets between its hefty jaws.",
-    "portrait_credits": ["NeroIntruder"],
-    "sprite_credits": ["NeroIntruder", "baronessfaron", "Tainted#3886"]
+  "id": 136,
+  "species_id": 121,
+  "form_id": null,
+  "name": "Tyrunt",
+  "species": "Royal Heir Pokémon",
+  "asset_folder": "121_tyrunt",
+  "types": [
+    "Rock",
+    "Dragon"
+  ],
+  "base_stats": {
+    "hp": 58,
+    "attack": 89,
+    "defense": 77,
+    "sp_attack": 45,
+    "sp_defense": 45,
+    "speed": 48,
+    "range": 3
+  },
+  "move_ids": [
+    246,
+    44
+  ],
+  "archetype": "bruiser",
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": 800,
+  "evolves_into": [
+    122
+  ],
+  "is_legendary": false,
+  "description": "This is an ancient Pokémon, revived in modern times. It has a violent disposition, and it’ll tear apart anything it gets between its hefty jaws.",
+  "measurements": {
+    "height": 0.8,
+    "weight": 26.0
+  },
+  "portrait_credits": [
+    "NeroIntruder"
+  ],
+  "sprite_credits": [
+    "NeroIntruder",
+    "baronessfaron",
+    "Tainted#3886"
+  ]
 }

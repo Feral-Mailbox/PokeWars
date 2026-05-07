@@ -18,6 +18,6 @@
   "affected_by_kings_rock": false,
   "effects": [
     "target:knockback:1",
-    "target:flinch:30"
+    "target:apply_state:flinch:30"
   ]
 }

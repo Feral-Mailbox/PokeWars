@@ -1,27 +1,42 @@
 {
-    "id": 36,
-    "species_id": 28,
-    "form_id": null,
-    "name": "Magikarp",
-    "species": "Fish Pokémon",
-    "asset_folder": "028_magikarp",
-    "types": ["Water"],
-    "base_stats": {
-      "hp": 20,
-      "attack": 10,
-      "defense": 55,
-      "sp_attack": 15,
-      "sp_defense": 20,
-      "speed": 80,
-      "range": 3
-    },
-    "move_ids": [150],
-    "ability_ids": [],
-    "cost": 100,
-    "evolution_cost": 1000,
-    "evolves_into": [29],
-    "is_legendary": false,
-    "description": "An underpowered, pathetic Pokémon. It may jump high on rare occasions but never more than seven feet.",
-    "portrait_credits": ["CHUNSOFT", "JemDragons"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 36,
+  "species_id": 28,
+  "form_id": null,
+  "name": "Magikarp",
+  "species": "Fish Pokémon",
+  "asset_folder": "028_magikarp",
+  "types": [
+    "Water"
+  ],
+  "base_stats": {
+    "hp": 20,
+    "attack": 10,
+    "defense": 55,
+    "sp_attack": 15,
+    "sp_defense": 20,
+    "speed": 80,
+    "range": 3
+  },
+  "move_ids": [
+    150
+  ],
+  "ability_ids": [],
+  "cost": 100,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    29
+  ],
+  "is_legendary": false,
+  "description": "An underpowered, pathetic Pokémon. It may jump high on rare occasions but never more than seven feet.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 10.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "JemDragons"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

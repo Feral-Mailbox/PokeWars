@@ -207,7 +207,7 @@ VALID_STATUS_EFFECTS = {
 }
 
 SHORT_DURATION_STATUS_EFFECTS = {"sleep", "frozen"}
-VALID_STATE_EFFECTS = {"confusion"}
+VALID_STATE_EFFECTS = {"confusion", "flinch"}
 
 STATUS_NAME_ALIASES = {
     "badly_poison": "badly_poisoned",
@@ -522,6 +522,16 @@ def format_status_log_label(status: str) -> str:
     return STATUS_LOG_LABELS.get(normalized_status, normalized_status.replace("_", " "))
 
 
+def format_state_log_message(unit: GameUnit, state_name: str, db: Session) -> str:
+    display_name = get_unit_display_name(unit, db)
+    normalized_state = str(state_name or "").strip().lower()
+    if normalized_state == "flinch":
+        return f"{display_name} flinched"
+    if normalized_state == "confusion":
+        return f"{display_name} is confused"
+    return f"{display_name} gained {normalized_state}"
+
+
 def format_stat_change_outcome_phrase(delta_stage: int, attempted_direction: int) -> str:
     """Format user-facing stat change outcome text from applied stage delta."""
     if delta_stage > 0:
@@ -628,10 +638,10 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
 
     if state_name == "confusion":
         unit.states = [state_name, random.randint(2, 5)]
-        db.add(unit)
-        return True
-
-    return False
+    elif state_name == "flinch":
+        unit.states = [state_name, 1]
+    db.add(unit)
+    return True
 
 
 def apply_confusion_self_damage(
@@ -1594,7 +1604,7 @@ def process_move_effects(
                 if applied and game and game_state:
                     publish_system_log_event(
                         game.link,
-                        f"{get_unit_display_name(attacker, db)} is confused",
+                        format_state_log_message(attacker, state_name, db),
                         game_state,
                         db,
                     )
@@ -1606,7 +1616,7 @@ def process_move_effects(
                     if applied and game and game_state:
                         publish_system_log_event(
                             game.link,
-                            f"{get_unit_display_name(target, db)} is confused",
+                            format_state_log_message(target, state_name, db),
                             game_state,
                             db,
                         )
@@ -1993,6 +2003,8 @@ def decrement_and_expire_status_effects(
             state_name = str(state_effect[0]).lower()
             state_turns_remaining = int(state_effect[1]) - 1
             if state_turns_remaining <= 0:
+                if state_name == "flinch":
+                    unit.can_move = False
                 unit.states = []
                 db.add(unit)
                 if state_name == "confusion" and game and game_state:
@@ -2008,6 +2020,8 @@ def decrement_and_expire_status_effects(
             unit.states = [state_name, state_turns_remaining]
             if state_name == "confusion" and unit.can_move and random.randint(1, 100) <= 33:
                 apply_confusion_self_damage(unit, db, game, game_state)
+                unit.can_move = False
+            elif state_name == "flinch":
                 unit.can_move = False
 
         db.add(unit)

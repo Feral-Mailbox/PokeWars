@@ -1,28 +1,45 @@
 {
-    "id": 15,
-    "species_id": 15,
-    "form_id": null,
-    "name": "Swellow",
-    "species": "Swallow Pokémon",
-    "asset_folder": "015_swellow",
-    "types": ["Normal", "Flying"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 85,
-      "defense": 60,
-      "sp_attack": 75,
-      "sp_defense": 50,
-      "speed": 125,
-      "range": 4
-    },
-    "move_ids": [263, 413, 369],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "speedster",
-    "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey.",
-    "portrait_credits": ["CHUNSOFT", "Caitemis"],
-    "sprite_credits": ["CHUNSOFT", "Emmuffin"]
-  }
+  "id": 15,
+  "species_id": 15,
+  "form_id": null,
+  "name": "Swellow",
+  "species": "Swallow Pokémon",
+  "asset_folder": "015_swellow",
+  "types": [
+    "Normal",
+    "Flying"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 85,
+    "defense": 60,
+    "sp_attack": 75,
+    "sp_defense": 50,
+    "speed": 125,
+    "range": 4
+  },
+  "move_ids": [
+    263,
+    413,
+    369
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "speedster",
+  "description": "It circles the sky in search of prey. When it spots one, it dives steeply to catch the prey.",
+  "measurements": {
+    "height": 0.7,
+    "weight": 19.8
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Caitemis"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "Emmuffin"
+  ]
+}

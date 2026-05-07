@@ -17,5 +17,5 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
   "sound_based": true,
-  "effects": ["self:condition:status:sleep", "target:flinch:30"]
+  "effects": ["self:condition:status:sleep", "target:apply_state:flinch:30"]
 }

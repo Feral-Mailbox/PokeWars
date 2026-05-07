@@ -1,28 +1,43 @@
 {
-    "id": 110,
-    "species_id": 96,
-    "form_id": null,
-    "name": "Golurk",
-    "species": "Automaton Pokémon",
-    "asset_folder": "096_golurk",
-    "types": ["Ground", "Ghost"],
-    "base_stats": {
-      "hp": 99,
-      "attack": 124,
-      "defense": 80,
-      "sp_attack": 55,
-      "sp_defense": 80,
-      "speed": 55,
-      "range": 3
-    },
-    "move_ids": [566, 89, 223],
-    "archetype": "heavy_tank",
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "description": "Artillery platforms built into the walls of ancient castles served as perches from which Golurk could fire energy beams.",
-    "portrait_credits": ["baronessfaron"],
-    "sprite_credits": ["baronessfaron"]
+  "id": 110,
+  "species_id": 96,
+  "form_id": null,
+  "name": "Golurk",
+  "species": "Automaton Pokémon",
+  "asset_folder": "096_golurk",
+  "types": [
+    "Ground",
+    "Ghost"
+  ],
+  "base_stats": {
+    "hp": 99,
+    "attack": 124,
+    "defense": 80,
+    "sp_attack": 55,
+    "sp_defense": 80,
+    "speed": 55,
+    "range": 3
+  },
+  "move_ids": [
+    566,
+    89,
+    223
+  ],
+  "archetype": "heavy_tank",
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "description": "Artillery platforms built into the walls of ancient castles served as perches from which Golurk could fire energy beams.",
+  "measurements": {
+    "height": 2.8,
+    "weight": 330.0
+  },
+  "portrait_credits": [
+    "baronessfaron"
+  ],
+  "sprite_credits": [
+    "baronessfaron"
+  ]
 }

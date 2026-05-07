@@ -1,28 +1,45 @@
 {
-    "id": 44,
-    "species_id": 35,
-    "form_id": null,
-    "name": "Chansey",
-    "species": "Egg Pokémon",
-    "asset_folder": "035_chansey",
-    "types": ["Normal"],
-    "base_stats": {
-      "hp": 250,
-      "attack": 5,
-      "defense": 5,
-      "sp_attack": 35,
-      "sp_defense": 105,
-      "speed": 50,
-      "range": 3
-    },
-    "move_ids": [204, 72, 135],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": 1000,
-    "evolves_into": [36],
-    "is_legendary": false,
-    "archetype": "healer_buffer",
-    "description": "This kindly Pokémon lays highly nutritious eggs and shares them with injured Pokémon or people.",
-    "portrait_credits": ["CHUNSOFT", "Mojo"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 44,
+  "species_id": 35,
+  "form_id": null,
+  "name": "Chansey",
+  "species": "Egg Pokémon",
+  "asset_folder": "035_chansey",
+  "types": [
+    "Normal"
+  ],
+  "base_stats": {
+    "hp": 250,
+    "attack": 5,
+    "defense": 5,
+    "sp_attack": 35,
+    "sp_defense": 105,
+    "speed": 50,
+    "range": 3
+  },
+  "move_ids": [
+    204,
+    72,
+    135
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    36
+  ],
+  "is_legendary": false,
+  "archetype": "healer_buffer",
+  "description": "This kindly Pokémon lays highly nutritious eggs and shares them with injured Pokémon or people.",
+  "measurements": {
+    "height": 1.1,
+    "weight": 34.6
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Mojo"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

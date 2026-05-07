@@ -1,28 +1,44 @@
 {
-    "id": 87,
-    "species_id": 77,
-    "form_id": null,
-    "name": "Pikachu",
-    "species": "Mouse Pokémon",
-    "asset_folder": "077_pikachu",
-    "types": ["Electric"],
-    "base_stats": {
-      "hp": 35,
-      "attack": 55,
-      "defense": 40,
-      "sp_attack": 50,
-      "sp_defense": 50,
-      "speed": 90,
-      "range": 3
-    },
-    "move_ids": [344, 85, 609],
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": 1000,
-    "evolves_into": [78],
-    "is_legendary": false,
-    "archetype": "speedster",
-    "description": "When several of these Pokémon gather, their electricity can build and cause lightning storms.",
-    "portrait_credits": ["CHUNSOFT"],
-    "sprite_credits": ["CHUNSOFT"]
+  "id": 87,
+  "species_id": 77,
+  "form_id": null,
+  "name": "Pikachu",
+  "species": "Mouse Pokémon",
+  "asset_folder": "077_pikachu",
+  "types": [
+    "Electric"
+  ],
+  "base_stats": {
+    "hp": 35,
+    "attack": 55,
+    "defense": 40,
+    "sp_attack": 50,
+    "sp_defense": 50,
+    "speed": 90,
+    "range": 3
+  },
+  "move_ids": [
+    344,
+    85,
+    609
+  ],
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": 1000,
+  "evolves_into": [
+    78
+  ],
+  "is_legendary": false,
+  "archetype": "speedster",
+  "description": "When several of these Pokémon gather, their electricity can build and cause lightning storms.",
+  "measurements": {
+    "height": 0.4,
+    "weight": 6.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT"
+  ]
 }

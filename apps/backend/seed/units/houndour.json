@@ -1,27 +1,46 @@
 {
-    "id": 53,
-    "species_id": 43,
-    "form_id": null,
-    "name": "Houndour",
-    "species": "Dark Pokémon",
-    "asset_folder": "043_houndour",
-    "types": ["Dark", "Fire"],
-    "base_stats": {
-      "hp": 45,
-      "attack": 60,
-      "defense": 30,
-      "sp_attack": 80,
-      "sp_defense": 50,
-      "speed": 65,
-      "range": 3
-    },
-    "move_ids": [394, 261, 123],
-    "ability_ids": [],
-    "cost": 200,
-    "evolution_cost": 600,
-    "evolves_into": [44],
-    "is_legendary": false,
-    "description": "It is smart enough to hunt in packs. It uses a variety of cries for communicating with others.",
-    "portrait_credits": ["CHUNSOFT", "Gust"],
-    "sprite_credits": ["CHUNSOFT", "JFain"]
+  "id": 53,
+  "species_id": 43,
+  "form_id": null,
+  "name": "Houndour",
+  "species": "Dark Pokémon",
+  "asset_folder": "043_houndour",
+  "types": [
+    "Dark",
+    "Fire"
+  ],
+  "base_stats": {
+    "hp": 45,
+    "attack": 60,
+    "defense": 30,
+    "sp_attack": 80,
+    "sp_defense": 50,
+    "speed": 65,
+    "range": 3
+  },
+  "move_ids": [
+    394,
+    261,
+    123
+  ],
+  "ability_ids": [],
+  "cost": 200,
+  "evolution_cost": 600,
+  "evolves_into": [
+    44
+  ],
+  "is_legendary": false,
+  "description": "It is smart enough to hunt in packs. It uses a variety of cries for communicating with others.",
+  "measurements": {
+    "height": 0.6,
+    "weight": 10.8
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Gust"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "JFain"
+  ]
 }

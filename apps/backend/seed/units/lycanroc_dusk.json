@@ -1,28 +1,43 @@
 {
-    "id": 19,
-    "species_id": 17,
-    "form_id": 3,
-    "name": "Lycanroc",
-    "species": "Wolf Pokémon",
-    "asset_folder": "017c_lycanroc_dusk",
-    "types": ["Rock"],
-    "base_stats": {
-      "hp": 75,
-      "attack": 117,
-      "defense": 65,
-      "sp_attack": 55,
-      "sp_defense": 65,
-      "speed": 110,
-      "range": 4
-    },
-    "move_ids": [709, 707, 444, 370],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "speedster",
-    "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner.",
-    "portrait_credits": ["Emmuffin"],
-    "sprite_credits": ["Emmuffin"]
-  }
+  "id": 19,
+  "species_id": 17,
+  "form_id": 3,
+  "name": "Lycanroc",
+  "species": "Wolf Pokémon",
+  "asset_folder": "017c_lycanroc_dusk",
+  "types": [
+    "Rock"
+  ],
+  "base_stats": {
+    "hp": 75,
+    "attack": 117,
+    "defense": 65,
+    "sp_attack": 55,
+    "sp_defense": 65,
+    "speed": 110,
+    "range": 4
+  },
+  "move_ids": [
+    709,
+    707,
+    444,
+    370
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "speedster",
+  "description": "Normally this Pokémon doesn’t even bark, but once it enters battle, it will relentlessly drive the opponent into a corner.",
+  "measurements": {
+    "height": 0.8,
+    "weight": 25.0
+  },
+  "portrait_credits": [
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "Emmuffin"
+  ]
+}

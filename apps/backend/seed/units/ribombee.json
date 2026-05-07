@@ -1,28 +1,43 @@
 {
-    "id": 80,
-    "species_id": 70,
-    "form_id": null,
-    "name": "Ribombee",
-    "species": "Bee Fly Pokémon",
-    "asset_folder": "070_ribombee",
-    "types": ["Bug", "Fairy"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 55,
-      "defense": 60,
-      "sp_attack": 95,
-      "sp_defense": 70,
-      "speed": 124,
-      "range": 3
-    },
-    "move_ids": [676, 585, 483],
-    "ability_ids": [],
-    "cost": 400,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "healer_dps",
-    "description": "Pollen puffs created by skilled Ribombee can relieve fatigue, making the puffs a popular commodity.",
-    "portrait_credits": ["Emmuffin"],
-    "sprite_credits": ["baronessfaron"]
+  "id": 80,
+  "species_id": 70,
+  "form_id": null,
+  "name": "Ribombee",
+  "species": "Bee Fly Pokémon",
+  "asset_folder": "070_ribombee",
+  "types": [
+    "Bug",
+    "Fairy"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 55,
+    "defense": 60,
+    "sp_attack": 95,
+    "sp_defense": 70,
+    "speed": 124,
+    "range": 3
+  },
+  "move_ids": [
+    676,
+    585,
+    483
+  ],
+  "ability_ids": [],
+  "cost": 400,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "healer_dps",
+  "description": "Pollen puffs created by skilled Ribombee can relieve fatigue, making the puffs a popular commodity.",
+  "measurements": {
+    "height": 0.2,
+    "weight": 0.5
+  },
+  "portrait_credits": [
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "baronessfaron"
+  ]
 }

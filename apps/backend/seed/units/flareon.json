@@ -1,28 +1,46 @@
 {
-    "id": 62,
-    "species_id": 52,
-    "form_id": null,
-    "name": "Flareon",
-    "species": "Flame Pokémon",
-    "asset_folder": "052_flareon",
-    "types": ["Fire"],
-    "base_stats": {
-      "hp": 65,
-      "attack": 130,
-      "defense": 60,
-      "sp_attack": 95,
-      "sp_defense": 110,
-      "speed": 65,
-      "range": 4
-    },
-    "move_ids": [53, 276, 234],
-    "ability_ids": [],
-    "cost": 600,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "disruptor",
-    "description": "Inhaled air is carried to its flame sac, heated, and exhaled as fire that reaches over 3,000 degrees Fahrenheit.",
-    "portrait_credits": ["CHUNSOFT", "Yynnyal", "ShyStarryRain"],
-    "sprite_credits": ["CHUNSOFT", "Ginnie", "JFain"]
+  "id": 62,
+  "species_id": 52,
+  "form_id": null,
+  "name": "Flareon",
+  "species": "Flame Pokémon",
+  "asset_folder": "052_flareon",
+  "types": [
+    "Fire"
+  ],
+  "base_stats": {
+    "hp": 65,
+    "attack": 130,
+    "defense": 60,
+    "sp_attack": 95,
+    "sp_defense": 110,
+    "speed": 65,
+    "range": 4
+  },
+  "move_ids": [
+    53,
+    276,
+    234
+  ],
+  "ability_ids": [],
+  "cost": 600,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "disruptor",
+  "description": "Inhaled air is carried to its flame sac, heated, and exhaled as fire that reaches over 3,000 degrees Fahrenheit.",
+  "measurements": {
+    "height": 0.9,
+    "weight": 25.0
+  },
+  "portrait_credits": [
+    "CHUNSOFT",
+    "Yynnyal",
+    "ShyStarryRain"
+  ],
+  "sprite_credits": [
+    "CHUNSOFT",
+    "Ginnie",
+    "JFain"
+  ]
 }

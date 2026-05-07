@@ -1,28 +1,44 @@
 {
-    "id": 89,
-    "species_id": 78,
-    "form_id": 2,
-    "name": "Raichu",
-    "species": "Mouse Pokémon",
-    "asset_folder": "078b_raichu_alola",
-    "types": ["Electric", "Psychic"],
-    "base_stats": {
-      "hp": 60,
-      "attack": 85,
-      "defense": 50,
-      "sp_attack": 95,
-      "sp_defense": 85,
-      "speed": 110,
-      "range": 4
-    },
-    "move_ids": [85, 94, 609, 57],
-    "ability_ids": [],
-    "cost": 800,
-    "evolution_cost": null,
-    "evolves_into": null,
-    "is_legendary": false,
-    "archetype": "special_sweeper",
-    "description": "This Pokémon rides on its tail while it uses its psychic powers to levitate. It attacks with star-shaped thunderbolts.",
-    "portrait_credits": ["Emmuffin"],
-    "sprite_credits": ["baronessfaron"]
+  "id": 89,
+  "species_id": 78,
+  "form_id": 2,
+  "name": "Raichu",
+  "species": "Mouse Pokémon",
+  "asset_folder": "078b_raichu_alola",
+  "types": [
+    "Electric",
+    "Psychic"
+  ],
+  "base_stats": {
+    "hp": 60,
+    "attack": 85,
+    "defense": 50,
+    "sp_attack": 95,
+    "sp_defense": 85,
+    "speed": 110,
+    "range": 4
+  },
+  "move_ids": [
+    85,
+    94,
+    609,
+    57
+  ],
+  "ability_ids": [],
+  "cost": 800,
+  "evolution_cost": null,
+  "evolves_into": null,
+  "is_legendary": false,
+  "archetype": "special_sweeper",
+  "description": "This Pokémon rides on its tail while it uses its psychic powers to levitate. It attacks with star-shaped thunderbolts.",
+  "measurements": {
+    "height": 0.7,
+    "weight": 21.0
+  },
+  "portrait_credits": [
+    "Emmuffin"
+  ],
+  "sprite_credits": [
+    "baronessfaron"
+  ]
 }
