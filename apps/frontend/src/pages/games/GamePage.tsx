@@ -338,7 +338,7 @@ export default function GamePage() {
       burn: "status_burn.png",
       sleep: "status_sleep.png",
       poison: "status_poisoned.png",
-      badly_poisoned: "status_poisoned.png",
+      badly_poisoned: "status_badly_poisoned.png",
       frozen: "status_frozen.png",
       paralysis: "status_paralysis.png",
     };
