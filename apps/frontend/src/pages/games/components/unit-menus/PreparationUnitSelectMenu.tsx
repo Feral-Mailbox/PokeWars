@@ -1,4 +1,5 @@
 import UnitPortrait from "@/components/units/UnitPortrait";
+import { UNIT_MENU_WIDTH_CLASS } from "./UnitMenuShared";
 
 type PreparationUnitSelectMenuProps = {
   availableUnits: any[];
@@ -57,7 +58,7 @@ export default function PreparationUnitSelectMenu({
     });
 
   return (
-    <div className="w-72 bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[calc(100vh-8rem)] overflow-hidden">
+    <div className={`${UNIT_MENU_WIDTH_CLASS} bg-gray-800 text-white border border-yellow-500 rounded-lg shadow-lg flex flex-col max-h-[calc(100vh-8rem)] overflow-hidden`}>
       <div className="p-4 border-b border-yellow-500 bg-gray-800 sticky top-0 z-10 rounded-t-lg">
         <h2 className="text-lg font-bold mb-2">Select a Unit</h2>
         <input

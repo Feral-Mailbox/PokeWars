@@ -1,4 +1,10 @@
-import { UnitCredits, UnitInfoHeader, UnitInfoStats, UnitMoveList } from "./UnitMenuShared";
+import {
+  UNIT_MENU_WIDTH_CLASS,
+  UnitCredits,
+  UnitInfoHeader,
+  UnitInfoStats,
+  UnitMoveList,
+} from "./UnitMenuShared";
 
 type PreparationPlacedUnitMenuProps = {
   placedUnitAtTile: any;
@@ -24,12 +30,13 @@ export default function PreparationPlacedUnitMenu({
   const unit = placedUnitAtTile.unit;
 
   return (
-    <div className="w-72 bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto">
+    <div className={`${UNIT_MENU_WIDTH_CLASS} bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto`}>
       <UnitInfoHeader
         unit={unit}
         currentHp={placedUnitAtTile?.current_hp ?? 0}
         maxHp={placedUnitAtTile?.current_stats?.hp ?? 0}
         statusIconSrc={statusIconSrc}
+        states={placedUnitAtTile?.states}
         typeColors={typeColors}
       />
 

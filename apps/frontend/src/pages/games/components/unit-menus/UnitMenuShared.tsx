@@ -1,4 +1,11 @@
 import UnitPortrait from "@/components/units/UnitPortrait";
+import UnitStateIndicator from "./UnitStateIndicator";
+
+/** Tailwind width class shared by all floating unit menus (384px). */
+export const UNIT_MENU_WIDTH_CLASS = "w-96";
+
+/** Pixel width for menu positioning math in GamePage (matches UNIT_MENU_WIDTH_CLASS). */
+export const UNIT_MENU_WIDTH_PX = 384;
 
 export function normalizeCredits(credits: any): string[] {
   if (!Array.isArray(credits)) return [];
@@ -34,6 +41,7 @@ export function UnitInfoHeader({
   currentHp,
   maxHp,
   statusIconSrc,
+  states,
   typeColors,
   portraitFrameX = 0,
   portraitFrameY = 0,
@@ -42,28 +50,34 @@ export function UnitInfoHeader({
   currentHp: number;
   maxHp: number;
   statusIconSrc: string | null;
+  states?: unknown;
   typeColors: Record<string, string>;
   portraitFrameX?: number;
   portraitFrameY?: number;
 }) {
   return (
     <>
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <UnitPortrait assetFolder={unit.asset_folder} frameX={portraitFrameX} frameY={portraitFrameY} />
-          <div className="font-semibold text-lg flex items-center gap-2">
-            <span>{unit.name}</span>
+      <div className="flex items-start gap-2 mb-2">
+        <UnitPortrait
+          assetFolder={unit.asset_folder}
+          frameX={portraitFrameX}
+          frameY={portraitFrameY}
+        />
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="text-lg font-semibold leading-tight">{unit.name}</span>
+            <UnitStateIndicator states={states} />
             {statusIconSrc && (
               <img
                 src={statusIconSrc}
                 alt="Status"
-                className="w-12 h-12 object-contain"
+                className="h-10 w-10 shrink-0 object-contain"
               />
             )}
           </div>
-        </div>
-        <div className="text-sm text-gray-300 font-medium">
-          {currentHp ?? "?"}/{maxHp ?? "?"}
+          <div className="shrink-0 whitespace-nowrap text-sm font-medium text-gray-300">
+            {currentHp ?? "?"}/{maxHp ?? "?"}
+          </div>
         </div>
       </div>
 

@@ -9,6 +9,8 @@ import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
+import { UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
+import { mapPlacedUnitFromBackend, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -85,7 +87,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
-  const [placedUnits, setPlacedUnits] = useState<{ id?: number; unit: any; tile: [number, number]; current_hp: number; user_id: number; status_effects?: any[]; level?: number; current_stats?: any; stat_boosts?: any; can_move?: boolean; move_pp?: number[] }[]>([]);
+  const [placedUnits, setPlacedUnits] = useState<PlacedUnitState[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
   const [cash, setCash] = useState<number>(0);
@@ -1559,36 +1561,7 @@ export default function GamePage() {
           : backendUnits;
 
 
-          const mapped = visibleUnits.map((u: any) => {
-            // Preserve move_pp from backend - it should contain the current PP for each move
-            let movePP = Array.isArray(u.move_pp) && u.move_pp.length > 0 ? u.move_pp : [];
-            
-            return {
-              id: u.id,
-              unit: {
-                id: u.unit_id,
-                asset_folder: u.unit.asset_folder,
-                name: u.unit.name,
-                types: u.unit.types,
-                cost: u.unit.cost,
-                base_stats: u.unit.base_stats,
-                move_ids: u.unit.move_ids,
-                portrait_credits: u.unit.portrait_credits,
-                sprite_credits: u.unit.sprite_credits,
-              },
-              tile: [u.current_x, u.current_y],
-              current_hp: u.current_hp,
-              user_id: u.user_id,
-              status_effects: u.status_effects ?? [],
-              level: u.level,
-              current_stats: u.current_stats,
-              stat_boosts: u.stat_boosts || {},
-              can_move: u.can_move ?? true,
-              move_pp: movePP,
-            };
-          });
-
-          setPlacedUnits(mapped);
+          setPlacedUnits(visibleUnits.map(mapPlacedUnitFromBackend));
         }
 
       } catch (err: any) {
@@ -2108,19 +2081,39 @@ export default function GamePage() {
           .then(res => res.json())
           .then(backendUnits => {
             const updatedUnit = backendUnits.find((u: any) => u.id === unitId);
-            if (updatedUnit && updatedUnit.move_pp) {
+            if (updatedUnit) {
               setPlacedUnits(prev =>
-                prev.map(u => u.id === unitId ? { ...u, move_pp: updatedUnit.move_pp } : u)
+                prev.map(u =>
+                  u.id === unitId
+                    ? {
+                        ...u,
+                        move_pp: updatedUnit.move_pp ?? u.move_pp,
+                        states: updatedUnit.states ?? u.states ?? [],
+                      }
+                    : u
+                )
               );
               setLockedUnit(prev => {
                 if (!prev) return prev;
                 const id = prev.instanceId ?? prev.id;
-                return id === unitId ? { ...prev, move_pp: updatedUnit.move_pp } : prev;
+                return id === unitId
+                  ? {
+                      ...prev,
+                      move_pp: updatedUnit.move_pp ?? prev.move_pp,
+                      states: updatedUnit.states ?? prev.states ?? [],
+                    }
+                  : prev;
               });
               setHoveredUnit(prev => {
                 if (!prev) return prev;
                 const id = prev.instanceId ?? prev.id;
-                return id === unitId ? { ...prev, move_pp: updatedUnit.move_pp } : prev;
+                return id === unitId
+                  ? {
+                      ...prev,
+                      move_pp: updatedUnit.move_pp ?? prev.move_pp,
+                      states: updatedUnit.states ?? prev.states ?? [],
+                    }
+                  : prev;
               });
             }
           })
@@ -2143,6 +2136,7 @@ export default function GamePage() {
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? u.status_effects ?? [],
+                  states: updatedUnit.states ?? u.states ?? [],
                   move_pp: updatedUnit.move_pp || u.move_pp 
                 } : u)
               );
@@ -2154,6 +2148,7 @@ export default function GamePage() {
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
+                  states: updatedUnit.states ?? prev.states ?? [],
                   move_pp: updatedUnit.move_pp || prev.move_pp 
                 } : prev;
               });
@@ -2165,6 +2160,7 @@ export default function GamePage() {
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
+                  states: updatedUnit.states ?? prev.states ?? [],
                   move_pp: updatedUnit.move_pp || prev.move_pp 
                 } : prev;
               });
@@ -2207,29 +2203,7 @@ export default function GamePage() {
             visibleUnits = backendUnits;
           }
 
-          const mapped = visibleUnits.map((u: any) => ({
-            id: u.id,
-            unit: {
-              id: u.unit_id,
-              asset_folder: u.unit.asset_folder,
-              name: u.unit.name,
-              types: u.unit.types,
-              cost: u.unit.cost,
-              base_stats: u.unit.base_stats,
-              move_ids: u.unit.move_ids,
-              portrait_credits: u.unit.portrait_credits,
-              sprite_credits: u.unit.sprite_credits,
-            },
-            tile: [u.current_x, u.current_y],
-            current_hp: u.current_hp,
-            user_id: u.user_id,
-            status_effects: u.status_effects ?? [],
-            level: u.level,
-            current_stats: u.current_stats,
-            stat_boosts: u.stat_boosts || {},
-            can_move: u.can_move ?? true,
-            move_pp: Array.isArray(u.move_pp) && u.move_pp.length > 0 ? u.move_pp : [],
-          }));
+          const mapped = visibleUnits.map(mapPlacedUnitFromBackend);
 
           setPlacedUnits(mapped);
 
@@ -2238,14 +2212,30 @@ export default function GamePage() {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
             return updated
-              ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp, status_effects: updated.status_effects ?? prev.status_effects ?? [] }
+              ? {
+                  ...prev,
+                  can_move: updated.can_move,
+                  move_pp: updated.move_pp,
+                  status_effects: updated.status_effects ?? prev.status_effects ?? [],
+                  states: updated.states ?? prev.states ?? [],
+                  current_hp: updated.current_hp,
+                  current_stats: updated.current_stats,
+                }
               : prev;
           });
           setHoveredUnit(prev => {
             if (!prev) return prev;
             const updated = mapped.find((u: any) => u.id === prev.instanceId);
             return updated
-              ? { ...prev, can_move: updated.can_move, move_pp: updated.move_pp, status_effects: updated.status_effects ?? prev.status_effects ?? [] }
+              ? {
+                  ...prev,
+                  can_move: updated.can_move,
+                  move_pp: updated.move_pp,
+                  status_effects: updated.status_effects ?? prev.status_effects ?? [],
+                  states: updated.states ?? prev.states ?? [],
+                  current_hp: updated.current_hp,
+                  current_stats: updated.current_stats,
+                }
               : prev;
           });
 
@@ -2296,7 +2286,7 @@ export default function GamePage() {
 
       const rect = stage.getBoundingClientRect();
       const headerRect = header?.getBoundingClientRect();
-      const panelWidth = 288; // Tailwind w-72
+      const panelWidth = UNIT_MENU_WIDTH_PX;
       const chatPanelWidth = 360;
       const gap = 24;
       const viewportPadding = 12;
@@ -2431,42 +2421,16 @@ export default function GamePage() {
     }
 
     const placedUnit = await res.json();
-    const movePP = placedUnit.move_pp ?? [];
 
-    setPlacedUnits((prev) => [
-      ...prev,
-      {
-        id: placedUnit.id,
-        unit: placedUnit.unit,
-        tile: [placedUnit.current_x, placedUnit.current_y],
-        current_hp: placedUnit.current_hp,
-        user_id: placedUnit.user_id,
-        status_effects: placedUnit.status_effects ?? [],
-        level: placedUnit.level,
-        current_stats: placedUnit.current_stats,
-        can_move: placedUnit.can_move ?? true,
-        move_pp: movePP,
-      }
-    ]);
+    setPlacedUnits((prev) => [...prev, mapPlacedUnitFromBackend(placedUnit)]);
     setCash((prev) => prev - unit.cost);
     setSelectedTile(null);
   };
 
-  const handleMapUnitMouseEnter = (unitState: any) => {
+  const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
-      const live = placedUnits.find((p) => p.id === unitState.id);
-      setHoveredUnit({
-        unit: unitState.unit,
-        user_id: unitState.user_id,
-        current_hp: unitState.current_hp,
-        instanceId: unitState.id,
-        tile: unitState.tile,
-        current_stats: live?.current_stats,
-        stat_boosts: live?.stat_boosts,
-        status_effects: live?.status_effects ?? [],
-        can_move: live?.can_move ?? true,
-        move_pp: live?.move_pp ?? [],
-      });
+      const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
+      setHoveredUnit(toActiveUnitView(live));
     }
   };
 
@@ -2487,7 +2451,7 @@ export default function GamePage() {
 
     if (gameData?.status !== "in_progress") return;
 
-    const live = placedUnits.find((p) => p.id === unitState.id);
+    const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
     setLockedUnit((prev) => {
       const isSameInstance = prev?.instanceId === unitState.id;
       if (isSameInstance) {
@@ -2500,18 +2464,7 @@ export default function GamePage() {
       if (cached) {
         setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitState.id));
         setUnitOriginalTile(cached.origin);
-        return {
-          unit: unitState.unit,
-          user_id: unitState.user_id,
-          current_hp: unitState.current_hp,
-          instanceId: unitState.id,
-          tile: unitState.tile,
-          current_stats: live?.current_stats,
-          stat_boosts: live?.stat_boosts,
-          status_effects: live?.status_effects ?? [],
-          can_move: live?.can_move ?? true,
-          move_pp: live?.move_pp ?? [],
-        };
+        return toActiveUnitView(live);
       }
 
       const movement = getCurrentMovementRange({
@@ -2530,18 +2483,7 @@ export default function GamePage() {
       setHighlightedTiles(newTiles);
       setUnitOriginalTile(newOrigin);
 
-      return {
-        unit: unitState.unit,
-        user_id: unitState.user_id,
-        current_hp: unitState.current_hp,
-        instanceId: unitState.id,
-        tile: unitState.tile,
-        current_stats: live?.current_stats,
-        stat_boosts: live?.stat_boosts,
-        status_effects: live?.status_effects ?? [],
-        can_move: live?.can_move ?? true,
-        move_pp: live?.move_pp ?? [],
-      };
+      return toActiveUnitView(live);
     });
   };
 

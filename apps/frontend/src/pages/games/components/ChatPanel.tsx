@@ -164,7 +164,8 @@ function parseMoveDodgeUnit(text: string): string | null {
 
 function isStatusInflictionMessage(text: string): boolean {
   const normalized = String(text || "").trim();
-  return /^(.*?)\s+was\s+(burned|asleep|poisoned|badly\s+poisoned|frozen|paralyzed)$/i.test(normalized);
+  // Match both positive and negative forms (e.g. "was poisoned" and "wasn't poisoned")
+  return /^(.*?)\s+was(?:n't| not)?\s+(burned|asleep|poisoned|badly\s+poisoned|frozen|paralyzed)$/i.test(normalized);
 }
 
 function isStatStageMessage(text: string): boolean {
