@@ -3382,7 +3382,11 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
     enemy_blocked_tiles = {
         (unit.current_x, unit.current_y)
         for unit in db.query(GameUnit)
-        .filter(GameUnit.game_id == game.id, GameUnit.user_id != current_player_id)
+        .filter(
+            GameUnit.game_id == game.id,
+            GameUnit.user_id != current_player_id,
+            GameUnit.current_hp > 0,
+        )
         .all()
     }
 
@@ -3391,6 +3395,8 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
 
     # Store as a hash: field=unit_id, value=json
     for gu in units:
+        if (gu.current_hp or 0) <= 0:
+            continue
         current_stats = gu.current_stats or {}
         rng = int(current_stats.get("range", 0) or 0)
         tiles = movement_range_backend(

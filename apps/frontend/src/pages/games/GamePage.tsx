@@ -59,11 +59,15 @@ function getMovementRange(
   return result;
 }
 
+function isActivePlacedUnit(unit: { current_hp?: number }): boolean {
+  return (unit.current_hp ?? 0) > 0;
+}
+
 function getBlockedTilesByEnemy(placedUnits: any[], unitUserId: number): Set<string> {
   const blocked = new Set<string>();
   for (const u of placedUnits) {
-    // Only enemy units block pathfinding; allied units do not
-    if (u.user_id !== unitUserId) {
+    // Only living enemy units block pathfinding; allied units do not
+    if (u.user_id !== unitUserId && isActivePlacedUnit(u)) {
       blocked.add(`${u.tile[0]},${u.tile[1]}`);
     }
   }
@@ -553,6 +557,7 @@ export default function GamePage() {
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId != null && u.id === ignoreUnitId) return false;
+      if (!isActivePlacedUnit(u)) return false;
       return u.tile[0] === x && u.tile[1] === y;
     });
   }
@@ -561,6 +566,7 @@ export default function GamePage() {
     const occupied = new Set<string>();
     for (const u of placedUnitsRef.current) {
       if (ignoreUnitId != null && u.id === ignoreUnitId) continue;
+      if (!isActivePlacedUnit(u)) continue;
       occupied.add(`${u.tile[0]},${u.tile[1]}`);
     }
     return occupied;
@@ -583,6 +589,54 @@ export default function GamePage() {
     const blockedTiles = getBlockedTilesByEnemy(placedUnitsRef.current, unitUserId);
     const tiles = getMovementRange(start, range, movementCosts, width, height, blockedTiles);
     return filterOccupiedTiles(tiles, ignoreUnitId);
+  }
+
+  function recalculateMovementCaches() {
+    if (gameData?.status !== "in_progress") return;
+
+    const costMap = gameData?.map?.tile_data?.movement_cost;
+    const width = gameData?.map?.width;
+    const height = gameData?.map?.height;
+    if (!costMap || !width || !height) return;
+
+    const units = placedUnitsRef.current;
+    const nextCaches: Record<number, { origin: [number, number]; tiles: [number, number][] }> = {};
+
+    for (const unit of units) {
+      if (!isActivePlacedUnit(unit)) continue;
+
+      const origin = unit.tile as [number, number];
+      if (!Array.isArray(origin) || origin.length < 2) continue;
+
+      const movement = getCurrentMovementRange(unit);
+      const tiles = getMovementOverlayTiles(
+        origin,
+        movement,
+        costMap,
+        width,
+        height,
+        unit.user_id,
+        unit.id,
+      );
+      nextCaches[unit.id] = { origin, tiles };
+    }
+
+    frozenMovesRef.current = nextCaches;
+
+    if (!lockedUnit) return;
+
+    const unitId = lockedUnit.instanceId ?? lockedUnit.id;
+    const live = units.find((p) => p.id === unitId);
+    if (!live || live.can_move === false || !isActivePlacedUnit(live)) {
+      setHighlightedTiles([]);
+      return;
+    }
+
+    const cached = frozenMovesRef.current[unitId];
+    if (cached) {
+      setHighlightedTiles(cached.tiles);
+      setUnitOriginalTile(cached.origin);
+    }
   }
 
   function getActiveOrigin(): [number, number] | null {
@@ -2103,8 +2157,6 @@ export default function GamePage() {
         setSelectedMoveTarget(null);
         setHoveredOverlayTile(null);
         setAttackOverlay({ normal: [], invert: [] });
-        setHighlightedTiles([]);
-        setUnitOriginalTile(null);
         return;
       }
       
@@ -2168,6 +2220,7 @@ export default function GamePage() {
               setPlacedUnits(prev =>
                 prev.map(u => u.id === unitId ? { 
                   ...u, 
+                  current_hp: Number(updatedUnit.current_hp ?? u.current_hp),
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? u.status_effects ?? [],
@@ -2180,6 +2233,7 @@ export default function GamePage() {
                 const id = prev.instanceId ?? prev.id;
                 return id === unitId ? { 
                   ...prev, 
+                  current_hp: Number(updatedUnit.current_hp ?? prev.current_hp),
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
@@ -2192,6 +2246,7 @@ export default function GamePage() {
                 const id = prev.instanceId ?? prev.id;
                 return id === unitId ? { 
                   ...prev, 
+                  current_hp: Number(updatedUnit.current_hp ?? prev.current_hp),
                   current_stats: updatedUnit.current_stats,
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? prev.status_effects ?? [],
@@ -2300,6 +2355,20 @@ export default function GamePage() {
   useEffect(() => {
     placedUnitsRef.current = placedUnits;
   }, [placedUnits]);
+
+  const movementBoardKey = useMemo(
+    () =>
+      placedUnits
+        .map((u) => `${u.id}@${u.tile[0]},${u.tile[1]}@${u.current_hp}`)
+        .sort()
+        .join("|"),
+    [placedUnits],
+  );
+
+  useEffect(() => {
+    if (gameData?.status !== "in_progress") return;
+    recalculateMovementCaches();
+  }, [movementBoardKey, gameData?.status, lockedUnit]);
 
   useEffect(() => {
     if (toastMessage) {
