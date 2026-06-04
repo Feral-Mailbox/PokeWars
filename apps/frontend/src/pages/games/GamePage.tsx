@@ -1434,10 +1434,15 @@ export default function GamePage() {
     const attackTiles = selectedDirectionalTiles.length > 0 ? selectedDirectionalTiles : attackOverlay.normal;
     const attackTileSet = new Set(attackTiles.map(([x, y]) => `${x},${y}`));
     const currentUnits = placedUnitsRef.current;
-    const receivingTargets = currentUnits.filter(u => {
-      if (u.id === activeId) return false;
+    const moveTargetingMode = String(selectedMove?.targeting ?? "").toLowerCase();
+    const receivingTargets = currentUnits.filter((u) => {
       const key = `${u.tile[0]},${u.tile[1]}`;
-      return attackTileSet.has(key);
+      if (!attackTileSet.has(key)) return false;
+
+      if (moveTargetingMode === "ally" && u.user_id !== activeUnit.user_id) return false;
+      if (moveTargetingMode === "enemy" && u.user_id === activeUnit.user_id) return false;
+
+      return true;
     });
 
     const res = await secureFetch(`/api/games/${gameData.link}/execute_move`, {
@@ -1456,6 +1461,22 @@ export default function GamePage() {
     }
 
     const data = await res.json();
+
+    const syncUnitsFromBackend = async () => {
+      const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
+      if (!unitsRes.ok) return;
+      const backendUnits = await unitsRes.json();
+      const mapped = backendUnits.map(mapPlacedUnitFromBackend);
+      const mappedById = new Map(mapped.map((u: PlacedUnitState) => [u.id, u]));
+      const mergeUnit = (prev: any) => {
+        if (!prev) return prev;
+        return mappedById.get(prev.instanceId ?? prev.id) ?? prev;
+      };
+      setPlacedUnits(mapped);
+      setLockedUnit(mergeUnit);
+      setHoveredUnit(mergeUnit);
+    };
+
     if (Array.isArray(data?.targets) && data.targets.length > 0) {
       const nextHpById = new Map<number, number>();
       for (const t of data.targets) {
@@ -1482,6 +1503,8 @@ export default function GamePage() {
         });
       }
     }
+
+    await syncUnitsFromBackend();
 
     if (Array.isArray(data?.removed_ids) && data.removed_ids.length > 0) {
       const removedSet = new Set<number>(data.removed_ids);

@@ -209,6 +209,9 @@ VALID_STATUS_EFFECTS = {
 SHORT_DURATION_STATUS_EFFECTS = {"sleep", "frozen"}
 # Duration (in turns) for screen-like effects: Reflect, Light Screen, Aurora Veil
 SCREEN_EFFECT_DURATION = 5
+SIDE_SCREEN_STATE_NAMES = frozenset(
+    {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}
+)
 VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo"}
 
 STATUS_NAME_ALIASES = {
@@ -659,6 +662,16 @@ def normalize_states(raw: list | str | None) -> list:
     return []
 
 
+def unit_has_active_named_state(unit: GameUnit, state_name: str) -> bool:
+    state_name = str(state_name or "").strip().lower()
+    current_state = normalize_states(unit.states)
+    return bool(
+        current_state
+        and str(current_state[0]).lower() == state_name
+        and int(current_state[1]) > 0
+    )
+
+
 def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
     state_name = str(state_name or "").strip().lower()
     if state_name not in VALID_STATE_EFFECTS:
@@ -676,29 +689,14 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
     except Exception:
         pass
 
+    # Do not refresh an identical active state on this unit.
+    if unit_has_active_named_state(unit, state_name):
+        return False
+
     if has_active_state:
         return False
 
-    # Side-wide screens should not stack for the same player
-    if state_name in {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}:
-        try:
-            # If any unit on the same player's side already has this state active, reject
-            existing = (
-                db.query(GameUnit)
-                .filter(GameUnit.game_id == unit.game_id, GameUnit.user_id == unit.user_id)
-                .all()
-            )
-        except Exception:
-            existing = []
-
-        for u in existing:
-            s = normalize_states(u.states)
-            if s and s[0] == state_name and int(s[1]) > 0:
-                return False
-
-        # Screens last SCREEN_EFFECT_DURATION turns
-        unit.states = [state_name, SCREEN_EFFECT_DURATION]
-    elif state_name == "safeguard":
+    if state_name in SIDE_SCREEN_STATE_NAMES:
         unit.states = [state_name, SCREEN_EFFECT_DURATION]
     elif state_name == "aqua_ring":
         unit.states = [state_name, SCREEN_EFFECT_DURATION]
@@ -2027,12 +2025,32 @@ def process_move_effects(
                         db,
                     )
             elif recipient == "target":
+                normalized_state_name = str(state_name).lower()
+
+                if normalized_state_name in SIDE_SCREEN_STATE_NAMES:
+                    attacker_user_id = getattr(attacker, "user_id", None)
+                    for target in targets:
+                        if (target.current_hp or 0) <= 0:
+                            continue
+                        if target.user_id != attacker_user_id:
+                            continue
+
+                        applied = apply_state_effect(target, normalized_state_name, db)
+                        if applied and game and game_state:
+                            publish_system_log_event(
+                                game.link,
+                                format_state_log_message(target, normalized_state_name, db),
+                                game_state,
+                                db,
+                            )
+                    continue
+
                 for target in targets:
                     if (target.current_hp or 0) <= 0:
                         continue
 
                     # Prevent confusion from being applied to Safeguard-protected targets
-                    if str(state_name).lower() == "confusion":
+                    if normalized_state_name == "confusion":
                         target_state = normalize_states(target.states)
                         if target_state and target_state[0] == "safeguard" and int(target_state[1]) > 0:
                             if game and game_state:
@@ -4297,6 +4315,27 @@ def execute_move(
             .filter(GameUnit.game_id == game.id, GameUnit.id.in_(target_ids))
             .all()
         )
+
+    move_targeting = (move.targeting or "").lower()
+    if effect_tiles and move_targeting == "ally":
+        tile_set = set(effect_tiles)
+        known_target_ids = {target.id for target in targets}
+        try:
+            ally_units = (
+                db.query(GameUnit)
+                .filter(GameUnit.game_id == game.id, GameUnit.user_id == gu.user_id)
+                .all()
+            )
+        except Exception:
+            ally_units = []
+        for ally in ally_units:
+            if ally.id in known_target_ids:
+                continue
+            if (ally.current_hp or 0) <= 0:
+                continue
+            if (int(ally.current_x), int(ally.current_y)) in tile_set:
+                targets.append(ally)
+                known_target_ids.add(ally.id)
 
     # Field-targeting moves affect map state and should ignore unit target resolution.
     is_field_targeting = (move.targeting or "").lower() == "field"

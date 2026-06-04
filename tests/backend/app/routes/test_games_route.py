@@ -244,6 +244,96 @@ def test_process_move_effects_applies_confusion_with_apply_state_to_self(db):
     assert 2 <= attacker.states[1] <= 5
 
 
+def test_process_move_effects_reflect_skips_units_that_already_have_reflect(db):
+    move = models.Move(
+        name="Reflect",
+        type="Psychic",
+        category="Status",
+        range="pulse:3",
+        targeting="ally",
+        effects=["target:apply_state:reflect"],
+    )
+    attacker = models.GameUnit(game_id=1, user_id=10, states=[], current_hp=100)
+    ally_with_reflect = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=["reflect", 3],
+        current_hp=100,
+    )
+    ally_without_reflect = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=[],
+        current_hp=100,
+    )
+
+    process_move_effects(
+        move,
+        attacker,
+        [ally_with_reflect, ally_without_reflect],
+        current_turn=0,
+        db=db,
+    )
+
+    assert ally_with_reflect.states == ["reflect", 3]
+    assert ally_without_reflect.states == ["reflect", 5]
+
+
+def test_process_move_effects_applies_reflect_to_all_allies_in_pulse_targets(db):
+    move = models.Move(
+        name="Reflect",
+        type="Psychic",
+        category="Status",
+        range="pulse:3",
+        targeting="ally",
+        effects=["target:apply_state:reflect"],
+    )
+    attacker = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=[],
+        current_hp=100,
+        current_x=2,
+        current_y=2,
+    )
+    ally_center = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=[],
+        current_hp=100,
+        current_x=2,
+        current_y=2,
+    )
+    ally_left = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=[],
+        current_hp=100,
+        current_x=1,
+        current_y=2,
+    )
+    ally_diag = models.GameUnit(
+        game_id=1,
+        user_id=10,
+        states=[],
+        current_hp=100,
+        current_x=1,
+        current_y=1,
+    )
+
+    process_move_effects(
+        move,
+        attacker,
+        [ally_center, ally_left, ally_diag],
+        current_turn=0,
+        db=db,
+    )
+
+    assert ally_center.states == ["reflect", 5]
+    assert ally_left.states == ["reflect", 5]
+    assert ally_diag.states == ["reflect", 5]
+
+
 def test_process_move_effects_applies_flinch_logs_flinched(db, monkeypatch):
     logged_messages = []
 
