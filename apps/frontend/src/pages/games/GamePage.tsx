@@ -70,6 +70,32 @@ function getBlockedTilesByEnemy(placedUnits: any[], unitUserId: number): Set<str
   return blocked;
 }
 
+const PLAYER_COLORS: string[] = [
+  "#0000FF80", // Blue
+  "#FF000080", // Red
+  "#FFFF0080", // Yellow
+  "#00FF0080", // Green
+  "#88888880", // Gray
+  "#80008080", // Purple
+  "#FF00FF80", // Magenta
+  "#00FFFF80", // Cyan
+];
+
+function buildPlayerColorMap(players: unknown): Record<number, string> {
+  if (!Array.isArray(players)) return {};
+
+  const sorted = [...players].sort(
+    (a: { id?: number }, b: { id?: number }) => Number(a?.id ?? 0) - Number(b?.id ?? 0),
+  );
+  const colorMap: Record<number, string> = {};
+  sorted.forEach((player: { player_id?: number }, index: number) => {
+    const playerId = Number(player?.player_id);
+    if (!Number.isFinite(playerId)) return;
+    colorMap[playerId] = PLAYER_COLORS[index] ?? "#00000000";
+  });
+  return colorMap;
+}
+
 export type ChatEntry = {
   id: string;
   kind: "chat" | "system";
@@ -153,17 +179,6 @@ export default function GamePage() {
 
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
-
-  const PLAYER_COLORS: string[] = [
-    "#0000FF80", // Blue
-    "#FF000080", // Red
-    "#FFFF0080", // Yellow
-    "#00FF0080", // Green
-    "#88888880", // Gray
-    "#80008080", // Purple
-    "#FF00FF80", // Magenta
-    "#00FFFF80", // Cyan
-  ];
 
   const TYPE_COLORS: { [key: string]: string } = {
     Normal: "#A8A77A",
@@ -1528,13 +1543,6 @@ export default function GamePage() {
         setGameData(data);
         setCash(data.starting_cash ?? 0);
 
-        const sorted = [...data.players].sort((a, b) => a.id - b.id);
-        const colorMap: Record<number, string> = {};
-        sorted.forEach((p, i) => {
-          colorMap[p.player_id] = PLAYER_COLORS[i] ?? "#00000000";
-        });
-        setPlayerColorMap(colorMap);
-
         const playerRes = await secureFetch(`/api/games/${data.link}/player`);
         if (playerRes.ok) {
           const player = await playerRes.json();
@@ -1570,6 +1578,10 @@ export default function GamePage() {
     };
     fetchGame();
   }, [gameId]);
+
+  useEffect(() => {
+    setPlayerColorMap(buildPlayerColorMap(gameData?.players));
+  }, [gameData?.players]);
 
   useEffect(() => {
     const fetchUser = async () => {
