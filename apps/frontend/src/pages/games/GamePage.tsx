@@ -12,6 +12,12 @@ import ChatPanel from "./components/ChatPanel";
 import { UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import { mapPlacedUnitFromBackend, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
+import {
+  buildMovementCostGrid,
+  filterMovementTilesForUnit,
+  IMPOSSIBLE_MOVEMENT_COST,
+  unitCanCrossWater,
+} from "@/utils/mapMovement";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -49,7 +55,10 @@ function getMovementRange(
         // Don't pathfind through tiles blocked by enemy units
         if (blockedTiles?.has(nextKey)) continue;
         
-        const nextCost = cost + movementCosts[ny][nx];
+        const stepCost = movementCosts[ny][nx];
+        if (stepCost >= IMPOSSIBLE_MOVEMENT_COST) continue;
+
+        const nextCost = cost + stepCost;
         if (!visited.has(nextKey) && nextCost <= range) {
           queue.push({ x: nx, y: ny, cost: nextCost });
         }
@@ -157,6 +166,8 @@ export default function GamePage() {
   const hazardIconLoadFailedRef = useRef<boolean>(false);
 
   const placedUnitsRef = useRef(placedUnits);
+  const gameDataRef = useRef(gameData);
+  const lockedUnitRef = useRef<any | null>(null);
   const activeUnit = lockedUnit ?? hoveredUnit;
   const frozenMovesRef = useRef<Record<number, { origin: [number, number]; tiles: [number, number][] }>>({});
   const preMoveStateRef = useRef<{
@@ -578,6 +589,10 @@ export default function GamePage() {
     return tiles.filter(([x, y]) => !occupied.has(`${x},${y}`));
   }
 
+  function getMapSpecialTiles(): unknown[][] | null | undefined {
+    return gameDataRef.current?.map?.tile_data?.special_tiles;
+  }
+
   function getMovementOverlayTiles(
     start: [number, number],
     range: number,
@@ -585,59 +600,151 @@ export default function GamePage() {
     width: number,
     height: number,
     unitUserId: number,
-    ignoreUnitId?: number
+    ignoreUnitId?: number,
+    unitTypes?: string[] | null,
+    unitAbilityNames?: string[] | null
   ): [number, number][] {
+    const specialTiles = getMapSpecialTiles();
+    const canCrossWater = unitCanCrossWater(unitTypes, unitAbilityNames);
+    const effectiveCosts = buildMovementCostGrid(movementCosts, specialTiles, canCrossWater);
     const blockedTiles = getBlockedTilesByEnemy(placedUnitsRef.current, unitUserId);
-    const tiles = getMovementRange(start, range, movementCosts, width, height, blockedTiles);
-    return filterOccupiedTiles(tiles, ignoreUnitId);
+    const tiles = getMovementRange(start, range, effectiveCosts, width, height, blockedTiles);
+    const open = filterOccupiedTiles(tiles, ignoreUnitId);
+    return filterMovementTilesForUnit(open, specialTiles, unitTypes, unitAbilityNames);
   }
 
-  function recalculateMovementCaches() {
-    if (gameData?.status !== "in_progress") return;
+  function getUnitTypesForMovement(unitState: any): string[] {
+    const types = unitState?.unit?.types ?? unitState?.types;
+    return Array.isArray(types) ? types : [];
+  }
 
-    const costMap = gameData?.map?.tile_data?.movement_cost;
-    const width = gameData?.map?.width;
-    const height = gameData?.map?.height;
-    if (!costMap || !width || !height) return;
+  function sanitizeMovementTilesForUnit(
+    tiles: [number, number][],
+    unitState: any,
+    ignoreUnitId?: number
+  ): [number, number][] {
+    const unitId = unitState?.id ?? unitState?.instanceId;
+    const open = filterOccupiedTiles(tiles, ignoreUnitId ?? unitId);
+    return filterMovementTilesForUnit(
+      open,
+      getMapSpecialTiles(),
+      getUnitTypesForMovement(unitState),
+    );
+  }
 
-    const units = placedUnitsRef.current;
-    const nextCaches: Record<number, { origin: [number, number]; tiles: [number, number][] }> = {};
+  type MovementLock = { origin: [number, number]; tiles: [number, number][] };
 
-    for (const unit of units) {
-      if (!isActivePlacedUnit(unit)) continue;
+  function computeMovementTilesFromOrigin(
+    unitState: PlacedUnitState,
+    origin: [number, number],
+  ): MovementLock | null {
+    const map = gameDataRef.current?.map;
+    const costMap = map?.tile_data?.movement_cost;
+    const width = map?.width;
+    const height = map?.height;
+    if (!costMap || !width || !height) return null;
+    if (!Array.isArray(origin) || origin.length < 2) return null;
 
-      const origin = unit.tile as [number, number];
-      if (!Array.isArray(origin) || origin.length < 2) continue;
+    const movement = getCurrentMovementRange(unitState);
+    const tiles = getMovementOverlayTiles(
+      origin,
+      movement,
+      costMap,
+      width,
+      height,
+      unitState.user_id,
+      unitState.id,
+      getUnitTypesForMovement(unitState),
+    );
+    return { origin, tiles };
+  }
 
-      const movement = getCurrentMovementRange(unit);
-      const tiles = getMovementOverlayTiles(
-        origin,
-        movement,
-        costMap,
-        width,
-        height,
-        unit.user_id,
-        unit.id,
-      );
-      nextCaches[unit.id] = { origin, tiles };
+  function ingestTurnlock(
+    locks: Record<string, MovementLock>,
+    units: PlacedUnitState[] = placedUnitsRef.current,
+  ) {
+    const unitsById = new Map(units.map((u) => [u.id, u]));
+    const next: Record<number, MovementLock> = {};
+    for (const [k, v] of Object.entries(locks)) {
+      const unitId = Number(k);
+      const unit = unitsById.get(unitId);
+      if (!unit) continue;
+      next[unitId] = {
+        origin: v.origin,
+        tiles: sanitizeMovementTilesForUnit(v.tiles, unit, unitId),
+      };
+    }
+    frozenMovesRef.current = next;
+    return next;
+  }
+
+  async function fetchAndApplyTurnlock(link: string, units?: PlacedUnitState[]) {
+    const res = await secureFetch(`/api/games/${link}/turnlock`);
+    if (!res.ok) return;
+    const locks = (await res.json()) as Record<string, MovementLock>;
+    ingestTurnlock(locks, units ?? placedUnitsRef.current);
+  }
+
+  /** Movement range is fixed from turn-start origin until the next turn. */
+  function getMovementLockForUnit(unitState: PlacedUnitState): MovementLock | null {
+    const unitId = unitState.id;
+
+    if (gameDataRef.current?.status === "in_progress") {
+      const cached = frozenMovesRef.current[unitId];
+      if (cached) {
+        return {
+          origin: cached.origin,
+          tiles: sanitizeMovementTilesForUnit(cached.tiles, unitState, unitId),
+        };
+      }
+
+      const origin = unitState.start_tile ?? unitState.tile;
+      const fallback = computeMovementTilesFromOrigin(unitState, origin);
+      if (fallback) {
+        frozenMovesRef.current[unitId] = fallback;
+      }
+      return fallback;
     }
 
-    frozenMovesRef.current = nextCaches;
+    return computeMovementTilesFromOrigin(unitState, unitState.tile);
+  }
 
-    if (!lockedUnit) return;
+  function applyMovementLockToUi(lock: MovementLock | null) {
+    if (!lock) {
+      setHighlightedTiles([]);
+      setUnitOriginalTile(null);
+      return;
+    }
+    setHighlightedTiles(lock.tiles);
+    setUnitOriginalTile(lock.origin);
+  }
 
-    const unitId = lockedUnit.instanceId ?? lockedUnit.id;
+  /** Re-filter turnlock tiles for occupancy without changing range origin. */
+  function refreshMovementLockOccupancy() {
+    if (gameDataRef.current?.status !== "in_progress") return;
+
+    const units = placedUnitsRef.current;
+    for (const unit of units) {
+      if (!isActivePlacedUnit(unit)) continue;
+      const existing = frozenMovesRef.current[unit.id];
+      if (!existing) continue;
+      frozenMovesRef.current[unit.id] = {
+        origin: existing.origin,
+        tiles: sanitizeMovementTilesForUnit(existing.tiles, unit, unit.id),
+      };
+    }
+
+    const locked = lockedUnitRef.current;
+    if (!locked) return;
+
+    const unitId = locked.instanceId ?? locked.id;
     const live = units.find((p) => p.id === unitId);
     if (!live || live.can_move === false || !isActivePlacedUnit(live)) {
-      setHighlightedTiles([]);
+      applyMovementLockToUi(null);
       return;
     }
 
-    const cached = frozenMovesRef.current[unitId];
-    if (cached) {
-      setHighlightedTiles(cached.tiles);
-      setUnitOriginalTile(cached.origin);
-    }
+    applyMovementLockToUi(getMovementLockForUnit(live));
   }
 
   function getActiveOrigin(): [number, number] | null {
@@ -1347,20 +1454,11 @@ export default function GamePage() {
 
     if (!lockedUnit || lockedUnit.instanceId !== activeUnit.instanceId) {
       const unitId = activeUnit.instanceId;
-      const cached = frozenMovesRef.current[unitId];
-      if (cached) {
-        setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitId));
-        setUnitOriginalTile(cached.origin);
-      } else if (gameData?.map) {
-        const movement = getCurrentMovementRange(activeUnit);
-        const costMap = gameData.map.tile_data.movement_cost;
-        const width = gameData.map.width;
-        const height = gameData.map.height;
-        const newOrigin: [number, number] = activeUnit.tile as [number, number];
-        const newTiles = getMovementOverlayTiles(newOrigin, movement, costMap, width, height, activeUnit.user_id, unitId);
-        frozenMovesRef.current[unitId] = { origin: newOrigin, tiles: newTiles };
-        setHighlightedTiles(newTiles);
-        setUnitOriginalTile(newOrigin);
+      const live = placedUnitsRef.current.find((p) => p.id === unitId) ?? activeUnit;
+      const lock = getMovementLockForUnit(live);
+      if (lock) {
+        frozenMovesRef.current[unitId] = lock;
+        applyMovementLockToUi(lock);
       }
       setLockedUnit(activeUnit);
     }
@@ -1395,20 +1493,11 @@ export default function GamePage() {
       const locked = fallbackLocked;
       if (locked) {
         const unitId = locked.instanceId ?? locked.id;
-        const cached = frozenMovesRef.current[unitId];
-        if (cached) {
-          setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitId));
-          setUnitOriginalTile(cached.origin);
-        } else if (gameData?.map) {
-          const movement = getCurrentMovementRange(locked);
-          const costMap = gameData.map.tile_data.movement_cost;
-          const width = gameData.map.width;
-          const height = gameData.map.height;
-          const origin: [number, number] = (locked.tile as [number, number]) ?? snapshot.unitOriginalTile ?? [0, 0];
-          const tiles = getMovementOverlayTiles(origin, movement, costMap, width, height, locked.user_id, unitId);
-          frozenMovesRef.current[unitId] = { origin, tiles };
-          setHighlightedTiles(tiles);
-          setUnitOriginalTile(origin);
+        const live = placedUnitsRef.current.find((p) => p.id === unitId) ?? locked;
+        const lock = getMovementLockForUnit(live);
+        if (lock) {
+          frozenMovesRef.current[unitId] = lock;
+          applyMovementLockToUi(lock);
         } else {
           setHighlightedTiles(snapshot.highlightedTiles);
           setUnitOriginalTile(snapshot.unitOriginalTile);
@@ -1647,7 +1736,13 @@ export default function GamePage() {
           : backendUnits;
 
 
-          setPlacedUnits(visibleUnits.map(mapPlacedUnitFromBackend));
+          const mappedUnits = visibleUnits.map(mapPlacedUnitFromBackend);
+          setPlacedUnits(mappedUnits);
+          placedUnitsRef.current = mappedUnits;
+
+          if (data.status === "in_progress") {
+            await fetchAndApplyTurnlock(data.link, mappedUnits);
+          }
         }
 
       } catch (err: any) {
@@ -2077,22 +2172,10 @@ export default function GamePage() {
   }, [lockedUnit]);
 
   useEffect(() => {
-    if (!gameData?.link || !gameData?.current_turn) return;
-    (async () => {
-      const res = await secureFetch(`/api/games/${gameData.link}/turnlock`);
-      if (!res.ok) return;
-      const locks = await res.json() as Record<string, {origin:[number,number], tiles:[number,number][]}>;
-      const next: Record<number, {origin:[number,number], tiles:[number,number][]}> = {};
-      for (const [k, v] of Object.entries(locks)) {
-        const unitId = Number(k);
-        next[unitId] = {
-          origin: v.origin,
-          tiles: filterOccupiedTiles(v.tiles, unitId),
-        };
-      }
-      frozenMovesRef.current = next;
-    })();
-  }, [gameData?.link, gameData?.current_turn]);
+    if (!gameData?.link || gameData?.status !== "in_progress") return;
+    if (gameData.current_turn === null || gameData.current_turn === undefined) return;
+    void fetchAndApplyTurnlock(gameData.link).then(() => refreshMovementLockOccupancy());
+  }, [gameData?.link, gameData?.current_turn, gameData?.status]);
 
   useEffect(() => {
     if (!gameData?.link) return;
@@ -2138,9 +2221,14 @@ export default function GamePage() {
         const unitId = Number(unitIdStr);
         const x = Number(xStr);
         const y = Number(yStr);
-        setPlacedUnits(prev =>
-          prev.map(u => (u.id === unitId ? { ...u, tile: [x, y] as [number, number] } : u))
-        );
+        setPlacedUnits((prev) => {
+          const next = prev.map((u) =>
+            u.id === unitId ? { ...u, tile: [x, y] as [number, number] } : u
+          );
+          placedUnitsRef.current = next;
+          return next;
+        });
+        requestAnimationFrame(() => refreshMovementLockOccupancy());
         return;
       }
 
@@ -2304,50 +2392,23 @@ export default function GamePage() {
           setPlacedUnits(mapped);
 
           // Update lockedUnit and hoveredUnit if they're affected by the update
-          setLockedUnit(prev => {
+          setLockedUnit((prev) => {
             if (!prev) return prev;
-            const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated
-              ? {
-                  ...prev,
-                  can_move: updated.can_move,
-                  move_pp: updated.move_pp,
-                  status_effects: updated.status_effects ?? prev.status_effects ?? [],
-                  states: updated.states ?? prev.states ?? [],
-                  current_hp: updated.current_hp,
-                  current_stats: updated.current_stats,
-                }
-              : prev;
+            const updated = mapped.find((u: PlacedUnitState) => u.id === prev.instanceId);
+            return updated ? toActiveUnitView(updated) : prev;
           });
-          setHoveredUnit(prev => {
+          setHoveredUnit((prev) => {
             if (!prev) return prev;
-            const updated = mapped.find((u: any) => u.id === prev.instanceId);
-            return updated
-              ? {
-                  ...prev,
-                  can_move: updated.can_move,
-                  move_pp: updated.move_pp,
-                  status_effects: updated.status_effects ?? prev.status_effects ?? [],
-                  states: updated.states ?? prev.states ?? [],
-                  current_hp: updated.current_hp,
-                  current_stats: updated.current_stats,
-                }
-              : prev;
+            const updated = mapped.find((u: PlacedUnitState) => u.id === prev.instanceId);
+            return updated ? toActiveUnitView(updated) : prev;
           });
 
           try {
             const lockRes = await secureFetch(`/api/games/${updatedGame.link}/turnlock`);
             if (lockRes.ok) {
-              const locks = await lockRes.json() as Record<string, {origin:[number,number], tiles:[number,number][]}>;
-              const next: Record<number, {origin:[number,number], tiles:[number,number][]}> = {};
-              for (const [k, v] of Object.entries(locks)) {
-                const unitId = Number(k);
-                next[unitId] = {
-                  origin: v.origin,
-                  tiles: filterOccupiedTiles(v.tiles, unitId),
-                };
-              }
-              frozenMovesRef.current = next;
+              const locks = (await lockRes.json()) as Record<string, MovementLock>;
+              ingestTurnlock(locks, mapped);
+              requestAnimationFrame(() => refreshMovementLockOccupancy());
             }
           } catch {}
         })();
@@ -2362,6 +2423,19 @@ export default function GamePage() {
     placedUnitsRef.current = placedUnits;
   }, [placedUnits]);
 
+  useEffect(() => {
+    gameDataRef.current = gameData;
+  }, [gameData]);
+
+  useEffect(() => {
+    lockedUnitRef.current = lockedUnit;
+  }, [lockedUnit]);
+
+  const movementTerrainKey = useMemo(
+    () => JSON.stringify(gameData?.map?.tile_data?.special_tiles ?? null),
+    [gameData?.map?.tile_data?.special_tiles]
+  );
+
   const movementBoardKey = useMemo(
     () =>
       placedUnits
@@ -2373,8 +2447,8 @@ export default function GamePage() {
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
-    recalculateMovementCaches();
-  }, [movementBoardKey, gameData?.status, lockedUnit]);
+    refreshMovementLockOccupancy();
+  }, [movementBoardKey, movementTerrainKey, gameData?.status]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -2570,28 +2644,11 @@ export default function GamePage() {
         return null;
       }
 
-      const cached = frozenMovesRef.current[unitState.id];
-      if (cached) {
-        setHighlightedTiles(filterOccupiedTiles(cached.tiles, unitState.id));
-        setUnitOriginalTile(cached.origin);
-        return toActiveUnitView(live);
+      const lock = getMovementLockForUnit(live);
+      if (lock) {
+        frozenMovesRef.current[unitState.id] = lock;
+        applyMovementLockToUi(lock);
       }
-
-      const movement = getCurrentMovementRange({
-        unit: unitState.unit,
-        current_stats: live?.current_stats,
-        level: live?.level,
-      });
-      const costMap = gameData.map.tile_data.movement_cost;
-      const width = gameData.map.width;
-      const height = gameData.map.height;
-
-      const newOrigin: [number, number] = unitState.tile;
-      const newTiles = getMovementOverlayTiles(newOrigin, movement, costMap, width, height, unitState.user_id, unitState.id);
-
-      frozenMovesRef.current[unitState.id] = { origin: newOrigin, tiles: newTiles };
-      setHighlightedTiles(newTiles);
-      setUnitOriginalTile(newOrigin);
 
       return toActiveUnitView(live);
     });

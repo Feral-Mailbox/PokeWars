@@ -4,7 +4,10 @@ export type PlacedUnitState = {
   unit_id: number;
   user_id: number;
   unit: any;
+  /** Current map position (updates when the unit moves). */
   tile: [number, number];
+  /** Turn-start anchor for movement range; synced from starting_x/y. */
+  start_tile: [number, number];
   level: number;
   current_hp: number;
   current_stats: Record<string, number>;
@@ -23,6 +26,8 @@ export type ActiveUnitView = PlacedUnitState & {
 export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
   const currentX = Number(backendUnit?.current_x ?? backendUnit?.starting_x ?? 0);
   const currentY = Number(backendUnit?.current_y ?? backendUnit?.starting_y ?? 0);
+  const startX = Number(backendUnit?.starting_x ?? currentX);
+  const startY = Number(backendUnit?.starting_y ?? currentY);
 
   return {
     id: Number(backendUnit.id),
@@ -31,6 +36,7 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     user_id: Number(backendUnit.user_id),
     unit: backendUnit.unit,
     tile: [currentX, currentY],
+    start_tile: [startX, startY],
     level: Number(backendUnit.level ?? 50),
     current_hp: Number(backendUnit.current_hp ?? 0),
     current_stats: backendUnit.current_stats ?? {},

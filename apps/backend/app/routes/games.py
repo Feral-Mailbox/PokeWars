@@ -14,6 +14,12 @@ from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, 
 from app.schemas.maps import MapDetail, GameMapStateSchema
 from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
 from app.dependencies import get_db, get_current_user
+from app.map_movement import (
+    build_movement_cost_grid,
+    is_water_tile,
+    unit_can_cross_water,
+    IMPOSSIBLE_MOVEMENT_COST,
+)
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
@@ -3355,7 +3361,10 @@ def movement_range_backend(start, rng, movement_costs, width, height, blocked_ti
             if 0 <= nx < width and 0 <= ny < height:
                 if (nx, ny) in blocked_tiles:
                     continue
-                nc = c + movement_costs[ny][nx]
+                step_cost = movement_costs[ny][nx]
+                if step_cost >= IMPOSSIBLE_MOVEMENT_COST:
+                    continue
+                nc = c + step_cost
                 if nc <= rng and (nx, ny) not in seen:
                     q.append((nx, ny, nc))
     return out
@@ -3371,6 +3380,7 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
     costs = map_obj.tile_data["movement_cost"]
+    special_tiles = map_obj.tile_data.get("special_tiles")
     width, height = map_obj.width, map_obj.height
     units = (
         db.query(GameUnit)
@@ -3399,10 +3409,17 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
             continue
         current_stats = gu.current_stats or {}
         rng = int(current_stats.get("range", 0) or 0)
+        unit_types = get_unit_types(gu, db)
+        ability_names = get_unit_ability_names(gu, db)
+        effective_costs = build_movement_cost_grid(
+            costs,
+            special_tiles,
+            unit_can_cross_water(unit_types, ability_names),
+        )
         tiles = movement_range_backend(
             (gu.starting_x, gu.starting_y),
             rng,
-            costs,
+            effective_costs,
             width,
             height,
             enemy_blocked_tiles,
@@ -3933,6 +3950,16 @@ def place_unit(
     unit_info = db.query(Unit).filter_by(id=unit_data.unit_id).first()
     if not unit_info:
         raise HTTPException(status_code=404, detail="Unit not found")
+
+    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    if map_obj and is_water_tile(
+        map_obj.tile_data.get("special_tiles"),
+        unit_data.x,
+        unit_data.y,
+    ):
+        unit_types = {str(t).lower() for t in (unit_info.types or [])}
+        if not unit_can_cross_water(unit_types):
+            raise HTTPException(status_code=400, detail="This unit cannot be placed on water tiles")
 
     if unit_info.cost > player_state.cash_remaining:
         raise HTTPException(status_code=400, detail="Not enough cash")
@@ -4853,6 +4880,13 @@ def move_unit(
     allowed = { (tx, ty) for tx, ty in lock["tiles"] }
     if (x, y) not in allowed:
         raise HTTPException(status_code=400, detail="Illegal move for this turn")
+
+    special_tiles = map_obj.tile_data.get("special_tiles")
+    if is_water_tile(special_tiles, x, y):
+        unit_types = get_unit_types(gu, db)
+        ability_names = get_unit_ability_names(gu, db)
+        if not unit_can_cross_water(unit_types, ability_names):
+            raise HTTPException(status_code=400, detail="This unit cannot move onto water tiles")
 
     gu.current_x = x
     gu.current_y = y
