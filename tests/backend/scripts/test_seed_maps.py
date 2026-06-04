@@ -27,3 +27,11 @@ def test_load_maps(db, monkeypatch):
         result = db.query(models.Map).filter_by(name="Test Map").first()
         assert result is not None
         assert result.is_official
+
+        map_data["width"] = 12
+        with open(path, "w") as f:
+            json.dump(map_data, f)
+        seed_official_maps.load_maps()
+
+        updated = db.query(models.Map).filter_by(name="Test Map").first()
+        assert updated.width == 12

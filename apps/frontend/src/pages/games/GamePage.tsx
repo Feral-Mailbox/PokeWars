@@ -11,6 +11,7 @@ import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
 import { UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import { mapPlacedUnitFromBackend, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
+import { setupPixelCanvas } from "@/utils/pixelCanvas";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -1851,7 +1852,10 @@ export default function GamePage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const dpr = setupPixelCanvas(canvas, mapWidth, mapHeight);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const overlayUnit = lockedUnit ?? hoveredUnit;
     const overlayColor = getOverlayColor(overlayUnit);
@@ -1954,7 +1958,9 @@ export default function GamePage() {
     activeMove,
     gameData?.map_state,
     weatherIconRefresh,
-    hazardIconRefresh
+    hazardIconRefresh,
+    mapWidth,
+    mapHeight,
   ]);
 
   useEffect(() => {

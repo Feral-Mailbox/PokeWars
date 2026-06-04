@@ -16,7 +16,15 @@ def load_maps():
                 data = json.load(f)
                 existing = db.query(Map).filter(Map.name == data["name"]).first()
                 if existing:
-                    print(f"[!] Skipping existing map: {data['name']}")
+                    existing.is_official = data["is_official"]
+                    existing.width = data["width"]
+                    existing.height = data["height"]
+                    existing.tileset_names = data["tileset_names"]
+                    existing.allowed_modes = data["allowed_modes"]
+                    existing.allowed_player_counts = data["allowed_player_counts"]
+                    existing.tile_data = data["tile_data"]
+                    existing.preview_image = data.get("preview_image")
+                    print(f"[~] Updated existing map: {data['name']}")
                     continue
 
                 new_map = Map(

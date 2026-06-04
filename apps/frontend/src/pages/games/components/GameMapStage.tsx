@@ -1,4 +1,6 @@
+import { useLayoutEffect } from "react";
 import UnitIdleSprite from "@/components/units/UnitIdleSprite";
+import { setupPixelCanvas } from "@/utils/pixelCanvas";
 
 type PlacedUnit = {
   id?: number;
@@ -42,14 +44,18 @@ export default function GameMapStage({
   onUnitMouseLeave,
   onUnitClick,
 }: GameMapStageProps) {
+  useLayoutEffect(() => {
+    if (!mapWidth || !mapHeight) return;
+    if (canvasRef.current) setupPixelCanvas(canvasRef.current, mapWidth, mapHeight);
+    if (overlayRef.current) setupPixelCanvas(overlayRef.current, mapWidth, mapHeight);
+  }, [mapWidth, mapHeight, canvasRef, overlayRef]);
+
   return (
     <div ref={mapStageRef} className="relative" style={{ width: mapWidth, height: mapHeight }}>
-      <canvas ref={canvasRef} id="mapCanvas" width={mapWidth} height={mapHeight} />
+      <canvas ref={canvasRef} id="mapCanvas" />
       <canvas
         ref={overlayRef}
         id="overlayCanvas"
-        width={mapWidth}
-        height={mapHeight}
         style={{
           position: "absolute",
           top: 0,
