@@ -14,8 +14,8 @@
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
   "effects": [
-    "self:raise_stat:special_atk:1",
-    "self:raise_stat:special_def:1",
+    "self:raise_stat:special_attack:1",
+    "self:raise_stat:special_defense:1",
     "self:raise_stat:speed:1"
   ]
 }

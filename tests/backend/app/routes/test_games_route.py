@@ -227,6 +227,43 @@ def test_process_move_effects_applies_confusion_with_apply_state_to_target(db):
     assert 2 <= target.states[1] <= 5
 
 
+def test_process_move_effects_quiver_dance_raises_sp_stats_from_special_atk_aliases(db):
+    from app.routes.games import get_stat_stage, normalize_stat_name
+
+    assert normalize_stat_name("special_atk") == "sp_attack"
+    assert normalize_stat_name("special_def") == "sp_defense"
+
+    move = models.Move(
+        name="Quiver Dance",
+        type="Bug",
+        category="Status",
+        targeting="self",
+        effects=[
+            "self:raise_stat:special_atk:1",
+            "self:raise_stat:special_def:1",
+            "self:raise_stat:speed:1",
+        ],
+    )
+    attacker = models.GameUnit(
+        stat_boosts={
+            "attack": [],
+            "defense": [],
+            "sp_attack": [],
+            "sp_defense": [],
+            "speed": [],
+            "accuracy": [],
+            "evasion": [],
+            "crit": [],
+        }
+    )
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db)
+
+    assert get_stat_stage(attacker.stat_boosts, "sp_attack") == 1
+    assert get_stat_stage(attacker.stat_boosts, "sp_defense") == 1
+    assert get_stat_stage(attacker.stat_boosts, "speed") == 1
+
+
 def test_process_move_effects_applies_confusion_with_apply_state_to_self(db):
     move = models.Move(
         name="Outrage",
