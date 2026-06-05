@@ -1,9 +1,9 @@
 {
     "name": "Grassy Field",
     "is_official": true,
-    "tileset_names": ["Route 224.png", "Beach Houses.png"],
+    "tileset_names": ["Brick City.png", "Beach Houses.png"],
     "allowed_modes": ["Conquest", "War", "Capture The Flag"],
-    "allowed_player_counts": [2, 4],
+    "allowed_player_counts": [2, 3, 4],
     "width": 12,
     "height": 8,
     "tile_data": {
@@ -20,10 +20,10 @@
         "overlay": [
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, [10, 0], null, null, null, null, [10, 0], [10, 0], null, null, null],
+            [null, null, [10, 0], null, null, null, null, [10, 0], [10, 0], null, null, null],
+            [null, null, null, [10, 0], [10, 0], null, null, null, null, [10, 0], null, null],
+            [null, null, null, [10, 0], [10, 0], null, null, null, null, [10, 0], null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null]
         ],
@@ -40,10 +40,10 @@
         "special_tiles": [
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, null, "grass", null, null, null, null, "grass", "grass", null, null, null],
+            [null, null, "grass", null, null, null, null, "grass", "grass", null, null, null],
+            [null, null, null, "grass", "grass", null, null, null, null, "grass", null, null],
+            [null, null, null, "grass", "grass", null, null, null, null, "grass", null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null]
         ],
