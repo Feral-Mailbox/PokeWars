@@ -15,59 +15,12 @@ import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import {
   buildMovementCostGrid,
   filterMovementTilesForUnit,
-  IMPOSSIBLE_MOVEMENT_COST,
-  unitCanCrossWater,
+  getMovementRangeWithTerrain,
 } from "@/utils/mapMovement";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
 const TILE_DRAW_SIZE = TILE_SIZE * TILE_SCALE;
-
-function getMovementRange(
-  start: [number, number],
-  range: number,
-  movementCosts: number[][],
-  width: number,
-  height: number,
-  blockedTiles?: Set<string>
-): [number, number][] {
-  const visited = new Set<string>();
-  const result: [number, number][] = [];
-  const queue: Array<{ x: number; y: number; cost: number }> = [{ x: start[0], y: start[1], cost: 0 }];
-
-  const directions = [
-    [0, 1], [0, -1],
-    [1, 0], [-1, 0]
-  ];
-
-  while (queue.length > 0) {
-    const { x, y, cost } = queue.shift()!;
-    const key = `${x},${y}`;
-    if (visited.has(key) || x < 0 || y < 0 || x >= width || y >= height) continue;
-    visited.add(key);
-    result.push([x, y]);
-
-    for (const [dx, dy] of directions) {
-      const nx = x + dx;
-      const ny = y + dy;
-      if (nx >= 0 && ny >= 0 && nx < width && ny < height) {
-        const nextKey = `${nx},${ny}`;
-        // Don't pathfind through tiles blocked by enemy units
-        if (blockedTiles?.has(nextKey)) continue;
-        
-        const stepCost = movementCosts[ny][nx];
-        if (stepCost >= IMPOSSIBLE_MOVEMENT_COST) continue;
-
-        const nextCost = cost + stepCost;
-        if (!visited.has(nextKey) && nextCost <= range) {
-          queue.push({ x: nx, y: ny, cost: nextCost });
-        }
-      }
-    }
-  }
-
-  return result;
-}
 
 function isActivePlacedUnit(unit: { current_hp?: number }): boolean {
   return (unit.current_hp ?? 0) > 0;
@@ -605,10 +558,24 @@ export default function GamePage() {
     unitAbilityNames?: string[] | null
   ): [number, number][] {
     const specialTiles = getMapSpecialTiles();
-    const canCrossWater = unitCanCrossWater(unitTypes, unitAbilityNames);
-    const effectiveCosts = buildMovementCostGrid(movementCosts, specialTiles, canCrossWater);
+    const effectiveCosts = buildMovementCostGrid(
+      movementCosts,
+      specialTiles,
+      unitTypes,
+      unitAbilityNames
+    );
     const blockedTiles = getBlockedTilesByEnemy(placedUnitsRef.current, unitUserId);
-    const tiles = getMovementRange(start, range, effectiveCosts, width, height, blockedTiles);
+    const tiles = getMovementRangeWithTerrain(
+      start,
+      range,
+      effectiveCosts,
+      specialTiles,
+      width,
+      height,
+      unitTypes,
+      unitAbilityNames,
+      blockedTiles
+    );
     const open = filterOccupiedTiles(tiles, ignoreUnitId);
     return filterMovementTilesForUnit(open, specialTiles, unitTypes, unitAbilityNames);
   }

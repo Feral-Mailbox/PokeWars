@@ -16,8 +16,8 @@ from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
 from app.dependencies import get_db, get_current_user
 from app.map_movement import (
     build_movement_cost_grid,
-    is_water_tile,
-    unit_can_cross_water,
+    movement_range_with_terrain,
+    unit_can_occupy_tile,
     IMPOSSIBLE_MOVEMENT_COST,
 )
 
@@ -3414,14 +3414,18 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
         effective_costs = build_movement_cost_grid(
             costs,
             special_tiles,
-            unit_can_cross_water(unit_types, ability_names),
+            unit_types,
+            ability_names,
         )
-        tiles = movement_range_backend(
+        tiles = movement_range_with_terrain(
             (gu.starting_x, gu.starting_y),
             rng,
             effective_costs,
+            special_tiles,
             width,
             height,
+            unit_types,
+            ability_names,
             enemy_blocked_tiles,
         )
         redis_client.hset(
@@ -3952,14 +3956,10 @@ def place_unit(
         raise HTTPException(status_code=404, detail="Unit not found")
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
-    if map_obj and is_water_tile(
-        map_obj.tile_data.get("special_tiles"),
-        unit_data.x,
-        unit_data.y,
-    ):
-        unit_types = {str(t).lower() for t in (unit_info.types or [])}
-        if not unit_can_cross_water(unit_types):
-            raise HTTPException(status_code=400, detail="This unit cannot be placed on water tiles")
+    special_tiles = map_obj.tile_data.get("special_tiles") if map_obj else None
+    unit_types = {str(t).lower() for t in (unit_info.types or [])}
+    if map_obj and not unit_can_occupy_tile(special_tiles, unit_data.x, unit_data.y, unit_types):
+        raise HTTPException(status_code=400, detail="This unit cannot be placed on this tile")
 
     if unit_info.cost > player_state.cash_remaining:
         raise HTTPException(status_code=400, detail="Not enough cash")
@@ -4882,11 +4882,10 @@ def move_unit(
         raise HTTPException(status_code=400, detail="Illegal move for this turn")
 
     special_tiles = map_obj.tile_data.get("special_tiles")
-    if is_water_tile(special_tiles, x, y):
-        unit_types = get_unit_types(gu, db)
-        ability_names = get_unit_ability_names(gu, db)
-        if not unit_can_cross_water(unit_types, ability_names):
-            raise HTTPException(status_code=400, detail="This unit cannot move onto water tiles")
+    unit_types = get_unit_types(gu, db)
+    ability_names = get_unit_ability_names(gu, db)
+    if not unit_can_occupy_tile(special_tiles, x, y, unit_types, ability_names):
+        raise HTTPException(status_code=400, detail="This unit cannot move onto this tile")
 
     gu.current_x = x
     gu.current_y = y

@@ -1,0 +1,78 @@
+{
+    "name": "Ledge Pinwheel",
+    "is_official": true,
+    "tileset_names": ["Brick City.png", "Coral Tiles.png"],
+    "allowed_modes": ["Conquest", "War", "Capture The Flag"],
+    "allowed_player_counts": [2],
+    "width": 13,
+    "height": 9,
+    "tile_data": {
+        "base": [
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
+        ],
+        "overlay": [
+            [null,null,null,null,null,null,[180, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[179, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[179, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[188, 0],null,null,null,null,null,null],
+            [[168, 0],[186, 0],[186, 0],[186, 0],[186, 0],[172, 0],[163, 0],[168, 0],[186, 0],[186, 0],[186, 0],[186, 0],[172, 0]],
+            [null,null,null,null,null,null,[176, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[177, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[177, 0],null,null,null,null,null,null],
+            [null,null,null,null,null,null,[184, 0],null,null,null,null,null,null]
+        ],
+        "spawn_points": [
+            [1,1,1,1,null,null,null,null,null,null,null,null,null],
+            [1,1,1,1,null,null,null,null,null,null,null,null,null],
+            [1,1,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,2,2],
+            [null,null,null,null,null,null,null,null,null,2,2,2,2],
+            [null,null,null,null,null,null,null,null,null,2,2,2,2]
+        ],
+        "special_tiles": [
+            [null,null,null,null,null,null,"ledge_right",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_right",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_right",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_right",null,null,null,null,null,null],
+            ["ledge_up","ledge_up","ledge_up","ledge_up","ledge_up","ledge_up","rock","ledge_down","ledge_down","ledge_down","ledge_down","ledge_down","ledge_down"],
+            [null,null,null,null,null,null,"ledge_left",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_left",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_left",null,null,null,null,null,null],
+            [null,null,null,null,null,null,"ledge_left",null,null,null,null,null,null]
+        ],
+        "flags": [
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null],
+            [null,null,null,null,null,null,null,null,null,null,null,null,null]
+        ],
+        "movement_cost": [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+    },
+    "preview_image": "previews/ledge_pinwheel.png"
+}
