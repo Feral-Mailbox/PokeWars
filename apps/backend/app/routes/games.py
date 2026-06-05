@@ -19,6 +19,7 @@ from app.map_movement import (
     get_grass_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
     movement_range_with_terrain,
+    resolve_movement_destination,
     unit_can_occupy_tile,
     unit_can_pass_through_units,
     IMPOSSIBLE_MOVEMENT_COST,
@@ -26,6 +27,22 @@ from app.map_movement import (
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
+
+
+def movement_locked_key(game_link: str, unit_id: int) -> str:
+    return f"movement_locked:{game_link}:{unit_id}"
+
+
+def is_movement_locked(game_link: str, unit_id: int) -> bool:
+    return bool(redis_client.get(movement_locked_key(game_link, unit_id)))
+
+
+def set_movement_locked(game_link: str, unit_id: int) -> None:
+    redis_client.set(movement_locked_key(game_link, unit_id), "1")
+
+
+def clear_movement_locked(game_link: str, unit_id: int) -> None:
+    redis_client.delete(movement_locked_key(game_link, unit_id))
 
 
 def publish_game_ws_event(game_link: str, payload: dict) -> None:
@@ -3550,6 +3567,7 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
 
     # Store as a hash: field=unit_id, value=json
     for gu in units:
+        clear_movement_locked(game.link, gu.id)
         if (gu.current_hp or 0) <= 0:
             continue
         current_stats = gu.current_stats or {}
@@ -5081,6 +5099,7 @@ def revert_unit_position(
         raise HTTPException(status_code=400, detail="Unit has already acted")
 
     if gu.current_x == gu.starting_x and gu.current_y == gu.starting_y:
+        clear_movement_locked(game.link, gu.id)
         return {
             "ok": True,
             "unit_id": gu.id,
@@ -5091,6 +5110,7 @@ def revert_unit_position(
 
     gu.current_x = gu.starting_x
     gu.current_y = gu.starting_y
+    clear_movement_locked(game.link, gu.id)
     db.commit()
 
     redis_client.publish(
@@ -5151,6 +5171,8 @@ def move_unit(
         raise HTTPException(status_code=403, detail="You can only move your own unit")
     if not gu.can_move:
         raise HTTPException(status_code=400, detail="Unit is locked")
+    if is_movement_locked(game.link, gu.id):
+        raise HTTPException(status_code=400, detail="Unit has already moved")
 
     # Prevent movement if Immobilized state is active (does not affect using moves)
     try:
@@ -5162,26 +5184,16 @@ def move_unit(
     except Exception:
         pass
 
-    # Bounds check
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
     if x < 0 or y < 0 or x >= map_obj.width or y >= map_obj.height:
         raise HTTPException(status_code=400, detail="Out of bounds")
-
-    # Occupancy check (no stacking)
-    occupied = (
-        db.query(GameUnit)
-        .filter(GameUnit.game_id == game.id, GameUnit.current_x == x, GameUnit.current_y == y, GameUnit.id != gu.id)
-        .count()
-    )
-    if occupied:
-        raise HTTPException(status_code=400, detail="Tile occupied")
 
     key = f"turnlock:{game.link}:{user.id}"
     lock = redis_client.hget(key, str(gu.id))
     if not lock:
         raise HTTPException(status_code=400, detail="Move set not initialized")
     lock = json.loads(lock)
-    allowed = { (tx, ty) for tx, ty in lock["tiles"] }
+    allowed = {(tx, ty) for tx, ty in lock["tiles"]}
     if (x, y) not in allowed:
         raise HTTPException(status_code=400, detail="Illegal move for this turn")
 
@@ -5191,16 +5203,63 @@ def move_unit(
     if not unit_can_occupy_tile(special_tiles, x, y, unit_types, ability_names):
         raise HTTPException(status_code=400, detail="This unit cannot move onto this tile")
 
-    gu.current_x = x
-    gu.current_y = y
+    occupied_tiles = {
+        (unit.current_x, unit.current_y)
+        for unit in db.query(GameUnit)
+        .filter(GameUnit.game_id == game.id, GameUnit.id != gu.id, GameUnit.current_hp > 0)
+        .all()
+    }
+    enemy_blocked_tiles = occupied_tiles if not unit_can_pass_through_units(unit_types) else set()
+
+    base_costs = map_obj.tile_data["movement_cost"]
+    effective_costs = build_movement_cost_grid(
+        base_costs,
+        special_tiles,
+        unit_types,
+        ability_names,
+    )
+    final_x, final_y, slid = resolve_movement_destination(
+        gu.current_x,
+        gu.current_y,
+        x,
+        y,
+        effective_costs,
+        special_tiles,
+        map_obj.width,
+        map_obj.height,
+        unit_types,
+        ability_names,
+        blocked_tiles=enemy_blocked_tiles,
+        occupied_tiles=occupied_tiles,
+    )
+
+    if (final_x, final_y) in occupied_tiles:
+        raise HTTPException(status_code=400, detail="Tile occupied")
+    if not unit_can_occupy_tile(special_tiles, final_x, final_y, unit_types, ability_names):
+        raise HTTPException(status_code=400, detail="This unit cannot move onto this tile")
+
+    gu.current_x = final_x
+    gu.current_y = final_y
+    movement_locked = slid
+    if movement_locked:
+        set_movement_locked(game.link, gu.id)
     db.commit()
 
     redis_client.publish(
         f"game_updates:{game.link}",
-        f"unit_moved:{gu.id}:{gu.user_id}:{x}:{y}"
+        f"unit_moved:{gu.id}:{gu.user_id}:{final_x}:{final_y}"
     )
 
-    return {"ok": True, "unit_id": gu.id, "x": x, "y": y}
+    return {
+        "ok": True,
+        "unit_id": gu.id,
+        "x": final_x,
+        "y": final_y,
+        "requested_x": x,
+        "requested_y": y,
+        "slid": slid,
+        "movement_locked": movement_locked,
+    }
 
 @router.get("/{link}/state", response_model=GameStateSchema)
 def get_game_state(

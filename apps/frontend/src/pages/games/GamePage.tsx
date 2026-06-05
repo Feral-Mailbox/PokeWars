@@ -16,6 +16,7 @@ import {
   buildMovementCostGrid,
   filterMovementTilesForUnit,
   getMovementRangeWithTerrain,
+  resolveMovementDestination,
   unitCanPassThroughUnits,
 } from "@/utils/mapMovement";
 
@@ -129,6 +130,7 @@ export default function GamePage() {
   const lockedUnitRef = useRef<any | null>(null);
   const activeUnit = lockedUnit ?? hoveredUnit;
   const frozenMovesRef = useRef<Record<number, MovementLockCache>>({});
+  const movementLockedUnitIdsRef = useRef<Set<number>>(new Set());
   const preMoveStateRef = useRef<{
     lockedUnit: any | null;
     hoveredUnit: any | null;
@@ -1584,15 +1586,104 @@ export default function GamePage() {
     }
   }
 
-  async function sendMove(unitId: number, x: number, y: number) {
+  function getOccupiedTileKeySet(ignoreUnitId?: number): Set<string> {
+    const occupied = new Set<string>();
+    for (const u of placedUnitsRef.current) {
+      if (!isActivePlacedUnit(u)) continue;
+      if (ignoreUnitId != null && u.id === ignoreUnitId) continue;
+      occupied.add(`${u.tile[0]},${u.tile[1]}`);
+    }
+    return occupied;
+  }
+
+  function resolveUnitMoveDestination(
+    unitState: PlacedUnitState,
+    fromTile: [number, number],
+    toTile: [number, number],
+  ): { x: number; y: number; slid: boolean } {
+    const map = gameDataRef.current?.map;
+    const costMap = map?.tile_data?.movement_cost;
+    const specialTiles = getMapSpecialTiles();
+    const width = map?.width;
+    const height = map?.height;
+    if (!costMap || !width || !height) {
+      return { x: toTile[0], y: toTile[1], slid: false };
+    }
+
+    const unitTypes = getUnitTypesForMovement(unitState);
+    const effectiveCosts = buildMovementCostGrid(
+      costMap,
+      specialTiles,
+      unitTypes,
+    );
+    const occupied = getOccupiedTileKeySet(unitState.id);
+    const blocked = unitCanPassThroughUnits(unitTypes) ? new Set<string>() : occupied;
+
+    return resolveMovementDestination(
+      fromTile[0],
+      fromTile[1],
+      toTile[0],
+      toTile[1],
+      effectiveCosts,
+      specialTiles,
+      width,
+      height,
+      unitTypes,
+      undefined,
+      blocked,
+      occupied,
+    );
+  }
+
+  function lockUnitMovement(unitId: number) {
+    movementLockedUnitIdsRef.current.add(unitId);
+    setHighlightedTiles([]);
+    setUnitOriginalTile(null);
+  }
+
+  function clearMovementLocks() {
+    movementLockedUnitIdsRef.current = new Set();
+  }
+
+  async function sendMove(
+    unitId: number,
+    x: number,
+    y: number,
+    fromTile?: [number, number],
+  ) {
     try {
-      await secureFetch(`/api/games/${gameLinkRef.current}/move`, {
+      const res = await secureFetch(`/api/games/${gameLinkRef.current}/move`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unit_id: unitId, x, y }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setToastMessage(err?.detail ?? "Move failed; resyncing.");
+        if (fromTile) {
+          applyUnitTile(unitId, fromTile);
+        }
+        movementLockedUnitIdsRef.current.delete(unitId);
+        requestAnimationFrame(() => refreshMovementLockOccupancy());
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      if (typeof data?.x === "number" && typeof data?.y === "number") {
+        applyUnitTile(unitId, [data.x, data.y]);
+      }
+      if (data?.movement_locked) {
+        lockUnitMovement(unitId);
+      } else {
+        movementLockedUnitIdsRef.current.delete(unitId);
+        requestAnimationFrame(() => refreshMovementLockOccupancy());
+      }
     } catch {
       setToastMessage("Move failed; resyncing.");
+      if (fromTile) {
+        applyUnitTile(unitId, fromTile);
+      }
+      movementLockedUnitIdsRef.current.delete(unitId);
       const r = await secureFetch(`/api/games/${gameData.link}`);
       if (r.ok) setGameData(normalizeGameData(await r.json()));
     }
@@ -1641,6 +1732,7 @@ export default function GamePage() {
     if (!link) return;
 
     applyUnitTile(unitId, startTile);
+    movementLockedUnitIdsRef.current.delete(unitId);
 
     try {
       const res = await secureFetch(`/api/games/${link}/revert_position`, {
@@ -2221,6 +2313,10 @@ export default function GamePage() {
         setToastMessage("This unit is locked and cannot act.");
         return;
       }
+      if (movementLockedUnitIdsRef.current.has(lockedUnit.instanceId)) {
+        setToastMessage("This unit has already moved.");
+        return;
+      }
 
       // Only allow landing inside the PRECOMPUTED tiles
       const isInRange = highlightedTiles.some(([hx, hy]) => hx === x && hy === y);
@@ -2240,18 +2336,24 @@ export default function GamePage() {
         return;
       }
       
-      setPlacedUnits(prev =>
-        prev.map(u => (u.id === lockedUnit.instanceId ? { ...u, tile: clickedTile } : u))
-      );
+      const liveUnit =
+        placedUnitsRef.current.find((p) => p.id === lockedUnit.instanceId) ?? lockedUnit;
+      const fromTile = liveUnit.tile as [number, number];
+      const resolved = resolveUnitMoveDestination(liveUnit, fromTile, clickedTile);
+      const destination: [number, number] = [resolved.x, resolved.y];
+
+      applyUnitTile(lockedUnit.instanceId, destination);
+      if (resolved.slid) {
+        lockUnitMovement(lockedUnit.instanceId);
+      }
 
       lastOriginRef.current = "";
 
       if (hoveredMove) {
-        // wait one frame so placedUnitsRef is updated by the effect
         requestAnimationFrame(() => rebuildAttackOverlay(hoveredMove));
       }
 
-      sendMove(lockedUnit.instanceId, clickedTile[0], clickedTile[1]);
+      sendMove(lockedUnit.instanceId, clickedTile[0], clickedTile[1], fromTile);
     };
 
     canvas.addEventListener("click", handleClick);
@@ -2492,6 +2594,7 @@ export default function GamePage() {
       
       if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
         if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
+          clearMovementLocks();
           setLockedUnit(null);
           setHoveredUnit(null);
           setHighlightedTiles([]);

@@ -4,20 +4,28 @@ from app.map_movement import (
     IMPOSSIBLE_MOVEMENT_COST,
     LEDGE_DOWN,
     LEDGE_UP,
+    SAND_MOVEMENT_COST,
     build_movement_cost_grid,
     can_enter_tile,
+    find_shortest_path,
     get_grass_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
+    is_ice_tile,
     is_rock_tile,
+    is_sand_tile,
     is_valid_movement_destination,
     is_water_tile,
     ledge_allows_entry,
     movement_range_with_terrain,
+    resolve_movement_destination,
+    slide_on_ice_from,
     unit_can_cross_rock,
     unit_can_cross_water,
     unit_can_occupy_tile,
     unit_can_pass_through_units,
     unit_can_stand_on_ledge,
+    unit_ignores_ice_slide,
+    unit_ignores_sand_slow,
 )
 
 
@@ -57,6 +65,144 @@ def test_build_movement_cost_grid_blocks_water_and_rock():
     rock_unit = build_movement_cost_grid(base, special, {"rock"})
     assert rock_unit[0][1] == IMPOSSIBLE_MOVEMENT_COST
     assert rock_unit[0][2] == 1
+
+
+def test_unit_ignores_sand_slow_for_ground_flying_and_levitate():
+    assert unit_ignores_sand_slow({"ground"}) is True
+    assert unit_ignores_sand_slow({"flying"}) is True
+    assert unit_ignores_sand_slow({"ground", "flying"}) is True
+    assert unit_ignores_sand_slow({"grass"}, {"levitate"}) is True
+    assert unit_ignores_sand_slow({"grass"}, {"Levitate"}) is True
+    assert unit_ignores_sand_slow({"grass"}) is False
+    assert unit_ignores_sand_slow({"fire", "water"}) is False
+
+
+def test_build_movement_cost_grid_sets_sand_cost_for_non_exempt_units():
+    base = [[1, 1, 1]]
+    special = [[None, "sand", None]]
+
+    slow = build_movement_cost_grid(base, special, {"grass"})
+    assert slow[0][1] == SAND_MOVEMENT_COST
+    assert slow[0][0] == 1
+    assert slow[0][2] == 1
+
+    ground = build_movement_cost_grid(base, special, {"ground"})
+    assert ground[0][1] == 1
+
+    flying = build_movement_cost_grid(base, special, {"flying"})
+    assert flying[0][1] == 1
+
+    levitate = build_movement_cost_grid(base, special, {"grass"}, {"levitate"})
+    assert levitate[0][1] == 1
+
+
+def test_sand_reduces_movement_range_for_non_exempt_units():
+    base = [[1, 1, 1]]
+    special = [[None, "sand", None]]
+    effective = build_movement_cost_grid(base, special, {"grass"})
+
+    tiles = movement_range_with_terrain(
+        start=(0, 0),
+        rng=2,
+        movement_costs=effective,
+        special_tiles=special,
+        width=3,
+        height=1,
+        unit_types={"grass"},
+    )
+    coords = {(t[0], t[1]) for t in tiles}
+    assert (1, 0) in coords
+    assert (2, 0) not in coords
+
+    ground_tiles = movement_range_with_terrain(
+        start=(0, 0),
+        rng=2,
+        movement_costs=build_movement_cost_grid(base, special, {"ground"}),
+        special_tiles=special,
+        width=3,
+        height=1,
+        unit_types={"ground"},
+    )
+    ground_coords = {(t[0], t[1]) for t in ground_tiles}
+    assert (1, 0) in ground_coords
+    assert (2, 0) in ground_coords
+
+
+def test_unit_ignores_ice_slide_for_ice_flying_and_levitate():
+    assert unit_ignores_ice_slide({"ice"}) is True
+    assert unit_ignores_ice_slide({"flying"}) is True
+    assert unit_ignores_ice_slide({"ice", "flying"}) is True
+    assert unit_ignores_ice_slide({"grass"}, {"levitate"}) is True
+    assert unit_ignores_ice_slide({"grass"}, {"Levitate"}) is True
+    assert unit_ignores_ice_slide({"grass"}) is False
+    assert unit_ignores_ice_slide({"fire", "water"}) is False
+
+
+def test_slide_on_ice_from_stops_on_first_non_ice_tile():
+    special = [[None, "ice", "ice", None]]
+    costs = [[1, 1, 1, 1]]
+    assert slide_on_ice_from(1, 0, 1, 0, special, 4, 1, {"grass"}) == (3, 0)
+
+
+def test_slide_on_ice_from_stops_before_occupied_tile():
+    special = [[None, "ice", None, None]]
+    costs = [[1, 1, 1, 1]]
+    occupied = {(2, 0)}
+    assert slide_on_ice_from(1, 0, 1, 0, special, 4, 1, {"grass"}, occupied=occupied) == (1, 0)
+
+
+def test_resolve_movement_destination_slides_when_entering_ice():
+    special = [[None, "ice", "ice", None]]
+    costs = [[1, 1, 1, 1]]
+
+    final_x, final_y, slid = resolve_movement_destination(
+        0, 0, 1, 0, costs, special, 4, 1, {"grass"}
+    )
+    assert slid is True
+    assert (final_x, final_y) == (3, 0)
+
+    ice_unit_x, ice_unit_y, ice_slid = resolve_movement_destination(
+        0, 0, 1, 0, costs, special, 4, 1, {"ice"}
+    )
+    assert ice_slid is False
+    assert (ice_unit_x, ice_unit_y) == (1, 0)
+
+    flying_x, flying_y, flying_slid = resolve_movement_destination(
+        0, 0, 2, 0, costs, special, 4, 1, {"flying"}
+    )
+    assert flying_slid is False
+    assert (flying_x, flying_y) == (2, 0)
+
+
+def test_resolve_movement_destination_does_not_retrigger_slide_from_ice_to_ice():
+    special = [["ice", "ice", None]]
+    costs = [[1, 1, 1]]
+
+    final_x, final_y, slid = resolve_movement_destination(
+        0, 0, 2, 0, costs, special, 3, 1, {"grass"}
+    )
+    assert slid is False
+    assert (final_x, final_y) == (2, 0)
+
+
+def test_find_shortest_path_reaches_destination():
+    costs = [[1, 1, 1]]
+    path = find_shortest_path((0, 0), (2, 0), costs, None, 3, 1, {"grass"})
+    assert path == [(0, 0), (1, 0), (2, 0)]
+
+
+def test_is_ice_tile_reads_special_tiles_grid():
+    special = [[None, "ice"], ["Ice", None]]
+    assert is_ice_tile(special, 1, 0) is True
+    assert is_ice_tile(special, 0, 1) is True
+    assert is_ice_tile(special, 0, 0) is False
+
+
+def test_is_sand_tile_reads_special_tiles_grid():
+    special = [[None, "sand"], ["Sand", None]]
+    assert is_sand_tile(special, 1, 0) is True
+    assert is_sand_tile(special, 0, 1) is True
+    assert is_sand_tile(special, 0, 0) is False
 
 
 def test_build_movement_cost_grid_sets_ledge_cost_zero_for_ground_units():
@@ -132,6 +278,9 @@ def test_grass_tile_defense_multiplier():
     assert get_grass_defense_multiplier(special, 1, 0, {"grass", "bug"}) == pytest.approx(1.2)
     assert get_grass_defense_multiplier(special, 0, 0, {"fire"}) == 1.0
     assert get_grass_defense_multiplier(special, 1, 0, {"flying"}) == 1.0
+    assert get_grass_defense_multiplier(
+        special, 1, 0, {"grass"}, {"levitate"}
+    ) == 1.0
 
 
 def test_movement_range_skips_impassable_water_tiles():

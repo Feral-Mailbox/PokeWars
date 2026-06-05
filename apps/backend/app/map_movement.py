@@ -5,6 +5,9 @@ from __future__ import annotations
 WATER_TILE = "water"
 ROCK_TILE = "rock"
 GRASS_TILE = "grass"
+SAND_TILE = "sand"
+SAND_MOVEMENT_COST = 2
+ICE_TILE = "ice"
 GRASS_BASE_DODGE_RATE = 0.10
 GRASS_BUG_DODGE_RATE = 0.20
 GRASS_BASE_DEFENSE_BOOST = 0.10
@@ -52,6 +55,14 @@ def is_ledge_tile(special_tiles: list | None, x: int, y: int) -> bool:
 
 def is_grass_tile(special_tiles: list | None, x: int, y: int) -> bool:
     return get_special_tile(special_tiles, x, y) == GRASS_TILE
+
+
+def is_sand_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == SAND_TILE
+
+
+def is_ice_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == ICE_TILE
 
 
 def target_receives_grass_tile_bonuses(
@@ -104,7 +115,10 @@ def get_grass_defense_multiplier(
     target_types: set[str] | None = None,
     target_ability_names: set[str] | None = None,
 ) -> float:
-    """Grass tiles boost physical and special defense for defenders on the tile."""
+    """Grass tiles boost defense/sp. def for defenders on the tile.
+
+    Flying types and Levitate do not receive this boost.
+    """
     if not is_grass_tile(special_tiles, target_x, target_y):
         return 1.0
     if not target_receives_grass_tile_bonuses(target_types, target_ability_names):
@@ -165,6 +179,176 @@ def unit_can_stand_on_ledge(
 def unit_can_pass_through_units(unit_types: set[str]) -> bool:
     """Ghost types can pathfind through allied and enemy units."""
     return "ghost" in _normalized_types(unit_types)
+
+
+def unit_ignores_sand_slow(
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+) -> bool:
+    """Ground and Flying types, and Levitate, move through sand at normal cost."""
+    normalized_types = _normalized_types(unit_types)
+    if normalized_types.intersection({"ground", "flying"}):
+        return True
+    return unit_has_levitate(unit_types, ability_names)
+
+
+def unit_ignores_ice_slide(
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+) -> bool:
+    """Ice and Flying types, and Levitate, do not slide on ice tiles."""
+    normalized_types = _normalized_types(unit_types)
+    if normalized_types.intersection({"ice", "flying"}):
+        return True
+    return unit_has_levitate(unit_types, ability_names)
+
+
+def _normalize_step_direction(dx: int, dy: int) -> tuple[int, int]:
+    ndx = 0 if dx == 0 else (1 if dx > 0 else -1)
+    ndy = 0 if dy == 0 else (1 if dy > 0 else -1)
+    return ndx, ndy
+
+
+def find_shortest_path(
+    start: tuple[int, int],
+    end: tuple[int, int],
+    movement_costs: list[list[int]],
+    special_tiles: list | None,
+    width: int,
+    height: int,
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+    blocked_tiles: set[tuple[int, int]] | None = None,
+) -> list[tuple[int, int]] | None:
+    """Return one shortest orthogonal path from start to end, or None if unreachable."""
+    from collections import deque
+
+    sx, sy = start
+    ex, ey = end
+    if (sx, sy) == (ex, ey):
+        return [(sx, sy)]
+
+    blocked_tiles = blocked_tiles or set()
+    parent: dict[tuple[int, int], tuple[int, int]] = {}
+    q = deque([(sx, sy)])
+    seen: set[tuple[int, int]] = {(sx, sy)}
+    dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+    while q:
+        x, y = q.popleft()
+        if (x, y) == (ex, ey):
+            path: list[tuple[int, int]] = [(ex, ey)]
+            cur = (ex, ey)
+            while cur in parent:
+                cur = parent[cur]
+                path.append(cur)
+            path.reverse()
+            return path
+
+        for dx, dy in dirs:
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < width and 0 <= ny < height):
+                continue
+            nxt = (nx, ny)
+            if nxt in blocked_tiles or nxt in seen:
+                continue
+            if not can_enter_tile(special_tiles, x, y, nx, ny, unit_types, ability_names):
+                continue
+            step_cost = movement_costs[ny][nx]
+            if step_cost >= IMPOSSIBLE_MOVEMENT_COST:
+                continue
+            seen.add(nxt)
+            parent[nxt] = (x, y)
+            q.append(nxt)
+
+    return None
+
+
+def slide_on_ice_from(
+    ice_x: int,
+    ice_y: int,
+    dx: int,
+    dy: int,
+    special_tiles: list | None,
+    width: int,
+    height: int,
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+    occupied_tiles: set[tuple[int, int]] | None = None,
+) -> tuple[int, int]:
+    """Slide from an ice tile in (dx, dy) until landing on the first non-ice tile."""
+    occupied_tiles = occupied_tiles or set()
+    x, y = ice_x, ice_y
+    while True:
+        nx, ny = x + dx, y + dy
+        if not (0 <= nx < width and 0 <= ny < height):
+            return x, y
+        if (nx, ny) in occupied_tiles:
+            return x, y
+        if not unit_can_occupy_tile(special_tiles, nx, ny, unit_types, ability_names):
+            return x, y
+        if not is_ice_tile(special_tiles, nx, ny):
+            return nx, ny
+        x, y = nx, ny
+
+
+def resolve_movement_destination(
+    from_x: int,
+    from_y: int,
+    to_x: int,
+    to_y: int,
+    movement_costs: list[list[int]],
+    special_tiles: list | None,
+    width: int,
+    height: int,
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+    blocked_tiles: set[tuple[int, int]] | None = None,
+    occupied_tiles: set[tuple[int, int]] | None = None,
+) -> tuple[int, int, bool]:
+    """Resolve final tile after movement, applying ice slide when entering ice."""
+    if unit_ignores_ice_slide(unit_types, ability_names):
+        return to_x, to_y, False
+
+    path = find_shortest_path(
+        (from_x, from_y),
+        (to_x, to_y),
+        movement_costs,
+        special_tiles,
+        width,
+        height,
+        unit_types,
+        ability_names,
+        blocked_tiles,
+    )
+    if not path:
+        return to_x, to_y, False
+
+    for idx in range(1, len(path)):
+        px, py = path[idx]
+        prev_x, prev_y = path[idx - 1]
+        if not is_ice_tile(special_tiles, px, py):
+            continue
+        if is_ice_tile(special_tiles, prev_x, prev_y):
+            continue
+        dx, dy = _normalize_step_direction(px - prev_x, py - prev_y)
+        if dx == 0 and dy == 0:
+            continue
+        fx, fy = slide_on_ice_from(
+            px,
+            py,
+            dx,
+            dy,
+            special_tiles,
+            width,
+            height,
+            unit_types,
+            ability_names,
+            occupied_tiles,
+        )
+        return fx, fy, True
+
+    return to_x, to_y, False
 
 
 def ledge_allows_entry(
@@ -232,6 +416,7 @@ def build_movement_cost_grid(
     can_water = unit_can_cross_water(unit_types, ability_names)
     can_rock = unit_can_cross_rock(unit_types, ability_names)
     can_stand_on_ledge = unit_can_stand_on_ledge(unit_types, ability_names)
+    ignores_sand_slow = unit_ignores_sand_slow(unit_types, ability_names)
 
     height = len(base_costs)
     effective: list[list[int]] = []
@@ -247,6 +432,8 @@ def build_movement_cost_grid(
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
             elif tile in LEDGE_TILES and not can_stand_on_ledge:
                 new_row.append(0)
+            elif tile == SAND_TILE and not ignores_sand_slow:
+                new_row.append(SAND_MOVEMENT_COST)
             else:
                 new_row.append(row[x])
         effective.append(new_row)

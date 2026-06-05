@@ -1,6 +1,9 @@
 export const WATER_TILE = "water";
 export const ROCK_TILE = "rock";
 export const GRASS_TILE = "grass";
+export const SAND_TILE = "sand";
+export const SAND_MOVEMENT_COST = 2;
+export const ICE_TILE = "ice";
 export const LEDGE_UP = "ledge_up";
 export const LEDGE_DOWN = "ledge_down";
 export const LEDGE_LEFT = "ledge_left";
@@ -47,6 +50,22 @@ export function isRockTile(
   y: number
 ): boolean {
   return getSpecialTile(specialTiles, x, y) === ROCK_TILE;
+}
+
+export function isSandTile(
+  specialTiles: unknown[][] | null | undefined,
+  x: number,
+  y: number
+): boolean {
+  return getSpecialTile(specialTiles, x, y) === SAND_TILE;
+}
+
+export function isIceTile(
+  specialTiles: unknown[][] | null | undefined,
+  x: number,
+  y: number
+): boolean {
+  return getSpecialTile(specialTiles, x, y) === ICE_TILE;
 }
 
 export function isLedgeTile(
@@ -110,6 +129,172 @@ export function unitCanPassThroughUnits(
   return normalizedTypes(types).has("ghost");
 }
 
+export function unitIgnoresSandSlow(
+  types: string[] | null | undefined,
+  abilityNames?: string[] | null
+): boolean {
+  const normalized = normalizedTypes(types);
+  if (normalized.has("ground") || normalized.has("flying")) return true;
+  return unitHasLevitate(types, abilityNames);
+}
+
+export function unitIgnoresIceSlide(
+  types: string[] | null | undefined,
+  abilityNames?: string[] | null
+): boolean {
+  const normalized = normalizedTypes(types);
+  if (normalized.has("ice") || normalized.has("flying")) return true;
+  return unitHasLevitate(types, abilityNames);
+}
+
+function normalizeStepDirection(dx: number, dy: number): [number, number] {
+  const ndx = dx === 0 ? 0 : dx > 0 ? 1 : -1;
+  const ndy = dy === 0 ? 0 : dy > 0 ? 1 : -1;
+  return [ndx, ndy];
+}
+
+export function findShortestPath(
+  start: [number, number],
+  end: [number, number],
+  movementCosts: number[][],
+  specialTiles: unknown[][] | null | undefined,
+  width: number,
+  height: number,
+  unitTypes: string[] | null | undefined,
+  abilityNames?: string[] | null,
+  blockedTiles?: Set<string>
+): [number, number][] | null {
+  const [sx, sy] = start;
+  const [ex, ey] = end;
+  if (sx === ex && sy === ey) return [start];
+
+  const blocked = blockedTiles ?? new Set<string>();
+  const parent = new Map<string, [number, number]>();
+  const queue: [number, number][] = [[sx, sy]];
+  const seen = new Set<string>([`${sx},${sy}`]);
+  const directions: [number, number][] = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+
+  while (queue.length > 0) {
+    const [x, y] = queue.shift()!;
+    if (x === ex && y === ey) {
+      const path: [number, number][] = [[ex, ey]];
+      let cur: [number, number] = [ex, ey];
+      while (parent.has(`${cur[0]},${cur[1]}`)) {
+        cur = parent.get(`${cur[0]},${cur[1]}`)!;
+        path.push(cur);
+      }
+      path.reverse();
+      return path;
+    }
+
+    for (const [dx, dy] of directions) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+      const key = `${nx},${ny}`;
+      if (blocked.has(key) || seen.has(key)) continue;
+      if (!canEnterTile(specialTiles, x, y, nx, ny, unitTypes, abilityNames)) continue;
+      const stepCost = movementCosts[ny][nx];
+      if (stepCost >= IMPOSSIBLE_MOVEMENT_COST) continue;
+      seen.add(key);
+      parent.set(key, [x, y]);
+      queue.push([nx, ny]);
+    }
+  }
+
+  return null;
+}
+
+export function slideOnIceFrom(
+  iceX: number,
+  iceY: number,
+  dx: number,
+  dy: number,
+  specialTiles: unknown[][] | null | undefined,
+  width: number,
+  height: number,
+  unitTypes: string[] | null | undefined,
+  abilityNames?: string[] | null,
+  occupiedTiles?: Set<string>
+): [number, number] {
+  const occupied = occupiedTiles ?? new Set<string>();
+  let x = iceX;
+  let y = iceY;
+
+  while (true) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= width || ny >= height) return [x, y];
+    const key = `${nx},${ny}`;
+    if (occupied.has(key)) return [x, y];
+    if (!unitCanOccupyTile(specialTiles, nx, ny, unitTypes, abilityNames)) return [x, y];
+    if (!isIceTile(specialTiles, nx, ny)) return [nx, ny];
+    x = nx;
+    y = ny;
+  }
+}
+
+export function resolveMovementDestination(
+  fromX: number,
+  fromY: number,
+  toX: number,
+  toY: number,
+  movementCosts: number[][],
+  specialTiles: unknown[][] | null | undefined,
+  width: number,
+  height: number,
+  unitTypes: string[] | null | undefined,
+  abilityNames?: string[] | null,
+  blockedTiles?: Set<string>,
+  occupiedTiles?: Set<string>
+): { x: number; y: number; slid: boolean } {
+  if (unitIgnoresIceSlide(unitTypes, abilityNames)) {
+    return { x: toX, y: toY, slid: false };
+  }
+
+  const path = findShortestPath(
+    [fromX, fromY],
+    [toX, toY],
+    movementCosts,
+    specialTiles,
+    width,
+    height,
+    unitTypes,
+    abilityNames,
+    blockedTiles
+  );
+  if (!path) return { x: toX, y: toY, slid: false };
+
+  for (let idx = 1; idx < path.length; idx++) {
+    const [px, py] = path[idx];
+    const [prevX, prevY] = path[idx - 1];
+    if (!isIceTile(specialTiles, px, py)) continue;
+    if (isIceTile(specialTiles, prevX, prevY)) continue;
+    const [dx, dy] = normalizeStepDirection(px - prevX, py - prevY);
+    if (dx === 0 && dy === 0) continue;
+    const [fx, fy] = slideOnIceFrom(
+      px,
+      py,
+      dx,
+      dy,
+      specialTiles,
+      width,
+      height,
+      unitTypes,
+      abilityNames,
+      occupiedTiles
+    );
+    return { x: fx, y: fy, slid: true };
+  }
+
+  return { x: toX, y: toY, slid: false };
+}
+
 export function ledgeAllowsEntry(
   tile: string,
   fromX: number,
@@ -169,6 +354,7 @@ export function buildMovementCostGrid(
   const canWater = unitCanCrossWater(unitTypes, abilityNames);
   const canRock = unitCanCrossRock(unitTypes, abilityNames);
   const canStandOnLedge = unitCanStandOnLedge(unitTypes, abilityNames);
+  const ignoresSandSlow = unitIgnoresSandSlow(unitTypes, abilityNames);
 
   return baseCosts.map((row, y) =>
     row.map((cost, x) => {
@@ -176,6 +362,7 @@ export function buildMovementCostGrid(
       if (tile === WATER_TILE && !canWater) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile === ROCK_TILE && !canRock) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile != null && LEDGE_TILES.has(tile) && !canStandOnLedge) return 0;
+      if (tile === SAND_TILE && !ignoresSandSlow) return SAND_MOVEMENT_COST;
       return cost;
     })
   );
