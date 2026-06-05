@@ -6,6 +6,7 @@ from app.map_movement import (
     LEDGE_UP,
     build_movement_cost_grid,
     can_enter_tile,
+    get_grass_incoming_accuracy_multiplier,
     is_rock_tile,
     is_valid_movement_destination,
     is_water_tile,
@@ -54,6 +55,36 @@ def test_build_movement_cost_grid_blocks_water_and_rock():
     rock_unit = build_movement_cost_grid(base, special, {"rock"})
     assert rock_unit[0][1] == IMPOSSIBLE_MOVEMENT_COST
     assert rock_unit[0][2] == 1
+
+
+def test_build_movement_cost_grid_sets_ledge_cost_zero_for_ground_units():
+    base = [[2, 2]]
+    special = [["ledge_up", "ledge_down"]]
+
+    ground = build_movement_cost_grid(base, special, {"grass"})
+    assert ground[0][0] == 0
+    assert ground[0][1] == 0
+
+    flying = build_movement_cost_grid(base, special, {"flying"})
+    assert flying[0][0] == 2
+    assert flying[0][1] == 2
+
+    levitate = build_movement_cost_grid(base, special, {"grass"}, {"levitate"})
+    assert levitate[0][0] == 2
+
+
+def test_grass_tile_incoming_accuracy_multiplier():
+    special = [[None, "grass"]]
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"fire"}) == 0.8
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"grass"}) == 1.0
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"bug"}) == 1.0
+    assert get_grass_incoming_accuracy_multiplier(special, 0, 0, {"fire"}) == 1.0
+    assert get_grass_incoming_accuracy_multiplier(
+        special, 1, 0, {"fire"}, {"flying"}
+    ) == 1.0
+    assert get_grass_incoming_accuracy_multiplier(
+        special, 1, 0, {"fire"}, {"grass"}, {"levitate"}
+    ) == 1.0
 
 
 def test_movement_range_skips_impassable_water_tiles():

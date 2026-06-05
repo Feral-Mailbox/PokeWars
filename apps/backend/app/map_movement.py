@@ -4,6 +4,7 @@ from __future__ import annotations
 
 WATER_TILE = "water"
 ROCK_TILE = "rock"
+GRASS_TILE = "grass"
 LEDGE_UP = "ledge_up"
 LEDGE_DOWN = "ledge_down"
 LEDGE_LEFT = "ledge_left"
@@ -43,6 +44,32 @@ def is_rock_tile(special_tiles: list | None, x: int, y: int) -> bool:
 def is_ledge_tile(special_tiles: list | None, x: int, y: int) -> bool:
     tile = get_special_tile(special_tiles, x, y)
     return tile in LEDGE_TILES if tile else False
+
+
+def is_grass_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == GRASS_TILE
+
+
+def get_grass_incoming_accuracy_multiplier(
+    special_tiles: list | None,
+    target_x: int,
+    target_y: int,
+    attacker_types: set[str],
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float:
+    """Grass tiles reduce incoming move accuracy by 20% unless attacker is Grass/Bug
+    or the defender is Flying or has Levitate."""
+    if not is_grass_tile(special_tiles, target_x, target_y):
+        return 1.0
+    if _normalized_types(attacker_types).intersection({"grass", "bug"}):
+        return 1.0
+    if target_types is not None:
+        if "flying" in _normalized_types(target_types):
+            return 1.0
+        if unit_has_levitate(target_types, target_ability_names):
+            return 1.0
+    return 0.8
 
 
 def _normalized_types(unit_types: set[str]) -> set[str]:
@@ -152,10 +179,12 @@ def build_movement_cost_grid(
     unit_types: set[str],
     ability_names: set[str] | None = None,
 ) -> list[list[int]]:
+    if not special_tiles:
+        return base_costs
+
     can_water = unit_can_cross_water(unit_types, ability_names)
     can_rock = unit_can_cross_rock(unit_types, ability_names)
-    if (can_water and can_rock) or not special_tiles:
-        return base_costs
+    can_stand_on_ledge = unit_can_stand_on_ledge(unit_types, ability_names)
 
     height = len(base_costs)
     effective: list[list[int]] = []
@@ -165,8 +194,12 @@ def build_movement_cost_grid(
         new_row: list[int] = []
         for x in range(width):
             tile = get_special_tile(special_tiles, x, y)
-            if (tile == WATER_TILE and not can_water) or (tile == ROCK_TILE and not can_rock):
+            if tile == WATER_TILE and not can_water:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
+            elif tile == ROCK_TILE and not can_rock:
+                new_row.append(IMPOSSIBLE_MOVEMENT_COST)
+            elif tile in LEDGE_TILES and not can_stand_on_ledge:
+                new_row.append(0)
             else:
                 new_row.append(row[x])
         effective.append(new_row)

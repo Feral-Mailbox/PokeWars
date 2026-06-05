@@ -16,6 +16,7 @@ from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
 from app.dependencies import get_db, get_current_user
 from app.map_movement import (
     build_movement_cost_grid,
+    get_grass_incoming_accuracy_multiplier,
     movement_range_with_terrain,
     unit_can_occupy_tile,
     IMPOSSIBLE_MOVEMENT_COST,
@@ -1054,7 +1055,16 @@ def get_accuracy_stage_multiplier(attacker_accuracy_stage: int, target_evasion_s
     return 3 / (3 - adjusted_stage)
 
 
-def get_modified_accuracy_threshold(move_accuracy: int | None, attacker: GameUnit, target: GameUnit) -> float | None:
+def get_modified_accuracy_threshold(
+    move_accuracy: int | None,
+    attacker: GameUnit,
+    target: GameUnit,
+    *,
+    special_tiles: list | None = None,
+    attacker_types: set[str] | None = None,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float | None:
     """
     Compute the hit threshold from move base accuracy and accuracy/evasion stages.
     Returns None for perfect-accuracy moves.
@@ -1071,17 +1081,42 @@ def get_modified_accuracy_threshold(move_accuracy: int | None, attacker: GameUni
     target_evasion_stage = get_stat_stage(target.stat_boosts, "evasion")
     stage_multiplier = get_accuracy_stage_multiplier(attacker_accuracy_stage, target_evasion_stage)
 
-    # Modifier bucket (abilities, weather, etc.) can be layered in later.
     modifier = 1.0
+    if special_tiles is not None and attacker_types is not None:
+        modifier *= get_grass_incoming_accuracy_multiplier(
+            special_tiles,
+            int(target.current_x),
+            int(target.current_y),
+            attacker_types,
+            target_types,
+            target_ability_names,
+        )
     return max(0.0, base_accuracy * modifier * stage_multiplier)
 
 
-def move_lands_on_target(move: Move, attacker: GameUnit, target: GameUnit) -> bool:
+def move_lands_on_target(
+    move: Move,
+    attacker: GameUnit,
+    target: GameUnit,
+    *,
+    special_tiles: list | None = None,
+    attacker_types: set[str] | None = None,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> bool:
     """
     True if move lands on target based on modified accuracy threshold.
     If move has no accuracy (null), it is treated as perfect accuracy.
     """
-    threshold = get_modified_accuracy_threshold(move.accuracy, attacker, target)
+    threshold = get_modified_accuracy_threshold(
+        move.accuracy,
+        attacker,
+        target,
+        special_tiles=special_tiles,
+        attacker_types=attacker_types,
+        target_types=target_types,
+        target_ability_names=target_ability_names,
+    )
     if threshold is None:
         return True
     if threshold <= 0:
@@ -4420,6 +4455,14 @@ def execute_move(
 
     publish_system_log_event(game.link, f"{get_unit_display_name(gu, db)} used {move.name}", state, db)
 
+    map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    special_tiles = (
+        map_obj.tile_data.get("special_tiles")
+        if map_obj and isinstance(map_obj.tile_data, dict)
+        else None
+    )
+    attacker_types = get_unit_types(gu, db)
+
     # Check and decrement PP
     unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
     if not unit_info or not unit_info.move_ids:
@@ -4521,7 +4564,15 @@ def execute_move(
                 landed_targets.append(target)
                 continue
 
-            if move_lands_on_target(move, gu, target):
+            if move_lands_on_target(
+                move,
+                gu,
+                target,
+                special_tiles=special_tiles,
+                attacker_types=attacker_types,
+                target_types=get_unit_types(target, db),
+                target_ability_names=get_unit_ability_names(target, db),
+            ):
                 landed_targets.append(target)
             else:
                 missed_target_ids.append(target.id)

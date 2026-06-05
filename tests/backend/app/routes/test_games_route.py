@@ -1335,14 +1335,6 @@ def test_movement_range_backend_allies_are_pass_through_when_not_blocked():
     assert [2, 0] in tiles
 
 
-def test_get_modified_accuracy_threshold_returns_none_for_perfect_accuracy_move():
-    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
-    target = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
-
-    threshold = get_modified_accuracy_threshold(None, attacker, target)
-    assert threshold is None
-
-
 def test_get_modified_accuracy_threshold_applies_accuracy_minus_evasion_stages():
     attacker = models.GameUnit(
         stat_boosts={
@@ -1371,6 +1363,57 @@ def test_get_modified_accuracy_threshold_applies_accuracy_minus_evasion_stages()
     threshold = get_modified_accuracy_threshold(75, attacker, target)
     assert threshold is not None
     assert threshold == pytest.approx(100.0)
+
+
+def test_get_modified_accuracy_threshold_returns_none_for_perfect_accuracy_move():
+    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+    target = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+
+    threshold = get_modified_accuracy_threshold(None, attacker, target)
+    assert threshold is None
+
+
+def test_get_modified_accuracy_threshold_applies_grass_tile_penalty():
+    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+    target = models.GameUnit(
+        stat_boosts={"accuracy": [], "evasion": []},
+        current_x=1,
+        current_y=0,
+    )
+    special = [[None, "grass"]]
+
+    threshold = get_modified_accuracy_threshold(
+        100,
+        attacker,
+        target,
+        special_tiles=special,
+        attacker_types={"fire"},
+    )
+    assert threshold == pytest.approx(80.0)
+
+    grass_attacker = get_modified_accuracy_threshold(
+        100,
+        attacker,
+        target,
+        special_tiles=special,
+        attacker_types={"grass"},
+    )
+    assert grass_attacker == pytest.approx(100.0)
+
+    flying_target = models.GameUnit(
+        stat_boosts={"accuracy": [], "evasion": []},
+        current_x=1,
+        current_y=0,
+    )
+    flying_threshold = get_modified_accuracy_threshold(
+        100,
+        attacker,
+        flying_target,
+        special_tiles=special,
+        attacker_types={"fire"},
+        target_types={"flying"},
+    )
+    assert flying_threshold == pytest.approx(100.0)
 
 
 def test_move_lands_on_target_uses_accuracy_threshold(db, monkeypatch):
