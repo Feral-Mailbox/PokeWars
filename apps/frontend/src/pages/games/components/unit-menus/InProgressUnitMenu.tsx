@@ -19,6 +19,8 @@ type InProgressUnitMenuProps = {
   onMoveSelect: (move: any) => void;
   onExecuteMove: () => void;
   onCancelMove: () => void;
+  onWait: () => void;
+  showWaitButton?: boolean;
   getPlayerColor: (playerId: number) => string;
 };
 
@@ -35,6 +37,8 @@ export default function InProgressUnitMenu({
   onMoveSelect,
   onExecuteMove,
   onCancelMove,
+  onWait,
+  showWaitButton = false,
   getPlayerColor,
 }: InProgressUnitMenuProps) {
   const unit = activeUnit.unit;
@@ -75,6 +79,19 @@ export default function InProgressUnitMenu({
         onMoveHoverEnd={onMoveHoverEnd}
         onMoveSelect={onMoveSelect}
       />
+
+      {showWaitButton && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onWait();
+          }}
+          className="mt-3 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+        >
+          Wait
+        </button>
+      )}
 
       {moveTargeting && selectedMove && (
         <>

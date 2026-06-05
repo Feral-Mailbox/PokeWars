@@ -3130,6 +3130,115 @@ def set_next_playable_turn_after_current(game: Game, state: GameState, current_p
 
     return playable_players, eliminated_players, completed_now
 
+
+def advance_turn_if_player_has_no_actions(
+    game: Game,
+    state: GameState,
+    current_player_id: int,
+    db: Session,
+    removed_ids: List[int] | None = None,
+) -> tuple[List[int], bool, bool]:
+    """
+    If the current player has no units with can_move remaining, advance the turn.
+    Returns (removed_ids, turn_advanced, game_completed).
+    """
+    remaining_units = (
+        db.query(GameUnit)
+        .filter(
+            GameUnit.game_id == game.id,
+            GameUnit.user_id == current_player_id,
+            GameUnit.can_move == True,
+        )
+        .count()
+    )
+    if remaining_units > 0:
+        return removed_ids or [], False, False
+
+    removed_ids = list(removed_ids or [])
+
+    units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+    for unit in units_to_sync:
+        unit.starting_x = unit.current_x
+        unit.starting_y = unit.current_y
+
+    end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
+    if should_apply_round_weather:
+        end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
+        end_turn_modified_unit_ids.update(
+            apply_end_of_round_entry_hazard_effects(game.id, state.current_turn, db)
+        )
+        decrement_and_expire_hazards(game.id, db)
+
+    end_turn_removed_ids = remove_fainted_units_from_play(game.id, db)
+    if end_turn_removed_ids:
+        removed_ids = list(set(removed_ids + end_turn_removed_ids))
+
+    remaining_units_after_end_turn_damage = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+    remaining_players_after_end_turn_damage = {unit.user_id for unit in remaining_units_after_end_turn_damage}
+    if len(remaining_players_after_end_turn_damage) == 1:
+        state.status = GameStatus.completed
+        state.winner_id = next(iter(remaining_players_after_end_turn_damage))
+        winner_name = get_username_by_id(state.winner_id, db)
+        publish_system_log_event(game.link, f"{winner_name} won", state, db)
+        db.commit()
+        for unit_id in removed_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return removed_ids, False, True
+
+    current_player_units = (
+        db.query(GameUnit)
+        .filter(GameUnit.game_id == game.id, GameUnit.user_id == current_player_id)
+        .all()
+    )
+    for unit in current_player_units:
+        unit.can_move = True
+
+    playable_players, _, completed_now = set_next_playable_turn_after_current(
+        game, state, current_player_id, db
+    )
+    if completed_now:
+        db.commit()
+        for unit_id in removed_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return removed_ids, False, True
+
+    if not playable_players:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    new_current_player_id = playable_players[state.current_turn % len(playable_players)]
+    modified_unit_ids = set(end_turn_modified_unit_ids)
+    modified_unit_ids.update(decrement_and_expire_stat_boosts(new_current_player_id, game.id, db))
+    modified_unit_ids.update(
+        decrement_and_expire_status_effects(new_current_player_id, game.id, db, game, state)
+    )
+    removed_ids.extend(remove_fainted_units_from_play(game.id, db))
+
+    for unit_id in modified_unit_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+
+    if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
+        state.status = GameStatus.completed
+        db.commit()
+        for unit_id in removed_ids:
+            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return removed_ids, False, True
+
+    now = datetime.now(timezone.utc)
+    state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
+    compute_turn_locks(game, state, db)
+    publish_turn_start_logs(game, state, db)
+    db.commit()
+    for unit_id in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+    redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    return removed_ids, True, False
+
+
 def get_draw_player_ids(game: Game, state: GameState, db: Session) -> List[int]:
     counts = get_remaining_unit_counts(game.id, db)
     if not counts:
@@ -4802,6 +4911,137 @@ def execute_move(
         "missed_target_ids": missed_target_ids,
         "removed_ids": removed_ids
     }
+
+@router.post("/{link}/wait")
+def wait_unit(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        unit_id = int(payload.get("unit_id"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only wait with your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit is locked")
+
+    gu.can_move = False
+    db.flush()
+
+    removed_ids, turn_advanced, game_completed = advance_turn_if_player_has_no_actions(
+        game, state, current_player_id, db
+    )
+    if not turn_advanced and not game_completed:
+        db.commit()
+
+    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    for rid in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{rid}")
+
+    return {
+        "ok": True,
+        "unit_id": gu.id,
+        "turn_advanced": turn_advanced,
+        "game_completed": game_completed,
+        "removed_ids": removed_ids,
+    }
+
+
+@router.post("/{link}/revert_position")
+def revert_unit_position(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        unit_id = int(payload.get("unit_id"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only revert your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit has already acted")
+
+    if gu.current_x == gu.starting_x and gu.current_y == gu.starting_y:
+        return {
+            "ok": True,
+            "unit_id": gu.id,
+            "x": gu.current_x,
+            "y": gu.current_y,
+            "reverted": False,
+        }
+
+    gu.current_x = gu.starting_x
+    gu.current_y = gu.starting_y
+    db.commit()
+
+    redis_client.publish(
+        f"game_updates:{game.link}",
+        f"unit_moved:{gu.id}:{gu.user_id}:{gu.current_x}:{gu.current_y}",
+    )
+
+    return {
+        "ok": True,
+        "unit_id": gu.id,
+        "x": gu.current_x,
+        "y": gu.current_y,
+        "reverted": True,
+    }
+
 
 @router.post("/{link}/move")
 def move_unit(

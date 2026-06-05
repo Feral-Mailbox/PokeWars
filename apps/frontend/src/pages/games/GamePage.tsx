@@ -122,7 +122,7 @@ export default function GamePage() {
   const gameDataRef = useRef(gameData);
   const lockedUnitRef = useRef<any | null>(null);
   const activeUnit = lockedUnit ?? hoveredUnit;
-  const frozenMovesRef = useRef<Record<number, { origin: [number, number]; tiles: [number, number][] }>>({});
+  const frozenMovesRef = useRef<Record<number, MovementLockCache>>({});
   const preMoveStateRef = useRef<{
     lockedUnit: any | null;
     hoveredUnit: any | null;
@@ -546,14 +546,13 @@ export default function GamePage() {
     return gameDataRef.current?.map?.tile_data?.special_tiles;
   }
 
-  function getMovementOverlayTiles(
+  function getRawMovementOverlayTiles(
     start: [number, number],
     range: number,
     movementCosts: number[][],
     width: number,
     height: number,
     unitUserId: number,
-    ignoreUnitId?: number,
     unitTypes?: string[] | null,
     unitAbilityNames?: string[] | null
   ): [number, number][] {
@@ -576,8 +575,31 @@ export default function GamePage() {
       unitAbilityNames,
       blockedTiles
     );
-    const open = filterOccupiedTiles(tiles, ignoreUnitId);
-    return filterMovementTilesForUnit(open, specialTiles, unitTypes, unitAbilityNames);
+    return filterMovementTilesForUnit(tiles, specialTiles, unitTypes, unitAbilityNames);
+  }
+
+  function getMovementOverlayTiles(
+    start: [number, number],
+    range: number,
+    movementCosts: number[][],
+    width: number,
+    height: number,
+    unitUserId: number,
+    ignoreUnitId?: number,
+    unitTypes?: string[] | null,
+    unitAbilityNames?: string[] | null
+  ): [number, number][] {
+    const raw = getRawMovementOverlayTiles(
+      start,
+      range,
+      movementCosts,
+      width,
+      height,
+      unitUserId,
+      unitTypes,
+      unitAbilityNames
+    );
+    return filterOccupiedTiles(raw, ignoreUnitId);
   }
 
   function getUnitTypesForMovement(unitState: any): string[] {
@@ -600,11 +622,22 @@ export default function GamePage() {
   }
 
   type MovementLock = { origin: [number, number]; tiles: [number, number][] };
+  type MovementLockCache = { origin: [number, number]; baseTiles: [number, number][] };
 
-  function computeMovementTilesFromOrigin(
+  function sanitizeMovementLock(
+    cache: MovementLockCache,
+    unitState: PlacedUnitState,
+  ): MovementLock {
+    return {
+      origin: cache.origin,
+      tiles: sanitizeMovementTilesForUnit(cache.baseTiles, unitState, unitState.id),
+    };
+  }
+
+  function computeMovementCacheFromOrigin(
     unitState: PlacedUnitState,
     origin: [number, number],
-  ): MovementLock | null {
+  ): MovementLockCache | null {
     const map = gameDataRef.current?.map;
     const costMap = map?.tile_data?.movement_cost;
     const width = map?.width;
@@ -613,17 +646,16 @@ export default function GamePage() {
     if (!Array.isArray(origin) || origin.length < 2) return null;
 
     const movement = getCurrentMovementRange(unitState);
-    const tiles = getMovementOverlayTiles(
+    const baseTiles = getRawMovementOverlayTiles(
       origin,
       movement,
       costMap,
       width,
       height,
       unitState.user_id,
-      unitState.id,
       getUnitTypesForMovement(unitState),
     );
-    return { origin, tiles };
+    return { origin, baseTiles };
   }
 
   function ingestTurnlock(
@@ -631,14 +663,13 @@ export default function GamePage() {
     units: PlacedUnitState[] = placedUnitsRef.current,
   ) {
     const unitsById = new Map(units.map((u) => [u.id, u]));
-    const next: Record<number, MovementLock> = {};
+    const next: Record<number, MovementLockCache> = {};
     for (const [k, v] of Object.entries(locks)) {
       const unitId = Number(k);
-      const unit = unitsById.get(unitId);
-      if (!unit) continue;
+      if (!unitsById.has(unitId)) continue;
       next[unitId] = {
         origin: v.origin,
-        tiles: sanitizeMovementTilesForUnit(v.tiles, unit, unitId),
+        baseTiles: v.tiles,
       };
     }
     frozenMovesRef.current = next;
@@ -652,28 +683,29 @@ export default function GamePage() {
     ingestTurnlock(locks, units ?? placedUnitsRef.current);
   }
 
-  /** Movement range is fixed from turn-start origin until the next turn. */
-  function getMovementLockForUnit(unitState: PlacedUnitState): MovementLock | null {
+  function getMovementCacheForUnit(unitState: PlacedUnitState): MovementLockCache | null {
     const unitId = unitState.id;
 
     if (gameDataRef.current?.status === "in_progress") {
       const cached = frozenMovesRef.current[unitId];
-      if (cached) {
-        return {
-          origin: cached.origin,
-          tiles: sanitizeMovementTilesForUnit(cached.tiles, unitState, unitId),
-        };
-      }
+      if (cached) return cached;
 
       const origin = unitState.start_tile ?? unitState.tile;
-      const fallback = computeMovementTilesFromOrigin(unitState, origin);
+      const fallback = computeMovementCacheFromOrigin(unitState, origin);
       if (fallback) {
         frozenMovesRef.current[unitId] = fallback;
       }
       return fallback;
     }
 
-    return computeMovementTilesFromOrigin(unitState, unitState.tile);
+    return computeMovementCacheFromOrigin(unitState, unitState.tile);
+  }
+
+  /** Movement range is fixed from turn-start origin until the next turn. */
+  function getMovementLockForUnit(unitState: PlacedUnitState): MovementLock | null {
+    const cache = getMovementCacheForUnit(unitState);
+    if (!cache) return null;
+    return sanitizeMovementLock(cache, unitState);
   }
 
   function applyMovementLockToUi(lock: MovementLock | null) {
@@ -686,26 +718,15 @@ export default function GamePage() {
     setUnitOriginalTile(lock.origin);
   }
 
-  /** Re-filter turnlock tiles for occupancy without changing range origin. */
+  /** Re-filter movement tiles for live occupancy without mutating cached range. */
   function refreshMovementLockOccupancy() {
     if (gameDataRef.current?.status !== "in_progress") return;
-
-    const units = placedUnitsRef.current;
-    for (const unit of units) {
-      if (!isActivePlacedUnit(unit)) continue;
-      const existing = frozenMovesRef.current[unit.id];
-      if (!existing) continue;
-      frozenMovesRef.current[unit.id] = {
-        origin: existing.origin,
-        tiles: sanitizeMovementTilesForUnit(existing.tiles, unit, unit.id),
-      };
-    }
 
     const locked = lockedUnitRef.current;
     if (!locked) return;
 
     const unitId = locked.instanceId ?? locked.id;
-    const live = units.find((p) => p.id === unitId);
+    const live = placedUnitsRef.current.find((p) => p.id === unitId);
     if (!live || live.can_move === false || !isActivePlacedUnit(live)) {
       applyMovementLockToUi(null);
       return;
@@ -1395,7 +1416,7 @@ export default function GamePage() {
     );
   }
 
-  function handleMoveSelect(move: any) {
+  async function handleMoveSelect(move: any) {
     if (!activeUnit) return;
     if (!isMyTurn) {
       setToastMessage("You can only use moves on your turn.");
@@ -1420,11 +1441,13 @@ export default function GamePage() {
     }
 
     if (!lockedUnit || lockedUnit.instanceId !== activeUnit.instanceId) {
+      if (lockedUnit && lockedUnit.instanceId !== activeUnit.instanceId) {
+        await revertUncommittedMovement(getLivePlacedUnit(lockedUnit));
+      }
       const unitId = activeUnit.instanceId;
       const live = placedUnitsRef.current.find((p) => p.id === unitId) ?? activeUnit;
       const lock = getMovementLockForUnit(live);
       if (lock) {
-        frozenMovesRef.current[unitId] = lock;
         applyMovementLockToUi(lock);
       }
       setLockedUnit(activeUnit);
@@ -1445,6 +1468,67 @@ export default function GamePage() {
     }
   }
 
+  async function handleWait() {
+    if (!activeUnit) return;
+    if (!isMyTurn) {
+      setToastMessage("You can only wait on your turn.");
+      return;
+    }
+    if (activeUnit.user_id !== userId) {
+      setToastMessage("You can only wait with your own unit.");
+      return;
+    }
+    if (activeUnit.can_move === false) {
+      setToastMessage("This unit is locked and cannot act.");
+      return;
+    }
+
+    const activeId = activeUnit.instanceId ?? activeUnit.id;
+    const link = gameLinkRef.current;
+    if (!link) return;
+
+    const res = await secureFetch(`/api/games/${link}/wait`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: activeId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setToastMessage(err?.detail ?? "Unable to wait with this unit.");
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    const removedSet = new Set<number>(
+      Array.isArray(data?.removed_ids) ? data.removed_ids.map(Number) : []
+    );
+
+    const lockUnit = (prev: any) => {
+      if (!prev) return prev;
+      const id = prev.instanceId ?? prev.id;
+      if (removedSet.has(id)) return null;
+      if (id === activeId) return { ...prev, can_move: false };
+      return prev;
+    };
+
+    setPlacedUnits((prev) =>
+      prev
+        .filter((u) => !removedSet.has(u.id))
+        .map((u) => (u.id === activeId ? { ...u, can_move: false } : u))
+    );
+    setLockedUnit(lockUnit);
+    setHoveredUnit(lockUnit);
+    setHighlightedTiles([]);
+    setUnitOriginalTile(null);
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
+    preMoveStateRef.current = null;
+  }
+
   function handleMoveCancel() {
     setMoveTargeting(false);
     setSelectedMove(null);
@@ -1463,7 +1547,6 @@ export default function GamePage() {
         const live = placedUnitsRef.current.find((p) => p.id === unitId) ?? locked;
         const lock = getMovementLockForUnit(live);
         if (lock) {
-          frozenMovesRef.current[unitId] = lock;
           applyMovementLockToUi(lock);
         } else {
           setHighlightedTiles(snapshot.highlightedTiles);
@@ -1503,6 +1586,86 @@ export default function GamePage() {
       const r = await secureFetch(`/api/games/${gameData.link}`);
       if (r.ok) setGameData(normalizeGameData(await r.json()));
     }
+  }
+
+  function getLivePlacedUnit(unit: PlacedUnitState | null | undefined): PlacedUnitState | null {
+    if (!unit) return null;
+    const unitId = unit.id ?? (unit as { instanceId?: number }).instanceId;
+    if (unitId == null) return null;
+    return placedUnitsRef.current.find((p) => p.id === unitId) ?? unit;
+  }
+
+  function hasUncommittedMove(unit: PlacedUnitState | null | undefined): boolean {
+    const live = getLivePlacedUnit(unit);
+    if (!live || live.can_move === false) return false;
+    const [tx, ty] = live.tile;
+    const [sx, sy] = live.start_tile;
+    return tx !== sx || ty !== sy;
+  }
+
+  function applyUnitTile(unitId: number, tile: [number, number]) {
+    setPlacedUnits((prev) => {
+      const next = prev.map((u) => (u.id === unitId ? { ...u, tile } : u));
+      placedUnitsRef.current = next;
+      return next;
+    });
+    setLockedUnit((prev) => {
+      if (!prev) return prev;
+      const id = prev.instanceId ?? prev.id;
+      return id === unitId ? { ...prev, tile } : prev;
+    });
+    setHoveredUnit((prev) => {
+      if (!prev) return prev;
+      const id = prev.instanceId ?? prev.id;
+      return id === unitId ? { ...prev, tile } : prev;
+    });
+  }
+
+  async function revertUncommittedMovement(unit: PlacedUnitState | null | undefined) {
+    const live = getLivePlacedUnit(unit);
+    if (!live || !hasUncommittedMove(live)) return;
+
+    const unitId = live.id;
+    const startTile = live.start_tile as [number, number];
+    const link = gameLinkRef.current;
+    if (!link) return;
+
+    applyUnitTile(unitId, startTile);
+
+    try {
+      const res = await secureFetch(`/api/games/${link}/revert_position`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unit_id: unitId }),
+      });
+      if (!res.ok) {
+        throw new Error("revert failed");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (typeof data?.x === "number" && typeof data?.y === "number") {
+        applyUnitTile(unitId, [data.x, data.y]);
+      }
+    } catch {
+      setToastMessage("Failed to reset unit position; resyncing.");
+      const unitsRes = await secureFetch(`/api/games/${link}/units`);
+      if (unitsRes.ok) {
+        const backendUnits = await unitsRes.json();
+        setPlacedUnits(backendUnits.map(mapPlacedUnitFromBackend));
+      }
+    }
+
+    requestAnimationFrame(() => refreshMovementLockOccupancy());
+  }
+
+  async function releaseLockedUnitMenu() {
+    const prev = lockedUnitRef.current;
+    if (prev) {
+      await revertUncommittedMovement(getLivePlacedUnit(prev));
+    }
+    setLockedUnit(null);
+    setHoveredUnit(null);
+    setHighlightedTiles([]);
+    setUnitOriginalTile(null);
   }
 
 
@@ -1896,8 +2059,7 @@ export default function GamePage() {
 
       // If the click is NOT on a unit or on the menu, clear both
       if (!clickedUnit && !clickedMenu && !clickedOverlay) {
-        setLockedUnit(null);
-        setHoveredUnit(null);
+        void releaseLockedUnitMenu();
       }
     };
 
@@ -2054,10 +2216,7 @@ export default function GamePage() {
       const isInRange = highlightedTiles.some(([hx, hy]) => hx === x && hy === y);
 
       if (!isInRange) {
-        setLockedUnit(null);
-        setHoveredUnit(null);
-        setHighlightedTiles([]);
-        setUnitOriginalTile(null);
+        void releaseLockedUnitMenu();
         return;
       }
 
@@ -2591,7 +2750,7 @@ export default function GamePage() {
     }
   };
 
-  const handleMapUnitClick = (unitState: any) => {
+  const handleMapUnitClick = async (unitState: any) => {
     if (moveTargeting) return;
 
     if (gameData?.status === "preparation") {
@@ -2603,22 +2762,27 @@ export default function GamePage() {
     if (gameData?.status !== "in_progress") return;
 
     const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
-    setLockedUnit((prev) => {
-      const isSameInstance = prev?.instanceId === unitState.id;
-      if (isSameInstance) {
-        setHighlightedTiles([]);
-        setUnitOriginalTile(null);
-        return null;
-      }
+    const prev = lockedUnitRef.current;
+    const isSameInstance = prev?.instanceId === unitState.id || prev?.id === unitState.id;
 
-      const lock = getMovementLockForUnit(live);
-      if (lock) {
-        frozenMovesRef.current[unitState.id] = lock;
-        applyMovementLockToUi(lock);
-      }
+    if (isSameInstance) {
+      await revertUncommittedMovement(getLivePlacedUnit(prev));
+      setHighlightedTiles([]);
+      setUnitOriginalTile(null);
+      setLockedUnit(null);
+      return;
+    }
 
-      return toActiveUnitView(live);
-    });
+    if (prev) {
+      await revertUncommittedMovement(getLivePlacedUnit(prev));
+    }
+
+    const lock = getMovementLockForUnit(live);
+    if (lock) {
+      applyMovementLockToUi(lock);
+    }
+
+    setLockedUnit(toActiveUnitView(live));
   };
 
   const handleSendChat = async () => {
@@ -2858,6 +3022,13 @@ export default function GamePage() {
               onMoveSelect={handleMoveSelect}
               onExecuteMove={handleExecuteMove}
               onCancelMove={handleMoveCancel}
+              onWait={handleWait}
+              showWaitButton={
+                isMyTurn &&
+                userId != null &&
+                activeUnit.user_id === userId &&
+                activeUnit.can_move !== false
+              }
               getPlayerColor={getPlayerColor}
             />
           );
