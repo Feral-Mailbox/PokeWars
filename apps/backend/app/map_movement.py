@@ -5,6 +5,10 @@ from __future__ import annotations
 WATER_TILE = "water"
 ROCK_TILE = "rock"
 GRASS_TILE = "grass"
+GRASS_BASE_DODGE_RATE = 0.10
+GRASS_BUG_DODGE_RATE = 0.20
+GRASS_BASE_DEFENSE_BOOST = 0.10
+GRASS_TYPE_DEFENSE_BOOST = 0.20
 LEDGE_UP = "ledge_up"
 LEDGE_DOWN = "ledge_down"
 LEDGE_LEFT = "ledge_left"
@@ -50,26 +54,64 @@ def is_grass_tile(special_tiles: list | None, x: int, y: int) -> bool:
     return get_special_tile(special_tiles, x, y) == GRASS_TILE
 
 
+def target_receives_grass_tile_bonuses(
+    target_types: set[str] | None,
+    target_ability_names: set[str] | None = None,
+) -> bool:
+    """Flying and Levitate defenders do not benefit from grass tile cover."""
+    if target_types is None:
+        return True
+    normalized = _normalized_types(target_types)
+    if "flying" in normalized:
+        return False
+    return not unit_has_levitate(target_types, target_ability_names)
+
+
+def get_grass_dodge_rate(
+    special_tiles: list | None,
+    target_x: int,
+    target_y: int,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float:
+    """Return dodge rate (0.0-1.0) for a defender standing on grass."""
+    if not is_grass_tile(special_tiles, target_x, target_y):
+        return 0.0
+    if not target_receives_grass_tile_bonuses(target_types, target_ability_names):
+        return 0.0
+    if "bug" in _normalized_types(target_types or set()):
+        return GRASS_BUG_DODGE_RATE
+    return GRASS_BASE_DODGE_RATE
+
+
 def get_grass_incoming_accuracy_multiplier(
     special_tiles: list | None,
     target_x: int,
     target_y: int,
-    attacker_types: set[str],
     target_types: set[str] | None = None,
     target_ability_names: set[str] | None = None,
 ) -> float:
-    """Grass tiles reduce incoming move accuracy by 20% unless attacker is Grass/Bug
-    or the defender is Flying or has Levitate."""
+    """Convert grass-tile dodge rate into an incoming accuracy multiplier."""
+    return 1.0 - get_grass_dodge_rate(
+        special_tiles, target_x, target_y, target_types, target_ability_names
+    )
+
+
+def get_grass_defense_multiplier(
+    special_tiles: list | None,
+    target_x: int,
+    target_y: int,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float:
+    """Grass tiles boost physical and special defense for defenders on the tile."""
     if not is_grass_tile(special_tiles, target_x, target_y):
         return 1.0
-    if _normalized_types(attacker_types).intersection({"grass", "bug"}):
+    if not target_receives_grass_tile_bonuses(target_types, target_ability_names):
         return 1.0
-    if target_types is not None:
-        if "flying" in _normalized_types(target_types):
-            return 1.0
-        if unit_has_levitate(target_types, target_ability_names):
-            return 1.0
-    return 0.8
+    if "grass" in _normalized_types(target_types or set()):
+        return 1.0 + GRASS_TYPE_DEFENSE_BOOST
+    return 1.0 + GRASS_BASE_DEFENSE_BOOST
 
 
 def _normalized_types(unit_types: set[str]) -> set[str]:

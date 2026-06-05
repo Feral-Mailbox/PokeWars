@@ -6,6 +6,7 @@ from app.map_movement import (
     LEDGE_UP,
     build_movement_cost_grid,
     can_enter_tile,
+    get_grass_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
     is_rock_tile,
     is_valid_movement_destination,
@@ -111,16 +112,26 @@ def test_ghost_units_pathfind_through_blocked_unit_tiles():
 
 def test_grass_tile_incoming_accuracy_multiplier():
     special = [[None, "grass"]]
-    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"fire"}) == 0.8
-    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"grass"}) == 1.0
-    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"bug"}) == 1.0
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"fire"}) == pytest.approx(0.9)
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"grass"}) == pytest.approx(0.9)
+    assert get_grass_incoming_accuracy_multiplier(special, 1, 0, {"bug"}) == pytest.approx(0.8)
     assert get_grass_incoming_accuracy_multiplier(special, 0, 0, {"fire"}) == 1.0
     assert get_grass_incoming_accuracy_multiplier(
-        special, 1, 0, {"fire"}, {"flying"}
+        special, 1, 0, {"flying"}
     ) == 1.0
     assert get_grass_incoming_accuracy_multiplier(
-        special, 1, 0, {"fire"}, {"grass"}, {"levitate"}
+        special, 1, 0, {"grass"}, {"levitate"}
     ) == 1.0
+
+
+def test_grass_tile_defense_multiplier():
+    special = [[None, "grass"]]
+    assert get_grass_defense_multiplier(special, 1, 0, {"fire"}) == pytest.approx(1.1)
+    assert get_grass_defense_multiplier(special, 1, 0, {"grass"}) == pytest.approx(1.2)
+    assert get_grass_defense_multiplier(special, 1, 0, {"bug"}) == pytest.approx(1.1)
+    assert get_grass_defense_multiplier(special, 1, 0, {"grass", "bug"}) == pytest.approx(1.2)
+    assert get_grass_defense_multiplier(special, 0, 0, {"fire"}) == 1.0
+    assert get_grass_defense_multiplier(special, 1, 0, {"flying"}) == 1.0
 
 
 def test_movement_range_skips_impassable_water_tiles():

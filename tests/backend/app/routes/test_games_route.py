@@ -1387,9 +1387,9 @@ def test_get_modified_accuracy_threshold_applies_grass_tile_penalty():
         attacker,
         target,
         special_tiles=special,
-        attacker_types={"fire"},
+        target_types={"fire"},
     )
-    assert threshold == pytest.approx(80.0)
+    assert threshold == pytest.approx(90.0)
 
     grass_attacker = get_modified_accuracy_threshold(
         100,
@@ -1397,8 +1397,23 @@ def test_get_modified_accuracy_threshold_applies_grass_tile_penalty():
         target,
         special_tiles=special,
         attacker_types={"grass"},
+        target_types={"fire"},
     )
-    assert grass_attacker == pytest.approx(100.0)
+    assert grass_attacker == pytest.approx(90.0)
+
+    bug_target = models.GameUnit(
+        stat_boosts={"accuracy": [], "evasion": []},
+        current_x=1,
+        current_y=0,
+    )
+    bug_threshold = get_modified_accuracy_threshold(
+        100,
+        attacker,
+        bug_target,
+        special_tiles=special,
+        target_types={"bug"},
+    )
+    assert bug_threshold == pytest.approx(80.0)
 
     flying_target = models.GameUnit(
         stat_boosts={"accuracy": [], "evasion": []},

@@ -16,6 +16,7 @@ from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
 from app.dependencies import get_db, get_current_user
 from app.map_movement import (
     build_movement_cost_grid,
+    get_grass_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
     movement_range_with_terrain,
     unit_can_occupy_tile,
@@ -1083,12 +1084,11 @@ def get_modified_accuracy_threshold(
     stage_multiplier = get_accuracy_stage_multiplier(attacker_accuracy_stage, target_evasion_stage)
 
     modifier = 1.0
-    if special_tiles is not None and attacker_types is not None:
+    if special_tiles is not None and target_types is not None:
         modifier *= get_grass_incoming_accuracy_multiplier(
             special_tiles,
             int(target.current_x),
             int(target.current_y),
-            attacker_types,
             target_types,
             target_ability_names,
         )
@@ -4679,7 +4679,14 @@ def execute_move(
                     defense = (target.current_stats or {}).get(attack_stat, defense)
                 target_weather_id = get_unit_weather_id(target, weather_tiles)
                 weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
-                effective_defense = defense * weather_defense_multiplier
+                grass_defense_multiplier = get_grass_defense_multiplier(
+                    special_tiles,
+                    int(target.current_x),
+                    int(target.current_y),
+                    get_unit_types(target, db),
+                    get_unit_ability_names(target, db),
+                )
+                effective_defense = defense * weather_defense_multiplier * grass_defense_multiplier
                 safe_defense = effective_defense if effective_defense > 0 else 1
                 random_factor = random.randint(85, 100) / 100
                 # Apply Laser Focus: force first hit to be a critical and consume the state
