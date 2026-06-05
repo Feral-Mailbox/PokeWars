@@ -120,6 +120,11 @@ def unit_can_stand_on_ledge(
     return unit_has_levitate(unit_types, ability_names)
 
 
+def unit_can_pass_through_units(unit_types: set[str]) -> bool:
+    """Ghost types can pathfind through allied and enemy units."""
+    return "ghost" in _normalized_types(unit_types)
+
+
 def ledge_allows_entry(
     tile: str,
     from_x: int,

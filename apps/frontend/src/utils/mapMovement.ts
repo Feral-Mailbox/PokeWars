@@ -104,6 +104,12 @@ export function unitCanStandOnLedge(
   return unitHasLevitate(types, abilityNames);
 }
 
+export function unitCanPassThroughUnits(
+  types: string[] | null | undefined
+): boolean {
+  return normalizedTypes(types).has("ghost");
+}
+
 export function ledgeAllowsEntry(
   tile: string,
   fromX: number,

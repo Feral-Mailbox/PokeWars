@@ -15,6 +15,7 @@ from app.map_movement import (
     unit_can_cross_rock,
     unit_can_cross_water,
     unit_can_occupy_tile,
+    unit_can_pass_through_units,
     unit_can_stand_on_ledge,
 )
 
@@ -71,6 +72,41 @@ def test_build_movement_cost_grid_sets_ledge_cost_zero_for_ground_units():
 
     levitate = build_movement_cost_grid(base, special, {"grass"}, {"levitate"})
     assert levitate[0][0] == 2
+
+
+def test_unit_can_pass_through_units_for_ghost_type():
+    assert unit_can_pass_through_units({"ghost"}) is True
+    assert unit_can_pass_through_units({"ghost", "poison"}) is True
+    assert unit_can_pass_through_units({"grass"}) is False
+
+
+def test_ghost_units_pathfind_through_blocked_unit_tiles():
+    costs = [[1, 1, 1]]
+    tiles = movement_range_with_terrain(
+        start=(0, 0),
+        rng=3,
+        movement_costs=costs,
+        special_tiles=None,
+        width=3,
+        height=1,
+        unit_types={"ghost"},
+        blocked_tiles={(1, 0)},
+    )
+    coords = {(t[0], t[1]) for t in tiles}
+    assert (2, 0) in coords
+
+    blocked = movement_range_with_terrain(
+        start=(0, 0),
+        rng=3,
+        movement_costs=costs,
+        special_tiles=None,
+        width=3,
+        height=1,
+        unit_types={"normal"},
+        blocked_tiles={(1, 0)},
+    )
+    blocked_coords = {(t[0], t[1]) for t in blocked}
+    assert (2, 0) not in blocked_coords
 
 
 def test_grass_tile_incoming_accuracy_multiplier():

@@ -16,6 +16,7 @@ import {
   buildMovementCostGrid,
   filterMovementTilesForUnit,
   getMovementRangeWithTerrain,
+  unitCanPassThroughUnits,
 } from "@/utils/mapMovement";
 
 const TILE_SIZE = 16;
@@ -26,7 +27,12 @@ function isActivePlacedUnit(unit: { current_hp?: number }): boolean {
   return (unit.current_hp ?? 0) > 0;
 }
 
-function getBlockedTilesByEnemy(placedUnits: any[], unitUserId: number): Set<string> {
+function getBlockedTilesByEnemy(
+  placedUnits: any[],
+  unitUserId: number,
+  unitTypes?: string[] | null
+): Set<string> {
+  if (unitCanPassThroughUnits(unitTypes)) return new Set();
   const blocked = new Set<string>();
   for (const u of placedUnits) {
     // Only living enemy units block pathfinding; allied units do not
@@ -563,7 +569,11 @@ export default function GamePage() {
       unitTypes,
       unitAbilityNames
     );
-    const blockedTiles = getBlockedTilesByEnemy(placedUnitsRef.current, unitUserId);
+    const blockedTiles = getBlockedTilesByEnemy(
+      placedUnitsRef.current,
+      unitUserId,
+      unitTypes
+    );
     const tiles = getMovementRangeWithTerrain(
       start,
       range,

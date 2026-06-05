@@ -19,6 +19,7 @@ from app.map_movement import (
     get_grass_incoming_accuracy_multiplier,
     movement_range_with_terrain,
     unit_can_occupy_tile,
+    unit_can_pass_through_units,
     IMPOSSIBLE_MOVEMENT_COST,
 )
 
@@ -3555,6 +3556,11 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
         rng = int(current_stats.get("range", 0) or 0)
         unit_types = get_unit_types(gu, db)
         ability_names = get_unit_ability_names(gu, db)
+        blocked_tiles = (
+            set()
+            if unit_can_pass_through_units(unit_types)
+            else enemy_blocked_tiles
+        )
         effective_costs = build_movement_cost_grid(
             costs,
             special_tiles,
@@ -3570,7 +3576,7 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
             height,
             unit_types,
             ability_names,
-            enemy_blocked_tiles,
+            blocked_tiles,
         )
         redis_client.hset(
             key, str(gu.id),
