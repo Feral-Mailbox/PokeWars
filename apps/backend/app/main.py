@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import sessionmaker
+from app.startup import run_startup_tasks
 from app.db.database import get_sessionmaker
 from app.db.models import Game, GameState, GameStatus
 
@@ -44,6 +45,8 @@ async def lifespan(app: FastAPI):
         print("Background scheduler started")
     except Exception as e:
         print(f"Failed to start scheduler: {e}")
+
+    run_startup_tasks()
     
     yield
     
@@ -66,7 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.routes import auth, games, maps, moves, user, units, ws
+from app.routes import auth, games, maps, moves, user, units, ws, moderation, admin
 
 app.include_router(auth.router)
 app.include_router(games.router)
@@ -75,3 +78,5 @@ app.include_router(moves.router)
 app.include_router(user.router)
 app.include_router(units.router)
 app.include_router(ws.router)
+app.include_router(moderation.router)
+app.include_router(admin.router)

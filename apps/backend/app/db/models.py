@@ -32,6 +32,35 @@ class GameMode(str, enum.Enum):
     war = "War"
     capture_the_flag = "Capture The Flag"
 
+class UserRole(str, enum.Enum):
+    user = "user"
+    moderator = "moderator"
+    admin = "admin"
+
+class InfractionStatus(str, enum.Enum):
+    pending_review = "pending_review"
+    reviewed = "reviewed"
+    dismissed = "dismissed"
+    action_taken = "action_taken"
+
+class InfractionSeverity(str, enum.Enum):
+    slur = "slur"
+
+class StaffActionType(str, enum.Enum):
+    dismiss = "dismiss"
+    warn = "warn"
+    mute = "mute"
+    temp_ban = "temp_ban"
+    perm_ban = "perm_ban"
+    unban = "unban"
+    promote_moderator = "promote_moderator"
+    demote_moderator = "demote_moderator"
+    promote_admin = "promote_admin"
+    demote_admin = "demote_admin"
+
+class RestrictionType(str, enum.Enum):
+    mute = "mute"
+
 # ======================
 # USER
 # ======================
@@ -45,6 +74,12 @@ class User(Base):
     avatar = Column(String, default="default.png")
     elo = Column(Integer, default=1000)
     currency = Column(Integer, default=0)
+    role = Column(Enum(UserRole), default=UserRole.user, nullable=False)
+    is_banned = Column(Boolean, default=False, nullable=False)
+    banned_at = Column(DateTime(timezone=True), nullable=True)
+    banned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    ban_reason = Column(String, nullable=True)
+    ban_expires_at = Column(DateTime(timezone=True), nullable=True)
     
     maps = relationship("Map", back_populates="creator")
     game_states = relationship("GamePlayer", back_populates="player")
@@ -322,6 +357,62 @@ class Ability(Base):
     name = Column(String, unique=True, nullable=False)
     description = Column(String, nullable=True)
     effect = Column(JSON, nullable=True)
+
+# ======================
+# MODERATION
+# ======================
+class ChatInfraction(Base):
+    __tablename__ = "chat_infractions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    game_id = Column(Integer, ForeignKey("games.id"), nullable=False, index=True)
+    original_message = Column(String, nullable=False)
+    censored_message = Column(String, nullable=False)
+    matched_terms = Column(JSON, nullable=False, default=list)
+    severity = Column(Enum(InfractionSeverity), default=InfractionSeverity.slur, nullable=False)
+    status = Column(Enum(InfractionStatus), default=InfractionStatus.pending_review, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    moderator_notes = Column(String, nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id])
+    game = relationship("Game")
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
+
+
+class StaffAction(Base):
+    __tablename__ = "staff_actions"
+
+    id = Column(Integer, primary_key=True)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    infraction_id = Column(Integer, ForeignKey("chat_infractions.id"), nullable=True)
+    action_type = Column(Enum(StaffActionType), nullable=False)
+    reason = Column(String, nullable=True)
+    action_metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    actor = relationship("User", foreign_keys=[actor_id])
+    target_user = relationship("User", foreign_keys=[target_user_id])
+    infraction = relationship("ChatInfraction")
+
+
+class UserRestriction(Base):
+    __tablename__ = "user_restrictions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    restriction_type = Column(Enum(RestrictionType), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reason = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id])
+    creator = relationship("User", foreign_keys=[created_by])
 
 # ======================
 # TOURNAMENT

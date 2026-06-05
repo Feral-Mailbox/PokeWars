@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../state/auth';
 import { useNavigate } from 'react-router-dom';
 import { secureFetch } from '@/utils/secureFetch';
+import { isStaff } from '../types/user';
+import type { User } from '../types/user';
 import logo from '../assets/react.svg';
 
 const Navbar = () => {
@@ -13,15 +15,6 @@ const Navbar = () => {
   const gamesRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  type User = {
-    id: number;
-    username: string;
-    email: string;
-    avatar: string;
-    elo: number;
-    currency: number;
-  };
 
   const [form, setForm] = useState({
     username: '',
@@ -84,7 +77,20 @@ const Navbar = () => {
       setUser(data);
       setShowDropdown(false);
     } else {
-      alert(isRegister ? 'Registration failed' : 'Login failed');
+      let message = isRegister ? 'Registration failed' : 'Login failed';
+      try {
+        const data = await res.json();
+        if (data?.detail?.message) {
+          message = data.detail.reason
+            ? `${data.detail.message}: ${data.detail.reason}`
+            : data.detail.message;
+        } else if (typeof data?.detail === 'string') {
+          message = data.detail;
+        }
+      } catch {
+        // keep default message
+      }
+      alert(message);
     }
   };
 
@@ -183,6 +189,14 @@ const Navbar = () => {
         {user ? (
           <>
             <span className="text-sm text-gray-300">Welcome, {user.username}</span>
+            {isStaff(user) && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
+              >
+                Moderation
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"

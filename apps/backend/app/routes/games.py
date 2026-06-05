@@ -13,7 +13,8 @@ from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, Game
 from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
 from app.schemas.maps import MapDetail, GameMapStateSchema
 from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
-from app.dependencies import get_db, get_current_user
+from app.dependencies import get_db, get_current_user, ensure_user_can_chat
+from app.moderation.service import apply_chat_moderation
 from app.map_movement import (
     build_movement_cost_grid,
     get_grass_defense_multiplier,
@@ -3925,7 +3926,15 @@ def send_chat_message(
     if len(message) > 300:
         raise HTTPException(status_code=400, detail="Message too long")
 
-    publish_chat_message_event(game.link, user.id, user.username, message, state, db)
+    ensure_user_can_chat(user, db)
+    censored_message, _infraction = apply_chat_moderation(
+        db,
+        user_id=user.id,
+        game_id=game.id,
+        message=message,
+    )
+
+    publish_chat_message_event(game.link, user.id, user.username, censored_message, state, db)
     db.commit()
     return {"ok": True}
 

@@ -80,6 +80,19 @@ def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     if not ok:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
+    from app.dependencies import clear_expired_ban, ban_is_active
+
+    clear_expired_ban(user, db)
+    if ban_is_active(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "message": "Account restricted",
+                "reason": user.ban_reason or "Your account has been restricted.",
+                "expires_at": user.ban_expires_at.isoformat() if user.ban_expires_at else None,
+            },
+        )
+
     response.set_cookie(
         key="session_user",
         value=str(user.id),

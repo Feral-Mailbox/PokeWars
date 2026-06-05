@@ -9,6 +9,7 @@ import JoinGame from './pages/games/JoinGame';
 import ActiveGames from './pages/games/ActiveGames';
 import CompletedGames from './pages/games/CompletedGames';
 import GamePage from './pages/games/GamePage';
+import AdminPage from './pages/admin/AdminPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/games/in-progress" element={<ActiveGames />} />
         <Route path="/games/completed" element={<CompletedGames />} />
         <Route path="/games/:gameId" element={<GamePage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WebSocketProvider>

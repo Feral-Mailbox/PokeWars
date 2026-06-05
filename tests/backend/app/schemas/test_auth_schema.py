@@ -10,5 +10,5 @@ def test_login_request_fields():
     assert model.password == "water"
 
 def test_user_response_fields():
-    model = UserResponse(id=1, username="brock", email="brock@example.com", avatar="default.png", elo=1000, currency=0)
+    model = UserResponse(id=1, username="brock", email="brock@example.com", avatar="default.png", elo=1000, currency=0, role="user")
     assert model.model_dump()["elo"] == 1000
