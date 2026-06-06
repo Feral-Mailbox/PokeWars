@@ -1,0 +1,22 @@
+{
+  "id": 705,
+  "name": "Fleur Cannon",
+  "description": "The user unleashes a strong beam. The attack's recoil harshly lowers the user's Sp. Atk stat.",
+  "type": "Fairy",
+  "category": "Special",
+  "power": 130,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "line:2:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:lower_stat:special_attack:2"
+  ]
+}

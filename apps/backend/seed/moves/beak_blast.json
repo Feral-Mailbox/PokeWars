@@ -1,0 +1,23 @@
+{
+  "id": 690,
+  "name": "Beak Blast",
+  "description": "The user first heats up its beak, and then it attacks the target. Making direct contact with the Pok\u00e9mon while it's heating up its beak results in a burn.",
+  "type": "Flying",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:beak_blast",
+    "delayed_hit:1"
+  ]
+}

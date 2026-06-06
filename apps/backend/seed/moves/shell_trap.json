@@ -1,0 +1,23 @@
+{
+  "id": 704,
+  "name": "Shell Trap",
+  "description": "The user sets a shell trap. If the user is hit by a physical move, the trap will explode and inflict damage on the opposing Pokémon.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 150,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:shell_trap",
+    "delayed_hit:1"
+  ]
+}

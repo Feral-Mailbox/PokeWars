@@ -1,0 +1,22 @@
+{
+  "id": 731,
+  "name": "Floaty Fall",
+  "description": "The user floats in the air, and then dives at a steep angle to attack the target. This may also make the target flinch.",
+  "type": "Flying",
+  "category": "Physical",
+  "power": 90,
+  "accuracy": 95,
+  "pp": 15,
+  "range": "jump_attack",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:apply_state:flinch:30"
+  ]
+}

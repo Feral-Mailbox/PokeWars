@@ -1,0 +1,22 @@
+{
+  "id": 681,
+  "name": "Power Trip",
+  "description": "The user boasts its strength and attacks the target. The more the user's stats are raised, the greater the move's power.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 20,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "stacking_power:condition:stat_changes:base:20:mod:add:max:860"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 663,
+  "name": "Darkest Lariat",
+  "description": "The user swings both arms and hits the target. The target's stat changes don't affect this attack's damage.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 85,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:ignore_stat_changes"
+  ]
+}

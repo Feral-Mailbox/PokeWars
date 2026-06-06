@@ -1,0 +1,22 @@
+{
+  "id": 733,
+  "name": "Bouncy Bubble",
+  "description": "The user attacks by shooting water bubbles at the target. It then absorbs water and restores its HP.",
+  "type": "Water",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:drain:2"
+  ]
+}

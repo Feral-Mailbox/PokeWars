@@ -1,0 +1,20 @@
+{
+  "id": 671,
+  "name": "Spotlight",
+  "description": "The user shines a spotlight on the target so that all moves are redirected to the target.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:apply_state:spotlight"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 737,
+  "name": "Baddy Bad",
+  "description": "The user acts bad and attacks the target. A wondrous wall of light is put up to weaken the power of the opposing team's special moves.",
+  "type": "Dark",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 85,
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:light_screen"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 668,
+  "name": "Strength Sap",
+  "description": "The user restores its HP by the same amount as the target's Attack stat. It also lowers the target's Attack stat.",
+  "type": "Grass",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:heal:target_stat:attack",
+    "target:lower_stat:attack:1"
+  ]
+}

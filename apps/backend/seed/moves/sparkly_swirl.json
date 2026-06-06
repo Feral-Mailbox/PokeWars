@@ -1,0 +1,22 @@
+{
+  "id": 740,
+  "name": "Sparkly Swirl",
+  "description": "The user attacks the target by wrapping it with a whirlwind of an overpowering scent. This also heals all status conditions of the user's party.",
+  "type": "Fairy",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 85,
+  "pp": 5,
+  "range": "pulse:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "team:cure_status:any"
+  ]
+}

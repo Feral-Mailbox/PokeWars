@@ -1,0 +1,20 @@
+{
+  "id": 732,
+  "name": "Pika Papow",
+  "description": "The more Pikachu loves its Trainer, the greater the move's power. It never misses.",
+  "type": "Electric",
+  "category": "Special",
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_power:return"
+  ]
+}

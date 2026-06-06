@@ -1,0 +1,19 @@
+{
+  "id": 673,
+  "name": "Laser Focus",
+  "description": "The user concentrates intensely. The attack on the next turn always results in a critical hit.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 30,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:laser_focus"
+  ]
+}
