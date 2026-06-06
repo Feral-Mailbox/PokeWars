@@ -884,6 +884,56 @@ def test_process_move_effects_conditional_heal_only_matches_first_condition(db):
     assert attacker.current_hp == 100  # 50 + 50 = 100 (capped)
 
 
+def test_process_move_effects_growth_doubles_stat_boosts_in_sun(db):
+    from app.routes.games import get_stat_stage
+
+    move = models.Move(
+        name="Growth",
+        type="grass",
+        category="Status",
+        effects=[
+            "self:raise_stat:condition:weather:sun:attack:2",
+            "self:raise_stat:condition:weather:sun:special_attack:2",
+            "self:raise_stat:condition:weather:*:attack:1",
+            "self:raise_stat:condition:weather:*:special_attack:1",
+        ],
+    )
+    attacker = models.GameUnit(status_effects=[], stat_boosts={})
+    attacker.current_x = 0
+    attacker.current_y = 0
+    weather_tiles = [[1, 0], [0, 0]]
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+
+    assert get_stat_stage(attacker.stat_boosts, "attack") == 2
+    assert get_stat_stage(attacker.stat_boosts, "sp_attack") == 2
+
+
+def test_process_move_effects_growth_normal_boosts_outside_sun(db):
+    from app.routes.games import get_stat_stage
+
+    move = models.Move(
+        name="Growth",
+        type="grass",
+        category="Status",
+        effects=[
+            "self:raise_stat:condition:weather:sun:attack:2",
+            "self:raise_stat:condition:weather:sun:special_attack:2",
+            "self:raise_stat:condition:weather:*:attack:1",
+            "self:raise_stat:condition:weather:*:special_attack:1",
+        ],
+    )
+    attacker = models.GameUnit(status_effects=[], stat_boosts={})
+    attacker.current_x = 0
+    attacker.current_y = 0
+    weather_tiles = [[0, 0], [0, 0]]
+
+    process_move_effects(move, attacker, [], current_turn=0, db=db, weather_tiles=weather_tiles)
+
+    assert get_stat_stage(attacker.stat_boosts, "attack") == 1
+    assert get_stat_stage(attacker.stat_boosts, "sp_attack") == 1
+
+
 def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, user):
     game = models.Game(
         game_name="Burn Tick Game",

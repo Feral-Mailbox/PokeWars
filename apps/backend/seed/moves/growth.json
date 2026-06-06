@@ -14,5 +14,10 @@
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["self:raise_stat:attack:1", "self:raise_stat:special_attack:1"]
+  "effects": [
+    "self:raise_stat:condition:weather:sun:attack:2",
+    "self:raise_stat:condition:weather:sun:special_attack:2",
+    "self:raise_stat:condition:weather:*:attack:1",
+    "self:raise_stat:condition:weather:*:special_attack:1"
+  ]
 }

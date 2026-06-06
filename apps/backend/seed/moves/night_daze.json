@@ -4,7 +4,7 @@
   "description": "The user lets loose a pitch-black shock wave at its target. This may also lower the target's accuracy.",
   "type": "Dark",
   "category": "Special",
-  "power": 85,
+  "power": 90,
   "accuracy": 95,
   "pp": 10,
   "range": "pulse:1",

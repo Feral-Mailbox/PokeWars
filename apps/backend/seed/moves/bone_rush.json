@@ -4,7 +4,7 @@
   "description": "The user strikes the target with a hard bone two to five times in a row.",
   "type": "Ground",
   "category": "Physical",
-  "power": 25,
+  "power": 30,
   "accuracy": 90,
   "pp": 10,
   "range": "adjacent",

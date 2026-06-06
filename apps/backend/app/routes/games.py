@@ -1534,6 +1534,8 @@ def process_move_effects(
     """
     if not move.effects:
         return
+
+    weather_raise_stat_applied: set[tuple[str, str]] = set()
     
     for effect_str in move.effects:
         raw_token = str(effect_str or "").strip()
@@ -1759,21 +1761,60 @@ def process_move_effects(
         effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
 
         if effect_type in ["raise_stat", "lower_stat"]:
-            if len(parts) < 4:
-                continue
-
-            stat_name = normalize_stat_name(parts[2])
-            try:
-                magnitude_val = int(parts[3])
-            except ValueError:
-                continue
-
+            stat_name = None
+            magnitude_val = None
             accuracy = 100
-            if len(parts) >= 5:
+
+            # Format: recipient:raise_stat:condition:weather:condition_value:stat_name:magnitude[:accuracy]
+            if len(parts) >= 7 and parts[2] == "condition" and parts[3].lower() == "weather":
+                condition_value = parts[4]
+                stat_name = normalize_stat_name(parts[5])
                 try:
-                    accuracy = int(parts[4])
+                    magnitude_val = int(parts[6])
                 except ValueError:
-                    pass
+                    continue
+
+                weather_key = (recipient, stat_name)
+                if weather_key in weather_raise_stat_applied:
+                    continue
+
+                if recipient == "self":
+                    weather_id = get_unit_weather_id(attacker, weather_tiles)
+                elif recipient == "target":
+                    if not targets:
+                        continue
+                    weather_id = get_unit_weather_id(targets[0], weather_tiles)
+                else:
+                    continue
+
+                if not weather_condition_matches(weather_id, condition_value):
+                    continue
+
+                weather_raise_stat_applied.add(weather_key)
+
+                if len(parts) >= 8:
+                    try:
+                        accuracy = int(parts[7])
+                    except ValueError:
+                        pass
+            else:
+                if len(parts) < 4:
+                    continue
+
+                stat_name = normalize_stat_name(parts[2])
+                try:
+                    magnitude_val = int(parts[3])
+                except ValueError:
+                    continue
+
+                if len(parts) >= 5:
+                    try:
+                        accuracy = int(parts[4])
+                    except ValueError:
+                        pass
+
+            if stat_name is None or magnitude_val is None:
+                continue
 
             if random.randint(1, 100) > accuracy:
                 continue
