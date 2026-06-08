@@ -4,7 +4,7 @@
   "description": "The user strikes the target with a burning lash. This also lowers the target's Defense stat.",
   "type": "Fire",
   "category": "Physical",
-  "power": 80,
+  "power": 90,
   "accuracy": 100,
   "pp": 15,
   "range": "line:2",
