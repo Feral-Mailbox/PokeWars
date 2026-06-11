@@ -201,6 +201,7 @@ def publish_turn_start_logs(game: Game, state: GameState, db: Session) -> None:
 
     current_player_id = players[current_turn_index % players_count]
     current_player_name = get_username_by_id(int(current_player_id), db)
+    snapshot_turn_stat_stages(int(current_player_id), game.id, db)
     publish_system_log_event(game.link, f"{current_player_name}'s turn", state, db)
 
 TYPE_EFFECTIVENESS = {
@@ -296,6 +297,525 @@ FIELD_HAZARD_STACK_LIMITS = {
 }
 
 FIELD_HAZARD_DEFAULT_DURATION = 5
+
+TERRAIN_TO_ID = {
+    "electric": 1,
+    "psychic": 2,
+    "grassy": 3,
+    "misty": 4,
+}
+TERRAIN_ID_TO_NAME = {value: key for key, value in TERRAIN_TO_ID.items()}
+TERRAIN_DEFAULT_DURATION = 5
+
+FIELD_EFFECT_TO_ID = {
+    "gravity": 1,
+}
+
+
+def get_unit_flags(unit: GameUnit) -> dict:
+    raw = getattr(unit, "flags", None)
+    return dict(raw) if isinstance(raw, dict) else {}
+
+
+def set_unit_flags(unit: GameUnit, flags: dict, db: Session) -> None:
+    unit.flags = dict(flags)
+    db.add(unit)
+
+
+def get_unit_held_item(unit: GameUnit) -> str | None:
+    item = get_unit_flags(unit).get("held_item")
+    if item is None:
+        return None
+    item_str = str(item).strip()
+    return item_str or None
+
+
+def unit_holds_item_type(unit: GameUnit, item_type: str) -> bool:
+    item = get_unit_held_item(unit)
+    if not item:
+        return False
+    return item_type.lower() in item.lower()
+
+
+def set_unit_held_item(unit: GameUnit, item: str | None, db: Session) -> None:
+    flags = get_unit_flags(unit)
+    if item:
+        flags["held_item"] = str(item)
+    else:
+        flags.pop("held_item", None)
+    set_unit_flags(unit, flags, db)
+
+
+def remove_unit_held_item(unit: GameUnit, db: Session) -> bool:
+    if not get_unit_held_item(unit):
+        return False
+    set_unit_held_item(unit, None, db)
+    return True
+
+
+def consume_unit_held_item(unit: GameUnit, db: Session, *, item_type: str | None = None) -> bool:
+    item = get_unit_held_item(unit)
+    if not item:
+        return False
+    if item_type and item_type.lower() not in item.lower():
+        return False
+    if is_item_suppressed(unit):
+        return False
+    set_unit_held_item(unit, None, db)
+    return True
+
+
+def unit_has_positive_stat_stage(unit: GameUnit) -> bool:
+    for stat in ALL_STAT_EFFECT_KEYS:
+        if get_stat_stage(unit.stat_boosts, stat) > 0:
+            return True
+    return False
+
+
+def snapshot_turn_stat_stages(user_id: int, game_id: int, db: Session) -> None:
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id, GameUnit.user_id == user_id).all()
+    for unit in units:
+        flags = get_unit_flags(unit)
+        flags["stat_stages_at_turn_start"] = {
+            stat: get_stat_stage(unit.stat_boosts, stat) for stat in ALL_STAT_EFFECT_KEYS
+        }
+        set_unit_flags(unit, flags, db)
+
+
+def unit_stats_lowered_since_turn_start(unit: GameUnit) -> bool:
+    snapshot = get_unit_flags(unit).get("stat_stages_at_turn_start")
+    if not isinstance(snapshot, dict):
+        return False
+    for stat in ALL_STAT_EFFECT_KEYS:
+        previous = int(snapshot.get(stat, 0) or 0)
+        current = get_stat_stage(unit.stat_boosts, stat)
+        if current < previous:
+            return True
+    return False
+
+
+def normalize_timed_tile_cell(cell) -> list[int]:
+    if isinstance(cell, list):
+        if len(cell) >= 2:
+            try:
+                effect_id = int(cell[0] or 0)
+                turns = int(cell[1] or 0)
+                if effect_id > 0 and turns > 0:
+                    return [effect_id, turns]
+            except (TypeError, ValueError):
+                pass
+        if len(cell) == 1:
+            try:
+                effect_id = int(cell[0] or 0)
+                if effect_id > 0:
+                    return [effect_id, TERRAIN_DEFAULT_DURATION]
+            except (TypeError, ValueError):
+                pass
+    try:
+        effect_id = int(cell or 0)
+        if effect_id > 0:
+            return [effect_id, TERRAIN_DEFAULT_DURATION]
+    except (TypeError, ValueError):
+        pass
+    return [0, 0]
+
+
+def get_timed_effect_id_at_position(tiles: list | None, x: int, y: int) -> int:
+    if not isinstance(tiles, list) or y < 0 or x < 0 or y >= len(tiles):
+        return 0
+    row = tiles[y]
+    if not isinstance(row, list) or x >= len(row):
+        return 0
+    cell = normalize_timed_tile_cell(row[x])
+    return int(cell[0] or 0)
+
+
+def get_terrain_id_at_position(terrain_tiles: list | None, x: int, y: int) -> int:
+    return get_timed_effect_id_at_position(terrain_tiles, x, y)
+
+
+def get_unit_terrain_id(unit: GameUnit, terrain_tiles: list | None) -> int:
+    x = int(getattr(unit, "current_x", -1) or -1)
+    y = int(getattr(unit, "current_y", -1) or -1)
+    return get_terrain_id_at_position(terrain_tiles, x, y)
+
+
+def terrain_condition_matches(terrain_id: int, condition: str) -> bool:
+    condition_lower = str(condition or "").lower()
+    if condition_lower in {"", "*", "any"}:
+        return terrain_id > 0
+    if condition_lower == "none":
+        return terrain_id == 0
+    expected = TERRAIN_TO_ID.get(condition_lower)
+    return expected is not None and terrain_id == expected
+
+
+def get_field_effect_at_position(field_effect_tiles: list | None, x: int, y: int) -> int:
+    if not isinstance(field_effect_tiles, list) or y < 0 or x < 0 or y >= len(field_effect_tiles):
+        return 0
+    row = field_effect_tiles[y]
+    if not isinstance(row, list) or x >= len(row):
+        return 0
+    try:
+        return int(row[x] or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def is_gravity_active_at(unit: GameUnit, field_effect_tiles: list | None) -> bool:
+    x = int(getattr(unit, "current_x", -1) or -1)
+    y = int(getattr(unit, "current_y", -1) or -1)
+    gravity_id = FIELD_EFFECT_TO_ID.get("gravity", 0)
+    return gravity_id > 0 and get_field_effect_at_position(field_effect_tiles, x, y) == gravity_id
+
+
+def move_has_effect_token(move: Move, token: str) -> bool:
+    if not move or not isinstance(move.effects, list):
+        return False
+    target = str(token or "").strip().lower()
+    for effect in move.effects:
+        if str(effect or "").strip().lower() == target:
+            return True
+    return False
+
+
+def resolve_move_type_for_execution(
+    move: Move,
+    attacker: GameUnit,
+    terrain_tiles: list | None,
+) -> str:
+    move_type = str(move.type or "Normal")
+    if move_has_effect_token(move, "self:modify_move_type_by_terrain"):
+        terrain_id = get_unit_terrain_id(attacker, terrain_tiles)
+        mapped = TERRAIN_ID_TO_NAME.get(terrain_id)
+        type_map = {
+            "electric": "Electric",
+            "psychic": "Psychic",
+            "grassy": "Grass",
+            "misty": "Fairy",
+        }
+        if mapped in type_map:
+            return type_map[mapped]
+    return move_type
+
+
+def resolve_power_multiplier(
+    move: Move,
+    attacker: GameUnit,
+    target: GameUnit | None,
+    terrain_tiles: list | None,
+    field_effect_tiles: list | None,
+) -> float:
+    multiplier = 1.0
+    if not move or not isinstance(move.effects, list):
+        return multiplier
+
+    attacker_terrain = get_unit_terrain_id(attacker, terrain_tiles)
+    target_terrain = get_unit_terrain_id(target, terrain_tiles) if target is not None else 0
+
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) < 2 or parts[0] != "conditional_power":
+            continue
+
+        if len(parts) >= 4 and parts[1] == "terrain":
+            terrain_name = parts[2]
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if terrain_condition_matches(attacker_terrain, terrain_name):
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "target_terrain":
+            terrain_name = parts[2]
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if target is not None and terrain_condition_matches(target_terrain, terrain_name):
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "field" and parts[2] == "gravity":
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if target is not None and is_gravity_active_at(target, field_effect_tiles):
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "self" and parts[2] == "stat_lowered_since_turn":
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if unit_stats_lowered_since_turn_start(attacker):
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "target_status":
+            if target is None:
+                continue
+            status_name = parts[2]
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            current_status = normalize_status_effects(target.status_effects)
+            if current_status and str(current_status[0]).lower() == status_name:
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "target" and parts[2] == "has_status":
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if target is not None and unit_has_status_condition(target):
+                multiplier *= factor
+
+    return multiplier
+
+
+def unit_has_status_condition(unit: GameUnit) -> bool:
+    current_status = normalize_status_effects(unit.status_effects)
+    return bool(current_status) and int(current_status[1] or 0) > 0
+
+
+def resolve_move_accuracy(
+    move: Move,
+    target: GameUnit,
+    weather_tiles: list | None,
+) -> int | None:
+    if move.accuracy is None:
+        return None
+
+    accuracy = int(move.accuracy)
+    for effect in move.effects or []:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 4 and parts[0] == "conditional_accuracy" and parts[1] == "weather":
+            weather_name = parts[2]
+            try:
+                override = int(parts[3])
+            except ValueError:
+                continue
+            target_weather_id = get_unit_weather_id(target, weather_tiles)
+            if weather_condition_matches(target_weather_id, weather_name):
+                accuracy = override
+
+    return accuracy
+
+
+def get_scaling_hit_powers(move: Move) -> list[int] | None:
+    if not move or not isinstance(move.effects, list):
+        return None
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 3 and parts[0] == "multi_hit" and parts[1] == "scaling":
+            powers: list[int] = []
+            for token in parts[2].split(","):
+                try:
+                    powers.append(int(token))
+                except ValueError:
+                    continue
+            return powers or None
+    return None
+
+
+def move_uses_separate_hit_accuracy(move: Move) -> bool:
+    if not move or not isinstance(move.effects, list):
+        return False
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 4 and parts[0] == "multi_hit" and parts[1] == "scaling" and parts[3] == "separate_accuracy":
+            return True
+    return False
+
+
+def get_move_hit_count(move: Move, *, landed_target_count: int = 1) -> int:
+    """Resolve how many times a move should hit from its multi_hit effect token."""
+    if not move or not isinstance(move.effects, list):
+        return 1
+
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) < 2 or parts[0] != "multi_hit":
+            continue
+
+        hit_mode = parts[1]
+        if hit_mode == "dragon_darts":
+            return 2 if landed_target_count == 1 else 1
+        if hit_mode == "scaling":
+            powers = get_scaling_hit_powers(move)
+            return len(powers) if powers else 1
+
+        if hit_mode == "variable":
+            roll = random.randint(1, 20)
+            if roll <= 7:
+                return 2
+            if roll <= 14:
+                return 3
+            if roll <= 17:
+                return 4
+            return 5
+
+        if hit_mode == "party":
+            return 1
+
+        try:
+            minimum_hits = max(1, int(hit_mode))
+        except ValueError:
+            return 1
+
+        maximum_hits = minimum_hits
+        if len(parts) >= 3:
+            try:
+                maximum_hits = max(minimum_hits, int(parts[2]))
+            except ValueError:
+                maximum_hits = minimum_hits
+
+        if minimum_hits == maximum_hits:
+            return minimum_hits
+        return random.randint(minimum_hits, maximum_hits)
+
+    return 1
+
+
+def move_requires_target_held_item(move: Move) -> bool:
+    return move_has_effect_token(move, "requires:target:held_item")
+
+
+def move_requires_attacker_berry(move: Move) -> bool:
+    return move_has_effect_token(move, "requires:held_item:berry")
+
+
+def move_requires_target_terrain(move: Move) -> bool:
+    return move_has_effect_token(move, "requires:target_terrain:active")
+
+
+def move_ignores_redirect(move: Move) -> bool:
+    return move_has_effect_token(move, "ignore_redirect")
+
+
+def move_uses_best_offense(move: Move) -> bool:
+    return move_has_effect_token(move, "self:use_best_offense")
+
+
+def validate_move_execution(
+    move: Move,
+    attacker: GameUnit,
+    targets: List[GameUnit],
+    terrain_tiles: list | None,
+) -> str | None:
+    if move_requires_attacker_berry(move) and not unit_holds_item_type(attacker, "berry"):
+        return "It doesn't have a Berry to eat"
+
+    if move_requires_target_held_item(move):
+        if not targets:
+            return "The move failed"
+        if any(not get_unit_held_item(target) for target in targets):
+            return "The move failed because the target has no item"
+
+    if move_requires_target_terrain(move):
+        if not targets:
+            return "But it failed"
+        if any(get_unit_terrain_id(target, terrain_tiles) <= 0 for target in targets):
+            return "But it failed"
+
+    return None
+
+
+def clear_terrain_at_position(map_state: "GameMapState", x: int, y: int, db: Session) -> None:
+    if map_state is None or not isinstance(map_state.terrain_effect_tiles, list):
+        return
+    if y < 0 or x < 0 or y >= len(map_state.terrain_effect_tiles):
+        return
+    row = map_state.terrain_effect_tiles[y]
+    if not isinstance(row, list) or x >= len(row):
+        return
+    row[x] = [0, 0]
+    db.add(map_state)
+
+
+def estimate_damage_for_mode(
+    *,
+    power: int,
+    level: int,
+    attack: float,
+    defense: float,
+    stab: float,
+    type_multiplier: float,
+    weather_move_multiplier: float,
+    targets_multiplier: float,
+) -> float:
+    safe_defense = defense if defense > 0 else 1
+    base = (((2 * level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
+    return base * targets_multiplier * stab * type_multiplier * weather_move_multiplier
+
+
+def resolve_shell_side_arm_mode(
+    move: Move,
+    attacker: GameUnit,
+    target: GameUnit,
+    *,
+    terrain_tiles: list | None,
+    weather_tiles: list | None,
+    special_tiles: list | None,
+    db: Session,
+    targets_multiplier: float,
+) -> tuple[bool, bool]:
+    """Return (is_special, makes_contact) for Shell Side Arm."""
+    move_type = str(move.type or "Poison")
+    attacker_types = getattr(attacker.unit, "types", None) or []
+    stab = 1.5 if move_type in attacker_types else 1
+    attacker_weather_id = get_unit_weather_id(attacker, weather_tiles)
+    weather_move_multiplier = get_weather_move_multiplier(move_type, attacker_weather_id)
+    type_multiplier = get_type_multiplier(move_type, (getattr(target.unit, "types", None) or [], target, db))
+    power = move.power or 0
+    level = attacker.level or 50
+
+    target_weather_id = get_unit_weather_id(target, weather_tiles)
+    target_types = get_unit_types(target, db)
+    target_ability_names = get_unit_ability_names(target, db)
+
+    physical_attack = (attacker.current_stats or {}).get("attack", 0) or 0
+    physical_defense = (target.current_stats or {}).get("defense", 1) or 1
+    physical_defense *= get_weather_defense_multiplier(target, "defense", target_weather_id, db)
+    physical_defense *= get_grass_defense_multiplier(
+        special_tiles,
+        int(target.current_x),
+        int(target.current_y),
+        target_types,
+        target_ability_names,
+    )
+    physical_estimate = estimate_damage_for_mode(
+        power=power,
+        level=level,
+        attack=physical_attack,
+        defense=physical_defense,
+        stab=stab,
+        type_multiplier=type_multiplier,
+        weather_move_multiplier=weather_move_multiplier,
+        targets_multiplier=targets_multiplier,
+    )
+
+    special_attack = (attacker.current_stats or {}).get("sp_attack", 0) or 0
+    special_defense = (target.current_stats or {}).get("sp_defense", 1) or 1
+    special_defense *= get_weather_defense_multiplier(target, "sp_defense", target_weather_id, db)
+    special_defense *= get_grass_defense_multiplier(
+        special_tiles,
+        int(target.current_x),
+        int(target.current_y),
+        target_types,
+        target_ability_names,
+    )
+    special_estimate = estimate_damage_for_mode(
+        power=power,
+        level=level,
+        attack=special_attack,
+        defense=special_defense,
+        stab=stab,
+        type_multiplier=type_multiplier,
+        weather_move_multiplier=weather_move_multiplier,
+        targets_multiplier=targets_multiplier,
+    )
+
+    if physical_estimate >= special_estimate:
+        return False, True
+    return True, False
 
 
 def normalize_hazard_cell(cell: list | None) -> list[list[int]]:
@@ -973,6 +1493,9 @@ def matches_effect_condition(unit: GameUnit, condition: str, value: str, db: Ses
         unit_abilities = get_unit_ability_names(unit, db)
         return all(req not in unit_abilities for req in requested)
 
+    if condition_name == "stat_boosted":
+        return unit_has_positive_stat_stage(unit)
+
     return False
 
 
@@ -1119,6 +1642,7 @@ def move_lands_on_target(
     target: GameUnit,
     *,
     special_tiles: list | None = None,
+    weather_tiles: list | None = None,
     attacker_types: set[str] | None = None,
     target_types: set[str] | None = None,
     target_ability_names: set[str] | None = None,
@@ -1128,7 +1652,7 @@ def move_lands_on_target(
     If move has no accuracy (null), it is treated as perfect accuracy.
     """
     threshold = get_modified_accuracy_threshold(
-        move.accuracy,
+        resolve_move_accuracy(move, target, weather_tiles),
         attacker,
         target,
         special_tiles=special_tiles,
@@ -1212,51 +1736,6 @@ def move_has_target_fixed_damage_effect(move: Move) -> bool:
         if token.startswith("target:fixed_damage:"):
             return True
     return False
-
-
-def get_move_hit_count(move: Move) -> int:
-    """Resolve how many times a move should hit from its multi_hit effect token."""
-    if not move or not isinstance(move.effects, list):
-        return 1
-
-    for effect in move.effects:
-        parts = str(effect or "").strip().lower().split(":")
-        if len(parts) < 2 or parts[0] != "multi_hit":
-            continue
-
-        hit_mode = parts[1]
-
-        if hit_mode == "variable":
-            roll = random.randint(1, 20)
-            if roll <= 7:
-                return 2
-            if roll <= 14:
-                return 3
-            if roll <= 17:
-                return 4
-            return 5
-
-        # Placeholder for specialized multi-hit formats not yet implemented.
-        if hit_mode == "party":
-            return 1
-
-        try:
-            minimum_hits = max(1, int(hit_mode))
-        except ValueError:
-            return 1
-
-        maximum_hits = minimum_hits
-        if len(parts) >= 3:
-            try:
-                maximum_hits = max(minimum_hits, int(parts[2]))
-            except ValueError:
-                maximum_hits = minimum_hits
-
-        if minimum_hits == maximum_hits:
-            return minimum_hits
-        return random.randint(minimum_hits, maximum_hits)
-
-    return 1
 
 
 def compute_fixed_damage_effect(effect_str: str, attacker: GameUnit, target: GameUnit) -> int:
@@ -1522,6 +2001,8 @@ def process_move_effects(
     current_turn: int,
     db: Session,
     weather_tiles: list | None = None,
+    terrain_tiles: list | None = None,
+    field_effect_tiles: list | None = None,
     affected_tiles_override: list[tuple[int, int]] | None = None,
     game: "Game | None" = None,
     game_state: "GameState | None" = None,
@@ -1536,6 +2017,7 @@ def process_move_effects(
         return
 
     weather_raise_stat_applied: set[tuple[str, str]] = set()
+    terrain_raise_stat_applied: set[tuple[str, str]] = set()
     
     for effect_str in move.effects:
         raw_token = str(effect_str or "").strip()
@@ -1666,6 +2148,77 @@ def process_move_effects(
             db.add(map_state)
             continue
 
+        # Field terrain effect format: terrain:electric|psychic|grassy|misty
+        if parts[0] == "terrain":
+            terrain_name = parts[1].lower()
+            terrain_id = TERRAIN_TO_ID.get(terrain_name)
+            if terrain_id is None:
+                continue
+
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                if not map_obj:
+                    continue
+                map_state = _create_default_game_map_state(game, map_obj)
+                db.add(map_state)
+            else:
+                map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            if not isinstance(map_state.terrain_effect_tiles, list) or len(map_state.terrain_effect_tiles) != height:
+                map_state.terrain_effect_tiles = _build_2d_matrix(height, width, [0, 0])
+            else:
+                normalized_rows = []
+                for row in map_state.terrain_effect_tiles:
+                    if not isinstance(row, list):
+                        normalized_rows.append([[0, 0] for _ in range(width)])
+                    elif len(row) != width:
+                        fixed = [[0, 0] for _ in range(width)]
+                        for i in range(min(width, len(row))):
+                            fixed[i] = normalize_timed_tile_cell(row[i])
+                        normalized_rows.append(fixed)
+                    else:
+                        normalized_rows.append([normalize_timed_tile_cell(cell) for cell in row])
+                map_state.terrain_effect_tiles = normalized_rows
+
+            if affected_tiles_override:
+                seen_tiles: set[tuple[int, int]] = set()
+                affected_tiles = []
+                for tx, ty in affected_tiles_override:
+                    if not (0 <= tx < width and 0 <= ty < height):
+                        continue
+                    tile = (int(tx), int(ty))
+                    if tile in seen_tiles:
+                        continue
+                    seen_tiles.add(tile)
+                    affected_tiles.append(tile)
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+            for tx, ty in affected_tiles:
+                map_state.terrain_effect_tiles[ty][tx] = [terrain_id, TERRAIN_DEFAULT_DURATION]
+            db.add(map_state)
+            continue
+
         # Field hazard effect format: field_hazard:spikes|toxic_spikes|stealth_rock|sticky_web
         if parts[0] == "field_hazard":
             hazard_name = parts[1].lower()
@@ -1756,6 +2309,128 @@ def process_move_effects(
                     db,
                 )
             continue
+
+        if parts[0] == "field" and parts[1].lower() == "gravity":
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                if not map_obj:
+                    continue
+                map_state = _create_default_game_map_state(game, map_obj)
+                db.add(map_state)
+            else:
+                map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            if not isinstance(map_state.field_effect_tiles, list) or len(map_state.field_effect_tiles) != height:
+                map_state.field_effect_tiles = _build_2d_matrix(height, width, 0)
+
+            gravity_id = FIELD_EFFECT_TO_ID.get("gravity", 0)
+            if affected_tiles_override:
+                affected_tiles = affected_tiles_override
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+            for tx, ty in affected_tiles:
+                if 0 <= tx < width and 0 <= ty < height:
+                    map_state.field_effect_tiles[ty][tx] = gravity_id
+            db.add(map_state)
+            continue
+
+        if parts[0] in {"self", "target"} and parts[1] == "consume_berry":
+            recipients = [attacker] if parts[0] == "self" else targets
+            for unit in recipients:
+                if consume_unit_held_item(unit, db, item_type="berry") and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(unit, db)} ate its Berry",
+                        game_state,
+                        db,
+                    )
+            continue
+
+        if parts[0] == "target" and parts[1] == "remove_held_item":
+            for target in targets:
+                if remove_unit_held_item(target, db) and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)} lost its held item",
+                        game_state,
+                        db,
+                    )
+            continue
+
+        if parts[0] == "target" and parts[1] == "field_hazard" and len(parts) >= 3:
+            hazard_name = parts[2].lower()
+            hazard_id = FIELD_HAZARD_TO_ID.get(hazard_name)
+            if hazard_id is None:
+                continue
+
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                continue
+
+            map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            normalized_hazards: list[list[list[list[int]]]] = []
+            for y in range(height):
+                row = map_state.hazard_tiles[y] if isinstance(map_state.hazard_tiles, list) and y < len(map_state.hazard_tiles) else []
+                normalized_row: list[list[list[int]]] = []
+                for x in range(width):
+                    cell = row[x] if isinstance(row, list) and x < len(row) else []
+                    normalized_row.append(normalize_hazard_cell(cell))
+                normalized_hazards.append(normalized_row)
+            map_state.hazard_tiles = normalized_hazards
+
+            for target in targets:
+                tx = int(target.current_x)
+                ty = int(target.current_y)
+                if 0 <= tx < width and 0 <= ty < height:
+                    try_add_hazard_stack(
+                        map_state.hazard_tiles[ty][tx],
+                        hazard_id,
+                        FIELD_HAZARD_DEFAULT_DURATION,
+                    )
+            db.add(map_state)
+            continue
         
         recipient = parts[0]  # "self" or "target"
         effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
@@ -1791,6 +2466,37 @@ def process_move_effects(
                     continue
 
                 weather_raise_stat_applied.add(weather_key)
+
+                if len(parts) >= 8:
+                    try:
+                        accuracy = int(parts[7])
+                    except ValueError:
+                        pass
+            elif len(parts) >= 7 and parts[2] == "condition" and parts[3].lower() == "terrain":
+                condition_value = parts[4]
+                stat_name = normalize_stat_name(parts[5])
+                try:
+                    magnitude_val = int(parts[6])
+                except ValueError:
+                    continue
+
+                terrain_key = (recipient, stat_name)
+                if terrain_key in terrain_raise_stat_applied:
+                    continue
+
+                if recipient == "self":
+                    terrain_id = get_unit_terrain_id(attacker, terrain_tiles)
+                elif recipient == "target":
+                    if not targets:
+                        continue
+                    terrain_id = get_unit_terrain_id(targets[0], terrain_tiles)
+                else:
+                    continue
+
+                if not terrain_condition_matches(terrain_id, condition_value):
+                    continue
+
+                terrain_raise_stat_applied.add(terrain_key)
 
                 if len(parts) >= 8:
                     try:
@@ -2589,6 +3295,8 @@ def move_deals_direct_damage(move: Move) -> bool:
 
 def move_can_critical_hit(move: Move) -> bool:
     """Return whether this move is eligible to roll critical hits."""
+    if move_has_effect_token(move, "guaranteed_crit"):
+        return True
     if move_has_target_fixed_damage_effect(move):
         return False
 
@@ -4530,6 +5238,10 @@ def execute_move(
     publish_system_log_event(game.link, f"{get_unit_display_name(gu, db)} used {move.name}", state, db)
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+    terrain_tiles = map_state.terrain_effect_tiles if map_state and isinstance(map_state.terrain_effect_tiles, list) else None
+    field_effect_tiles = map_state.field_effect_tiles if map_state and isinstance(map_state.field_effect_tiles, list) else None
+
     special_tiles = (
         map_obj.tile_data.get("special_tiles")
         if map_obj and isinstance(map_obj.tile_data, dict)
@@ -4596,13 +5308,48 @@ def execute_move(
                 targets.append(ally)
                 known_target_ids.add(ally.id)
 
+    if move_targeting == "all":
+        tile_set = set(effect_tiles)
+        if not tile_set and map_obj:
+            tile_set = set(
+                get_move_affected_tiles(
+                    move,
+                    gu,
+                    int(getattr(map_obj, "width", 0) or 0),
+                    int(getattr(map_obj, "height", 0) or 0),
+                )
+            )
+        if tile_set:
+            known_target_ids = {target.id for target in targets}
+            all_units = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+            targets = []
+            for unit in all_units:
+                if (unit.current_hp or 0) <= 0:
+                    continue
+                if (int(unit.current_x), int(unit.current_y)) in tile_set:
+                    targets.append(unit)
+                    known_target_ids.add(unit.id)
+
     # Field-targeting moves affect map state and should ignore unit target resolution.
     is_field_targeting = (move.targeting or "").lower() == "field"
     if is_field_targeting:
         targets = []
 
+    move_failure = validate_move_execution(move, gu, targets, terrain_tiles)
+    if move_failure:
+        publish_system_log_event(game.link, move_failure, state, db)
+        db.commit()
+        return {
+            "detail": "Move failed",
+            "message": move_failure,
+            "missed_target_ids": [],
+            "damage_results": [],
+            "removed_ids": [],
+            "turn_advanced": False,
+            "game_completed": False,
+        }
+
     has_target_fixed_damage = move_has_target_fixed_damage_effect(move)
-    hit_count = get_move_hit_count(move)
 
     # Build a mapping of player sides to any active screen states (reflect/light_screen)
     side_screen_states: dict[int, set[str]] = {}
@@ -4643,6 +5390,7 @@ def execute_move(
                 gu,
                 target,
                 special_tiles=special_tiles,
+                weather_tiles=weather_tiles,
                 attacker_types=attacker_types,
                 target_types=get_unit_types(target, db),
                 target_ability_names=get_unit_ability_names(target, db),
@@ -4662,6 +5410,9 @@ def execute_move(
             )
 
     targets_multiplier = 0.75 if len(landed_targets) >= 2 else 1
+    hit_count = get_move_hit_count(move, landed_target_count=max(1, len(landed_targets)))
+    scaling_hit_powers = get_scaling_hit_powers(move)
+    separate_hit_accuracy = move_uses_separate_hit_accuracy(move)
     damage_results = []
     removed_ids: List[int] = []
     faint_logged_ids: set[int] = set()
@@ -4700,21 +5451,41 @@ def execute_move(
                     faint_logged_ids.add(target_unit.id)
     elif landed_targets and move_deals_direct_damage(move):
         can_critical_hit = move_can_critical_hit(move)
+        guaranteed_crit = move_has_effect_token(move, "guaranteed_crit")
+        effective_move_type = resolve_move_type_for_execution(move, gu, terrain_tiles)
         category = (move.category or "").lower()
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
         defense_stat = "sp_defense" if is_special else "defense"
         move_crit_stage_bonus = 1 if move_has_high_crit_ratio(move) else 0
-        power = move.power or 0
+        base_power = move.power or 0
         attacker_types = gu.unit.types or []
-        stab = 1.5 if move.type in attacker_types else 1
+        stab = 1.5 if effective_move_type in attacker_types else 1
         attacker_weather_id = get_unit_weather_id(gu, weather_tiles)
-        weather_move_multiplier = get_weather_move_multiplier(move.type, attacker_weather_id)
+        weather_move_multiplier = get_weather_move_multiplier(effective_move_type, attacker_weather_id)
 
         for target in landed_targets:
             total_damage = 0
             critical_hit_landed = False
-            hits_to_apply = max(1, int(hit_count or 1))
+            target_is_special = is_special
+            target_makes_contact = bool(move.makes_contact)
+            if move_uses_best_offense(move):
+                target_is_special, target_makes_contact = resolve_shell_side_arm_mode(
+                    move,
+                    gu,
+                    target,
+                    terrain_tiles=terrain_tiles,
+                    weather_tiles=weather_tiles,
+                    special_tiles=special_tiles,
+                    db=db,
+                    targets_multiplier=targets_multiplier,
+                )
+                attack_stat = "sp_attack" if target_is_special else "attack"
+                defense_stat = "sp_defense" if target_is_special else "defense"
+
+            power_multiplier = resolve_power_multiplier(move, gu, target, terrain_tiles, field_effect_tiles)
+            hit_powers = scaling_hit_powers or [base_power]
+            hits_to_apply = len(hit_powers) if scaling_hit_powers else max(1, int(hit_count or 1))
             # Check if attacker has Laser Focus active; it should make the first hit a guaranteed critical
             try:
                 attacker_state = normalize_states(gu.states)
@@ -4722,12 +5493,38 @@ def execute_move(
                 attacker_state = []
             laser_focus_active = bool(attacker_state and attacker_state[0] == "laser_focus" and int(attacker_state[1]) > 0)
             first_hit = True
-            for _ in range(hits_to_apply):
+            for hit_index in range(hits_to_apply):
                 if (target.current_hp or 0) <= 0:
                     break
 
+                if separate_hit_accuracy and move.accuracy is not None:
+                    if not move_lands_on_target(
+                        move,
+                        gu,
+                        target,
+                        special_tiles=special_tiles,
+                        weather_tiles=weather_tiles,
+                        attacker_types=attacker_types,
+                        target_types=get_unit_types(target, db),
+                        target_ability_names=get_unit_ability_names(target, db),
+                    ):
+                        break
+
+                power = int((hit_powers[hit_index] if hit_index < len(hit_powers) else base_power) * power_multiplier)
                 attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
                 defense = (target.current_stats or {}).get(defense_stat, 1) or 1
+                for effect in move.effects or []:
+                    parts = str(effect or "").strip().lower().split(":")
+                    if len(parts) < 3 or parts[1] != "use_stat":
+                        continue
+                    stat = parts[2]
+                    if parts[0] == "self":
+                        attack = (gu.current_stats or {}).get(stat, attack) or attack
+                    elif parts[0] == "target":
+                        if stat in ("attack", "sp_attack"):
+                            attack = (target.current_stats or {}).get(stat, attack) or attack
+                        elif stat in ("defense", "sp_defense"):
+                            defense = (target.current_stats or {}).get(stat, defense) or defense
                 # Power Trick: swap attack/defense usage for attacker/defender when active
                 try:
                     gu_state_tmp = normalize_states(gu.states)
@@ -4768,13 +5565,19 @@ def execute_move(
                     except Exception:
                         pass
                     laser_focus_active = False
+                elif guaranteed_crit:
+                    critical = 1.5
+                    critical_hit_landed = True
                 else:
                     critical = 1.5 if can_critical_hit and attempt_critical_hit(gu, move_crit_stage_bonus) else 1
                     if critical > 1:
                         critical_hit_landed = True
                 # Pass the target unit so state effects like Foresight/Mind Reader
                 # can bypass type immunities when appropriate.
-                type_multiplier = get_type_multiplier(move.type, (getattr(target.unit, "types", None) or [], target, db))
+                type_multiplier = get_type_multiplier(
+                    effective_move_type,
+                    (getattr(target.unit, "types", None) or [], target, db),
+                )
                 # Tar Shot: doubles effectiveness of Fire-type moves against affected target
                 try:
                     target_state_tmp = normalize_states(target.states)
@@ -4795,14 +5598,17 @@ def execute_move(
                 if "aurora_veil" in states_on_side:
                     damage = max(0, int(damage // 2))
                 else:
-                    if "reflect" in states_on_side and not is_special:
+                    if "reflect" in states_on_side and not target_is_special:
                         damage = max(0, int(damage // 2))
-                    if "light_screen" in states_on_side and is_special:
+                    if "light_screen" in states_on_side and target_is_special:
                         damage = max(0, int(damage // 2))
 
                 target.current_hp = max(0, (target.current_hp or 0) - damage)
                 total_damage += damage
                 first_hit = False
+
+            if move_has_effect_token(move, "destroy_terrain:target") and map_state is not None:
+                clear_terrain_at_position(map_state, int(target.current_x), int(target.current_y), db)
 
             db.add(target)
             if target.current_hp <= 0:
@@ -4839,6 +5645,8 @@ def execute_move(
         state.current_turn,
         db,
         weather_tiles,
+        terrain_tiles,
+        field_effect_tiles,
         affected_tiles_override=effect_tiles,
         game=game,
         game_state=state,

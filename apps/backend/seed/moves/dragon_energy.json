@@ -1,0 +1,20 @@
+{
+  "id": 820,
+  "name": "Dragon Energy",
+  "description": "Converting its life-force into power, the user attacks opposing Pokémon. The lower the user's HP, the lower the move's power.",
+  "type": "Dragon",
+  "category": "Special",
+  "power": 150,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": ["eruption"]
+}

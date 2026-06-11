@@ -1,0 +1,19 @@
+{
+  "id": 756,
+  "name": "Court Change",
+  "description": "With its mysterious power, the user swaps the effects on either side of the field.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "field",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [],
+  "accuracy": 100
+}

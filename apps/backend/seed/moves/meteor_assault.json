@@ -1,0 +1,22 @@
+{
+  "id": 794,
+  "name": "Meteor Assault",
+  "description": "The user attacks wildly with its thick leek. The user can't move on the next turn, because the force of this move makes it stagger.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 150,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:recharge"
+  ]
+}

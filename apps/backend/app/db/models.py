@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from fastapi import Request, HTTPException
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine, Float
-from sqlalchemy.ext.mutable import MutableList
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
 import enum
@@ -273,6 +273,7 @@ class GameUnit(Base):
     is_fainted = Column(Boolean, default=False)
     can_move = Column(Boolean, default=True, nullable=False)
     move_pp = Column(MutableList.as_mutable(JSON), default=list)  # e.g., [10, 8, 5, 15] for 4 moves
+    flags = Column(MutableDict.as_mutable(JSON), default=dict)  # held_item, stat_stages_at_turn_start, etc.
 
     game = relationship("Game", back_populates="game_units")
     unit = relationship("Unit", back_populates="game_units")

@@ -1,0 +1,21 @@
+{
+  "id": 849,
+  "name": "Lunar Blessing",
+  "description": "The user receives a blessing from the crescent moon, restoring HP and curing status conditions for itself and its ally Pokémon currently in the battle.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 5,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:heal:4",
+    "target:cure_status:all"
+  ]
+}

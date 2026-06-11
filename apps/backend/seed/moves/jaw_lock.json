@@ -1,0 +1,23 @@
+{
+  "id": 746,
+  "name": "Jaw Lock",
+  "description": "This move prevents the target from moving away until it or the user faints. The effect goes away if either of the Pokémon leaves their current position on the field.",
+  "type": "Dark",
+  "category": "Physical",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:apply_state:jaw_lock:target",
+    "self:apply_state:jaw_lock:user"
+  ]
+}

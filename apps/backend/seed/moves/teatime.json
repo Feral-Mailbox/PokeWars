@@ -1,0 +1,21 @@
+{
+  "id": 752,
+  "name": "Teatime",
+  "description": "The user has teatime with all the Pokémon in the battle. Each Pokémon eats its held Berry.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:consume_berry",
+    "target:consume_berry"
+  ]
+}

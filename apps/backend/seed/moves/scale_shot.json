@@ -1,0 +1,24 @@
+{
+  "id": 799,
+  "name": "Scale Shot",
+  "description": "The user attacks by shooting scales two to five times in a row. This move boosts the user's Speed stat but lowers its Defense stat.",
+  "type": "Dragon",
+  "category": "Physical",
+  "power": 25,
+  "accuracy": 90,
+  "pp": 20,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:variable",
+    "self:raise_stat:speed:1",
+    "self:lower_stat:defense:1"
+  ]
+}

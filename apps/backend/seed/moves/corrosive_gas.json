@@ -1,0 +1,21 @@
+{
+  "id": 810,
+  "name": "Corrosive Gas",
+  "description": "The user surrounds everything around it with highly acidic gas and melts away items they hold.",
+  "type": "Poison",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 40,
+  "range": "pulse:2",
+  "targeting": "all",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:remove_held_item"
+  ]
+}

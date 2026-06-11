@@ -1,0 +1,19 @@
+{
+  "id": 792,
+  "name": "Obstruct",
+  "description": "This move enables the user to protect itself from all attacks. Its chance of failing rises if used in succession. Direct contact harshly lowers the attacker's Defense.",
+  "type": "Dark",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:obstruct"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 836,
+  "name": "Mountain Gale",
+  "description": "The user hurls giant chunks of ice at the target to inflict damage. This may also make the target flinch.",
+  "type": "Ice",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 85,
+  "pp": 10,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:apply_state:flinch:30"
+  ]
+}

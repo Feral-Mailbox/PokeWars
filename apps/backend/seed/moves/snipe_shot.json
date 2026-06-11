@@ -1,0 +1,23 @@
+{
+  "id": 745,
+  "name": "Snipe Shot",
+  "description": "The user ignores the effects of opposing Pokémon's moves and items that draw in moves, allowing this move to hit its chosen target.",
+  "type": "Water",
+  "category": "Special",
+  "power": 85,
+  "accuracy": 100,
+  "pp": 15,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "ignore_redirect",
+    "high_crit_rate"
+  ]
+}

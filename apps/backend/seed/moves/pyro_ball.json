@@ -1,0 +1,22 @@
+{
+  "id": 780,
+  "name": "Pyro Ball",
+  "description": "The user attacks by igniting a small stone and launching it as a fiery ball at the target. This may also leave the target with a burn.",
+  "type": "Fire",
+  "category": "Physical",
+  "power": 120,
+  "accuracy": 90,
+  "pp": 5,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:status:burn:10"
+  ]
+}

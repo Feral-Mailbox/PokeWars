@@ -1,0 +1,22 @@
+{
+  "id": 821,
+  "name": "Freezing Glare",
+  "description": "The user shoots its psychic power from its eyes to attack. This may also leave the target frozen.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 90,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "inverted_cone:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:status:frozen:10"
+  ]
+}

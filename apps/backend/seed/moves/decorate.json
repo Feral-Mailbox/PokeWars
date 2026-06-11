@@ -1,0 +1,21 @@
+{
+  "id": 777,
+  "name": "Decorate",
+  "description": "The user sharply raises the target's Attack and Sp. Atk stats by decorating the target.",
+  "type": "Fairy",
+  "category": "Status",
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:raise_stat:attack:2",
+    "target:raise_stat:special_attack:2"
+  ]
+}

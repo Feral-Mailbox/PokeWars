@@ -1,0 +1,23 @@
+{
+  "id": 847,
+  "name": "Wildbolt Storm",
+  "description": "The user summons a thunderous tempest and savagely attacks with lightning and wind. This may also leave opposing Pokémon with paralysis.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 80,
+  "pp": 10,
+  "range": "bomb:1",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_accuracy:weather:rain:100",
+    "target:status:paralysis:20"
+  ]
+}

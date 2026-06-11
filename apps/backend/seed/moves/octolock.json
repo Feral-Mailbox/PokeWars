@@ -1,0 +1,22 @@
+{
+  "id": 753,
+  "name": "Octolock",
+  "description": "The user locks the target in and prevents it from fleeing. This move also lowers the target's Defense and Sp. Def every turn.",
+  "type": "Fighting",
+  "category": "Status",
+  "pp": 15,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:octolock:user",
+    "target:apply_state:octolock:target"
+  ],
+  "accuracy": 100
+}

@@ -1,0 +1,22 @@
+{
+  "id": 807,
+  "name": "Burning Jealousy",
+  "description": "The user attacks with energy from jealousy. This leaves all opposing Pokémon that have had their stats boosted during the turn with a burn.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "pulse:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:status:condition:stat_boosted:*:burn"
+  ]
+}

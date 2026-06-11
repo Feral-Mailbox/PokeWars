@@ -1,0 +1,23 @@
+{
+  "id": 800,
+  "name": "Meteor Beam",
+  "description": "The user gathers energy from space and boosts its Sp. Atk stat on the first turn, then attacks on the next turn.",
+  "type": "Rock",
+  "category": "Special",
+  "power": 120,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "line:3",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:raise_stat:special_attack:1",
+    "delayed_hit:1"
+  ]
+}

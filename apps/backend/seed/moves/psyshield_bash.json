@@ -1,0 +1,22 @@
+{
+  "id": 828,
+  "name": "Psyshield Bash",
+  "description": "Cloaking itself in psychic energy, the user slams into the target. This also boosts the user's Defense stat.",
+  "type": "Psychic",
+  "category": "Physical",
+  "power": 90,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:raise_stat:defense:1"
+  ]
+}

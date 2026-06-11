@@ -1,0 +1,23 @@
+{
+  "id": 798,
+  "name": "Steel Roller",
+  "description": "The user attacks while destroying the terrain. This move fails when the ground hasn't turned into a terrain.",
+  "type": "Steel",
+  "category": "Physical",
+  "power": 130,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "requires:target_terrain:active",
+    "destroy_terrain:target"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "id": 791,
+  "name": "Life Dew",
+  "description": "The user scatters mysterious water around and restores the HP of itself and its ally Pokémon in the battle.",
+  "type": "Water",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:heal:4"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 805,
+  "name": "Terrain Pulse",
+  "description": "The user utilizes the power of the terrain to attack. This move's type changes depending on the terrain at the time the move is used.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:modify_move_type_by_terrain"
+  ]
+}

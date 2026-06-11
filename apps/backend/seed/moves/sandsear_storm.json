@@ -1,0 +1,23 @@
+{
+  "id": 848,
+  "name": "Sandsear Storm",
+  "description": "The user attacks by wrapping opposing Pokémon in fierce winds and searingly hot sand. This may also leave them with a burn.",
+  "type": "Ground",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 80,
+  "pp": 10,
+  "range": "pulse:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_accuracy:weather:rain:100",
+    "target:status:burn:20"
+  ]
+}

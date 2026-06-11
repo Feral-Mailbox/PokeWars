@@ -1,0 +1,21 @@
+{
+  "id": 850,
+  "name": "Take Heart",
+  "description": "The user lifts its spirits, curing its own status conditions and boosting its Sp. Atk and Sp. Def stats.",
+  "type": "Psychic",
+  "category": "Status",
+  "pp": 15,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": true,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:cure_status:all",
+    "self:raise_stat:special_attack:1",
+    "self:raise_stat:special_defense:1"
+  ]
+}
