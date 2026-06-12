@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend test dependencies
+        run: pip install -r apps/backend/requirements.dev.txt
+
+      - name: Backend tests
+        env:
+          SESSION_SECRET: ci-test-session-secret-value
+        run: PYTHONPATH=apps/backend pytest tests/backend --cov=app
+
+      - name: Infrastructure tests
+        run: pip install PyYAML && pytest tests/infrastructure
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Frontend tests
+        working-directory: apps/frontend
+        run: npm ci && npx vitest run

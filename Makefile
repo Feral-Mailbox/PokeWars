@@ -31,7 +31,7 @@ endif
 
 # === Startup ===	
 first-launch:
-	$(DC_USED) down
+	$(DC_USED) down --remove-orphans
 	$(DC_USED) up -d
 	# Wait for postgres to be ready
 	@echo "Waiting for database to be ready..."
@@ -46,9 +46,10 @@ first-launch:
 			sleep 3; \
 		fi; \
 	done
-	# Wait for pgAdmin to be ready
-	@echo "Waiting for pgAdmin to be ready (this may take up to 30 seconds)..."
-	@sleep 30
+	@if [ "$(ENV)" = "dev" ]; then \
+		echo "Waiting for pgAdmin to be ready (this may take up to 30 seconds)..."; \
+		sleep 30; \
+	fi
 	# If there are *no* version files, generate the initial migration
 	@test -n "$$(ls -A apps/backend/alembic/versions 2>/dev/null)" || \
 		$(DC_USED) run --rm backend alembic revision --autogenerate -m "init"
@@ -71,14 +72,14 @@ first-launch:
 
 # === Lifecycle ===
 up:
-	$(DC_USED) up -d --build
+	$(DC_USED) up -d --build --remove-orphans
 
 down:
-	$(DC_USED) down
+	$(DC_USED) down --remove-orphans
 
 restart:
-	$(DC_USED) down
-	$(DC_USED) up -d --build
+	$(DC_USED) down --remove-orphans
+	$(DC_USED) up -d --build --remove-orphans
 
 build:
 	$(DC_USED) build
@@ -101,7 +102,7 @@ nuke:
 	docker ps -a | grep $(PROJECT) | awk '{print $$1}' | xargs -r docker rm -f 2>/dev/null || true
 	docker volume ls | grep $(PROJECT) | awk '{print $$2}' | xargs -r docker volume rm -f 2>/dev/null || true
 	# Clean up hardcoded container names from old runs
-	docker rm -f nginx pgadmin 2>/dev/null || true
+	docker rm -f nginx pgadmin backend frontend 2>/dev/null || true
 
 # === DB ===
 migrate:

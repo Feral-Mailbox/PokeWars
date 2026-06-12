@@ -50,10 +50,14 @@ const CreateGame = () => {
   useEffect(() => {
     const fetchMe = async () => {
       try {
-        const data = await secureFetch<{ id: number }>("/me");
+        const res = await secureFetch("/api/me");
+        if (!res.ok) {
+          throw new Error("Not authenticated");
+        }
+        const data = await res.json();
         setUserId(data.id);
       } catch (err) {
-        console.error("User not authenticated or /me failed", err);
+        console.error("User not authenticated or /api/me failed", err);
       }
     };
     fetchMe();

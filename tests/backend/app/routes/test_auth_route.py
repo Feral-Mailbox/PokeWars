@@ -1,6 +1,6 @@
 # tests/apps/backend/app/routes/test_auth_route.py
 import app.db.models as models
-from app.utils.security import hash_password
+from app.routes.auth import hash_password
 
 def _assert_session_cookie(resp):
     # Try the liberal way first

@@ -13,7 +13,7 @@ vi.mock('@/utils/secureFetch', () => ({
         ok: true,
       });
     }
-    if (url.includes('/me')) {
+    if (url.includes('/api/me')) {
       return Promise.resolve({ json: () => Promise.resolve({ id: 123 }), ok: true });
     }
     return Promise.resolve({ json: () => Promise.resolve([]), ok: true });

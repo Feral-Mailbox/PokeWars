@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import User, UserRole, UserRestriction, RestrictionType
 from app.db.database import get_db as _get_db
+from app.utils.session import decode_session_token
 
 MOD_MUTE_MAX_HOURS = 72
 MOD_TEMP_BAN_MAX_DAYS = 7
@@ -54,7 +55,11 @@ def get_current_user(session_user: str = Cookie(default=None), db: Session = Dep
     if session_user is None:
         raise HTTPException(status_code=401, detail="Not logged in")
 
-    user = db.query(User).filter(User.id == int(session_user)).first()
+    user_id = decode_session_token(session_user)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 

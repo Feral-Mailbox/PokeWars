@@ -4,8 +4,8 @@ from pathlib import Path
 def test_docker_compose_has_required_services():
     base = Path("infrastructure")
     files = {
-        "docker-compose.yml": ["postgres", "nginx", "redis", "pgadmin"],
-        "docker-compose.dev.yml": ["backend", "frontend"]
+        "docker-compose.yml": ["postgres", "nginx", "redis", "backend", "frontend"],
+        "docker-compose.dev.yml": ["backend", "frontend", "pgadmin"],
     }
 
     for file, required_services in files.items():

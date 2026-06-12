@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.models import User
 from app.schemas.auth import RegisterRequest, LoginRequest, UserResponse
 from app.dependencies import get_db
+from app.utils.session import create_session_token
 from datetime import timedelta
 from passlib.context import CryptContext
 from pydantic import ValidationError
@@ -48,7 +49,7 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
 
     response.set_cookie(
         key="session_user",
-        value=str(user.id),
+        value=create_session_token(user.id),
         httponly=True,
         samesite="none",
         max_age=SESSION_EXPIRATION,
@@ -62,7 +63,6 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
 @router.post("/login", response_model=UserResponse)
 def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == req.username).first()
-    print("DEBUG login user:", user)
 
     # Guard against user or hash missing
     if not user or not getattr(user, "hashed_password", None):
@@ -95,7 +95,7 @@ def login(req: LoginRequest, response: Response, db: Session = Depends(get_db)):
 
     response.set_cookie(
         key="session_user",
-        value=str(user.id),
+        value=create_session_token(user.id),
         httponly=True,
         samesite="none",
         max_age=SESSION_EXPIRATION,

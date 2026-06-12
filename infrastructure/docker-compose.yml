@@ -6,16 +6,12 @@ services:
     restart: always
     env_file:
       - .env.db
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   redis:
     image: redis:7
     restart: always
-    ports:
-      - "6379:6379"
 
   backend:
     build:
@@ -61,28 +57,5 @@ services:
       - backend
       - frontend
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@poketactics.dev
-      PGADMIN_DEFAULT_PASSWORD: supersecure
-      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: "1"
-      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: "1"
-      PGADMIN_CONFIG_PROXY_X_HOST_COUNT: "1"
-      PGADMIN_CONFIG_PROXY_X_SCRIPT_NAME_HEADER: "'X-Script-Name'"
-      PGADMIN_CONFIG_PROXY: "True"
-      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "False"
-      PGADMIN_CONFIG_COOKIE_SAMESITE: "'Lax'"
-      PGADMIN_CONFIG_ALLOW_ROOT: "True"
-      PGADMIN_CONFIG_PROXY_X_SCRIPT_NAME: "'/db/admin'"
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-
 volumes:
   pgdata:
-  pgadmin_data:

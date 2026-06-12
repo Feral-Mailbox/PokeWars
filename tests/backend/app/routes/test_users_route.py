@@ -1,5 +1,6 @@
 # tests/apps/backend/app/routes/test_user_route.py
 import app.db.models as models
+from app.utils.session import create_session_token
 
 # ---------- Tests ----------
 
@@ -15,7 +16,7 @@ def test_get_me_success(client, db):
     db.add(user)
     db.commit()
 
-    client.cookies.set("session_user", str(user.id))
+    client.cookies.set("session_user", create_session_token(user.id))
     response = client.get("/me")
     assert response.status_code == 200
     data = response.json()
@@ -31,7 +32,7 @@ def test_get_me_unauthorized_without_cookie(client):
 
 
 def test_get_me_unauthorized_invalid_user(client, db):
-    client.cookies.set("session_user", "999")
+    client.cookies.set("session_user", create_session_token(999))
     response = client.get("/me")
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid session"
+    assert response.json()["detail"] == "User not found"
