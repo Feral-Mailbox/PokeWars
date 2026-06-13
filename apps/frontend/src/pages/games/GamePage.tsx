@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
+import { GAME_NOT_FOUND_MESSAGE } from "@/utils/gameLink";
 import GameMapStage from "./components/GameMapStage";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
@@ -81,10 +82,11 @@ export type ChatEntry = {
 export default function GamePage() {
 
   const { gameId } = useParams();
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [gameData, setGameData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [gameLoading, setGameLoading] = useState(true);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<PlacedUnitState[]>([]);
@@ -1934,11 +1936,31 @@ export default function GamePage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const redirectWithToast = () => {
+      navigate("/", { replace: true, state: { toastMessage: GAME_NOT_FOUND_MESSAGE } });
+    };
+
     const fetchGame = async () => {
+      if (!gameId) {
+        redirectWithToast();
+        return;
+      }
+
+      setGameLoading(true);
+      setGameData(null);
+
       try {
-        const res = await secureFetch(`/api/games/${gameId}`);
-        if (!res.ok) throw new Error("Game not found");
+        const res = await secureFetch(`/api/games/${encodeURIComponent(gameId)}`);
+        if (!res.ok) {
+          if (!cancelled) redirectWithToast();
+          return;
+        }
+
         const data = normalizeGameData(await res.json());
+        if (cancelled) return;
+
         setGameData(data);
         setCash(data.starting_cash ?? 0);
 
@@ -1977,12 +1999,17 @@ export default function GamePage() {
           }
         }
 
-      } catch (err: any) {
-        setError(err.message);
+        if (!cancelled) setGameLoading(false);
+      } catch {
+        if (!cancelled) redirectWithToast();
       }
     };
     fetchGame();
-  }, [gameId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, navigate]);
 
   useEffect(() => {
     setPlayerColorMap(buildPlayerColorMap(gameData?.players));
@@ -2916,6 +2943,14 @@ export default function GamePage() {
 
     setChatInput("");
   };
+
+  if (gameLoading || !gameData) {
+    return (
+      <div className="pt-20 px-8 text-white">
+        {gameLoading ? "Loading game..." : null}
+      </div>
+    );
+  }
 
   return (
     <div className="relative p-8 text-white flex flex-row items-start gap-6">

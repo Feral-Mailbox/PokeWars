@@ -7,7 +7,7 @@ import type { User } from '../types/user';
 import logo from '../assets/react.svg';
 
 const Navbar = () => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, authPrompt, clearAuthPrompt } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [showGamesMenu, setShowGamesMenu] = useState(false);
@@ -39,6 +39,13 @@ const Navbar = () => {
     };
     checkSession();
   }, [setUser]);
+
+  useEffect(() => {
+    if (!authPrompt || user) return;
+    setIsRegister(authPrompt === 'register');
+    setShowDropdown(true);
+    clearAuthPrompt();
+  }, [authPrompt, user, clearAuthPrompt]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

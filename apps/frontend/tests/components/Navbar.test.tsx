@@ -28,6 +28,8 @@ vi.mock('@/state/auth', () => {
     useAuth: () => ({
       user: null,
       setUser: vi.fn(),
+      authPrompt: null,
+      clearAuthPrompt: vi.fn(),
     }),
   };
 });
