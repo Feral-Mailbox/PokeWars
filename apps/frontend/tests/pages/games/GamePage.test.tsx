@@ -1,10 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import GamePage from '@/pages/games/GamePage';
 import { GAME_NOT_FOUND_MESSAGE } from '@/utils/gameLink';
+import { openBugReportWindow } from '@/utils/bugReport';
 
 const mockNavigate = vi.fn();
+
+vi.mock('@/state/auth', () => ({
+  useAuth: () => ({
+    user: { id: 1, username: 'testuser' },
+  }),
+}));
+
+vi.mock('@/utils/bugReport', () => ({
+  openBugReportWindow: vi.fn(),
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
@@ -83,5 +94,31 @@ describe('GamePage', () => {
         state: { toastMessage: GAME_NOT_FOUND_MESSAGE },
       });
     });
+  });
+
+  it('opens the bug report window with game context', async () => {
+    render(
+      <MemoryRouter initialEntries={['/games/123']}>
+        <Routes>
+          <Route path="/games/:gameId" element={<GamePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Test Game/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Report bug/i }));
+
+    expect(openBugReportWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameLink: 'test-link',
+        gameName: 'Test Game',
+        gameMode: 'Conquest',
+        gameStatus: 'preparation',
+        username: 'testuser',
+      }),
+    );
   });
 });

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 import { GAME_NOT_FOUND_MESSAGE } from "@/utils/gameLink";
+import { openBugReportWindow } from "@/utils/bugReport";
+import { useAuth } from "@/state/auth";
 import GameMapStage from "./components/GameMapStage";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
@@ -83,6 +85,7 @@ export default function GamePage() {
 
   const { gameId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [userId, setUserId] = useState<number | null>(null);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const [gameData, setGameData] = useState<any>(null);
@@ -2944,6 +2947,17 @@ export default function GamePage() {
     setChatInput("");
   };
 
+  const handleOpenBugReport = () => {
+    openBugReportWindow({
+      gameLink: gameData.link,
+      gameName: gameData.game_name,
+      gameMode: gameData.gamemode,
+      gameStatus: gameData.status,
+      username: user?.username,
+      pageUrl: window.location.href,
+    });
+  };
+
   if (gameLoading || !gameData) {
     return (
       <div className="pt-20 px-8 text-white">
@@ -2961,9 +2975,19 @@ export default function GamePage() {
       )}
 
       <div className="flex-1">
-        <h1 ref={gameHeaderRef} className="text-3xl font-bold mb-2">
-          {gameData?.game_name || "Untitled Game"} <span className="text-sm text-gray-400">({gameData?.gamemode})</span>
-        </h1>
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <h1 ref={gameHeaderRef} className="text-3xl font-bold">
+            {gameData?.game_name || "Untitled Game"}{" "}
+            <span className="text-sm text-gray-400">({gameData?.gamemode})</span>
+          </h1>
+          <button
+            type="button"
+            onClick={handleOpenBugReport}
+            className="rounded border border-gray-600 px-3 py-1 text-sm text-gray-300 hover:border-gray-500 hover:text-white"
+          >
+            Report bug
+          </button>
+        </div>
         
         {gameData?.max_turns && gameData.current_turn !== null && gameData.current_turn !== undefined && gameData.player_order && gameData.host_id && gameData?.status === "in_progress" && (
           (() => {
