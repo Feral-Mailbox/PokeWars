@@ -53,7 +53,7 @@ export default function ActiveGames() {
   const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
 
   return (
-    <div>
+    <div className="pt-20 px-4 pb-8 text-white">
       <h1 className="text-3xl font-bold mb-6">In-Progress Games</h1>
 
       <div className="flex gap-4 mb-6">

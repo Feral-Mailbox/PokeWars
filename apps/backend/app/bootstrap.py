@@ -27,8 +27,14 @@ def _bootstrap_settings() -> dict[str, str]:
     }
 
 
-def _password_is_acceptable(password: str) -> bool:
+def _password_is_acceptable_for_create(password: str) -> bool:
     if len(password) < 12:
+        return False
+    return password.lower() not in _INSECURE_PASSWORDS
+
+
+def _password_is_acceptable_for_sync(password: str) -> bool:
+    if len(password) < 8:
         return False
     return password.lower() not in _INSECURE_PASSWORDS
 
@@ -39,6 +45,26 @@ def _hash_password(password: str) -> str:
     return hash_password(password)
 
 
+def _sync_bootstrap_password(user: User, password: str, db: Session) -> bool:
+    """Update the bootstrap admin hash when BOOTSTRAP_ADMIN_PASSWORD changes."""
+    if not _password_is_acceptable_for_sync(password):
+        return False
+
+    from app.routes.auth import verify_password
+
+    try:
+        if verify_password(password, user.hashed_password):
+            return False
+    except Exception:
+        logger.exception("Could not verify existing bootstrap admin password")
+
+    user.hashed_password = _hash_password(password)
+    db.add(user)
+    db.commit()
+    logger.info("Synced bootstrap admin password from BOOTSTRAP_ADMIN_PASSWORD")
+    return True
+
+
 def ensure_bootstrap_admin(db: Session) -> None:
     settings = _bootstrap_settings()
     username = settings["username"]
@@ -46,14 +72,22 @@ def ensure_bootstrap_admin(db: Session) -> None:
         logger.warning("BOOTSTRAP_ADMIN_USERNAME is empty; skipping bootstrap admin")
         return
 
+    password = settings["password"]
     user = db.query(User).filter(User.username == username).first()
     if user is None:
-        password = settings["password"]
-        if not _password_is_acceptable(password):
-            logger.error(
-                "BOOTSTRAP_ADMIN_PASSWORD must be set to a unique password of at least "
-                "12 characters before the bootstrap admin can be created."
-            )
+        if not _password_is_acceptable_for_create(password):
+            if _password_is_acceptable_for_sync(password):
+                logger.error(
+                    "Bootstrap admin '%s' does not exist yet. "
+                    "BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters to "
+                    "auto-create the account, or register the user manually.",
+                    username,
+                )
+            else:
+                logger.error(
+                    "BOOTSTRAP_ADMIN_PASSWORD must be set to a unique password of at least "
+                    "12 characters before the bootstrap admin can be created."
+                )
             return
 
         user = User(
@@ -69,6 +103,8 @@ def ensure_bootstrap_admin(db: Session) -> None:
         db.commit()
         logger.info("Created bootstrap admin account for '%s'", username)
         return
+
+    _sync_bootstrap_password(user, password, db)
 
     if user.role != UserRole.admin:
         user.role = UserRole.admin

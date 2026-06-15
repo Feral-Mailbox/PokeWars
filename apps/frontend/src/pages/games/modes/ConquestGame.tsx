@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useMapRenderer } from "@/hooks/useMapRenderer";
+import { pointerToTileCoords } from "@/utils/mapPointer";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -32,10 +33,11 @@ export default function ConquestGame({
     const canvas = document.getElementById("mapCanvas") as HTMLCanvasElement;
     if (!canvas || !spawnGrid) return;
 
+    const mapTilesW = gameData.map.width ?? 0;
+    const mapTilesH = gameData.map.height ?? 0;
+
     const handleClick = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / (TILE_SIZE * TILE_SCALE));
-      const y = Math.floor((e.clientY - rect.top) / (TILE_SIZE * TILE_SCALE));
+      const [x, y] = pointerToTileCoords(canvas, mapTilesW, mapTilesH, e.clientX, e.clientY);
       if (spawnGrid[y]?.[x] === playerNumber) {
         onTileSelect([x, y]);
       } else {
@@ -45,7 +47,7 @@ export default function ConquestGame({
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [spawnGrid, playerNumber, isPreparationPhase, isReady]);
+  }, [spawnGrid, playerNumber, isPreparationPhase, isReady, gameData.map.width, gameData.map.height]);
 
 
   const drawOverlay = useCallback((ctx: CanvasRenderingContext2D) => {

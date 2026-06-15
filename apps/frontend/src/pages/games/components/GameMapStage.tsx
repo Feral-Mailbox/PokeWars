@@ -14,6 +14,7 @@ type PlacedUnit = {
 type GameMapStageProps = {
   mapWidth: number;
   mapHeight: number;
+  displayScale?: number;
   canvasRef: any;
   overlayRef: any;
   mapStageRef: any;
@@ -28,9 +29,12 @@ type GameMapStageProps = {
   onUnitClick: (unitState: PlacedUnit) => void;
 };
 
+const pixelatedCanvasStyle = { imageRendering: "pixelated" as const };
+
 export default function GameMapStage({
   mapWidth,
   mapHeight,
+  displayScale = 1,
   canvasRef,
   overlayRef,
   mapStageRef,
@@ -50,13 +54,27 @@ export default function GameMapStage({
     if (overlayRef.current) setupPixelCanvas(overlayRef.current, mapWidth, mapHeight);
   }, [mapWidth, mapHeight, canvasRef, overlayRef]);
 
+  const scaledWidth = mapWidth * displayScale;
+  const scaledHeight = mapHeight * displayScale;
+
   return (
-    <div ref={mapStageRef} className="relative" style={{ width: mapWidth, height: mapHeight }}>
-      <canvas ref={canvasRef} id="mapCanvas" />
+    <div className="shrink-0" style={{ width: scaledWidth, height: scaledHeight }}>
+      <div
+        ref={mapStageRef}
+        className="relative"
+        style={{
+          transform: `scale(${displayScale})`,
+          transformOrigin: "top left",
+          width: mapWidth,
+          height: mapHeight,
+        }}
+      >
+      <canvas ref={canvasRef} id="mapCanvas" style={pixelatedCanvasStyle} />
       <canvas
         ref={overlayRef}
         id="overlayCanvas"
         style={{
+          ...pixelatedCanvasStyle,
           position: "absolute",
           top: 0,
           left: 0,
@@ -115,6 +133,7 @@ export default function GameMapStage({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function JoinGame() {
   console.log(games)
 
   return (
-    <div>
+    <div className="pt-20 px-4 pb-8 text-white">
       <h1 className="text-3xl font-bold mb-6">Join Game</h1>
 
       <div className="flex gap-4 mb-6">

@@ -15,6 +15,8 @@ import ChatPanel from "./components/ChatPanel";
 import { UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import { mapPlacedUnitFromBackend, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
+import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
+import { useMapDisplayScale } from "@/hooks/useMapDisplayScale";
 import {
   buildMovementCostGrid,
   filterMovementTilesForUnit,
@@ -161,6 +163,9 @@ export default function GamePage() {
 
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
+  const mapTilesW = gameData?.map?.width ?? 0;
+  const mapTilesH = gameData?.map?.height ?? 0;
+  const displayScale = useMapDisplayScale(mapWidth, mapHeight);
 
   const TYPE_COLORS: { [key: string]: string } = {
     Normal: "#A8A77A",
@@ -777,8 +782,6 @@ export default function GamePage() {
   /* ----- ATTACK RANGE FUNCTIONS ------ */
 
   const prevTilesRef = useRef<[number, number][]>([]);
-  const mapTilesW = gameData?.map?.width ?? 0;
-  const mapTilesH = gameData?.map?.height ?? 0;
 
   const [attackOverlay, setAttackOverlay] = useState<{
     normal: [number, number][];
@@ -2326,9 +2329,7 @@ export default function GamePage() {
     if (!canvas) return;
 
     const handleClick = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
-      const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
+      const [x, y] = pointerToTileCoords(canvas, mapTilesW, mapTilesH, e.clientX, e.clientY);
       const clickedTile: [number, number] = [x, y];
 
       if (moveTargeting && selectedMove) {
@@ -2388,7 +2389,7 @@ export default function GamePage() {
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [highlightedTiles, lockedUnit, unitOriginalTile, moveTargeting, selectedMove, attackOverlay]);
+  }, [highlightedTiles, lockedUnit, unitOriginalTile, moveTargeting, selectedMove, attackOverlay, mapTilesW, mapTilesH]);
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
@@ -2397,9 +2398,7 @@ export default function GamePage() {
 
     const handleMove = (e: MouseEvent) => {
       if (!moveTargeting || !selectedMove) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / TILE_DRAW_SIZE);
-      const y = Math.floor((e.clientY - rect.top) / TILE_DRAW_SIZE);
+      const [x, y] = pointerToTileCoords(canvas, mapTilesW, mapTilesH, e.clientX, e.clientY);
       if (isMoveOverlayTile(x, y)) {
         setHoveredOverlayTile([x, y]);
       } else {
@@ -2415,7 +2414,7 @@ export default function GamePage() {
       canvas.removeEventListener("mousemove", handleMove);
       canvas.removeEventListener("mouseleave", handleLeave);
     };
-  }, [gameData?.status, moveTargeting, selectedMove, attackOverlay]);
+  }, [gameData?.status, moveTargeting, selectedMove, attackOverlay, mapTilesW, mapTilesH]);
 
   useEffect(() => {
     setLockedUnit(null);
@@ -2740,8 +2739,8 @@ export default function GamePage() {
       const rect = stage.getBoundingClientRect();
       const headerRect = header?.getBoundingClientRect();
       const panelWidth = UNIT_MENU_WIDTH_PX;
-      const chatPanelWidth = 360;
-      const gap = 24;
+      const chatPanelWidth = MAP_DISPLAY_LAYOUT.chatPanelWidth;
+      const gap = MAP_DISPLAY_LAYOUT.chatPanelGap;
       const viewportPadding = 12;
 
       const desiredLeft = rect.right + gap;
@@ -2761,7 +2760,7 @@ export default function GamePage() {
       window.removeEventListener("resize", updateMenuPosition);
       window.removeEventListener("scroll", updateMenuPosition, true);
     };
-  }, [mapWidth, mapHeight, gameData?.status, selectedTile, activeUnit]);
+  }, [mapWidth, mapHeight, displayScale, gameData?.status, selectedTile, activeUnit]);
 
   useEffect(() => { gameLinkRef.current = gameData?.link; }, [gameData?.link]);
   useEffect(() => { myTurnRef.current = isMyTurn; }, [isMyTurn]);
@@ -2967,14 +2966,14 @@ export default function GamePage() {
   }
 
   return (
-    <div className="relative p-8 text-white flex flex-row items-start gap-6">
+    <div className="relative pt-20 px-8 pb-8 text-white flex flex-row items-start gap-6">
       {toastMessage && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow-lg z-50">
           {toastMessage}
         </div>
       )}
 
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="mb-2 flex flex-wrap items-center gap-3">
           <h1 ref={gameHeaderRef} className="text-3xl font-bold">
             {gameData?.game_name || "Untitled Game"}{" "}
@@ -3096,6 +3095,7 @@ export default function GamePage() {
         <GameMapStage
           mapWidth={mapWidth}
           mapHeight={mapHeight}
+          displayScale={displayScale}
           canvasRef={canvasRef}
           overlayRef={overlayRef}
           mapStageRef={mapStageRef}
