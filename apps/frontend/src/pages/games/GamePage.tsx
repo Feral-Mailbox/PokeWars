@@ -125,6 +125,7 @@ export default function GamePage() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const overlay2Ref = useRef<HTMLCanvasElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
@@ -166,6 +167,16 @@ export default function GamePage() {
   const mapTilesW = gameData?.map?.width ?? 0;
   const mapTilesH = gameData?.map?.height ?? 0;
   const displayScale = useMapDisplayScale(mapWidth, mapHeight);
+
+  const mapRenderData = useMemo(() => {
+    if (!gameData?.map?.tile_data || !gameData.map.tileset_names) return null;
+    return {
+      width: gameData.map.width,
+      height: gameData.map.height,
+      tileset_names: gameData.map.tileset_names,
+      tile_data: gameData.map.tile_data,
+    };
+  }, [gameData?.map]);
 
   const TYPE_COLORS: { [key: string]: string } = {
     Normal: "#A8A77A",
@@ -3096,8 +3107,10 @@ export default function GamePage() {
           mapWidth={mapWidth}
           mapHeight={mapHeight}
           displayScale={displayScale}
+          mapRenderData={mapRenderData}
           canvasRef={canvasRef}
           overlayRef={overlayRef}
+          overlay2Ref={overlay2Ref}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
           placedUnits={placedUnits}

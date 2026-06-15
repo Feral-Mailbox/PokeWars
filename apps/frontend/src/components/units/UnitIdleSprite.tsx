@@ -5,6 +5,7 @@ interface UnitIdleSpriteProps {
   onFrameSize?: (size: [number, number]) => void;
   isMapPlacement?: boolean;
   overlayColor?: string;
+  outlineOnly?: boolean;
 }
 
 export default function UnitIdleSprite({
@@ -12,6 +13,7 @@ export default function UnitIdleSprite({
   onFrameSize,
   isMapPlacement,
   overlayColor,
+  outlineOnly = false,
 }: UnitIdleSpriteProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [spriteImage, setSpriteImage] = useState<HTMLImageElement | null>(null);
@@ -23,6 +25,37 @@ export default function UnitIdleSprite({
 
   const SPRITE_SCALE = 1.33;
   const CANVAS_PADDING_BOTTOM = 20;
+
+  const drawSpriteOutline = (
+    ctx: CanvasRenderingContext2D,
+    data: Uint8ClampedArray,
+    fw: number,
+    fh: number,
+    shift: number,
+    color: string
+  ) => {
+    ctx.fillStyle = color;
+    for (let y = 0; y < fh; y++) {
+      for (let x = 0; x < fw; x++) {
+        const i = (y * fw + x) * 4;
+        if (data[i + 3] <= 0) continue;
+
+        const isEdge =
+          x === 0 ||
+          y === 0 ||
+          x === fw - 1 ||
+          y === fh - 1 ||
+          data[i - 4 + 3] === 0 ||
+          data[i + 4 + 3] === 0 ||
+          data[i - fw * 4 + 3] === 0 ||
+          data[i + fw * 4 + 3] === 0;
+
+        if (isEdge) {
+          ctx.fillRect(x, y + shift, 1, 1);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     const loadAnimFromPath = async (spritePath: string, isFinalAttempt = false) => {
@@ -146,35 +179,43 @@ export default function UnitIdleSprite({
       ctx.save();
       ctx.translate(0, shift);
 
-      if (isMapPlacement && shadowImage) {
+      if (isMapPlacement && shadowImage && !outlineOnly) {
         ctx.drawImage(shadowImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
       }
 
-      ctx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
-
-      if (overlayColor) {
+      if (outlineOnly && overlayColor) {
         const frameCanvas = document.createElement("canvas");
         frameCanvas.width = fw;
         frameCanvas.height = fh;
         const frameCtx = frameCanvas.getContext("2d")!;
         frameCtx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
+        drawSpriteOutline(ctx, frameCtx.getImageData(0, 0, fw, fh).data, fw, fh, 0, overlayColor);
+      } else {
+        ctx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
 
-        const imageData = frameCtx.getImageData(0, 0, fw, fh);
-        const data = imageData.data;
+        if (overlayColor) {
+          const frameCanvas = document.createElement("canvas");
+          frameCanvas.width = fw;
+          frameCanvas.height = fh;
+          const frameCtx = frameCanvas.getContext("2d")!;
+          frameCtx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
 
-        // Fill only parts of the overlay which are not transparent
-        for (let y = 0; y < fh; y++) {
-          for (let x = 0; x < fw; x++) {
-            const i = (y * fw + x) * 4;
-            const alpha = data[i + 3];
-            if (alpha > 0) {
-              ctx.fillStyle = overlayColor!;
-              ctx.globalAlpha = 0.7;
-              ctx.fillRect(x, y, 1, 1);
+          const imageData = frameCtx.getImageData(0, 0, fw, fh);
+          const data = imageData.data;
+
+          for (let y = 0; y < fh; y++) {
+            for (let x = 0; x < fw; x++) {
+              const i = (y * fw + x) * 4;
+              const alpha = data[i + 3];
+              if (alpha > 0) {
+                ctx.fillStyle = overlayColor!;
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(x, y, 1, 1);
+              }
             }
           }
+          ctx.globalAlpha = 1.0;
         }
-        ctx.globalAlpha = 1.0;
       }
 
       ctx.restore();
@@ -201,7 +242,7 @@ export default function UnitIdleSprite({
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [spriteImage, shadowImage, durations, frameSize, isMapPlacement, overlayColor]);
+  }, [spriteImage, shadowImage, durations, frameSize, isMapPlacement, overlayColor, outlineOnly]);
 
   const [fw, fh] = frameSize;
 
