@@ -5,10 +5,13 @@ from app.map_movement import (
     LEDGE_DOWN,
     LEDGE_UP,
     SAND_MOVEMENT_COST,
+    STUMP_MOVEMENT_COST,
     build_movement_cost_grid,
     can_enter_tile,
     find_shortest_path,
     get_grass_defense_multiplier,
+    get_stump_defense_multiplier,
+    get_tile_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
     is_ice_tile,
     is_rock_tile,
@@ -283,6 +286,20 @@ def test_grass_tile_defense_multiplier():
     ) == 1.0
 
 
+def test_stump_tile_movement_and_defense():
+    special = [["stump"]]
+    costs = build_movement_cost_grid([[1]], special, {"flying"})
+    assert costs[0][0] == STUMP_MOVEMENT_COST
+
+    assert get_stump_defense_multiplier(special, 0, 0, {"fire"}) == pytest.approx(1.2)
+    assert get_stump_defense_multiplier(special, 0, 0, {"grass"}) == pytest.approx(1.2)
+    assert get_stump_defense_multiplier(special, 0, 0, {"flying"}) == 1.0
+    assert get_stump_defense_multiplier(special, 0, 0, {"fire"}, {"levitate"}) == 1.0
+
+    combined = get_tile_defense_multiplier(special, 0, 0, {"grass"})
+    assert combined == pytest.approx(1.2)
+
+
 def test_movement_range_skips_impassable_water_tiles():
     costs = [
         [1, IMPOSSIBLE_MOVEMENT_COST, 1],
@@ -399,6 +416,19 @@ def test_unit_can_occupy_tile_for_placement_rules():
     assert unit_can_occupy_tile(special, 0, 1, {"grass"}) is False
     assert unit_can_occupy_tile(special, 1, 1, {"rock"}) is True
     assert unit_can_occupy_tile(special, 1, 1, {"grass"}) is False
+
+
+def test_impassable_tile_blocks_all_units():
+    special = [["impassable"]]
+    for types in ({"grass"}, {"flying"}, {"water"}, {"ghost"}):
+        assert unit_can_occupy_tile(special, 0, 0, types) is False
+        assert unit_can_occupy_tile(special, 0, 0, types, {"levitate"}) is False
+
+    costs = build_movement_cost_grid([[1]], special, {"flying"})
+    assert costs[0][0] == IMPOSSIBLE_MOVEMENT_COST
+
+    assert can_enter_tile(special, 0, 0, 0, 0, {"flying"}) is False
+    assert is_valid_movement_destination(special, 0, 0, {"flying"}) is False
 
 
 def test_can_enter_tile_and_destination_helpers():

@@ -47,7 +47,9 @@ describe('Navbar', () => {
     );
 
     expect(screen.getByAltText(/logo/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Welcome$/)).toBeInTheDocument();
     expect(screen.getByText(/Games/i)).toBeInTheDocument();
+    expect(screen.getByText(/Guide/i)).toBeInTheDocument();
     expect(screen.getByText(/Login/i)).toBeInTheDocument();
   });
 

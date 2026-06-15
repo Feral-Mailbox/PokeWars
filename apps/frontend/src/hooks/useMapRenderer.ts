@@ -16,7 +16,7 @@ export function useMapRenderer(
     const ctx = canvas?.getContext("2d");
     if (!ctx || !gameData?.map?.tile_data || !gameData.map.tileset_names) return;
 
-    const { base, overlay } = gameData.map.tile_data;
+    const { base, overlay, overlay2 } = gameData.map.tile_data;
     const logicalWidth = gameData.map.width * MAP_TILE_DRAW_SIZE;
     const logicalHeight = gameData.map.height * MAP_TILE_DRAW_SIZE;
     const dpr = setupPixelCanvas(canvas, logicalWidth, logicalHeight);
@@ -96,6 +96,7 @@ export function useMapRenderer(
         for (let x = 0; x < gameData.map.width; x++) {
           drawTile(base[y][x], x, y);
           drawTile(overlay[y][x], x, y);
+          if (overlay2) drawTile(overlay2[y][x], x, y);
         }
       }
 

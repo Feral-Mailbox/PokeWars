@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import type { InlineConfig } from 'vitest';
+import type { Plugin } from 'vite';
 
 dotenv.config();
 
@@ -29,8 +30,41 @@ if (isDev) {
   }
 }
 
+const assetsRoot = path.resolve(__dirname, '../../assets');
+
+function serveGameAssets(): Plugin {
+  return {
+    name: 'serve-game-assets',
+    configureServer(server) {
+      server.middlewares.use('/game-assets', (req, res, next) => {
+        const urlPath = decodeURIComponent(req.url ?? '/');
+        const relativePath = urlPath.replace(/^\/+/, '');
+        const filePath = path.join(assetsRoot, relativePath);
+        if (!filePath.startsWith(assetsRoot)) {
+          res.statusCode = 403;
+          res.end('Forbidden');
+          return;
+        }
+        fs.readFile(filePath, (err, data) => {
+          if (err) {
+            next();
+            return;
+          }
+          if (filePath.endsWith('.json')) {
+            res.setHeader('Content-Type', 'application/json');
+          } else if (filePath.endsWith('.png')) {
+            res.setHeader('Content-Type', 'image/png');
+          }
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(data);
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), serveGameAssets()],
   test: {
     environment: 'jsdom',
     globals: true,

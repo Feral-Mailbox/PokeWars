@@ -126,6 +126,10 @@ const Navbar = () => {
       </button>
 
       <div className="flex flex-row items-center gap-4 relative">
+        <span className="text-sm text-gray-300">
+          {user ? `Welcome, ${user.username}` : 'Welcome'}
+        </span>
+
         {/* Games dropdown */}
         <div
           ref={gamesRef}
@@ -192,27 +196,39 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Auth controls */}
-        {user ? (
+        <button
+          onClick={() => navigate('/guide')}
+          className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
+        >
+          Guide
+        </button>
+
+        {user && isStaff(user) && (
           <>
-            <span className="text-sm text-gray-300">Welcome, {user.username}</span>
-            {isStaff(user) && (
-              <button
-                onClick={() => navigate('/admin')}
-                className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
-              >
-                Moderation
-              </button>
-            )}
             <button
-              onClick={handleLogout}
+              onClick={() => navigate('/map-builder')}
               className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
             >
-              Logout
+              Map Builder
+            </button>
+            <button
+              onClick={() => navigate('/admin')}
+              className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
+            >
+              Moderation
             </button>
           </>
+        )}
+
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"
+          >
+            Logout
+          </button>
         ) : (
-          <div ref={loginRef}>
+          <div ref={loginRef} className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="text-sm px-2 py-1 rounded bg-transparent shadow-none hover:text-blue-400 transition-colors"

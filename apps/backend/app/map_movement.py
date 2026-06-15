@@ -7,7 +7,11 @@ ROCK_TILE = "rock"
 GRASS_TILE = "grass"
 SAND_TILE = "sand"
 SAND_MOVEMENT_COST = 2
+STUMP_TILE = "stump"
+STUMP_MOVEMENT_COST = 2
+STUMP_DEFENSE_BOOST = 0.20
 ICE_TILE = "ice"
+IMPASSABLE_TILE = "impassable"
 GRASS_BASE_DODGE_RATE = 0.10
 GRASS_BUG_DODGE_RATE = 0.20
 GRASS_BASE_DEFENSE_BOOST = 0.10
@@ -61,8 +65,16 @@ def is_sand_tile(special_tiles: list | None, x: int, y: int) -> bool:
     return get_special_tile(special_tiles, x, y) == SAND_TILE
 
 
+def is_stump_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == STUMP_TILE
+
+
 def is_ice_tile(special_tiles: list | None, x: int, y: int) -> bool:
     return get_special_tile(special_tiles, x, y) == ICE_TILE
+
+
+def is_impassable_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == IMPASSABLE_TILE
 
 
 def target_receives_grass_tile_bonuses(
@@ -126,6 +138,39 @@ def get_grass_defense_multiplier(
     if "grass" in _normalized_types(target_types or set()):
         return 1.0 + GRASS_TYPE_DEFENSE_BOOST
     return 1.0 + GRASS_BASE_DEFENSE_BOOST
+
+
+def get_stump_defense_multiplier(
+    special_tiles: list | None,
+    target_x: int,
+    target_y: int,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float:
+    """Stump tiles boost defense/sp. def by 20% for grounded defenders."""
+    if not is_stump_tile(special_tiles, target_x, target_y):
+        return 1.0
+    if not target_receives_grass_tile_bonuses(target_types, target_ability_names):
+        return 1.0
+    return 1.0 + STUMP_DEFENSE_BOOST
+
+
+def get_tile_defense_multiplier(
+    special_tiles: list | None,
+    target_x: int,
+    target_y: int,
+    target_types: set[str] | None = None,
+    target_ability_names: set[str] | None = None,
+) -> float:
+    """Combined defense multiplier from all special terrain tiles."""
+    return (
+        get_grass_defense_multiplier(
+            special_tiles, target_x, target_y, target_types, target_ability_names
+        )
+        * get_stump_defense_multiplier(
+            special_tiles, target_x, target_y, target_types, target_ability_names
+        )
+    )
 
 
 def _normalized_types(unit_types: set[str]) -> set[str]:
@@ -384,6 +429,8 @@ def can_enter_tile(
     tile = get_special_tile(special_tiles, to_x, to_y)
     if tile is None:
         return True
+    if tile == IMPASSABLE_TILE:
+        return False
     if tile in LEDGE_TILES:
         if unit_can_stand_on_ledge(unit_types, ability_names):
             return True
@@ -399,6 +446,8 @@ def is_valid_movement_destination(
     ability_names: set[str] | None = None,
 ) -> bool:
     tile = get_special_tile(special_tiles, x, y)
+    if tile == IMPASSABLE_TILE:
+        return False
     if tile in LEDGE_TILES and not unit_can_stand_on_ledge(unit_types, ability_names):
         return False
     return True
@@ -426,12 +475,16 @@ def build_movement_cost_grid(
         new_row: list[int] = []
         for x in range(width):
             tile = get_special_tile(special_tiles, x, y)
-            if tile == WATER_TILE and not can_water:
+            if tile == IMPASSABLE_TILE:
+                new_row.append(IMPOSSIBLE_MOVEMENT_COST)
+            elif tile == WATER_TILE and not can_water:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
             elif tile == ROCK_TILE and not can_rock:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
             elif tile in LEDGE_TILES and not can_stand_on_ledge:
                 new_row.append(0)
+            elif tile == STUMP_TILE:
+                new_row.append(STUMP_MOVEMENT_COST)
             elif tile == SAND_TILE and not ignores_sand_slow:
                 new_row.append(SAND_MOVEMENT_COST)
             else:
@@ -504,6 +557,8 @@ def unit_can_occupy_tile(
 ) -> bool:
     """Whether a unit may be placed on or move onto a tile."""
     tile = get_special_tile(special_tiles, x, y)
+    if tile == IMPASSABLE_TILE:
+        return False
     if tile == WATER_TILE:
         return unit_can_cross_water(unit_types, ability_names)
     if tile == ROCK_TILE:

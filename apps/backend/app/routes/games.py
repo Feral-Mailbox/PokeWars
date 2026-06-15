@@ -17,10 +17,12 @@ from app.dependencies import get_db, get_current_user, ensure_user_can_chat
 from app.moderation.service import apply_chat_moderation
 from app.map_movement import (
     build_movement_cost_grid,
-    get_grass_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
+    get_tile_defense_multiplier,
+    is_stump_tile,
     movement_range_with_terrain,
     resolve_movement_destination,
+    target_receives_grass_tile_bonuses,
     unit_can_occupy_tile,
     unit_can_pass_through_units,
     IMPOSSIBLE_MOVEMENT_COST,
@@ -774,7 +776,7 @@ def resolve_shell_side_arm_mode(
     physical_attack = (attacker.current_stats or {}).get("attack", 0) or 0
     physical_defense = (target.current_stats or {}).get("defense", 1) or 1
     physical_defense *= get_weather_defense_multiplier(target, "defense", target_weather_id, db)
-    physical_defense *= get_grass_defense_multiplier(
+    physical_defense *= get_tile_defense_multiplier(
         special_tiles,
         int(target.current_x),
         int(target.current_y),
@@ -795,7 +797,7 @@ def resolve_shell_side_arm_mode(
     special_attack = (attacker.current_stats or {}).get("sp_attack", 0) or 0
     special_defense = (target.current_stats or {}).get("sp_defense", 1) or 1
     special_defense *= get_weather_defense_multiplier(target, "sp_defense", target_weather_id, db)
-    special_defense *= get_grass_defense_multiplier(
+    special_defense *= get_tile_defense_multiplier(
         special_tiles,
         int(target.current_x),
         int(target.current_y),
@@ -3699,6 +3701,72 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
                 unit_name = get_unit_display_name(unit, db)
                 publish_system_log_event(game.link, f"{unit_name} took {damage} damage from Salt Cure", game_state, db)
 
+    modified_unit_ids.extend(apply_end_of_round_stump_tile_effects(game_id, db))
+
+    return modified_unit_ids
+
+
+def apply_end_of_round_stump_tile_effects(game_id: int, db: Session) -> list[int]:
+    """Grass-type units on stump tiles heal 1/8 max HP at end of round."""
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
+    if not map_state or not map_state.map_id:
+        return []
+
+    map_obj = db.query(Map).filter(Map.id == map_state.map_id).first()
+    special_tiles = map_obj.tile_data.get("special_tiles") if map_obj and map_obj.tile_data else None
+    if not special_tiles:
+        return []
+
+    game = db.query(Game).filter(Game.id == game_id).first()
+    game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    modified_unit_ids: list[int] = []
+
+    for unit in units:
+        if int(unit.current_hp or 0) <= 0:
+            continue
+        if "grass" not in get_unit_types(unit, db):
+            continue
+        unit_types = get_unit_types(unit, db)
+        ability_names = get_unit_ability_names(unit, db)
+        if not target_receives_grass_tile_bonuses(unit_types, ability_names):
+            continue
+
+        x = int(getattr(unit, "current_x", -1) or -1)
+        y = int(getattr(unit, "current_y", -1) or -1)
+        if not is_stump_tile(special_tiles, x, y):
+            continue
+
+        max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+        if max_hp <= 0:
+            continue
+
+        state_effect = normalize_states(unit.states)
+        if state_effect and state_effect[0] == "heal_block" and int(state_effect[1]) > 0:
+            if game and game_state:
+                unit_name = get_unit_display_name(unit, db)
+                publish_system_log_event(
+                    game.link,
+                    f"{unit_name} can't be healed due to Heal Block",
+                    game_state,
+                    db,
+                )
+            continue
+
+        heal = max(1, max_hp // 8)
+        before_hp = int(unit.current_hp or 0)
+        unit.current_hp = min(max_hp, before_hp + heal)
+        db.add(unit)
+        modified_unit_ids.append(unit.id)
+        if game and game_state:
+            unit_name = get_unit_display_name(unit, db)
+            publish_system_log_event(
+                game.link,
+                f"{unit_name} healed {heal} HP from the stump",
+                game_state,
+                db,
+            )
+
     return modified_unit_ids
 
 
@@ -5544,7 +5612,7 @@ def execute_move(
                     defense = (target.current_stats or {}).get(attack_stat, defense)
                 target_weather_id = get_unit_weather_id(target, weather_tiles)
                 weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
-                grass_defense_multiplier = get_grass_defense_multiplier(
+                grass_defense_multiplier = get_tile_defense_multiplier(
                     special_tiles,
                     int(target.current_x),
                     int(target.current_y),

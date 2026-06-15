@@ -110,7 +110,11 @@ function LoggedOutHome({ onLogin, onRegister }: { onLogin: () => void; onRegiste
 
       <p className="mt-10 text-sm text-gray-500">
         Alpha build — abilities and replay viewer are not in the UI yet. HTTPS is required to stay
-        logged in.
+        logged in. Read the full{' '}
+        <Link to="/guide" className="text-indigo-400 hover:text-indigo-300">
+          game guide
+        </Link>
+        .
       </p>
     </div>
   );
@@ -225,7 +229,11 @@ function LoggedInHome({
 
       <p className="mt-10 text-sm text-gray-500">
         Report bugs through the channel your host provides. Cosmetic polish and missing animations
-        are expected in this build.
+        are expected in this build. See the{' '}
+        <Link to="/guide" className="text-indigo-400 hover:text-indigo-300">
+          game guide
+        </Link>{' '}
+        for rules and mechanics.
       </p>
     </div>
   );

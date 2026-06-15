@@ -10,7 +10,9 @@ import ActiveGames from './pages/games/ActiveGames';
 import CompletedGames from './pages/games/CompletedGames';
 import GamePage from './pages/games/GamePage';
 import AdminPage from './pages/admin/AdminPage';
+import MapBuilderPage from './pages/map-builder/MapBuilderPage';
 import ReportBug from './pages/ReportBug';
+import GameGuide from './pages/GameGuide';
 
 function App() {
   return (
@@ -25,7 +27,9 @@ function App() {
         <Route path="/games/completed" element={<CompletedGames />} />
         <Route path="/games/:gameId" element={<GamePage />} />
         <Route path="/report-bug" element={<ReportBug />} />
+        <Route path="/guide" element={<GameGuide />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/map-builder" element={<MapBuilderPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </WebSocketProvider>
