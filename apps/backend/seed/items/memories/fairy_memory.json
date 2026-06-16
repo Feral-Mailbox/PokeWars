@@ -1,0 +1,12 @@
+{
+  "id": 138,
+  "name": "Fairy Memory",
+  "slug": "fairy_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Fairy-type moves. Changes Silvally's type to Fairy and Techno Blast's type to Fairy.",
+  "effects": [
+    "on_move_type:Fairy:self:boost_power:1.2"
+  ],
+  "boost_type": "Fairy"
+}

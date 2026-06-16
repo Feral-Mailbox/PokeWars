@@ -1,20 +1,10 @@
 // tests/components/UnitIdleSprite.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import UnitIdleSprite from '@/components/units/UnitIdleSprite';
-
-vi.mock('@/components/utils/UnitIdleSprite', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    fileExistsSilently: vi.fn().mockResolvedValue(true),
-  };
-});
 
 describe('UnitIdleSprite', () => {
   const originalFetch = global.fetch;
-  const mockImageInstance = { onload: vi.fn(), complete: true } as unknown as HTMLImageElement;
 
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue({
@@ -33,6 +23,9 @@ describe('UnitIdleSprite', () => {
 
     vi.stubGlobal("Image", class {
       onload: () => void = () => {};
+      onerror: () => void = () => {};
+      crossOrigin = '';
+      naturalWidth = 24;
       complete = false;
       set src(_val: string) {
         this.complete = true;
@@ -57,7 +50,6 @@ describe('UnitIdleSprite', () => {
     render(<UnitIdleSprite assetFolder="077_pikachu" />);
     const canvas = await screen.findByTitle(/Idle|Walk/i);
     expect(canvas.tagName).toBe('CANVAS');
-    // Assert it is NOT styled as the wrapped version
     expect(canvas.style.position).not.toBe("absolute");
   });
 
@@ -66,12 +58,27 @@ describe('UnitIdleSprite', () => {
 
     render(<UnitIdleSprite assetFolder="077_pikachu" onFrameSize={onFrameSize} />);
 
-    // Force next animation frame to flush layout
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
-    // Wait until the callback is fired
     await waitFor(() => {
       expect(onFrameSize).toHaveBeenCalledWith([24, 48]);
+    }, { timeout: 1000 });
+  });
+
+  it('loads sprites when the browser image is already cached', async () => {
+    vi.stubGlobal("Image", class {
+      onload: () => void = () => {};
+      onerror: () => void = () => {};
+      crossOrigin = '';
+      naturalWidth = 24;
+      complete = true;
+      set src(_val: string) {
+        // Cached images can be complete before onload is assigned.
+      }
+    } as any);
+
+    render(<UnitIdleSprite assetFolder="141_cobalion" isMapPlacement />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle(/Idle|Walk/i)).toBeTruthy();
     }, { timeout: 1000 });
   });
 });

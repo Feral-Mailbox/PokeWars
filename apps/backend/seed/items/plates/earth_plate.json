@@ -1,0 +1,12 @@
+{
+  "id": 111,
+  "name": "Earth Plate",
+  "slug": "earth_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Ground-type moves. Changes Arceus's type to Ground and Judgment's type to Ground.",
+  "effects": [
+    "on_move_type:Ground:self:boost_power:1.2"
+  ],
+  "boost_type": "Ground"
+}

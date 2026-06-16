@@ -1,0 +1,12 @@
+{
+  "id": 112,
+  "name": "Sky Plate",
+  "slug": "sky_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Flying-type moves. Changes Arceus's type to Flying and Judgment's type to Flying.",
+  "effects": [
+    "on_move_type:Flying:self:boost_power:1.2"
+  ],
+  "boost_type": "Flying"
+}

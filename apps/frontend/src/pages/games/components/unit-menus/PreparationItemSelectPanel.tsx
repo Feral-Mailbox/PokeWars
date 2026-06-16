@@ -13,6 +13,12 @@ const ITEM_CATEGORY_OPTIONS = [
   { value: "berry", label: "Berries" },
   { value: "gem", label: "Gems" },
   { value: "type_boost", label: "Type Boost" },
+  { value: "plate", label: "Plates" },
+  { value: "memory", label: "Memories" },
+  { value: "incense", label: "Incense" },
+  { value: "power", label: "Power" },
+  { value: "unit_specific", label: "Unit Specific" },
+  { value: "misc", label: "Misc" },
 ] as const;
 
 type PreparationItemSelectPanelProps = {

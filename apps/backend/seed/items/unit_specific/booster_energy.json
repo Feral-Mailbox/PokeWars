@@ -1,0 +1,8 @@
+{
+  "id": 162,
+  "name": "Booster Energy",
+  "slug": "booster_energy",
+  "category": "unit_specific",
+  "cost": 500,
+  "description": "An item to be held by Pok\u00e9mon with certain Abilities. The energy that fills this capsule boosts the strength of the Pok\u00e9mon."
+}

@@ -1,0 +1,12 @@
+{
+  "id": 120,
+  "name": "Pixie Plate",
+  "slug": "pixie_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Fairy-type moves. Changes Arceus's type to Fairy and Judgment's type to Fairy.",
+  "effects": [
+    "on_move_type:Fairy:self:boost_power:1.2"
+  ],
+  "boost_type": "Fairy"
+}

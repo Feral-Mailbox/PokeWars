@@ -17,11 +17,9 @@
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": true,
   "effects": [
-    "conditional_type:held_item:normal_memory:normal",
-    "conditional_type:held_item:fire_memory:fire",
-    "conditional_type:held_item:water_memory:water",
-    "conditional_type:held_item:electric_memory:electric",
-    "conditional_type:held_item:grass_memory:grass",
-    "conditional_type:held_item:ice_memory:ice"
+    "conditional_type:held_item:burn_drive:fire",
+    "conditional_type:held_item:chill_drive:ice",
+    "conditional_type:held_item:douse_drive:water",
+    "conditional_type:held_item:shock_drive:electric"
   ]
 }

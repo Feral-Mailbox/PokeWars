@@ -1,0 +1,8 @@
+{
+  "id": 256,
+  "name": "Exp. Share",
+  "slug": "exp_share",
+  "category": "misc",
+  "cost": 350,
+  "description": "Turning on this special device will allow all the Pokémon on your team to share in Exp. Points gained."
+}

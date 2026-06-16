@@ -1,0 +1,8 @@
+{
+  "id": 246,
+  "name": "Terrain Extender",
+  "slug": "terrain_extender",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It extends the duration of terrain caused by the holder's move or Ability."
+}

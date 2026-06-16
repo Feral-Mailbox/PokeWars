@@ -1,0 +1,12 @@
+{
+  "id": 124,
+  "name": "Electric Memory",
+  "slug": "electric_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Electric-type moves. Changes Silvally's type to Electric and Techno Blast's type to Electric.",
+  "effects": [
+    "on_move_type:Electric:self:boost_power:1.2"
+  ],
+  "boost_type": "Electric"
+}

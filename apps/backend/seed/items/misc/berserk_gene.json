@@ -1,0 +1,8 @@
+{
+  "id": 255,
+  "name": "Berserk Gene",
+  "slug": "berserk_gene",
+  "category": "misc",
+  "cost": 350,
+  "description": "Boosts ATTACK but causes confusion."
+}

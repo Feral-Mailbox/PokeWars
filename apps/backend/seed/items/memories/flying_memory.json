@@ -1,0 +1,12 @@
+{
+  "id": 130,
+  "name": "Flying Memory",
+  "slug": "flying_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Flying-type moves. Changes Silvally's type to Flying and Techno Blast's type to Flying.",
+  "effects": [
+    "on_move_type:Flying:self:boost_power:1.2"
+  ],
+  "boost_type": "Flying"
+}

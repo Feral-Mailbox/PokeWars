@@ -1,0 +1,12 @@
+{
+  "id": 131,
+  "name": "Psychic Memory",
+  "slug": "psychic_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Psychic-type moves. Changes Silvally's type to Psychic and Techno Blast's type to Psychic.",
+  "effects": [
+    "on_move_type:Psychic:self:boost_power:1.2"
+  ],
+  "boost_type": "Psychic"
+}

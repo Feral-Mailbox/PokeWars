@@ -21,13 +21,25 @@ export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frame
     const basePath = `${base}/units/${assetFolder}/portraits/portrait.png`;
     const malePath = `${base}/units/${assetFolder}/portraits/male/portrait.png`;
 
-    const testImage = (url: string): Promise<boolean> =>
-      new Promise((resolve) => {
+    const testImage = (url: string): Promise<boolean> => {
+      return new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
+        let settled = false;
+        const finish = (ok: boolean) => {
+          if (settled) return;
+          settled = true;
+          resolve(ok);
+        };
+
+        img.onload = () => finish(true);
+        img.onerror = () => finish(false);
         img.src = url;
+
+        if (img.complete) {
+          finish(img.naturalWidth > 0);
+        }
       });
+    };
 
     const loadPortrait = async () => {
       const baseExists = await testImage(basePath);

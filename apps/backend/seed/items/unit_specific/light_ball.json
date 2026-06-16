@@ -1,0 +1,8 @@
+{
+  "id": 139,
+  "name": "Light Ball",
+  "slug": "light_ball",
+  "category": "unit_specific",
+  "cost": 500,
+  "description": "An item to be held by Pikachu. It's a mysterious orb that boosts Pikachu's Attack and Sp. Atk stats."
+}

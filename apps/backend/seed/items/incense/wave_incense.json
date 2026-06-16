@@ -1,0 +1,12 @@
+{
+  "id": 174,
+  "name": "Wave Incense",
+  "slug": "wave_incense",
+  "category": "incense",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This incense has a curious aroma that boosts the power of the holder's Water-type moves.",
+  "effects": [
+    "on_move_type:Water:self:boost_power:1.2"
+  ],
+  "boost_type": "Water"
+}

@@ -1,0 +1,12 @@
+{
+  "id": 128,
+  "name": "Poison Memory",
+  "slug": "poison_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Poison-type moves. Changes Silvally's type to Poison and Techno Blast's type to Poison.",
+  "effects": [
+    "on_move_type:Poison:self:boost_power:1.2"
+  ],
+  "boost_type": "Poison"
+}

@@ -1,0 +1,12 @@
+{
+  "id": 129,
+  "name": "Ground Memory",
+  "slug": "ground_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Ground-type moves. Changes Silvally's type to Ground and Techno Blast's type to Ground.",
+  "effects": [
+    "on_move_type:Ground:self:boost_power:1.2"
+  ],
+  "boost_type": "Ground"
+}

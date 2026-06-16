@@ -1,0 +1,8 @@
+{
+  "id": 188,
+  "name": "Black Sludge",
+  "slug": "black_sludge",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. If the holder is a Poison type, this sludge will gradually restore its HP. It damages any other type."
+}

@@ -1,0 +1,8 @@
+{
+  "id": 143,
+  "name": "Metal Powder",
+  "slug": "metal_powder",
+  "category": "unit_specific",
+  "cost": 500,
+  "description": "An item to be held by Ditto. Extremely fine yet hard, this odd powder boosts Ditto's Defense stat."
+}

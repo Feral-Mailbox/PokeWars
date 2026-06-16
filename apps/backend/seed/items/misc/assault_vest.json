@@ -1,0 +1,8 @@
+{
+  "id": 185,
+  "name": "Assault Vest",
+  "slug": "assault_vest",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This offensive vest boosts the holder's Sp. Def stat but prevents the use of status moves."
+}

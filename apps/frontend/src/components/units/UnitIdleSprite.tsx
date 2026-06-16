@@ -8,6 +8,34 @@ interface UnitIdleSpriteProps {
   outlineOnly?: boolean;
 }
 
+function loadImageElement(url: string, crossOrigin = true): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    if (crossOrigin) {
+      img.crossOrigin = "anonymous";
+    }
+
+    let settled = false;
+    const finish = (result: HTMLImageElement | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    img.onload = () => finish(img);
+    img.onerror = () => finish(null);
+    img.src = url;
+
+    if (img.complete) {
+      finish(img.naturalWidth > 0 ? img : null);
+    }
+  });
+}
+
+function imageExists(url: string): Promise<boolean> {
+  return loadImageElement(url).then((img) => img !== null);
+}
+
 export default function UnitIdleSprite({
   assetFolder,
   onFrameSize,
@@ -58,8 +86,10 @@ export default function UnitIdleSprite({
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadAnimFromPath = async (spritePath: string, isFinalAttempt = false) => {
-      const exists = await fileExistsSilently(`${spritePath}/Idle-Anim.png`);
+      const exists = await imageExists(`${spritePath}/Idle-Anim.png`);
       if (!exists) return false;
 
       const res = await fetch(`${spritePath}/AnimData.xml`, { mode: "cors" });
@@ -88,38 +118,35 @@ export default function UnitIdleSprite({
         parseInt(d.textContent || "10")
       );
 
+      if (cancelled) return false;
+
       setFrameSize([fw, fh]);
       if (onFrameSize) onFrameSize([fw, fh]);
       setDurations(ds);
       setAnimName(fallback ? "Walk" : "Idle");
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = `${spritePath}/${fallback ? "Walk-Anim.png" : "Idle-Anim.png"}`;
-      img.onload = () => setSpriteImage(img);
+      const spriteFile = fallback ? "Walk-Anim.png" : "Idle-Anim.png";
+      const img = await loadImageElement(`${spritePath}/${spriteFile}`);
+      if (!img || cancelled) return false;
+
+      setSpriteImage(img);
 
       if (isMapPlacement) {
-        const shadowImg = new Image();
-        shadowImg.crossOrigin = "anonymous";
-        shadowImg.src = `${spritePath}/Idle-Shadow.png`;
-        shadowImg.onload = () => {
+        const shadowImg = await loadImageElement(`${spritePath}/Idle-Shadow.png`);
+        if (shadowImg && !cancelled) {
           setShadowImage(shadowImg);
           computeVerticalShift(shadowImg, fw, fh);
-        };
+        }
       }
 
       return true;
     };
 
-    const fileExistsSilently = (url: string): Promise<boolean> =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = url;
-      });
-
     const loadAssets = async () => {
+      setSpriteImage(null);
+      setShadowImage(null);
+      setDurations([]);
+
       const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
       const normalizedBase = assetBase.startsWith("http")
         ? assetBase
@@ -129,13 +156,17 @@ export default function UnitIdleSprite({
       const malePath = `${base}/units/${assetFolder}/sprites/male`;
 
       const baseSuccess = await loadAnimFromPath(basePath);
-      if (!baseSuccess) {
+      if (!baseSuccess && !cancelled) {
         await loadAnimFromPath(malePath, true);
       }
     };
 
     loadAssets();
-  }, [assetFolder]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetFolder, isMapPlacement, onFrameSize]);
 
   const computeVerticalShift = (img: HTMLImageElement, fw: number, fh: number) => {
     const canvas = document.createElement("canvas");

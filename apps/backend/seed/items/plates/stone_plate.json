@@ -1,0 +1,12 @@
+{
+  "id": 115,
+  "name": "Stone Plate",
+  "slug": "stone_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Rock-type moves. Changes Arceus's type to Rock and Judgment's type to Rock.",
+  "effects": [
+    "on_move_type:Rock:self:boost_power:1.2"
+  ],
+  "boost_type": "Rock"
+}

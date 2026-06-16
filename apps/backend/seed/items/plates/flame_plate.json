@@ -1,0 +1,12 @@
+{
+  "id": 104,
+  "name": "Flame Plate",
+  "slug": "flame_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Fire-type moves. Changes Arceus's type to Fire and Judgment's type to Fire.",
+  "effects": [
+    "on_move_type:Fire:self:boost_power:1.2"
+  ],
+  "boost_type": "Fire"
+}

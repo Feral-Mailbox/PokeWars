@@ -1,0 +1,12 @@
+{
+  "id": 126,
+  "name": "Ice Memory",
+  "slug": "ice_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Ice-type moves. Changes Silvally's type to Ice and Techno Blast's type to Ice.",
+  "effects": [
+    "on_move_type:Ice:self:boost_power:1.2"
+  ],
+  "boost_type": "Ice"
+}

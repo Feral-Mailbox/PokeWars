@@ -1,0 +1,8 @@
+{
+  "id": 149,
+  "name": "Red Orb",
+  "slug": "red_orb",
+  "category": "unit_specific",
+  "cost": 500,
+  "description": "A shiny red orb that is said to have a deep connection to a legend of the Hoenn region."
+}

@@ -1,0 +1,8 @@
+{
+  "id": 225,
+  "name": "Mirror Herb",
+  "slug": "mirror_herb",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This herb will allow the holder to mirror an opponent's stat increases to boost its own stats\u2014but only once."
+}

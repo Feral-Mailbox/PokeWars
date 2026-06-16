@@ -1,0 +1,8 @@
+{
+  "id": 233,
+  "name": "Red Card",
+  "slug": "red_card",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. If the holder is damaged by an attack, the mysterious power of this card can remove the attacker from the battle."
+}

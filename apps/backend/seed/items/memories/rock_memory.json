@@ -1,0 +1,12 @@
+{
+  "id": 133,
+  "name": "Rock Memory",
+  "slug": "rock_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Rock-type moves. Changes Silvally's type to Rock and Techno Blast's type to Rock.",
+  "effects": [
+    "on_move_type:Rock:self:boost_power:1.2"
+  ],
+  "boost_type": "Rock"
+}

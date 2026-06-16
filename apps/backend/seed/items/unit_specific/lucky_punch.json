@@ -1,0 +1,8 @@
+{
+  "id": 142,
+  "name": "Lucky Punch",
+  "slug": "lucky_punch",
+  "category": "unit_specific",
+  "cost": 500,
+  "description": "An item to be held by Chansey. This lucky boxing glove boosts the critical-hit ratio of Chansey's moves."
+}

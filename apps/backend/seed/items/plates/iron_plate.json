@@ -1,0 +1,12 @@
+{
+  "id": 119,
+  "name": "Iron Plate",
+  "slug": "iron_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Steel-type moves. Changes Arceus's type to Steel and Judgment's type to Steel.",
+  "effects": [
+    "on_move_type:Steel:self:boost_power:1.2"
+  ],
+  "boost_type": "Steel"
+}

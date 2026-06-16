@@ -1,0 +1,12 @@
+{
+  "id": 108,
+  "name": "Icicle Plate",
+  "slug": "icicle_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Ice-type moves. Changes Arceus's type to Ice and Judgment's type to Ice.",
+  "effects": [
+    "on_move_type:Ice:self:boost_power:1.2"
+  ],
+  "boost_type": "Ice"
+}

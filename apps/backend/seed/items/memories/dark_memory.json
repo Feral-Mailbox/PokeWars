@@ -1,0 +1,12 @@
+{
+  "id": 136,
+  "name": "Dark Memory",
+  "slug": "dark_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Dark-type moves. Changes Silvally's type to Dark and Techno Blast's type to Dark.",
+  "effects": [
+    "on_move_type:Dark:self:boost_power:1.2"
+  ],
+  "boost_type": "Dark"
+}

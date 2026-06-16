@@ -1,0 +1,8 @@
+{
+  "id": 177,
+  "name": "Power Belt",
+  "slug": "power_belt",
+  "category": "power",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This belt reduces a Pok\u00e9mon's Speed in battle but allows its Defense stat to grow more quickly."
+}

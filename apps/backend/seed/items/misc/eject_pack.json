@@ -1,0 +1,8 @@
+{
+  "id": 201,
+  "name": "Eject Pack",
+  "slug": "eject_pack",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. If the holder's stats are lowered, it will be switched out of battle."
+}

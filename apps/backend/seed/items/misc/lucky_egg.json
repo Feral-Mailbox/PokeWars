@@ -1,0 +1,8 @@
+{
+  "id": 220,
+  "name": "Lucky Egg",
+  "slug": "lucky_egg",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It's an egg filled with happiness that earns the holder extra Exp. Points."
+}

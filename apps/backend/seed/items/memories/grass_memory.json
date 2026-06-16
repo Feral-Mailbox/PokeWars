@@ -1,0 +1,12 @@
+{
+  "id": 125,
+  "name": "Grass Memory",
+  "slug": "grass_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Grass-type moves. Changes Silvally's type to Grass and Techno Blast's type to Grass.",
+  "effects": [
+    "on_move_type:Grass:self:boost_power:1.2"
+  ],
+  "boost_type": "Grass"
+}

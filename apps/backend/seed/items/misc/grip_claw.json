@@ -1,0 +1,8 @@
+{
+  "id": 211,
+  "name": "Grip Claw",
+  "slug": "grip_claw",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. When the holder uses moves that deal damage over several turns, such as Bind or Wrap, their effects will last longer than usual."
+}

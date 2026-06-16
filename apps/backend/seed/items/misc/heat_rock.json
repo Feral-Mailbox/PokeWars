@@ -1,0 +1,8 @@
+{
+  "id": 212,
+  "name": "Heat Rock",
+  "slug": "heat_rock",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. When the holder changes the weather to harsh sunlight, the sunlight will persist for longer than usual."
+}

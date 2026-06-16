@@ -1,0 +1,8 @@
+{
+  "id": 224,
+  "name": "Metronome",
+  "slug": "metronome",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It boosts the power of a move that's used repeatedly. Once the chain is broken, the move's power returns to normal."
+}

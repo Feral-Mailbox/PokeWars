@@ -1,0 +1,12 @@
+{
+  "id": 117,
+  "name": "Draco Plate",
+  "slug": "draco_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Dragon-type moves. Changes Arceus's type to Dragon and Judgment's type to Dragon.",
+  "effects": [
+    "on_move_type:Dragon:self:boost_power:1.2"
+  ],
+  "boost_type": "Dragon"
+}

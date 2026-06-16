@@ -1,0 +1,12 @@
+{
+  "id": 123,
+  "name": "Water Memory",
+  "slug": "water_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Water-type moves. Changes Silvally's type to Water and Techno Blast's type to Water.",
+  "effects": [
+    "on_move_type:Water:self:boost_power:1.2"
+  ],
+  "boost_type": "Water"
+}

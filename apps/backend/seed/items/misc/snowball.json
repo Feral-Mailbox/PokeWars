@@ -1,0 +1,8 @@
+{
+  "id": 243,
+  "name": "Snowball",
+  "slug": "snowball",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This single-use ball of snow boosts the Attack stat if the holder is damaged by an Ice-type move."
+}

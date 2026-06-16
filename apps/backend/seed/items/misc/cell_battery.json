@@ -1,0 +1,8 @@
+{
+  "id": 191,
+  "name": "Cell Battery",
+  "slug": "cell_battery",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This single-use battery boosts the Attack stat if the holder is damaged by an Electric-type attack."
+}

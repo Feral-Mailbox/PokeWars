@@ -1,0 +1,8 @@
+{
+  "id": 214,
+  "name": "Iron Ball",
+  "slug": "iron_ball",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It lowers the holder's Speed stat and makes the holder vulnerable to Ground- type moves even if it is a Flying type or is levitating."
+}

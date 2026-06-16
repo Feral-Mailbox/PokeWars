@@ -1,0 +1,8 @@
+{
+  "id": 245,
+  "name": "Sticky Barb",
+  "slug": "sticky_barb",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It damages the holder every turn and may latch on to Pok\u00e9mon that make direct contact with the holder."
+}

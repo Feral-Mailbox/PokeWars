@@ -1,0 +1,12 @@
+{
+  "id": 127,
+  "name": "Fighting Memory",
+  "slug": "fighting_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Fighting-type moves. Changes Silvally's type to Fighting and Techno Blast's type to Fighting.",
+  "effects": [
+    "on_move_type:Fighting:self:boost_power:1.2"
+  ],
+  "boost_type": "Fighting"
+}

@@ -1,0 +1,8 @@
+{
+  "id": 217,
+  "name": "Life Orb",
+  "slug": "life_orb",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. It boosts the power of the holder's moves, but the holder also loses a small amount of HP upon landing an attack."
+}

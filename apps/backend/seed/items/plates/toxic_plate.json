@@ -1,0 +1,12 @@
+{
+  "id": 110,
+  "name": "Toxic Plate",
+  "slug": "toxic_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Poison-type moves. Changes Arceus's type to Poison and Judgment's type to Poison.",
+  "effects": [
+    "on_move_type:Poison:self:boost_power:1.2"
+  ],
+  "boost_type": "Poison"
+}

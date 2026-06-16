@@ -1,0 +1,12 @@
+{
+  "id": 132,
+  "name": "Bug Memory",
+  "slug": "bug_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Bug-type moves. Changes Silvally's type to Bug and Techno Blast's type to Bug.",
+  "effects": [
+    "on_move_type:Bug:self:boost_power:1.2"
+  ],
+  "boost_type": "Bug"
+}

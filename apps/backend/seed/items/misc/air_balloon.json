@@ -1,0 +1,8 @@
+{
+  "id": 183,
+  "name": "Air Balloon",
+  "slug": "air_balloon",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. This balloon makes the holder float in the air. If the holder is hit with an attack, the balloon will burst."
+}

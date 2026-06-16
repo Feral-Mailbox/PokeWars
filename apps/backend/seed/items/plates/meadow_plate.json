@@ -1,0 +1,12 @@
+{
+  "id": 107,
+  "name": "Meadow Plate",
+  "slug": "meadow_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Grass-type moves. Changes Arceus's type to Grass and Judgment's type to Grass.",
+  "effects": [
+    "on_move_type:Grass:self:boost_power:1.2"
+  ],
+  "boost_type": "Grass"
+}

@@ -1,0 +1,8 @@
+{
+  "id": 230,
+  "name": "Psychic Seed",
+  "slug": "psychic_seed",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. If the terrain becomes Psychic Terrain, the holder will use this seed to boost its own Sp. Def stat."
+}

@@ -1,0 +1,12 @@
+{
+  "id": 137,
+  "name": "Steel Memory",
+  "slug": "steel_memory",
+  "category": "memory",
+  "cost": 350,
+  "description": "Increases the power of the holder's Steel-type moves. Changes Silvally's type to Steel and Techno Blast's type to Steel.",
+  "effects": [
+    "on_move_type:Steel:self:boost_power:1.2"
+  ],
+  "boost_type": "Steel"
+}

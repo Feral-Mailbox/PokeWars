@@ -1,0 +1,12 @@
+{
+  "id": 109,
+  "name": "Fist Plate",
+  "slug": "fist_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Fighting-type moves. Changes Arceus's type to Fighting and Judgment's type to Fighting.",
+  "effects": [
+    "on_move_type:Fighting:self:boost_power:1.2"
+  ],
+  "boost_type": "Fighting"
+}

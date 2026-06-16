@@ -1,0 +1,12 @@
+{
+  "id": 118,
+  "name": "Dread Plate",
+  "slug": "dread_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Dark-type moves. Changes Arceus's type to Dark and Judgment's type to Dark.",
+  "effects": [
+    "on_move_type:Dark:self:boost_power:1.2"
+  ],
+  "boost_type": "Dark"
+}

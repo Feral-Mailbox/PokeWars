@@ -1,0 +1,8 @@
+{
+  "id": 234,
+  "name": "Ring Target",
+  "slug": "ring_target",
+  "category": "misc",
+  "cost": 350,
+  "description": "An item to be held by a Pok\u00e9mon. Moves that would normally have no effect due to type matchups will still hit the holder."
+}

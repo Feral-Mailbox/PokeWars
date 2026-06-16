@@ -1,0 +1,12 @@
+{
+  "id": 106,
+  "name": "Zap Plate",
+  "slug": "zap_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Electric-type moves. Changes Arceus's type to Electric and Judgment's type to Electric.",
+  "effects": [
+    "on_move_type:Electric:self:boost_power:1.2"
+  ],
+  "boost_type": "Electric"
+}

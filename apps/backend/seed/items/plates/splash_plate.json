@@ -1,0 +1,12 @@
+{
+  "id": 105,
+  "name": "Splash Plate",
+  "slug": "splash_plate",
+  "category": "plate",
+  "cost": 350,
+  "description": "Increases the power of the holder's Water-type moves. Changes Arceus's type to Water and Judgment's type to Water.",
+  "effects": [
+    "on_move_type:Water:self:boost_power:1.2"
+  ],
+  "boost_type": "Water"
+}
