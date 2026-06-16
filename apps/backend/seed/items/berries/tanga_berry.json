@@ -1,0 +1,14 @@
+{
+  "id": 46,
+  "name": "Tanga Berry",
+  "slug": "tanga_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Bug-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Bug:self:resist:0.5"
+  ],
+  "natural_gift_type": "Bug",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

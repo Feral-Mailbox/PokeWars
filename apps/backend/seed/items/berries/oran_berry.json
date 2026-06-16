@@ -1,0 +1,14 @@
+{
+  "id": 7,
+  "name": "Oran Berry",
+  "slug": "oran_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder restores 10 HP when HP drops below half.",
+  "effects": [
+    "on_hp_below:50:self:heal:10"
+  ],
+  "natural_gift_type": "Poison",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

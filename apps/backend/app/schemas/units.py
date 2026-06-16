@@ -68,6 +68,9 @@ class GameUnitCreateRequest(BaseModel):
     states: List[str | int] = Field(default_factory=list)
     is_fainted: bool
 
+class GameUnitChangeItemRequest(BaseModel):
+    item_id: int
+
 class GameUnitSchema(BaseModel):
     id: int
     game_id: int
@@ -95,6 +98,13 @@ class GameUnitSchema(BaseModel):
     is_fainted: bool
     can_move: bool
     move_pp: List[int] = Field(default_factory=list)
+    held_item: Optional[str] = None
+    held_item_slug: Optional[str] = None
+    ability: Optional[str] = None
     unit: UnitSummary
 
     model_config = ConfigDict(from_attributes=True)
+
+class GameUnitChangeItemResponse(BaseModel):
+    unit: GameUnitSchema
+    cash_remaining: int

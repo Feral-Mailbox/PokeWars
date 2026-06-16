@@ -1,0 +1,12 @@
+{
+  "id": 97,
+  "name": "Poison Barb",
+  "slug": "poison_barb",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Poison-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Poison:self:boost_power:1.2"
+  ],
+  "boost_type": "Poison"
+}

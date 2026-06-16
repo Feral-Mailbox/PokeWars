@@ -1,0 +1,12 @@
+{
+  "id": 91,
+  "name": "Hard Stone",
+  "slug": "hard_stone",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Rock-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Rock:self:boost_power:1.2"
+  ],
+  "boost_type": "Rock"
+}

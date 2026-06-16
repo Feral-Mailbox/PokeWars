@@ -1,0 +1,12 @@
+{
+  "id": 95,
+  "name": "Mystic Water",
+  "slug": "mystic_water",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Water-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Water:self:boost_power:1.2"
+  ],
+  "boost_type": "Water"
+}

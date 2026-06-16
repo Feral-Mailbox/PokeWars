@@ -1,0 +1,12 @@
+{
+  "id": 103,
+  "name": "Twisted Spoon",
+  "slug": "twisted_spoon",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Psychic-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Psychic:self:boost_power:1.2"
+  ],
+  "boost_type": "Psychic"
+}

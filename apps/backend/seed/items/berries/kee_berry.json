@@ -1,0 +1,14 @@
+{
+  "id": 66,
+  "name": "Kee Berry",
+  "slug": "kee_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Defense when hit by a physical move.",
+  "effects": [
+    "on_physical_hit:self:boost_stat:defense:1"
+  ],
+  "natural_gift_type": "Dragon",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

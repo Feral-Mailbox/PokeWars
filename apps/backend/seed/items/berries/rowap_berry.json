@@ -1,0 +1,14 @@
+{
+  "id": 64,
+  "name": "Rowap Berry",
+  "slug": "rowap_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Damages the attacker when hit by a special move.",
+  "effects": [
+    "on_special_hit:attacker:damage_percent:12.5"
+  ],
+  "natural_gift_type": "Dark",
+  "natural_gift_power": 100,
+  "flavor": "bitter"
+}

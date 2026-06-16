@@ -1,0 +1,14 @@
+{
+  "id": 36,
+  "name": "Occa Berry",
+  "slug": "occa_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Fire-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Fire:self:resist:0.5"
+  ],
+  "natural_gift_type": "Fire",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

@@ -1,0 +1,12 @@
+{
+  "id": 26,
+  "name": "Tamato Berry",
+  "slug": "tamato_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry that lowers Speed EVs when consumed.",
+  "effects": [],
+  "natural_gift_type": "Psychic",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

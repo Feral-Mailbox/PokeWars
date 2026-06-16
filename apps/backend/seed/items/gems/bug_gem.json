@@ -1,0 +1,12 @@
+{
+  "id": 78,
+  "name": "Bug Gem",
+  "slug": "bug_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Bug-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Bug:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Bug"
+}

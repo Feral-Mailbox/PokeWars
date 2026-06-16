@@ -1,0 +1,12 @@
+{
+  "id": 16,
+  "name": "Razz Berry",
+  "slug": "razz_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry used for making Pok\u00e9blocks and Poffins.",
+  "effects": [],
+  "natural_gift_type": "Steel",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

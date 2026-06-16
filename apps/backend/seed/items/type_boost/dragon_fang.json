@@ -1,0 +1,12 @@
+{
+  "id": 89,
+  "name": "Dragon Fang",
+  "slug": "dragon_fang",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Dragon-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Dragon:self:boost_power:1.2"
+  ],
+  "boost_type": "Dragon"
+}

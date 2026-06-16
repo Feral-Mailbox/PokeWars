@@ -1,0 +1,12 @@
+{
+  "id": 86,
+  "name": "Black Belt",
+  "slug": "black_belt",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Fighting-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Fighting:self:boost_power:1.2"
+  ],
+  "boost_type": "Fighting"
+}

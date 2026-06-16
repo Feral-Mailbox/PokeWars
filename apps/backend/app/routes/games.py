@@ -9,10 +9,10 @@ import json
 import re
 import redis
 
-from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move, GameMapState, Ability
+from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move, GameMapState, Ability, Item
 from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
 from app.schemas.maps import MapDetail, GameMapStateSchema
-from app.schemas.units import GameUnitSchema, GameUnitCreateRequest
+from app.schemas.units import GameUnitSchema, GameUnitCreateRequest, GameUnitChangeItemRequest, GameUnitChangeItemResponse
 from app.dependencies import get_db, get_current_user, ensure_user_can_chat
 from app.moderation.service import apply_chat_moderation
 from app.map_movement import (
@@ -330,6 +330,35 @@ def get_unit_held_item(unit: GameUnit) -> str | None:
         return None
     item_str = str(item).strip()
     return item_str or None
+
+
+def resolve_held_item_name(item_ref: str | None, db: Session) -> str | None:
+    if not item_ref:
+        return None
+    ref = str(item_ref).strip()
+    if not ref:
+        return None
+    item = db.query(Item).filter((Item.slug == ref) | (Item.name == ref)).first()
+    if item:
+        return item.name
+    return ref.replace("_", " ").title()
+
+
+def resolve_item_record(item_ref: str | None, db: Session) -> Item | None:
+    if not item_ref:
+        return None
+    ref = str(item_ref).strip()
+    if not ref:
+        return None
+    return db.query(Item).filter((Item.slug == ref) | (Item.name == ref)).first()
+
+
+def attach_game_unit_loadout_fields(unit: GameUnit, db: Session) -> GameUnit:
+    slug = get_unit_held_item(unit)
+    unit.held_item_slug = slug
+    unit.held_item = resolve_held_item_name(slug, db)
+    unit.ability = None
+    return unit
 
 
 def unit_holds_item_type(unit: GameUnit, item_type: str) -> bool:
@@ -4927,6 +4956,8 @@ def get_game_units(
                 # If any expected stat is missing, recalculate
                 if not expected_keys.issubset(actual_keys):
                     unit.current_stats = compute_effective_stats(unit, db)
+
+        attach_game_unit_loadout_fields(unit, db)
     
     return units
 
@@ -5034,7 +5065,106 @@ def place_unit(
     db.commit()
     db.refresh(new_unit)
 
+    attach_game_unit_loadout_fields(new_unit, db)
     return new_unit
+
+@router.post("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
+def change_unit_item(
+    link: str,
+    unit_id: int,
+    payload: GameUnitChangeItemRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter_by(link=link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.preparation:
+        raise HTTPException(status_code=400, detail="Items can only be changed during the preparation phase")
+
+    unit = (
+        db.query(GameUnit)
+        .options(joinedload(GameUnit.unit))
+        .filter_by(id=unit_id, game_id=game.id, user_id=user.id)
+        .first()
+    )
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+
+    player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player_state:
+        raise HTTPException(status_code=404, detail="Player state not found")
+
+    new_item = db.query(Item).filter_by(id=payload.item_id).first()
+    if not new_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    old_slug = get_unit_held_item(unit)
+    if old_slug == new_item.slug:
+        attach_game_unit_loadout_fields(unit, db)
+        return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
+
+    old_item = resolve_item_record(old_slug, db)
+    old_cost = old_item.cost if old_item else 0
+    net_cost = new_item.cost - old_cost
+    if player_state.cash_remaining < net_cost:
+        raise HTTPException(status_code=400, detail="Not enough cash")
+
+    player_state.cash_remaining -= net_cost
+    set_unit_held_item(unit, new_item.slug, db)
+    db.add(player_state)
+    db.add(unit)
+    db.commit()
+    db.refresh(unit)
+    attach_game_unit_loadout_fields(unit, db)
+    return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
+
+@router.delete("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
+def remove_unit_item(
+    link: str,
+    unit_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter_by(link=link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.preparation:
+        raise HTTPException(status_code=400, detail="Items can only be changed during the preparation phase")
+
+    unit = (
+        db.query(GameUnit)
+        .options(joinedload(GameUnit.unit))
+        .filter_by(id=unit_id, game_id=game.id, user_id=user.id)
+        .first()
+    )
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+
+    player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player_state:
+        raise HTTPException(status_code=404, detail="Player state not found")
+
+    old_slug = get_unit_held_item(unit)
+    if not old_slug:
+        attach_game_unit_loadout_fields(unit, db)
+        return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
+
+    old_item = resolve_item_record(old_slug, db)
+    if old_item:
+        player_state.cash_remaining += old_item.cost
+
+    set_unit_held_item(unit, None, db)
+    db.add(player_state)
+    db.add(unit)
+    db.commit()
+    db.refresh(unit)
+    attach_game_unit_loadout_fields(unit, db)
+    return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
 
 @router.delete("/{link}/units/remove/{unit_id}")
 def remove_unit(
@@ -5060,6 +5190,9 @@ def remove_unit(
         raise HTTPException(status_code=404, detail="Player state not found")
 
     player_state.cash_remaining += unit_info.cost
+    equipped_item = resolve_item_record(get_unit_held_item(unit), db)
+    if equipped_item:
+        player_state.cash_remaining += equipped_item.cost
     if unit.id in player_state.game_units:
         player_state.game_units.remove(unit.id)
 

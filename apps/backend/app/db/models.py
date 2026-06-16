@@ -349,6 +349,27 @@ class Move(Base):
         return f"<Move(name={self.name}, type={self.type}, power={self.power})>"
 
 # ======================
+# ITEMS
+# ======================
+class Item(Base):
+    __tablename__ = "items"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    slug = Column(String, unique=True, nullable=False, index=True)
+    category = Column(String, nullable=False)
+    cost = Column(Integer, nullable=False, default=100)
+    description = Column(String, nullable=True)
+    effects = Column(MutableList.as_mutable(JSON), default=list)
+    natural_gift_type = Column(String, nullable=True)
+    natural_gift_power = Column(Integer, nullable=True)
+    flavor = Column(String, nullable=True)
+    boost_type = Column(String, nullable=True)
+
+    def __repr__(self):
+        return f"<Item(name={self.name}, category={self.category}, slug={self.slug})>"
+
+# ======================
 # ABILITIES
 # ======================
 class Ability(Base):

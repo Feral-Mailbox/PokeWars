@@ -1,0 +1,14 @@
+{
+  "id": 52,
+  "name": "Chilan Berry",
+  "slug": "chilan_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a Normal-type hit against the holder.",
+  "effects": [
+    "on_hit:Normal:self:resist:0.5"
+  ],
+  "natural_gift_type": "Normal",
+  "natural_gift_power": 80,
+  "flavor": "dry"
+}

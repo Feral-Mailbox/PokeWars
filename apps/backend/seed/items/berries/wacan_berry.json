@@ -1,0 +1,14 @@
+{
+  "id": 38,
+  "name": "Wacan Berry",
+  "slug": "wacan_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Electric-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Electric:self:resist:0.5"
+  ],
+  "natural_gift_type": "Electric",
+  "natural_gift_power": 80,
+  "flavor": "sweet"
+}

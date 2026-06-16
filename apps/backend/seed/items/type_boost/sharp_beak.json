@@ -1,0 +1,12 @@
+{
+  "id": 98,
+  "name": "Sharp Beak",
+  "slug": "sharp_beak",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Flying-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Flying:self:boost_power:1.2"
+  ],
+  "boost_type": "Flying"
+}

@@ -1,0 +1,12 @@
+{
+  "id": 84,
+  "name": "Normal Gem",
+  "slug": "normal_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Normal-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Normal:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Normal"
+}

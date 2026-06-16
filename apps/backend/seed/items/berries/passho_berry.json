@@ -1,0 +1,14 @@
+{
+  "id": 37,
+  "name": "Passho Berry",
+  "slug": "passho_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Water-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Water:self:resist:0.5"
+  ],
+  "natural_gift_type": "Water",
+  "natural_gift_power": 80,
+  "flavor": "dry"
+}

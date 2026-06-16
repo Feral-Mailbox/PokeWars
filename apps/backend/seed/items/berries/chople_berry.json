@@ -1,0 +1,14 @@
+{
+  "id": 41,
+  "name": "Chople Berry",
+  "slug": "chople_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Fighting-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Fighting:self:resist:0.5"
+  ],
+  "natural_gift_type": "Fighting",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

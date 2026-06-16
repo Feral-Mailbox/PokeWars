@@ -1,0 +1,12 @@
+{
+  "id": 74,
+  "name": "Poison Gem",
+  "slug": "poison_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Poison-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Poison:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Poison"
+}

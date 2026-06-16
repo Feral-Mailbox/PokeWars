@@ -1,0 +1,12 @@
+{
+  "id": 24,
+  "name": "Hondew Berry",
+  "slug": "hondew_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry that lowers Sp. Atk EVs when consumed.",
+  "effects": [],
+  "natural_gift_type": "Ground",
+  "natural_gift_power": 80,
+  "flavor": "bitter"
+}

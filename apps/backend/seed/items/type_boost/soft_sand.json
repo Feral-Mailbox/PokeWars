@@ -1,0 +1,12 @@
+{
+  "id": 101,
+  "name": "Soft Sand",
+  "slug": "soft_sand",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Ground-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Ground:self:boost_power:1.2"
+  ],
+  "boost_type": "Ground"
+}

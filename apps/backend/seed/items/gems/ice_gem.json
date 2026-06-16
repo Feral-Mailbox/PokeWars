@@ -1,0 +1,12 @@
+{
+  "id": 72,
+  "name": "Ice Gem",
+  "slug": "ice_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Ice-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Ice:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Ice"
+}

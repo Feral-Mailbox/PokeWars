@@ -1,0 +1,12 @@
+{
+  "id": 99,
+  "name": "Silk Scarf",
+  "slug": "silk_scarf",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Normal-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Normal:self:boost_power:1.2"
+  ],
+  "boost_type": "Normal"
+}

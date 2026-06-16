@@ -1,0 +1,12 @@
+{
+  "id": 31,
+  "name": "Spelon Berry",
+  "slug": "spelon_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A rare Berry used for making Pok\u00e9blocks and Poffins.",
+  "effects": [],
+  "natural_gift_type": "Dark",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

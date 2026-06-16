@@ -1,0 +1,12 @@
+{
+  "id": 25,
+  "name": "Grepa Berry",
+  "slug": "grepa_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry that lowers Sp. Def EVs when consumed.",
+  "effects": [],
+  "natural_gift_type": "Flying",
+  "natural_gift_power": 80,
+  "flavor": "sour"
+}

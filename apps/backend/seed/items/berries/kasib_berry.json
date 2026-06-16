@@ -1,0 +1,14 @@
+{
+  "id": 48,
+  "name": "Kasib Berry",
+  "slug": "kasib_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Ghost-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Ghost:self:resist:0.5"
+  ],
+  "natural_gift_type": "Ghost",
+  "natural_gift_power": 80,
+  "flavor": "sweet"
+}

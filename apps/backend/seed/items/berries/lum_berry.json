@@ -1,0 +1,14 @@
+{
+  "id": 9,
+  "name": "Lum Berry",
+  "slug": "lum_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures any non-volatile status when afflicted.",
+  "effects": [
+    "on_status:any:self:cure_status:any"
+  ],
+  "natural_gift_type": "Flying",
+  "natural_gift_power": 80,
+  "flavor": "sweet"
+}

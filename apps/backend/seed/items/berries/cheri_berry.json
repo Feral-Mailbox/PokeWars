@@ -1,0 +1,14 @@
+{
+  "id": 1,
+  "name": "Cheri Berry",
+  "slug": "cheri_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures paralysis when afflicted.",
+  "effects": [
+    "on_status:paralysis:self:cure_status:paralysis"
+  ],
+  "natural_gift_type": "Fire",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

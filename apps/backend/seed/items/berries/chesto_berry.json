@@ -1,0 +1,14 @@
+{
+  "id": 2,
+  "name": "Chesto Berry",
+  "slug": "chesto_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder wakes from sleep when afflicted.",
+  "effects": [
+    "on_status:sleep:self:cure_status:sleep"
+  ],
+  "natural_gift_type": "Water",
+  "natural_gift_power": 80,
+  "flavor": "dry"
+}

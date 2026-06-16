@@ -1,0 +1,14 @@
+{
+  "id": 8,
+  "name": "Persim Berry",
+  "slug": "persim_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures confusion when afflicted.",
+  "effects": [
+    "on_status:confusion:self:cure_status:confusion"
+  ],
+  "natural_gift_type": "Ground",
+  "natural_gift_power": 80,
+  "flavor": "dry"
+}

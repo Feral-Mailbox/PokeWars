@@ -63,6 +63,8 @@ export default function InProgressUnitMenu({
         statusIconSrc={statusIconSrc}
         states={activeUnit?.states}
         typeColors={typeColors}
+        ability={activeUnit?.ability}
+        item={activeUnit?.held_item}
         portraitFrameX={portraitFrameX}
         portraitFrameY={portraitFrameY}
       />

@@ -1,0 +1,14 @@
+{
+  "id": 67,
+  "name": "Maranga Berry",
+  "slug": "maranga_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Sp. Def when hit by a special move.",
+  "effects": [
+    "on_special_hit:self:boost_stat:sp_defense:1"
+  ],
+  "natural_gift_type": "Dark",
+  "natural_gift_power": 80,
+  "flavor": "sour"
+}

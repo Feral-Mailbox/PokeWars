@@ -1,0 +1,15 @@
+{
+  "id": 11,
+  "name": "Figy Berry",
+  "slug": "figy_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder restores HP at low HP but may cause confusion.",
+  "effects": [
+    "on_hp_below:25:self:heal_percent:50",
+    "on_consume:self:confuse"
+  ],
+  "natural_gift_type": "Bug",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

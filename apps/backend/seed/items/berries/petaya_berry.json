@@ -1,0 +1,14 @@
+{
+  "id": 56,
+  "name": "Petaya Berry",
+  "slug": "petaya_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Sp. Atk when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:boost_stat:sp_attack:1"
+  ],
+  "natural_gift_type": "Poison",
+  "natural_gift_power": 100,
+  "flavor": "spicy"
+}

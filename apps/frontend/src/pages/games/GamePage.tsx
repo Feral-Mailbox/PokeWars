@@ -94,6 +94,7 @@ export default function GamePage() {
   const [gameLoading, setGameLoading] = useState(true);
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
+  const [availableItems, setAvailableItems] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<PlacedUnitState[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
@@ -2081,6 +2082,15 @@ export default function GamePage() {
     };
 
     fetchUnits();
+
+    const fetchItems = async () => {
+      const res = await secureFetch("/api/items/all");
+      if (!res.ok) return;
+      const items = await res.json();
+      setAvailableItems(Array.isArray(items) ? items : []);
+    };
+
+    fetchItems();
   }, [isPreparationPhase]);
 
   useEffect(() => {
@@ -2851,9 +2861,68 @@ export default function GamePage() {
       return;
     }
 
-    setCash((prev) => prev + (placedUnitAtTile.unit?.cost ?? 0));
+    setCash((prev) => {
+      const equippedItem = availableItems.find(
+        (item) => item.slug === placedUnitAtTile.held_item_slug
+      );
+      return prev + (placedUnitAtTile.unit?.cost ?? 0) + (equippedItem?.cost ?? 0);
+    });
     setPlacedUnits((prev) => prev.filter((u) => u.id !== placedUnitAtTile.id));
     setSelectedTile(null);
+  };
+
+  const handleChangeUnitItem = async (itemId: number) => {
+    if (!placedUnitAtTile?.id || !gameData?.link || isReady) return;
+
+    const res = await secureFetch(
+      `/api/games/${gameData.link}/units/${placedUnitAtTile.id}/item`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setToastMessage(
+        typeof err?.detail === "string" ? err.detail : "Failed to change item."
+      );
+      return;
+    }
+
+    const data = await res.json();
+    setCash(data.cash_remaining);
+    setPlacedUnits((prev) =>
+      prev.map((u) =>
+        u.id === placedUnitAtTile.id ? mapPlacedUnitFromBackend(data.unit) : u
+      )
+    );
+  };
+
+  const handleRemoveUnitItem = async () => {
+    if (!placedUnitAtTile?.id || !gameData?.link || isReady || !placedUnitAtTile.held_item_slug) return;
+
+    const res = await secureFetch(
+      `/api/games/${gameData.link}/units/${placedUnitAtTile.id}/item`,
+      { method: "DELETE" }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setToastMessage(
+        typeof err?.detail === "string" ? err.detail : "Failed to remove item."
+      );
+      return;
+    }
+
+    const data = await res.json();
+    setCash(data.cash_remaining);
+    setPlacedUnits((prev) =>
+      prev.map((u) =>
+        u.id === placedUnitAtTile.id ? mapPlacedUnitFromBackend(data.unit) : u
+      )
+    );
   };
 
   const handlePlacePreparationUnit = async (unit: any) => {
@@ -3168,7 +3237,12 @@ export default function GamePage() {
               typeColors={TYPE_COLORS}
               statusIconSrc={getStatusIconSrc(placedUnitAtTile?.status_effects ?? [])}
               getStatColor={getStatColor}
+              items={availableItems}
+              cash={cash}
+              disabled={isReady}
               onRemoveUnit={handleRemovePlacedUnit}
+              onChangeItem={handleChangeUnitItem}
+              onRemoveItem={handleRemoveUnitItem}
               onMoveHoverStart={handleMoveHoverStart}
               onMoveHoverEnd={handleMoveHoverEnd}
             />

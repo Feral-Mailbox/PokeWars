@@ -1,0 +1,14 @@
+{
+  "id": 57,
+  "name": "Apicot Berry",
+  "slug": "apicot_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Sp. Def when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:boost_stat:sp_defense:1"
+  ],
+  "natural_gift_type": "Ground",
+  "natural_gift_power": 100,
+  "flavor": "dry"
+}

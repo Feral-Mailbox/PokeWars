@@ -1,0 +1,14 @@
+{
+  "id": 4,
+  "name": "Rawst Berry",
+  "slug": "rawst_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures a burn when afflicted.",
+  "effects": [
+    "on_status:burn:self:cure_status:burn"
+  ],
+  "natural_gift_type": "Grass",
+  "natural_gift_power": 80,
+  "flavor": "bitter"
+}

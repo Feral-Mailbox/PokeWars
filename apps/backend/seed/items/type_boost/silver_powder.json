@@ -1,0 +1,12 @@
+{
+  "id": 100,
+  "name": "Silver Powder",
+  "slug": "silver_powder",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Bug-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Bug:self:boost_power:1.2"
+  ],
+  "boost_type": "Bug"
+}

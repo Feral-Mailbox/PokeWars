@@ -1,0 +1,14 @@
+{
+  "id": 43,
+  "name": "Shuca Berry",
+  "slug": "shuca_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Ground-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Ground:self:resist:0.5"
+  ],
+  "natural_gift_type": "Ground",
+  "natural_gift_power": 80,
+  "flavor": "sweet"
+}

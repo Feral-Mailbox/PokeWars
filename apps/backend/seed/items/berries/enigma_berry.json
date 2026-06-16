@@ -1,0 +1,14 @@
+{
+  "id": 60,
+  "name": "Enigma Berry",
+  "slug": "enigma_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder restores HP when hit by a super-effective move.",
+  "effects": [
+    "on_super_effective_hit:self:heal_percent:25"
+  ],
+  "natural_gift_type": "Bug",
+  "natural_gift_power": 100,
+  "flavor": "sour"
+}

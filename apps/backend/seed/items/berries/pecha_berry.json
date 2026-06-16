@@ -1,0 +1,15 @@
+{
+  "id": 3,
+  "name": "Pecha Berry",
+  "slug": "pecha_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures poison when afflicted.",
+  "effects": [
+    "on_status:poison:self:cure_status:poison",
+    "on_status:badly_poisoned:self:cure_status:badly_poisoned"
+  ],
+  "natural_gift_type": "Electric",
+  "natural_gift_power": 80,
+  "flavor": "sweet"
+}

@@ -1,0 +1,14 @@
+{
+  "id": 62,
+  "name": "Custap Berry",
+  "slug": "custap_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder moves first when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:priority_boost:1"
+  ],
+  "natural_gift_type": "Ghost",
+  "natural_gift_power": 100,
+  "flavor": "dry"
+}

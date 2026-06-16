@@ -1,0 +1,12 @@
+{
+  "id": 94,
+  "name": "Miracle Seed",
+  "slug": "miracle_seed",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Grass-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Grass:self:boost_power:1.2"
+  ],
+  "boost_type": "Grass"
+}

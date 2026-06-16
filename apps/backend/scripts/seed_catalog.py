@@ -7,12 +7,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from scripts import seed_moves, seed_official_maps, seed_units
+from scripts import seed_moves, seed_official_maps, seed_units, seed_items
 
 CATALOGS = {
     "maps": ("Official maps", seed_official_maps.load_maps),
     "units": ("Units", seed_units.load_units),
     "moves": ("Moves", seed_moves.load_moves),
+    "items": ("Items", seed_items.load_items),
 }
 
 
@@ -79,7 +80,7 @@ def main() -> None:
     parser.add_argument(
         "--only",
         default="maps,units,moves",
-        help="Comma-separated catalogs to refresh: maps, units, moves (default: all)",
+        help="Comma-separated catalogs to refresh: maps, units, moves, items (default: all)",
     )
     parser.add_argument(
         "--refresh",

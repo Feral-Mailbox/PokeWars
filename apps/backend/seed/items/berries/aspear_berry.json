@@ -1,0 +1,14 @@
+{
+  "id": 5,
+  "name": "Aspear Berry",
+  "slug": "aspear_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder cures freeze when afflicted.",
+  "effects": [
+    "on_status:freeze:self:cure_status:freeze"
+  ],
+  "natural_gift_type": "Ice",
+  "natural_gift_power": 80,
+  "flavor": "sour"
+}

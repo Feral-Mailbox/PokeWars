@@ -36,6 +36,11 @@ export function UnitCredits({ unit }: { unit: any }) {
   );
 }
 
+function formatLoadoutLabel(value: string | null | undefined): string {
+  const trimmed = String(value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : "None";
+}
+
 export function UnitInfoHeader({
   unit,
   currentHp,
@@ -43,6 +48,9 @@ export function UnitInfoHeader({
   statusIconSrc,
   states,
   typeColors,
+  ability,
+  item,
+  onRemoveItem,
   portraitFrameX = 0,
   portraitFrameY = 0,
 }: {
@@ -52,9 +60,14 @@ export function UnitInfoHeader({
   statusIconSrc: string | null;
   states?: unknown;
   typeColors: Record<string, string>;
+  ability?: string | null;
+  item?: string | null;
+  onRemoveItem?: () => void;
   portraitFrameX?: number;
   portraitFrameY?: number;
 }) {
+  const itemLabel = formatLoadoutLabel(item);
+  const hasEquippedItem = itemLabel !== "None";
   return (
     <>
       <div className="flex items-start gap-2 mb-2">
@@ -81,16 +94,38 @@ export function UnitInfoHeader({
         </div>
       </div>
 
-      {unit.types?.length > 0 && (
-        <div className="text-sm mb-2">
-          {unit.types.map((type: string, idx: number) => (
-            <span key={idx} className="font-medium" style={{ color: typeColors[type] || "#fff" }}>
-              {type}
-              {idx < unit.types.length - 1 && <span className="text-white">/</span>}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="text-sm mb-2 flex flex-wrap items-center gap-x-1 gap-y-1">
+        {unit.types?.length > 0 && (
+          <>
+            {unit.types.map((type: string, idx: number) => (
+              <span key={idx} className="font-medium" style={{ color: typeColors[type] || "#fff" }}>
+                {type}
+                {idx < unit.types.length - 1 && <span className="text-white">/</span>}
+              </span>
+            ))}
+            <span className="text-gray-500">·</span>
+          </>
+        )}
+        <span className="text-gray-300">
+          Ability: {formatLoadoutLabel(ability)}
+        </span>
+        <span className="text-gray-500">·</span>
+        <span className="text-gray-300">
+          Item:{" "}
+          {hasEquippedItem && onRemoveItem ? (
+            <button
+              type="button"
+              onClick={onRemoveItem}
+              className="font-medium text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
+              title="Remove item and refund cost"
+            >
+              {itemLabel}
+            </button>
+          ) : (
+            itemLabel
+          )}
+        </span>
+      </div>
     </>
   );
 }

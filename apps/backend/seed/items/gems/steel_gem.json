@@ -1,0 +1,12 @@
+{
+  "id": 83,
+  "name": "Steel Gem",
+  "slug": "steel_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Steel-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Steel:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Steel"
+}

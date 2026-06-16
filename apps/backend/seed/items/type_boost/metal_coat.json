@@ -1,0 +1,12 @@
+{
+  "id": 93,
+  "name": "Metal Coat",
+  "slug": "metal_coat",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Steel-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Steel:self:boost_power:1.2"
+  ],
+  "boost_type": "Steel"
+}

@@ -1,0 +1,12 @@
+{
+  "id": 22,
+  "name": "Kelpsy Berry",
+  "slug": "kelpsy_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry that lowers Attack EVs when consumed.",
+  "effects": [],
+  "natural_gift_type": "Fighting",
+  "natural_gift_power": 80,
+  "flavor": "dry"
+}

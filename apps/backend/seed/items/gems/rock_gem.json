@@ -1,0 +1,12 @@
+{
+  "id": 79,
+  "name": "Rock Gem",
+  "slug": "rock_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Rock-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Rock:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Rock"
+}

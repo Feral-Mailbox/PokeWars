@@ -1,0 +1,14 @@
+{
+  "id": 58,
+  "name": "Lansat Berry",
+  "slug": "lansat_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder gains increased critical-hit ratio when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:crit_boost:2"
+  ],
+  "natural_gift_type": "Flying",
+  "natural_gift_power": 100,
+  "flavor": "sweet"
+}

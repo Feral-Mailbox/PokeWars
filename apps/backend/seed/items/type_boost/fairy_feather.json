@@ -1,0 +1,12 @@
+{
+  "id": 90,
+  "name": "Fairy Feather",
+  "slug": "fairy_feather",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Fairy-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Fairy:self:boost_power:1.2"
+  ],
+  "boost_type": "Fairy"
+}

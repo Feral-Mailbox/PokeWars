@@ -1,0 +1,12 @@
+{
+  "id": 21,
+  "name": "Pomeg Berry",
+  "slug": "pomeg_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "A Berry that lowers HP EVs when consumed.",
+  "effects": [],
+  "natural_gift_type": "Ice",
+  "natural_gift_power": 80,
+  "flavor": "spicy"
+}

@@ -1,0 +1,14 @@
+{
+  "id": 6,
+  "name": "Leppa Berry",
+  "slug": "leppa_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder restores 10 PP to a depleted move.",
+  "effects": [
+    "on_move_pp_zero:self:restore_pp:10"
+  ],
+  "natural_gift_type": "Fighting",
+  "natural_gift_power": 80,
+  "flavor": "mild"
+}

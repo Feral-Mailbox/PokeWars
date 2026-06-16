@@ -1,0 +1,14 @@
+{
+  "id": 40,
+  "name": "Yache Berry",
+  "slug": "yache_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Weakens a super-effective Ice-type hit against the holder.",
+  "effects": [
+    "on_super_effective:Ice:self:resist:0.5"
+  ],
+  "natural_gift_type": "Ice",
+  "natural_gift_power": 80,
+  "flavor": "sour"
+}

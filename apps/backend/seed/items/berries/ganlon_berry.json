@@ -1,0 +1,14 @@
+{
+  "id": 54,
+  "name": "Ganlon Berry",
+  "slug": "ganlon_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Defense when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:boost_stat:defense:1"
+  ],
+  "natural_gift_type": "Ice",
+  "natural_gift_power": 100,
+  "flavor": "bitter"
+}

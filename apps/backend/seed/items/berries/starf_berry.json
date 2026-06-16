@@ -1,0 +1,14 @@
+{
+  "id": 59,
+  "name": "Starf Berry",
+  "slug": "starf_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises a random stat sharply when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:boost_random_stat:2"
+  ],
+  "natural_gift_type": "Psychic",
+  "natural_gift_power": 100,
+  "flavor": "bitter"
+}

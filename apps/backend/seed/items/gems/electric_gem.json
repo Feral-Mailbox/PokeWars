@@ -1,0 +1,12 @@
+{
+  "id": 70,
+  "name": "Electric Gem",
+  "slug": "electric_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Electric-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Electric:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Electric"
+}

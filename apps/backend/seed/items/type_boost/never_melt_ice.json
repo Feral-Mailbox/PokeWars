@@ -1,0 +1,12 @@
+{
+  "id": 96,
+  "name": "Never-Melt Ice",
+  "slug": "never_melt_ice",
+  "category": "type_boost",
+  "cost": 350,
+  "description": "Holder's Ice-type moves deal increased damage.",
+  "effects": [
+    "on_move_type:Ice:self:boost_power:1.2"
+  ],
+  "boost_type": "Ice"
+}

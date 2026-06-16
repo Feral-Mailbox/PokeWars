@@ -1,0 +1,12 @@
+{
+  "id": 75,
+  "name": "Ground Gem",
+  "slug": "ground_gem",
+  "category": "gem",
+  "cost": 200,
+  "description": "Holder boosts the power of its first Ground-type move, then the gem is consumed.",
+  "effects": [
+    "on_move_type:Ground:self:boost_power:1.5:consume_item"
+  ],
+  "boost_type": "Ground"
+}

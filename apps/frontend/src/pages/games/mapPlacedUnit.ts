@@ -17,6 +17,9 @@ export type PlacedUnitState = {
   is_fainted: boolean;
   can_move: boolean;
   move_pp: number[];
+  held_item: string | null;
+  held_item_slug: string | null;
+  ability: string | null;
 };
 
 export type ActiveUnitView = PlacedUnitState & {
@@ -46,6 +49,9 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     is_fainted: Boolean(backendUnit.is_fainted),
     can_move: backendUnit.can_move !== false,
     move_pp: Array.isArray(backendUnit.move_pp) ? backendUnit.move_pp.map(Number) : [],
+    held_item: backendUnit.held_item ?? null,
+    held_item_slug: backendUnit.held_item_slug ?? null,
+    ability: backendUnit.ability ?? null,
   };
 }
 

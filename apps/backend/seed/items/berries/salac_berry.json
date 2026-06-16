@@ -1,0 +1,14 @@
+{
+  "id": 55,
+  "name": "Salac Berry",
+  "slug": "salac_berry",
+  "category": "berry",
+  "cost": 100,
+  "description": "Holder raises Speed when HP drops below 25%.",
+  "effects": [
+    "on_hp_below:25:self:boost_stat:speed:1"
+  ],
+  "natural_gift_type": "Fighting",
+  "natural_gift_power": 100,
+  "flavor": "sour"
+}
