@@ -22,7 +22,10 @@
     383,
     135
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    30,
+    32
+  ],
   "cost": 100,
   "evolution_cost": 600,
   "evolves_into": [
@@ -42,5 +45,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 132
 }

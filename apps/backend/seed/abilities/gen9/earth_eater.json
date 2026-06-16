@@ -1,0 +1,7 @@
+{
+  "id": 297,
+  "name": "Earth Eater",
+  "slug": "earth_eater",
+  "description": "Ground-type moves do not work on the Pokémon. Instead, they restore 1/4 of its max HP.",
+  "generation": 9
+}

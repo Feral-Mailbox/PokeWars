@@ -1,0 +1,7 @@
+{
+  "id": 197,
+  "name": "Shields Down",
+  "slug": "shields_down",
+  "description": "When its HP drops to half or less, the Pokémon's shell breaks and it becomes aggressive.",
+  "generation": 7
+}

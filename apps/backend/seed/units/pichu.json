@@ -21,7 +21,9 @@
     84,
     204
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    9
+  ],
   "cost": 100,
   "evolution_cost": 400,
   "evolves_into": [
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Spikey-Valentine"
-  ]
+  ],
+  "hidden_ability": 31
 }

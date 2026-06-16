@@ -24,7 +24,9 @@
     446,
     433
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    29
+  ],
   "archetype": "tank_buffer",
   "cost": 1600,
   "evolution_cost": null,
@@ -40,5 +42,6 @@
   ],
   "sprite_credits": [
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": null
 }

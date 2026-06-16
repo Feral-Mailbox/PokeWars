@@ -15,6 +15,7 @@ def test_get_units_summary(client, db):
             base_stats={"hp": 35, "attack": 55},
             move_ids=[101],
             ability_ids=[201],
+            hidden_ability=202,
             cost=200
         ),
         models.Unit(
@@ -41,4 +42,6 @@ def test_get_units_summary(client, db):
     assert pikachu is not None
     assert pikachu["types"] == ["Electric"]
     assert pikachu["base_stats"]["hp"] == 35
+    assert pikachu["ability_ids"] == [201]
+    assert pikachu["hidden_ability"] == 202
     assert "cost" in pikachu

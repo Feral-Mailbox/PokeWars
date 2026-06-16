@@ -1,0 +1,7 @@
+{
+  "id": 16,
+  "name": "Color Change",
+  "slug": "color_change",
+  "description": "The Pokémon's type becomes the type of the move used on it.",
+  "generation": 3
+}

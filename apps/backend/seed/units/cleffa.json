@@ -22,7 +22,10 @@
     186
   ],
   "archetype": "healer_trainee",
-  "ability_ids": [],
+  "ability_ids": [
+    56,
+    98
+  ],
   "cost": 100,
   "evolution_cost": 400,
   "evolves_into": [
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 132
 }

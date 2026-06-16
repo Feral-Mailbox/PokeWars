@@ -24,7 +24,9 @@
     369
   ],
   "archetype": "scout_dps",
-  "ability_ids": [],
+  "ability_ids": [
+    26
+  ],
   "cost": 600,
   "evolution_cost": [
     1000
@@ -44,5 +46,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": null
 }

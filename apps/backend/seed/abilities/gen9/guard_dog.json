@@ -1,0 +1,7 @@
+{
+  "id": 275,
+  "name": "Guard Dog",
+  "slug": "guard_dog",
+  "description": "Boosts the Pokémon's Attack stat if intimidated. Moves and items that would force the Pokémon to switch out also fail to work.",
+  "generation": 9
+}

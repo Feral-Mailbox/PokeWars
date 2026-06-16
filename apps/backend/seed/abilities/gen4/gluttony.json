@@ -1,0 +1,7 @@
+{
+  "id": 82,
+  "name": "Gluttony",
+  "slug": "gluttony",
+  "description": "If the Pokémon is holding a Berry to be eaten when its HP drops to 1/4 or less of its max, it will instead eat the Berry when its HP drops to 1/2 or less of its max.",
+  "generation": 4
+}

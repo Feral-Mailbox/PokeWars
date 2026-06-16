@@ -22,7 +22,10 @@
     115
   ],
   "archetype": "special_tank",
-  "ability_ids": [],
+  "ability_ids": [
+    142,
+    98
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -41,5 +44,6 @@
   "sprite_credits": [
     "Anonymous",
     "Uni"
-  ]
+  ],
+  "hidden_ability": 144
 }

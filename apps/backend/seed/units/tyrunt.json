@@ -23,7 +23,9 @@
     44
   ],
   "archetype": "bruiser",
-  "ability_ids": [],
+  "ability_ids": [
+    173
+  ],
   "cost": 400,
   "evolution_cost": 800,
   "evolves_into": [
@@ -42,5 +44,6 @@
     "NeroIntruder",
     "baronessfaron",
     "Tainted#3886"
-  ]
+  ],
+  "hidden_ability": 5
 }

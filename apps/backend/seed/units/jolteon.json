@@ -22,7 +22,9 @@
     521,
     86
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    10
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "dmDash"
-  ]
+  ],
+  "hidden_ability": 95
 }

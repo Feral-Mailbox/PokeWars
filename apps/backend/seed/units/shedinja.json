@@ -24,7 +24,9 @@
     261
   ],
   "archetype": "stall_assassin",
-  "ability_ids": [],
+  "ability_ids": [
+    25
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -40,5 +42,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": null
 }

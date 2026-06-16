@@ -1,0 +1,7 @@
+{
+  "id": 78,
+  "name": "Motor Drive",
+  "slug": "motor_drive",
+  "description": "Electric-type moves do not work on the Pokémon. Instead, they boost its Speed stat by 1 stage.",
+  "generation": 4
+}

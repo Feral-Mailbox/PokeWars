@@ -1,0 +1,7 @@
+{
+  "id": 101,
+  "name": "Technician",
+  "slug": "technician",
+  "description": "Boosts the power of the Pokémon's moves by 50% if their power is 60 or less.",
+  "generation": 4
+}

@@ -105,10 +105,17 @@ def test_move_repr(db_session):
     assert "Thunder" in repr(move)
 
 def test_ability_model(db_session):
-    ab = Ability(name="Levitate", description="Immune to ground moves")
+    ab = Ability(
+        name="Levitate",
+        slug="levitate",
+        description="Immune to ground moves",
+        generation=3,
+    )
     db_session.add(ab)
     db_session.commit()
     assert ab.name == "Levitate"
+    assert ab.slug == "levitate"
+    assert ab.generation == 3
 
 def test_tournament_model(db_session):
     t = Tournament(name="Grand Finals", bracket_info={}, participants=[])

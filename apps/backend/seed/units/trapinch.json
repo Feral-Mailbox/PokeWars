@@ -22,7 +22,10 @@
     157
   ],
   "archetype": "trapper",
-  "ability_ids": [],
+  "ability_ids": [
+    52,
+    71
+  ],
   "cost": 200,
   "evolution_cost": [
     600
@@ -44,5 +47,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Caitemis"
-  ]
+  ],
+  "hidden_ability": 125
 }

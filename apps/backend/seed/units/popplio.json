@@ -21,7 +21,9 @@
     55,
     574
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    67
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -42,5 +44,6 @@
   "sprite_credits": [
     "Anonymous",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 204
 }

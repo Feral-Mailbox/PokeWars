@@ -1,0 +1,7 @@
+{
+  "id": 9,
+  "name": "Static",
+  "slug": "static",
+  "description": "When the Pokémon is hit by a contact move, the attacker has a 30% chance of being paralyzed.",
+  "generation": 3
+}

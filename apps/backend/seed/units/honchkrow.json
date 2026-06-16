@@ -23,7 +23,10 @@
     413,
     389
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    15,
+    105
+  ],
   "archetype": "assassin",
   "cost": 800,
   "evolution_cost": null,
@@ -42,5 +45,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Caitemis"
-  ]
+  ],
+  "hidden_ability": 153
 }

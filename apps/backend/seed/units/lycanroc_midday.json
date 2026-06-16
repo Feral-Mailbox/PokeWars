@@ -23,7 +23,10 @@
     529,
     269
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    51,
+    146
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -40,5 +43,6 @@
   "sprite_credits": [
     "baronessfaron",
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": 80
 }

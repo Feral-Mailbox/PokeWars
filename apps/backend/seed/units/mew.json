@@ -23,7 +23,9 @@
     144,
     118
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    28
+  ],
   "archetype": "wildcard",
   "cost": 1600,
   "evolution_cost": null,
@@ -42,5 +44,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "JFain"
-  ]
+  ],
+  "hidden_ability": null
 }

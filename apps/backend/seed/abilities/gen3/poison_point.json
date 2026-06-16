@@ -1,0 +1,7 @@
+{
+  "id": 38,
+  "name": "Poison Point",
+  "slug": "poison_point",
+  "description": "When the Pokémon is hit by a contact move, the attacker has a 30% chance of being poisoned.",
+  "generation": 3
+}

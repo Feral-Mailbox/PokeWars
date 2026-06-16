@@ -229,6 +229,7 @@ class Unit(Base):
     base_stats = Column(JSON, nullable=False)
     move_ids = Column(JSON, nullable=False, default=list)
     ability_ids = Column(JSON, nullable=False, default=list)
+    hidden_ability = Column(Integer, nullable=True)
     cost = Column(Integer, default=0)
     evolution_cost = Column(JSON, nullable=True, default=0)
     evolves_into = Column(JSON, nullable=True)
@@ -376,9 +377,14 @@ class Ability(Base):
     __tablename__ = "abilities"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    slug = Column(String, unique=True, nullable=False, index=True)
     description = Column(String, nullable=True)
+    generation = Column(Integer, nullable=False)
     effect = Column(JSON, nullable=True)
+
+    def __repr__(self):
+        return f"<Ability(name={self.name}, slug={self.slug}, generation={self.generation})>"
 
 # ======================
 # MODERATION

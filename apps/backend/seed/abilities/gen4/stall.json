@@ -1,0 +1,7 @@
+{
+  "id": 100,
+  "name": "Stall",
+  "slug": "stall",
+  "description": "The Pokémon's moves go last among moves of the same priority.",
+  "generation": 4
+}

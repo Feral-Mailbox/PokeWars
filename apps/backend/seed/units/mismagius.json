@@ -23,7 +23,9 @@
     417
   ],
   "archetype": "special_sweeper",
-  "ability_ids": [],
+  "ability_ids": [
+    26
+  ],
   "cost": 800,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": null
 }

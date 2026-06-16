@@ -24,7 +24,9 @@
     425,
     339
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    101
+  ],
   "archetype": "assassin",
   "cost": 1600,
   "evolution_cost": null,
@@ -40,5 +42,6 @@
   ],
   "sprite_credits": [
     "Dejais"
-  ]
+  ],
+  "hidden_ability": null
 }

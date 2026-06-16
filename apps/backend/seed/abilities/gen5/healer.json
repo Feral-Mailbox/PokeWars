@@ -1,0 +1,7 @@
+{
+  "id": 131,
+  "name": "Healer",
+  "slug": "healer",
+  "description": "The Pokémon has a 50% chance of curing the status conditions of its allies at the end of every turn.",
+  "generation": 5
+}

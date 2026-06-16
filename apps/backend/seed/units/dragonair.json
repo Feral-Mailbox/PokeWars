@@ -22,7 +22,9 @@
     401,
     349
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    61
+  ],
   "archetype": "bruiser",
   "cost": 800,
   "evolution_cost": 1400,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 63
 }

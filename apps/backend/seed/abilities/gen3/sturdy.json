@@ -1,0 +1,7 @@
+{
+  "id": 5,
+  "name": "Sturdy",
+  "slug": "sturdy",
+  "description": "If the Pokémon has full HP and takes damage from a move that would knock it out in one hit, it will endure the hit with 1 HP. The Pokémon is also immune to one-hit KO moves.",
+  "generation": 3
+}

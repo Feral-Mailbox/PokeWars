@@ -1,0 +1,7 @@
+{
+  "id": 24,
+  "name": "Rough Skin",
+  "slug": "rough_skin",
+  "description": "When the Pokémon is hit by a contact move, the attacker takes damage equal to 1/8 of its max HP.",
+  "generation": 3
+}

@@ -9,7 +9,7 @@
 #   make up ENV=dev         - Start dev containers with hot reload
 #   make reset-db           - Reset production database
 #   make reset-db ENV=dev   - Reset dev database
-#   make refresh-seed       - Upsert all catalog tables (maps, units, moves, items)
+#   make refresh-seed       - Upsert all catalog tables (maps, units, moves, items, abilities)
 #   make refresh-seed SEED=maps,units ENV=dev
 #   make bootstrap-admin     - Recreate/sync admin without touching catalog data
 
@@ -54,7 +54,7 @@ first-launch:
 	@echo "Running database migrations..."
 	$(DC_USED) run --rm backend alembic upgrade head
 	@echo "Seeding catalog data and bootstrap admin..."
-	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps,units,moves,items --refresh
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps,units,moves,items,abilities --refresh
 	@echo "Starting application services..."
 	$(DC_USED) up -d
 	@if [ "$(ENV)" = "dev" ]; then \
@@ -127,7 +127,7 @@ wait-for-postgres:
 #   make refresh-seed
 #   make refresh-seed SEED=maps,units
 #   make refresh-seed SEED=maps ENV=dev
-SEED ?= maps,units,moves,items
+SEED ?= maps,units,moves,items,abilities
 refresh-seed: wait-for-postgres
 	@echo "Refreshing catalog tables: $(SEED)"
 	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only "$(SEED)" --refresh
@@ -149,6 +149,9 @@ seed-moves: wait-for-postgres
 
 seed-items: wait-for-postgres
 	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only items --refresh
+
+seed-abilities: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only abilities --refresh
 
 psql:
 	$(DC_USED) exec postgres psql -U gameuser -d game_db
@@ -172,4 +175,4 @@ test-frontend:
 test-infrastructure:
 	pytest tests/infrastructure
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items test test-backend test-frontend
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities test test-backend test-frontend

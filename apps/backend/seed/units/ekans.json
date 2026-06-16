@@ -21,7 +21,10 @@
     40,
     137
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    22,
+    61
+  ],
   "archetype": "disruptor",
   "cost": 200,
   "evolution_cost": 600,
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 127
 }

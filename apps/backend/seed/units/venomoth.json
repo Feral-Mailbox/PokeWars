@@ -23,7 +23,10 @@
     94,
     483
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    19,
+    110
+  ],
   "cost": 500,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 147
 }

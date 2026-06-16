@@ -22,7 +22,9 @@
     334
   ],
   "archetype": "tank_trainee",
-  "ability_ids": [],
+  "ability_ids": [
+    75
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -42,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 155
 }

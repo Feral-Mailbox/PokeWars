@@ -24,7 +24,10 @@
     322
   ],
   "archetype": "paladin_tank",
-  "ability_ids": [],
+  "ability_ids": [
+    56,
+    98
+  ],
   "cost": 1000,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 109
 }

@@ -12,7 +12,7 @@ def test_parse_catalogs_preserves_order_and_deduplicates():
 
 def test_parse_catalogs_rejects_unknown():
     with pytest.raises(ValueError, match="Unknown catalog"):
-        seed_catalog.parse_catalogs("maps,abilities")
+        seed_catalog.parse_catalogs("maps,berries")
 
 
 def test_load_units_refresh_updates_existing(db, monkeypatch, tmp_path):
@@ -27,6 +27,7 @@ def test_load_units_refresh_updates_existing(db, monkeypatch, tmp_path):
         "base_stats": {"hp": 50, "attack": 50},
         "move_ids": [1],
         "ability_ids": [1],
+        "hidden_ability": 2,
         "cost": 100,
         "evolution_cost": 200,
         "evolves_into": [],

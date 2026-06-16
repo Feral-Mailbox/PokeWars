@@ -1,0 +1,7 @@
+{
+  "id": 216,
+  "name": "Dancer",
+  "slug": "dancer",
+  "description": "Whenever a dance move is used in battle, the Pokémon will copy the user to immediately perform that dance move itself.",
+  "generation": 7
+}

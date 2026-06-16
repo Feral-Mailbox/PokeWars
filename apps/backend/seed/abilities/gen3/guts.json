@@ -1,0 +1,7 @@
+{
+  "id": 62,
+  "name": "Guts",
+  "slug": "guts",
+  "description": "When the Pokémon has a status condition, its Attack stat is boosted by 50%. Being burned does not halve the damage dealt by the Pokémon's physical moves.",
+  "generation": 3
+}

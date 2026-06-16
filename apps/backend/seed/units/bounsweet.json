@@ -22,7 +22,10 @@
     230,
     23
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    102,
+    12
+  ],
   "cost": 100,
   "evolution_cost": 400,
   "evolves_into": [
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "baronessfaron"
-  ]
+  ],
+  "hidden_ability": 175
 }

@@ -18,6 +18,7 @@ def test_load_units(db, monkeypatch):
             "base_stats": {"hp": 50, "attack": 50},
             "move_ids": [1],
             "ability_ids": [1],
+            "hidden_ability": 2,
             "cost": 100,
             "evolution_cost": 200,
             "evolves_into": [],

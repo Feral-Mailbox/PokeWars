@@ -23,7 +23,10 @@
     113
   ],
   "archetype": "special_tank",
-  "ability_ids": [],
+  "ability_ids": [
+    142,
+    98
+  ],
   "cost": 600,
   "evolution_cost": [
     1000
@@ -45,5 +48,6 @@
     "powercristal",
     "baronessfaron",
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": 144
 }

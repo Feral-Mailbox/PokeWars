@@ -1,0 +1,7 @@
+{
+  "id": 28,
+  "name": "Synchronize",
+  "slug": "synchronize",
+  "description": "If the Pokémon is burned, paralyzed, poisoned, or badly poisoned by another Pokémon's move or Ability, that Pokémon will also be inflicted with the same status condition.",
+  "generation": 3
+}

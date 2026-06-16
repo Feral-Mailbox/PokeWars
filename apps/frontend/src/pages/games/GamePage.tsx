@@ -95,6 +95,7 @@ export default function GamePage() {
   const [selectedTile, setSelectedTile] = useState<[number, number] | null>(null);
   const [availableUnits, setAvailableUnits] = useState<any[]>([]);
   const [availableItems, setAvailableItems] = useState<any[]>([]);
+  const [availableAbilities, setAvailableAbilities] = useState<any[]>([]);
   const [placedUnits, setPlacedUnits] = useState<PlacedUnitState[]>([]);
   const [playerColorMap, setPlayerColorMap] = useState<Record<number, string>>({});
   const [moveMap, setMoveMap] = useState<Record<number, any>>({});
@@ -2091,6 +2092,15 @@ export default function GamePage() {
     };
 
     fetchItems();
+
+    const fetchAbilities = async () => {
+      const res = await secureFetch("/api/abilities/all");
+      if (!res.ok) return;
+      const abilities = await res.json();
+      setAvailableAbilities(Array.isArray(abilities) ? abilities : []);
+    };
+
+    fetchAbilities();
   }, [isPreparationPhase]);
 
   useEffect(() => {
@@ -2865,10 +2875,48 @@ export default function GamePage() {
       const equippedItem = availableItems.find(
         (item) => item.slug === placedUnitAtTile.held_item_slug
       );
-      return prev + (placedUnitAtTile.unit?.cost ?? 0) + (equippedItem?.cost ?? 0);
+      const hiddenAbilityId = placedUnitAtTile.unit?.hidden_ability ?? null;
+      const hasHiddenAbilityEquipped =
+        hiddenAbilityId != null && placedUnitAtTile.ability_id === hiddenAbilityId;
+      const hiddenAbilityRefund = hasHiddenAbilityEquipped ? 250 : 0;
+      return (
+        prev +
+        (placedUnitAtTile.unit?.cost ?? 0) +
+        (equippedItem?.cost ?? 0) +
+        hiddenAbilityRefund
+      );
     });
     setPlacedUnits((prev) => prev.filter((u) => u.id !== placedUnitAtTile.id));
     setSelectedTile(null);
+  };
+
+  const handleChangeUnitAbility = async (abilityId: number) => {
+    if (!placedUnitAtTile?.id || !gameData?.link || isReady) return;
+
+    const res = await secureFetch(
+      `/api/games/${gameData.link}/units/${placedUnitAtTile.id}/ability`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ability_id: abilityId }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setToastMessage(
+        typeof err?.detail === "string" ? err.detail : "Failed to change ability."
+      );
+      return;
+    }
+
+    const data = await res.json();
+    setCash(data.cash_remaining);
+    setPlacedUnits((prev) =>
+      prev.map((u) =>
+        u.id === placedUnitAtTile.id ? mapPlacedUnitFromBackend(data.unit) : u
+      )
+    );
   };
 
   const handleChangeUnitItem = async (itemId: number) => {
@@ -3238,11 +3286,14 @@ export default function GamePage() {
               statusIconSrc={getStatusIconSrc(placedUnitAtTile?.status_effects ?? [])}
               getStatColor={getStatColor}
               items={availableItems}
+              abilities={availableAbilities}
               cash={cash}
               disabled={isReady}
               onRemoveUnit={handleRemovePlacedUnit}
+              onChangeAbility={handleChangeUnitAbility}
               onChangeItem={handleChangeUnitItem}
               onRemoveItem={handleRemoveUnitItem}
+              onAbilityError={setToastMessage}
               onMoveHoverStart={handleMoveHoverStart}
               onMoveHoverEnd={handleMoveHoverEnd}
             />

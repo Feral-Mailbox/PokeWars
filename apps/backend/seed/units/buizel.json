@@ -21,7 +21,9 @@
     453,
     129
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    33
+  ],
   "archetype": "speedster",
   "cost": 200,
   "evolution_cost": 600,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Reimu_needs_$$$"
-  ]
+  ],
+  "hidden_ability": 41
 }

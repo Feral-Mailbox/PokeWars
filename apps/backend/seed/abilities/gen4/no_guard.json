@@ -1,0 +1,7 @@
+{
+  "id": 99,
+  "name": "No Guard",
+  "slug": "no_guard",
+  "description": "The accuracy of moves used both by and against the Pokémon becomes 100%.",
+  "generation": 4
+}

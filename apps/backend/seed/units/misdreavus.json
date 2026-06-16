@@ -22,7 +22,9 @@
     109
   ],
   "archetype": "disruptor",
-  "ability_ids": [],
+  "ability_ids": [
+    26
+  ],
   "cost": 400,
   "evolution_cost": 800,
   "evolves_into": [
@@ -42,5 +44,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Emboarger"
-  ]
+  ],
+  "hidden_ability": null
 }

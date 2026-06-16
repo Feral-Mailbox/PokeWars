@@ -24,7 +24,9 @@
     355,
     18
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    46
+  ],
   "archetype": "wall",
   "cost": 2000,
   "evolution_cost": null,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 136
 }

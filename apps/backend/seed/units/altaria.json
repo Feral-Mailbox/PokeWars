@@ -23,7 +23,9 @@
     585,
     355
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    30
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -42,5 +44,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "TawnySoup"
-  ]
+  ],
+  "hidden_ability": 13
 }

@@ -1,0 +1,7 @@
+{
+  "id": 274,
+  "name": "Wind Rider",
+  "slug": "wind_rider",
+  "description": "Boosts the Pokémon's Attack stat if Tailwind takes effect or if the Pokémon is hit by a wind move. The Pokémon also takes no damage from wind moves.",
+  "generation": 9
+}

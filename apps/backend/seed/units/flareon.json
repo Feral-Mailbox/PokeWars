@@ -22,7 +22,9 @@
     276,
     234
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    18
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -42,5 +44,6 @@
     "CHUNSOFT",
     "Ginnie",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 62
 }

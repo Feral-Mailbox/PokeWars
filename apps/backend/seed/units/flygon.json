@@ -25,7 +25,9 @@
     7
   ],
   "archetype": "all_rounder",
-  "ability_ids": [],
+  "ability_ids": [
+    26
+  ],
   "cost": 1000,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": null
 }

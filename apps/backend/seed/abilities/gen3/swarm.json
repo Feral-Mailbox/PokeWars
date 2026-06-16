@@ -1,0 +1,7 @@
+{
+  "id": 68,
+  "name": "Swarm",
+  "slug": "swarm",
+  "description": "Boosts the power of the Pokémon's Bug-type moves by 50% when its HP drops to 1/3 or less of its max.",
+  "generation": 3
+}

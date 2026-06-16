@@ -23,7 +23,10 @@
     86
   ],
   "archetype": "support",
-  "ability_ids": [],
+  "ability_ids": [
+    10,
+    35
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 11
 }

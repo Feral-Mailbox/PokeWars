@@ -23,7 +23,9 @@
     444,
     370
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    181
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": null
 }

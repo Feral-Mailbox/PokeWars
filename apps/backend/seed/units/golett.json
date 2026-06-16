@@ -23,7 +23,10 @@
     189
   ],
   "archetype": "brawler",
-  "ability_ids": [],
+  "ability_ids": [
+    89,
+    103
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "Soulja"
-  ]
+  ],
+  "hidden_ability": 99
 }

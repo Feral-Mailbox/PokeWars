@@ -22,7 +22,9 @@
     44,
     174
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    65
+  ],
   "archetype": "tank",
   "cost": 600,
   "evolution_cost": 1600,
@@ -42,5 +44,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Caitemis"
-  ]
+  ],
+  "hidden_ability": 75
 }

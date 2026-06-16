@@ -1,0 +1,7 @@
+{
+  "id": 209,
+  "name": "Disguise",
+  "slug": "disguise",
+  "description": "When the Pokémon is in its Disguised Form and would take damage from a move, it loses 1/8 of its max HP instead of taking the damage, then changes into its Busted Form.",
+  "generation": 7
+}

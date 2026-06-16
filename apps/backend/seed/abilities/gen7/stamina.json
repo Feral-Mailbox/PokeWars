@@ -1,0 +1,7 @@
+{
+  "id": 192,
+  "name": "Stamina",
+  "slug": "stamina",
+  "description": "When the Pokémon takes damage from a move, its Defense stat is boosted by 1 stage.",
+  "generation": 7
+}

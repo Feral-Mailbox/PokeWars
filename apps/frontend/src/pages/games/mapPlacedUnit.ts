@@ -20,6 +20,7 @@ export type PlacedUnitState = {
   held_item: string | null;
   held_item_slug: string | null;
   ability: string | null;
+  ability_id: number | null;
 };
 
 export type ActiveUnitView = PlacedUnitState & {
@@ -52,6 +53,10 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     held_item: backendUnit.held_item ?? null,
     held_item_slug: backendUnit.held_item_slug ?? null,
     ability: backendUnit.ability ?? null,
+    ability_id:
+      backendUnit.ability_id != null
+        ? Number(backendUnit.ability_id)
+        : null,
   };
 }
 

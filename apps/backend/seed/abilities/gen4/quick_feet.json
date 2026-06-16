@@ -1,0 +1,7 @@
+{
+  "id": 95,
+  "name": "Quick Feet",
+  "slug": "quick_feet",
+  "description": "When the Pokémon has a status condition, its Speed stat is boosted by 50%. Being paralyzed does not lower the Pokémon's Speed stat.",
+  "generation": 4
+}

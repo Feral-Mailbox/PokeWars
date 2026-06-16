@@ -1,0 +1,7 @@
+{
+  "id": 240,
+  "name": "Mirror Armor",
+  "slug": "mirror_armor",
+  "description": "Instead of being affected by stat-lowering effects, the Pokémon bounces them back at whichever Pokémon caused them.",
+  "generation": 8
+}

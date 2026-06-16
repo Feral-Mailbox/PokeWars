@@ -24,7 +24,9 @@
     428,
     369
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    162
+  ],
   "archetype": "all_rounder",
   "cost": 1600,
   "evolution_cost": null,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "MonochromeKirby"
-  ]
+  ],
+  "hidden_ability": null
 }

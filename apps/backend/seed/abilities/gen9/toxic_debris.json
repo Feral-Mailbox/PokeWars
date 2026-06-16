@@ -1,0 +1,7 @@
+{
+  "id": 295,
+  "name": "Toxic Debris",
+  "slug": "toxic_debris",
+  "description": "When the Pokémon takes damage from a physical move, it gives the opponent's side the Toxic Spikes status.",
+  "generation": 9
+}

@@ -21,7 +21,9 @@
     225,
     86
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    61
+  ],
   "archetype": "scout_trainee",
   "cost": 300,
   "evolution_cost": 800,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 63
 }

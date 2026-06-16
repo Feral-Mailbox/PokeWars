@@ -24,7 +24,9 @@
     355
   ],
   "archetype": "support_dps",
-  "ability_ids": [],
+  "ability_ids": [
+    241
+  ],
   "cost": 400,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "JFain"
-  ]
+  ],
+  "hidden_ability": null
 }

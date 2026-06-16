@@ -23,7 +23,9 @@
     247,
     105
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    46
+  ],
   "archetype": "glass_cannon",
   "cost": 2000,
   "evolution_cost": null,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 127
 }

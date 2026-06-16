@@ -1,0 +1,7 @@
+{
+  "id": 121,
+  "name": "Multitype",
+  "slug": "multitype",
+  "description": "Changes the Pokémon's type to match the plate it holds.",
+  "generation": 4
+}

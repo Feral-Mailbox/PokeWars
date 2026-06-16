@@ -22,7 +22,9 @@
     8,
     339
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    33
+  ],
   "archetype": "speedster",
   "cost": 600,
   "evolution_cost": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 41
 }

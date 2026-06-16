@@ -18,6 +18,8 @@ class UnitSummary(BaseModel):
     cost: int
     base_stats: Dict[str, int]
     move_ids: List[int]
+    ability_ids: List[int]
+    hidden_ability: Optional[int] = None
     portrait_credits: List[str]
     sprite_credits: List[str]
     weight: float
@@ -37,6 +39,8 @@ class UnitDetail(BaseModel):
     base_stats: Dict[str, int]
     cost: int
     move_ids: List[int]
+    ability_ids: List[int]
+    hidden_ability: Optional[int] = None
     evolution_cost: Optional[int]
     evolves_into: Optional[List[int]]
     is_legendary: bool
@@ -71,6 +75,9 @@ class GameUnitCreateRequest(BaseModel):
 class GameUnitChangeItemRequest(BaseModel):
     item_id: int
 
+class GameUnitChangeAbilityRequest(BaseModel):
+    ability_id: int
+
 class GameUnitSchema(BaseModel):
     id: int
     game_id: int
@@ -101,10 +108,15 @@ class GameUnitSchema(BaseModel):
     held_item: Optional[str] = None
     held_item_slug: Optional[str] = None
     ability: Optional[str] = None
+    ability_id: Optional[int] = None
     unit: UnitSummary
 
     model_config = ConfigDict(from_attributes=True)
 
 class GameUnitChangeItemResponse(BaseModel):
+    unit: GameUnitSchema
+    cash_remaining: int
+
+class GameUnitChangeAbilityResponse(BaseModel):
     unit: GameUnitSchema
     cash_remaining: int

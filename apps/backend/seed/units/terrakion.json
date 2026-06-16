@@ -24,7 +24,9 @@
     370,
     14
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    154
+  ],
   "archetype": "bruiser",
   "cost": 1600,
   "evolution_cost": null,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": null
 }

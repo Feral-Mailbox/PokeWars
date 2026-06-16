@@ -18,6 +18,7 @@ def unit_fields_from_data(data: dict) -> dict:
         "base_stats": data["base_stats"],
         "move_ids": data.get("move_ids", []),
         "ability_ids": data.get("ability_ids", []),
+        "hidden_ability": data.get("hidden_ability"),
         "cost": data.get("cost", 0),
         "evolution_cost": data.get("evolution_cost", 0),
         "evolves_into": data.get("evolves_into"),

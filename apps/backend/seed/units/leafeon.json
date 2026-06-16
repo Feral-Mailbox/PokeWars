@@ -22,7 +22,9 @@
     235,
     92
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    102
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -40,5 +42,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "baronessfaron"
-  ]
+  ],
+  "hidden_ability": 34
 }

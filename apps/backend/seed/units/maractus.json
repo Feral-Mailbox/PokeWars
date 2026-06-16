@@ -22,7 +22,10 @@
     202,
     389
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    11,
+    34
+  ],
   "cost": 400,
   "evolution_cost": null,
   "evolves_into": null,
@@ -38,5 +41,6 @@
   ],
   "sprite_credits": [
     "JFain"
-  ]
+  ],
+  "hidden_ability": 114
 }

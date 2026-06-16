@@ -1,0 +1,7 @@
+{
+  "id": 79,
+  "name": "Rivalry",
+  "slug": "rivalry",
+  "description": "Boosts the power of the Pokémon's moves by 25% against targets of the same gender, and lowers it by 25% against targets of the opposite gender. The power remains the same as usual if either Pokémon's gender is unknown.",
+  "generation": 4
+}

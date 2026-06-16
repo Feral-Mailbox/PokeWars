@@ -24,7 +24,9 @@
     791,
     47
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    67
+  ],
   "cost": 1000,
   "evolution_cost": null,
   "evolves_into": null,
@@ -43,5 +45,6 @@
     "baronessfaron",
     "Anonymous",
     "JFain"
-  ]
+  ],
+  "hidden_ability": 204
 }

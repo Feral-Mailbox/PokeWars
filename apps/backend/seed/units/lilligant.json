@@ -22,7 +22,10 @@
     79,
     72
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    34,
+    20
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -40,5 +43,6 @@
     "powercristal",
     "baronessfaron",
     "Garbage"
-  ]
+  ],
+  "hidden_ability": 102
 }

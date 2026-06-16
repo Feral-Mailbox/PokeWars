@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "name": "Stench",
+  "slug": "stench",
+  "description": "When the Pokémon deals damage with its moves, there is a 10% chance that targets will flinch.",
+  "generation": 3
+}

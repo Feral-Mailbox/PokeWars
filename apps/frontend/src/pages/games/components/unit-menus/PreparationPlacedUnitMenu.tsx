@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   UNIT_MENU_WIDTH_CLASS,
   UnitCredits,
@@ -9,6 +9,10 @@ import {
 import PreparationItemSelectPanel, {
   type PreparationItemOption,
 } from "./PreparationItemSelectPanel";
+import PreparationAbilitySelectPanel, {
+  HIDDEN_ABILITY_COST,
+  type PreparationAbilityOption,
+} from "./PreparationAbilitySelectPanel";
 
 type PreparationPlacedUnitMenuProps = {
   placedUnitAtTile: any;
@@ -17,13 +21,16 @@ type PreparationPlacedUnitMenuProps = {
   statusIconSrc: string | null;
   getStatColor: (unitState: any, statName: string) => string;
   items: PreparationItemOption[];
+  abilities: Array<{ id: number; name: string }>;
   cash: number;
   disabled?: boolean;
   onRemoveUnit: () => void;
+  onChangeAbility: (abilityId: number) => void | Promise<void>;
   onChangeItem: (itemId: number) => void | Promise<void>;
   onRemoveItem: () => void | Promise<void>;
   onMoveHoverStart: (move?: any) => void;
   onMoveHoverEnd: () => void;
+  onAbilityError?: (message: string) => void;
 };
 
 export default function PreparationPlacedUnitMenu({
@@ -33,16 +40,63 @@ export default function PreparationPlacedUnitMenu({
   statusIconSrc,
   getStatColor,
   items,
+  abilities,
   cash,
   disabled = false,
   onRemoveUnit,
+  onChangeAbility,
   onChangeItem,
   onRemoveItem,
   onMoveHoverStart,
   onMoveHoverEnd,
+  onAbilityError,
 }: PreparationPlacedUnitMenuProps) {
   const unit = placedUnitAtTile.unit;
+  const [abilityPickerOpen, setAbilityPickerOpen] = useState(false);
   const [itemPickerOpen, setItemPickerOpen] = useState(false);
+
+  const abilityNameById = useMemo(
+    () => Object.fromEntries(abilities.map((ability) => [ability.id, ability.name])),
+    [abilities]
+  );
+
+  const abilityOptions: PreparationAbilityOption[] = useMemo(() => {
+    const regularIds = Array.isArray(unit?.ability_ids) ? unit.ability_ids : [];
+    const options = regularIds.map((abilityId: number) => ({
+      id: abilityId,
+      name: abilityNameById[abilityId] ?? `Ability ${abilityId}`,
+      isHidden: false,
+      cost: 0,
+    }));
+
+    const hiddenAbilityId = unit?.hidden_ability;
+    if (hiddenAbilityId != null) {
+      options.push({
+        id: hiddenAbilityId,
+        name: abilityNameById[hiddenAbilityId] ?? `Ability ${hiddenAbilityId}`,
+        isHidden: true,
+        cost: HIDDEN_ABILITY_COST,
+      });
+    }
+
+    return options;
+  }, [abilityNameById, unit?.ability_ids, unit?.hidden_ability]);
+
+  const handleSelectAbility = async (abilityId: number) => {
+    const hiddenAbilityId = unit?.hidden_ability ?? null;
+    const currentAbilityId = placedUnitAtTile?.ability_id ?? null;
+    const selectingHidden = hiddenAbilityId != null && abilityId === hiddenAbilityId;
+    const currentlyHidden =
+      hiddenAbilityId != null && currentAbilityId === hiddenAbilityId;
+
+    if (selectingHidden && !currentlyHidden && cash < HIDDEN_ABILITY_COST) {
+      onAbilityError?.("You don't have enough cash for this hidden ability!");
+      return;
+    }
+
+    await onChangeAbility(abilityId);
+    setAbilityPickerOpen(false);
+  };
 
   const handleSelectItem = async (itemId: number) => {
     await onChangeItem(itemId);
@@ -79,14 +133,23 @@ export default function PreparationPlacedUnitMenu({
         <button
           type="button"
           disabled={disabled}
-          className="flex-1 bg-gray-600 hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50 text-white font-bold py-2 px-4 rounded"
+          onClick={() => {
+            setItemPickerOpen(false);
+            setAbilityPickerOpen((open) => !open);
+          }}
+          className={`flex-1 font-bold py-2 px-4 rounded text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+            abilityPickerOpen ? "bg-yellow-600 hover:bg-yellow-700" : "bg-gray-600 hover:bg-gray-700"
+          }`}
         >
           Change Ability
         </button>
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setItemPickerOpen((open) => !open)}
+          onClick={() => {
+            setAbilityPickerOpen(false);
+            setItemPickerOpen((open) => !open);
+          }}
           className={`flex-1 font-bold py-2 px-4 rounded text-white disabled:cursor-not-allowed disabled:opacity-50 ${
             itemPickerOpen ? "bg-yellow-600 hover:bg-yellow-700" : "bg-gray-600 hover:bg-gray-700"
           }`}
@@ -94,6 +157,15 @@ export default function PreparationPlacedUnitMenu({
           Change Item
         </button>
       </div>
+
+      {abilityPickerOpen && !disabled && (
+        <PreparationAbilitySelectPanel
+          abilities={abilityOptions}
+          cash={cash}
+          currentAbilityId={placedUnitAtTile?.ability_id ?? null}
+          onSelectAbility={handleSelectAbility}
+        />
+      )}
 
       {itemPickerOpen && !disabled && (
         <PreparationItemSelectPanel

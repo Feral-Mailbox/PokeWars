@@ -1,0 +1,7 @@
+{
+  "id": 126,
+  "name": "Contrary",
+  "slug": "contrary",
+  "description": "Reverses any stat changes affecting the Pokémon so that attempts to boost its stats instead lower them—and attempts to lower its stats will boost them.",
+  "generation": 5
+}

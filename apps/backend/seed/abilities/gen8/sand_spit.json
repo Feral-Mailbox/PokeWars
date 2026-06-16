@@ -1,0 +1,7 @@
+{
+  "id": 245,
+  "name": "Sand Spit",
+  "slug": "sand_spit",
+  "description": "Summons a sandstorm for 5 turns when the Pokémon takes damage from moves.",
+  "generation": 8
+}

@@ -21,7 +21,10 @@
     125,
     29
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    69,
+    31
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -43,5 +46,6 @@
     "CHUNSOFT",
     "Emmuffin",
     "Sceptile"
-  ]
+  ],
+  "hidden_ability": 4
 }

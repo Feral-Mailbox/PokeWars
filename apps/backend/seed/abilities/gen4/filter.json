@@ -1,0 +1,7 @@
+{
+  "id": 111,
+  "name": "Filter",
+  "slug": "filter",
+  "description": "Reduces the damage the Pokémon takes from supereffective moves by 25%.",
+  "generation": 4
+}

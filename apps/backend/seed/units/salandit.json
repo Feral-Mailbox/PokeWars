@@ -23,7 +23,9 @@
     123
   ],
   "archetype": "glass_cannon",
-  "ability_ids": [],
+  "ability_ids": [
+    212
+  ],
   "cost": 200,
   "evolution_cost": 600,
   "evolves_into": [
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "baronessfaron",
     "Soulja"
-  ]
+  ],
+  "hidden_ability": 12
 }

@@ -1,0 +1,7 @@
+{
+  "id": 256,
+  "name": "Neutralizing Gas",
+  "slug": "neutralizing_gas",
+  "description": "While the Pokémon is in the battle, the effects of all other Pokémon's Abilities will be nullified or will not be triggered.",
+  "generation": 8
+}

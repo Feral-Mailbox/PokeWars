@@ -1,0 +1,7 @@
+{
+  "id": 215,
+  "name": "Innards Out",
+  "slug": "innards_out",
+  "description": "When the Pokémon takes damage from a move that knocks it out, it deals the same amount of damage to the attacker.",
+  "generation": 7
+}

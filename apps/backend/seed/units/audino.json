@@ -22,7 +22,10 @@
     605,
     270
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    131,
+    144
+  ],
   "archetype": "healer_buffer",
   "cost": 600,
   "evolution_cost": null,
@@ -39,5 +42,6 @@
   "sprite_credits": [
     "baronessfaron",
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": 103
 }

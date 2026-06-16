@@ -22,7 +22,10 @@
     266,
     162
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    50,
+    53
+  ],
   "cost": 400,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +44,6 @@
     "CHUNSOFT",
     "JFain",
     "baronessfaron"
-  ]
+  ],
+  "hidden_ability": 10
 }

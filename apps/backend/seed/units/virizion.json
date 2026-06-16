@@ -24,7 +24,9 @@
     202,
     347
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    154
+  ],
   "archetype": "special_tank",
   "cost": 1600,
   "evolution_cost": null,
@@ -40,5 +42,6 @@
   ],
   "sprite_credits": [
     "baronessfaron"
-  ]
+  ],
+  "hidden_ability": null
 }

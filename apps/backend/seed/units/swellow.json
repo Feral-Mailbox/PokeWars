@@ -23,7 +23,9 @@
     413,
     369
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    62
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "CHUNSOFT",
     "Emmuffin"
-  ]
+  ],
+  "hidden_ability": 113
 }

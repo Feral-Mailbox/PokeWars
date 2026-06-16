@@ -1,0 +1,7 @@
+{
+  "id": 33,
+  "name": "Swift Swim",
+  "slug": "swift_swim",
+  "description": "Doubles the Pokémon's Speed stat in rain.",
+  "generation": 3
+}

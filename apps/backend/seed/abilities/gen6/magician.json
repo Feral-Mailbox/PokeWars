@@ -1,0 +1,7 @@
+{
+  "id": 170,
+  "name": "Magician",
+  "slug": "magician",
+  "description": "If the Pokémon is not already holding an item, it will steal the held item from targets it deals damage to with its moves.",
+  "generation": 6
+}

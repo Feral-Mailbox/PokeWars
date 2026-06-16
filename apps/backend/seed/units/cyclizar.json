@@ -24,7 +24,9 @@
     369
   ],
   "archetype": "support_pivot",
-  "ability_ids": [],
+  "ability_ids": [
+    61
+  ],
   "cost": 500,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "baronessfaron"
-  ]
+  ],
+  "hidden_ability": 144
 }

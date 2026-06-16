@@ -1,0 +1,7 @@
+{
+  "id": 130,
+  "name": "Cursed Body",
+  "slug": "cursed_body",
+  "description": "When the Pokémon takes damage from a move, the attacker has a 30% chance of gaining the Move Disabled status for 4 turns.",
+  "generation": 5
+}

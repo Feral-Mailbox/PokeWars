@@ -23,7 +23,10 @@
     266
   ],
   "archetype": "healer_buffer",
-  "ability_ids": [],
+  "ability_ids": [
+    56,
+    98
+  ],
   "cost": 400,
   "evolution_cost": 1000,
   "evolves_into": [
@@ -41,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 132
 }

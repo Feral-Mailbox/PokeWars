@@ -1,0 +1,7 @@
+{
+  "id": 112,
+  "name": "Slow Start",
+  "slug": "slow_start",
+  "description": "For five turns, the Pokémon's Attack and Speed stats are halved.",
+  "generation": 4
+}

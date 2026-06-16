@@ -24,7 +24,10 @@
     252
   ],
   "archetype": "assassin",
-  "ability_ids": [],
+  "ability_ids": [
+    46,
+    84
+  ],
   "cost": 800,
   "evolution_cost": null,
   "evolves_into": null,
@@ -40,5 +43,6 @@
   ],
   "sprite_credits": [
     "Soulja"
-  ]
+  ],
+  "hidden_ability": 143
 }

@@ -1,0 +1,7 @@
+{
+  "id": 124,
+  "name": "Pickpocket",
+  "slug": "pickpocket",
+  "description": "When the Pokémon is hit by a contact move, it will steal the held item of the attacker if it is not already holding an item.",
+  "generation": 5
+}

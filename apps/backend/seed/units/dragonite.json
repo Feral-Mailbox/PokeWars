@@ -24,7 +24,9 @@
     7,
     245
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    39
+  ],
   "archetype": "all_rounder_boss",
   "cost": 1400,
   "evolution_cost": null,
@@ -42,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 136
 }

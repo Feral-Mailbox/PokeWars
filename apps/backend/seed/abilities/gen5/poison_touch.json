@@ -1,0 +1,7 @@
+{
+  "id": 143,
+  "name": "Poison Touch",
+  "slug": "poison_touch",
+  "description": "When the Pokémon hits a target with a contact move, the target has a 30% chance of being poisoned.",
+  "generation": 5
+}

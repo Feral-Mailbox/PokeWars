@@ -1,0 +1,7 @@
+{
+  "id": 59,
+  "name": "Forecast",
+  "slug": "forecast",
+  "description": "The Pokémon transforms with the weather to change its type to Water, Fire, or Ice.",
+  "generation": 3
+}

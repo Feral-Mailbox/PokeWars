@@ -1,0 +1,7 @@
+{
+  "id": 201,
+  "name": "Berserk",
+  "slug": "berserk",
+  "description": "Boosts the Pokémon's Sp. Atk stat by 1 stage when an attack causes its HP to drop to 1/2 or less of its max.",
+  "generation": 7
+}

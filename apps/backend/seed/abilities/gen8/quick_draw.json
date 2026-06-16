@@ -1,0 +1,7 @@
+{
+  "id": 259,
+  "name": "Quick Draw",
+  "slug": "quick_draw",
+  "description": "The Pokémon's moves have a 30% chance of going first among moves of the same priority.",
+  "generation": 8
+}

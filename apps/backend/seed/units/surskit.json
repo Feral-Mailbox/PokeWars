@@ -22,7 +22,9 @@
     352,
     564
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    33
+  ],
   "archetype": "scout_buffer",
   "cost": 200,
   "evolution_cost": 600,
@@ -42,5 +44,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 44
 }

@@ -24,7 +24,9 @@
     235,
     446
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    65
+  ],
   "archetype": "heavy_tank",
   "cost": 1000,
   "evolution_cost": null,
@@ -41,5 +43,6 @@
   ],
   "sprite_credits": [
     "CHUNSOFT"
-  ]
+  ],
+  "hidden_ability": 75
 }

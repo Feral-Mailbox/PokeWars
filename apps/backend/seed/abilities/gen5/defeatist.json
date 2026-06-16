@@ -1,0 +1,7 @@
+{
+  "id": 129,
+  "name": "Defeatist",
+  "slug": "defeatist",
+  "description": "Halves the Pokémon's Attack and Sp. Atk stats when its HP drops to half or less.",
+  "generation": 5
+}

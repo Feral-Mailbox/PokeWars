@@ -1,0 +1,7 @@
+{
+  "id": 251,
+  "name": "Screen Cleaner",
+  "slug": "screen_cleaner",
+  "description": "When the Pokémon enters a battle, it removes the Light Screen, Reflect, and Aurora Veil statuses.",
+  "generation": 8
+}

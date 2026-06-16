@@ -24,7 +24,9 @@
     242
   ],
   "archetype": "heavy_tank",
-  "ability_ids": [],
+  "ability_ids": [
+    173
+  ],
   "cost": 800,
   "evolution_cost": null,
   "evolves_into": null,
@@ -41,5 +43,6 @@
   "sprite_credits": [
     "Jhony-Rex",
     "Soulja"
-  ]
+  ],
+  "hidden_ability": 69
 }

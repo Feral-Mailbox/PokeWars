@@ -1,0 +1,7 @@
+{
+  "id": 161,
+  "name": "Zen Mode",
+  "slug": "zen_mode",
+  "description": "Changes the Pokémon's shape when its HP drops to half or less.",
+  "generation": 5
+}

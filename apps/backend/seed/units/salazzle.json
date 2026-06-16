@@ -24,7 +24,9 @@
     92
   ],
   "archetype": "assassin_dot",
-  "ability_ids": [],
+  "ability_ids": [
+    212
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "Soulja"
-  ]
+  ],
+  "hidden_ability": 12
 }

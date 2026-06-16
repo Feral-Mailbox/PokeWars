@@ -24,7 +24,9 @@
     191
   ],
   "archetype": "wall_disruptor",
-  "ability_ids": [],
+  "ability_ids": [
+    160
+  ],
   "cost": 600,
   "evolution_cost": null,
   "evolves_into": null,
@@ -39,5 +41,6 @@
   ],
   "sprite_credits": [
     "Top_Kec"
-  ]
+  ],
+  "hidden_ability": 107
 }

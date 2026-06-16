@@ -22,7 +22,10 @@
     17,
     114
   ],
-  "ability_ids": [],
+  "ability_ids": [
+    15,
+    105
+  ],
   "archetype": "scout",
   "cost": 400,
   "evolution_cost": 800,
@@ -44,5 +47,6 @@
     "CHUNSOFT",
     "Smalusion",
     "Caitemis"
-  ]
+  ],
+  "hidden_ability": 158
 }

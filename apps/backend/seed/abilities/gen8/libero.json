@@ -1,0 +1,7 @@
+{
+  "id": 236,
+  "name": "Libero",
+  "slug": "libero",
+  "description": "Changes the Pokémon's type to the type of the move it's about to use. This works only once each time the Pokémon enters battle.",
+  "generation": 8
+}

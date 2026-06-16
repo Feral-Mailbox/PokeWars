@@ -1,0 +1,7 @@
+{
+  "id": 87,
+  "name": "Dry Skin",
+  "slug": "dry_skin",
+  "description": "Water-type moves do not work on the Pokémon. Instead, they restore 1/4 of its max HP. However, the Pokémon takes 25% more damage from Fire-type moves. The Pokémon has 1/8 of its max HP restored at the end of every turn in rain, but it loses 1/8 of its max HP at the end of every turn in harsh sunlight.",
+  "generation": 4
+}

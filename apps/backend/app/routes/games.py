@@ -12,7 +12,14 @@ import redis
 from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move, GameMapState, Ability, Item
 from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
 from app.schemas.maps import MapDetail, GameMapStateSchema
-from app.schemas.units import GameUnitSchema, GameUnitCreateRequest, GameUnitChangeItemRequest, GameUnitChangeItemResponse
+from app.schemas.units import (
+    GameUnitSchema,
+    GameUnitCreateRequest,
+    GameUnitChangeItemRequest,
+    GameUnitChangeItemResponse,
+    GameUnitChangeAbilityRequest,
+    GameUnitChangeAbilityResponse,
+)
 from app.dependencies import get_db, get_current_user, ensure_user_can_chat
 from app.moderation.service import apply_chat_moderation
 from app.map_movement import (
@@ -313,6 +320,8 @@ FIELD_EFFECT_TO_ID = {
     "gravity": 1,
 }
 
+HIDDEN_ABILITY_COST = 250
+
 
 def get_unit_flags(unit: GameUnit) -> dict:
     raw = getattr(unit, "flags", None)
@@ -330,6 +339,62 @@ def get_unit_held_item(unit: GameUnit) -> str | None:
         return None
     item_str = str(item).strip()
     return item_str or None
+
+
+def get_unit_ability_id(unit: GameUnit) -> int | None:
+    ability_id = get_unit_flags(unit).get("ability_id")
+    if ability_id is not None:
+        try:
+            return int(ability_id)
+        except (TypeError, ValueError):
+            pass
+    unit_info = getattr(unit, "unit", None)
+    if unit_info and isinstance(unit_info.ability_ids, list) and unit_info.ability_ids:
+        return int(unit_info.ability_ids[0])
+    return None
+
+
+def set_unit_ability_id(unit: GameUnit, ability_id: int | None, db: Session) -> None:
+    flags = get_unit_flags(unit)
+    if ability_id is None:
+        flags.pop("ability_id", None)
+    else:
+        flags["ability_id"] = int(ability_id)
+    set_unit_flags(unit, flags, db)
+
+
+def resolve_ability_name(ability_id: int | None, db: Session) -> str | None:
+    if ability_id is None:
+        return None
+    ability = db.query(Ability).filter(Ability.id == ability_id).first()
+    return ability.name if ability else None
+
+
+def is_hidden_ability_for_unit(unit_info: Unit, ability_id: int | None) -> bool:
+    if ability_id is None or unit_info.hidden_ability is None:
+        return False
+    return int(unit_info.hidden_ability) == int(ability_id)
+
+
+def unit_can_learn_ability(unit_info: Unit, ability_id: int) -> bool:
+    allowed = {int(a) for a in (unit_info.ability_ids or [])}
+    if unit_info.hidden_ability is not None:
+        allowed.add(int(unit_info.hidden_ability))
+    return int(ability_id) in allowed
+
+
+def ability_change_net_cost(
+    unit_info: Unit,
+    current_ability_id: int | None,
+    new_ability_id: int,
+) -> int:
+    current_hidden = is_hidden_ability_for_unit(unit_info, current_ability_id)
+    new_hidden = is_hidden_ability_for_unit(unit_info, new_ability_id)
+    if new_hidden and not current_hidden:
+        return HIDDEN_ABILITY_COST
+    if current_hidden and not new_hidden:
+        return -HIDDEN_ABILITY_COST
+    return 0
 
 
 def resolve_held_item_name(item_ref: str | None, db: Session) -> str | None:
@@ -357,7 +422,8 @@ def attach_game_unit_loadout_fields(unit: GameUnit, db: Session) -> GameUnit:
     slug = get_unit_held_item(unit)
     unit.held_item_slug = slug
     unit.held_item = resolve_held_item_name(slug, db)
-    unit.ability = None
+    unit.ability_id = get_unit_ability_id(unit)
+    unit.ability = resolve_ability_name(unit.ability_id, db)
     return unit
 
 
@@ -1397,25 +1463,14 @@ def is_status_immune_by_type(unit: GameUnit, status: str, db: Session) -> bool:
 
 
 def get_unit_ability_names(unit: GameUnit, db: Session) -> set[str]:
-    """Return a set of ability names for the given unit (lowercased)."""
+    """Return a set containing the active ability name for the given unit (lowercased)."""
+    ability_id = get_unit_ability_id(unit)
+    if ability_id is None:
+        return set()
     try:
-        if unit.unit and isinstance(unit.unit.ability_ids, list) and unit.unit.ability_ids:
-            ids = [int(a) for a in unit.unit.ability_ids if isinstance(a, (int, float)) or (isinstance(a, str) and a.isdigit())]
-            if not ids:
-                return set()
-            abilities = db.query(Ability).filter(Ability.id.in_(ids)).all()
-            return {str(a.name).lower() for a in abilities if getattr(a, 'name', None)}
-    except Exception:
-        pass
-    # Fallback: Unit may have ability_ids on the Unit record
-    try:
-        unit_info = getattr(unit, 'unit', None)
-        if unit_info and isinstance(unit_info.ability_ids, list):
-            ids = [int(a) for a in unit_info.ability_ids if isinstance(a, (int, float)) or (isinstance(a, str) and a.isdigit())]
-            if not ids:
-                return set()
-            abilities = db.query(Ability).filter(Ability.id.in_(ids)).all()
-            return {str(a.name).lower() for a in abilities if getattr(a, 'name', None)}
+        ability = db.query(Ability).filter(Ability.id == ability_id).first()
+        if ability and getattr(ability, "name", None):
+            return {str(ability.name).lower()}
     except Exception:
         pass
     return set()
@@ -5016,6 +5071,10 @@ def place_unit(
                 move_pp.append(0)
     
     # Step 1: Create and persist new GameUnit
+    initial_flags: dict = {}
+    if unit_info.ability_ids:
+        initial_flags["ability_id"] = int(unit_info.ability_ids[0])
+
     new_unit = GameUnit(
         game_id=game.id,
         unit_id=unit_data.unit_id,
@@ -5032,6 +5091,7 @@ def place_unit(
         states=normalize_states(unit_data.states),
         is_fainted=unit_data.is_fainted,
         move_pp=move_pp,
+        flags=initial_flags,
     )
     db.add(new_unit)
     db.flush()
@@ -5166,6 +5226,58 @@ def remove_unit_item(
     attach_game_unit_loadout_fields(unit, db)
     return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
 
+@router.post("/{link}/units/{unit_id}/ability", response_model=GameUnitChangeAbilityResponse)
+def change_unit_ability(
+    link: str,
+    unit_id: int,
+    payload: GameUnitChangeAbilityRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    game = db.query(Game).filter_by(link=link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.preparation:
+        raise HTTPException(status_code=400, detail="Abilities can only be changed during the preparation phase")
+
+    unit = (
+        db.query(GameUnit)
+        .options(joinedload(GameUnit.unit))
+        .filter_by(id=unit_id, game_id=game.id, user_id=user.id)
+        .first()
+    )
+    if not unit or not unit.unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+
+    player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player_state:
+        raise HTTPException(status_code=404, detail="Player state not found")
+
+    unit_info = unit.unit
+    new_ability_id = int(payload.ability_id)
+    if not unit_can_learn_ability(unit_info, new_ability_id):
+        raise HTTPException(status_code=400, detail="This unit cannot learn that ability")
+
+    current_ability_id = get_unit_ability_id(unit)
+    if current_ability_id == new_ability_id:
+        attach_game_unit_loadout_fields(unit, db)
+        return GameUnitChangeAbilityResponse(unit=unit, cash_remaining=player_state.cash_remaining)
+
+    net_cost = ability_change_net_cost(unit_info, current_ability_id, new_ability_id)
+    if player_state.cash_remaining < net_cost:
+        raise HTTPException(status_code=400, detail="Not enough cash")
+
+    player_state.cash_remaining -= net_cost
+    set_unit_ability_id(unit, new_ability_id, db)
+    db.add(player_state)
+    db.add(unit)
+    db.commit()
+    db.refresh(unit)
+    attach_game_unit_loadout_fields(unit, db)
+    return GameUnitChangeAbilityResponse(unit=unit, cash_remaining=player_state.cash_remaining)
+
 @router.delete("/{link}/units/remove/{unit_id}")
 def remove_unit(
     link: str,
@@ -5193,6 +5305,8 @@ def remove_unit(
     equipped_item = resolve_item_record(get_unit_held_item(unit), db)
     if equipped_item:
         player_state.cash_remaining += equipped_item.cost
+    if is_hidden_ability_for_unit(unit_info, get_unit_ability_id(unit)):
+        player_state.cash_remaining += HIDDEN_ABILITY_COST
     if unit.id in player_state.game_units:
         player_state.game_units.remove(unit.id)
 

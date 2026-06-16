@@ -1,0 +1,7 @@
+{
+  "id": 53,
+  "name": "Pickup",
+  "slug": "pickup",
+  "description": "If the Pokémon is not already holding an item, at the end of the turn it will pick up an item that was consumed by another Pokémon.",
+  "generation": 3
+}
