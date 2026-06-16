@@ -13,14 +13,14 @@ type MapRenderData = {
   };
 };
 
-export function useOverlay2Renderer(
+export function useOverlay3Renderer(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   map: MapRenderData | null | undefined
 ) {
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !map?.tile_data?.overlay2 || !map.tileset_names?.length) return;
+    if (!canvas || !map?.tile_data?.overlay3 || !map.tileset_names?.length) return;
 
-    return installMapTileRenderer(canvas, map, ["overlay2"]);
+    return installMapTileRenderer(canvas, map, ["overlay3"]);
   }, [canvasRef, map]);
 }

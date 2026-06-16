@@ -142,6 +142,7 @@ export default function MapBuilderCanvas({
         drawTile(ctx, tilesetsRef.current, tileData.base[y]?.[x] ?? null, x, y);
         drawTile(ctx, tilesetsRef.current, tileData.overlay[y]?.[x] ?? null, x, y);
         drawTile(ctx, tilesetsRef.current, tileData.overlay2[y]?.[x] ?? null, x, y);
+        drawTile(ctx, tilesetsRef.current, tileData.overlay3[y]?.[x] ?? null, x, y);
       }
     }
 

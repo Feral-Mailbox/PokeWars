@@ -5309,6 +5309,7 @@ def execute_move(
     map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
     terrain_tiles = map_state.terrain_effect_tiles if map_state and isinstance(map_state.terrain_effect_tiles, list) else None
     field_effect_tiles = map_state.field_effect_tiles if map_state and isinstance(map_state.field_effect_tiles, list) else None
+    weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
 
     special_tiles = (
         map_obj.tile_data.get("special_tiles")
@@ -5484,11 +5485,7 @@ def execute_move(
     damage_results = []
     removed_ids: List[int] = []
     faint_logged_ids: set[int] = set()
-    
-    # Get weather tiles for move effect processing (needed for conditional effects like healing)
-    map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
-    weather_tiles = map_state.weather_tiles if map_state and isinstance(map_state.weather_tiles, list) else None
-    
+
     if landed_targets and has_target_fixed_damage:
         damage_results = apply_fixed_damage_move_effects(move, gu, landed_targets, db, hit_count=hit_count)
         for result in damage_results:

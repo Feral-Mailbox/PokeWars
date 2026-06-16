@@ -30,6 +30,7 @@ const LAYER_LABELS: Record<MapLayer, string> = {
   base: "Base tiles",
   overlay: "Overlay 1",
   overlay2: "Overlay 2",
+  overlay3: "Overlay 3",
   spawn_points: "Spawn points",
   special_tiles: "Special tiles",
   flags: "Flags (CTF)",
@@ -353,7 +354,7 @@ export default function MapBuilderPage() {
             ))}
           </div>
 
-          {(activeLayer === "base" || activeLayer === "overlay" || activeLayer === "overlay2") && (
+          {(activeLayer === "base" || activeLayer === "overlay" || activeLayer === "overlay2" || activeLayer === "overlay3") && (
             <p className="text-sm text-gray-400">
               {drawingTool === "pencil" && "Drag to paint individual tiles"}
               {drawingTool === "box" && "Drag to fill a rectangle"}
@@ -361,7 +362,7 @@ export default function MapBuilderPage() {
               {" · "}tileset index {activeTilesetIndex} · Ctrl+Z / Ctrl+Shift+Z
             </p>
           )}
-          {(activeLayer !== "base" && activeLayer !== "overlay" && activeLayer !== "overlay2") && (
+          {(activeLayer !== "base" && activeLayer !== "overlay" && activeLayer !== "overlay2" && activeLayer !== "overlay3") && (
             <p className="text-sm text-gray-400">
               {drawingTool === "pencil" && "Drag to paint cells"}
               {drawingTool === "box" && "Drag to fill a rectangle with the current brush"}
@@ -504,7 +505,7 @@ export default function MapBuilderPage() {
                 </label>
               ))}
             </div>
-            {(activeLayer === "base" || activeLayer === "overlay" || activeLayer === "overlay2") &&
+            {(activeLayer === "base" || activeLayer === "overlay" || activeLayer === "overlay2" || activeLayer === "overlay3") &&
               tilesetNames.includes(activeTileset) && (
               <TilePalette
                 tilesetName={activeTileset}

@@ -5,6 +5,7 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
   const base: TileRef[][] = [];
   const overlay: (TileRef | null)[][] = [];
   const overlay2: (TileRef | null)[][] = [];
+  const overlay3: (TileRef | null)[][] = [];
   const spawn_points: (number | null)[][] = [];
   const special_tiles: (string | null)[][] = [];
   const flags: (number | null)[][] = [];
@@ -14,13 +15,14 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
     base.push(Array.from({ length: width }, () => [0, 0] as TileRef));
     overlay.push(Array.from({ length: width }, () => null));
     overlay2.push(Array.from({ length: width }, () => null));
+    overlay3.push(Array.from({ length: width }, () => null));
     spawn_points.push(Array.from({ length: width }, () => null));
     special_tiles.push(Array.from({ length: width }, () => null));
     flags.push(Array.from({ length: width }, () => null));
     movement_cost.push(Array.from({ length: width }, () => DEFAULT_MOVEMENT_COST));
   }
 
-  return { base, overlay, overlay2, spawn_points, special_tiles, flags, movement_cost };
+  return { base, overlay, overlay2, overlay3, spawn_points, special_tiles, flags, movement_cost };
 }
 
 export function normalizeTileData(raw: Partial<MapTileData>, width: number, height: number): MapTileData {
@@ -40,6 +42,9 @@ export function normalizeTileData(raw: Partial<MapTileData>, width: number, heig
       }
       if (raw.overlay2?.[y]?.[x]) {
         empty.overlay2[y][x] = [...raw.overlay2[y][x]!] as TileRef;
+      }
+      if (raw.overlay3?.[y]?.[x]) {
+        empty.overlay3[y][x] = [...raw.overlay3[y][x]!] as TileRef;
       }
       if (raw.spawn_points?.[y]?.[x] != null) {
         empty.spawn_points[y][x] = raw.spawn_points[y][x];
@@ -77,6 +82,9 @@ export function resizeTileData(
         : null;
       next.overlay2[y][x] = tileData.overlay2?.[y]?.[x]
         ? ([...tileData.overlay2[y][x]!] as TileRef)
+        : null;
+      next.overlay3[y][x] = tileData.overlay3?.[y]?.[x]
+        ? ([...tileData.overlay3[y][x]!] as TileRef)
         : null;
       next.spawn_points[y][x] = tileData.spawn_points[y][x];
       next.special_tiles[y][x] = tileData.special_tiles[y][x];

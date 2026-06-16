@@ -6,7 +6,7 @@ import {
 } from "@/utils/pixelCanvas";
 import type { TileRef } from "@/types/mapData";
 
-export type DrawableMapLayer = "base" | "overlay" | "overlay2";
+export type DrawableMapLayer = "base" | "overlay" | "overlay2" | "overlay3";
 
 function resolveTilesetBase(): string {
   const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
@@ -47,6 +47,7 @@ type MapRenderInput = {
     base: TileRef[][];
     overlay: (TileRef | null)[][];
     overlay2?: (TileRef | null)[][];
+    overlay3?: (TileRef | null)[][];
   };
 };
 
@@ -56,7 +57,7 @@ export function installMapTileRenderer(
   layers: DrawableMapLayer[],
   overlayCallback?: (ctx: CanvasRenderingContext2D) => void
 ): () => void {
-  const { base, overlay, overlay2 } = map.tile_data;
+  const { base, overlay, overlay2, overlay3 } = map.tile_data;
   const logicalWidth = map.width * MAP_TILE_DRAW_SIZE;
   const logicalHeight = map.height * MAP_TILE_DRAW_SIZE;
   const dpr = setupPixelCanvas(canvas, logicalWidth, logicalHeight);
@@ -119,6 +120,7 @@ export function installMapTileRenderer(
         if (layers.includes("base")) drawTile(ctx, base[y][x], x, y);
         if (layers.includes("overlay")) drawTile(ctx, overlay[y][x], x, y);
         if (layers.includes("overlay2") && overlay2) drawTile(ctx, overlay2[y][x], x, y);
+        if (layers.includes("overlay3") && overlay3) drawTile(ctx, overlay3[y][x], x, y);
       }
     }
 

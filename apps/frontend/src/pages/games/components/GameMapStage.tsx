@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo } from "react";
 import UnitIdleSprite from "@/components/units/UnitIdleSprite";
 import { useOverlay2Renderer } from "@/hooks/useOverlay2Renderer";
+import { useOverlay3Renderer } from "@/hooks/useOverlay3Renderer";
 import { buildOverlay2TileSet } from "@/utils/mapTileDrawing";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 
@@ -21,6 +22,7 @@ type MapRenderData = {
     base: [number, number][][];
     overlay: ([number, number] | null)[][];
     overlay2?: ([number, number] | null)[][];
+    overlay3?: ([number, number] | null)[][];
   };
 };
 
@@ -32,6 +34,7 @@ type GameMapStageProps = {
   canvasRef: any;
   overlayRef: any;
   overlay2Ref: any;
+  overlay3Ref: any;
   mapStageRef: any;
   overlayPointerEventsEnabled: boolean;
   placedUnits: PlacedUnit[];
@@ -54,6 +57,7 @@ export default function GameMapStage({
   canvasRef,
   overlayRef,
   overlay2Ref,
+  overlay3Ref,
   mapStageRef,
   overlayPointerEventsEnabled,
   placedUnits,
@@ -75,20 +79,26 @@ export default function GameMapStage({
     if (canvasRef.current) setupPixelCanvas(canvasRef.current, mapWidth, mapHeight);
     if (overlayRef.current) setupPixelCanvas(overlayRef.current, mapWidth, mapHeight);
     if (overlay2Ref.current) setupPixelCanvas(overlay2Ref.current, mapWidth, mapHeight);
-  }, [mapWidth, mapHeight, canvasRef, overlayRef, overlay2Ref]);
+    if (overlay3Ref.current) setupPixelCanvas(overlay3Ref.current, mapWidth, mapHeight);
+  }, [mapWidth, mapHeight, canvasRef, overlayRef, overlay2Ref, overlay3Ref]);
 
   useOverlay2Renderer(overlay2Ref, mapRenderData);
+  useOverlay3Renderer(overlay3Ref, mapRenderData);
 
   const scaledWidth = mapWidth * displayScale;
   const scaledHeight = mapHeight * displayScale;
 
-  const renderUnit = (unitState: PlacedUnit, behindOverlay2: boolean) => {
-    const { id, unit, tile, current_hp, user_id, can_move } = unitState;
+  const isBehindOverlay2 = (tile: [number, number]) =>
+    overlay2TileSet.has(`${tile[0]},${tile[1]}`);
+
+  const renderUnit = (unitState: PlacedUnit) => {
+    const { id, unit, tile, user_id, can_move } = unitState;
+    const behindOverlay2 = isBehindOverlay2(tile);
     const playerColor = can_move === false ? "#777777" : getPlayerColor(user_id);
 
     return (
       <div
-        key={id}
+        key={`${id}-${tile[0]}-${tile[1]}`}
         data-unit
         onMouseEnter={() => onUnitMouseEnter(unitState)}
         onMouseLeave={() => onUnitMouseLeave(unitState)}
@@ -106,33 +116,52 @@ export default function GameMapStage({
       >
         <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
           <UnitIdleSprite
+            key={behindOverlay2 ? "outline" : "sprite"}
             assetFolder={unit.asset_folder}
             onFrameSize={onSpriteFrameSize}
             isMapPlacement
             overlayColor={playerColor}
             outlineOnly={behindOverlay2}
           />
+        </div>
+      </div>
+    );
+  };
 
-          <div
-            style={{
-              position: "absolute",
-              bottom: 1,
-              right: 2,
-              fontSize: "10px",
-              color: "white",
-              fontWeight: 600,
-              zIndex: 2,
-              pointerEvents: "none",
-              textShadow: `
-                -1px -1px 0 #000,
-                1px -1px 0 #000,
-                -1px  1px 0 #000,
-                1px  1px 0 #000
-              `,
-            }}
-          >
-            {current_hp ?? "?"}
-          </div>
+  const renderUnitHealth = (unitState: PlacedUnit) => {
+    const { id, tile, current_hp } = unitState;
+
+    return (
+      <div
+        key={`hp-${id}-${tile[0]}-${tile[1]}`}
+        style={{
+          position: "absolute",
+          left: tile[0] * tileDrawSize,
+          top: tile[1] * tileDrawSize,
+          width: tileDrawSize,
+          height: tileDrawSize,
+          zIndex: 5,
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            bottom: 1,
+            right: 2,
+            fontSize: "10px",
+            color: "white",
+            fontWeight: 600,
+            pointerEvents: "none",
+            textShadow: `
+              -1px -1px 0 #000,
+              1px -1px 0 #000,
+              -1px  1px 0 #000,
+              1px  1px 0 #000
+            `,
+          }}
+        >
+          {current_hp ?? "?"}
         </div>
       </div>
     );
@@ -152,9 +181,7 @@ export default function GameMapStage({
       >
         <canvas ref={canvasRef} id="mapCanvas" style={pixelatedCanvasStyle} />
 
-        {placedUnits
-          .filter((unitState) => !overlay2TileSet.has(`${unitState.tile[0]},${unitState.tile[1]}`))
-          .map((unitState) => renderUnit(unitState, false))}
+        {placedUnits.map((unitState) => renderUnit(unitState))}
 
         <canvas
           ref={overlay2Ref}
@@ -169,9 +196,20 @@ export default function GameMapStage({
           }}
         />
 
-        {placedUnits
-          .filter((unitState) => overlay2TileSet.has(`${unitState.tile[0]},${unitState.tile[1]}`))
-          .map((unitState) => renderUnit(unitState, true))}
+        <canvas
+          ref={overlay3Ref}
+          id="overlay3Canvas"
+          style={{
+            ...pixelatedCanvasStyle,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            zIndex: 4,
+            pointerEvents: "none",
+          }}
+        />
+
+        {placedUnits.map((unitState) => renderUnitHealth(unitState))}
 
         <canvas
           ref={overlayRef}
@@ -181,7 +219,7 @@ export default function GameMapStage({
             position: "absolute",
             top: 0,
             left: 0,
-            zIndex: 4,
+            zIndex: 6,
             pointerEvents: overlayPointerEventsEnabled ? "auto" : "none",
           }}
         />

@@ -43,6 +43,9 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
     case "overlay2":
       data.overlay2[y][x] = [...options.selectedTile] as TileRef;
       break;
+    case "overlay3":
+      data.overlay3[y][x] = [...options.selectedTile] as TileRef;
+      break;
     case "spawn_points":
       data.spawn_points[y][x] = options.spawnBrush;
       break;
@@ -68,6 +71,9 @@ function applyEraseCell(data: MapTileData, x: number, y: number, layer: MapLayer
       break;
     case "overlay2":
       data.overlay2[y][x] = null;
+      break;
+    case "overlay3":
+      data.overlay3[y][x] = null;
       break;
     case "spawn_points":
       data.spawn_points[y][x] = null;

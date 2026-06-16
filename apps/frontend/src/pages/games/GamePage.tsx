@@ -126,6 +126,7 @@ export default function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const overlay2Ref = useRef<HTMLCanvasElement>(null);
+  const overlay3Ref = useRef<HTMLCanvasElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
@@ -3111,6 +3112,7 @@ export default function GamePage() {
           canvasRef={canvasRef}
           overlayRef={overlayRef}
           overlay2Ref={overlay2Ref}
+          overlay3Ref={overlay3Ref}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
           placedUnits={placedUnits}

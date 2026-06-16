@@ -4,6 +4,7 @@ export type MapTileData = {
   base: TileRef[][];
   overlay: (TileRef | null)[][];
   overlay2: (TileRef | null)[][];
+  overlay3: (TileRef | null)[][];
   spawn_points: (number | null)[][];
   special_tiles: (string | null)[][];
   flags: (number | null)[][];
@@ -26,6 +27,7 @@ export type MapLayer =
   | "base"
   | "overlay"
   | "overlay2"
+  | "overlay3"
   | "spawn_points"
   | "special_tiles"
   | "flags"
