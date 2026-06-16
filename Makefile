@@ -9,6 +9,8 @@
 #   make up ENV=dev         - Start dev containers with hot reload
 #   make reset-db           - Reset production database
 #   make reset-db ENV=dev   - Reset dev database
+#   make refresh-seed       - Upsert all catalog tables (maps, units, moves)
+#   make refresh-seed SEED=maps,units ENV=dev
 
 # Default environment - set to prod by default, override with ENV=dev for development
 ENV ?= prod
@@ -56,13 +58,9 @@ first-launch:
 	# Always bring DB up to latest
 	@echo "Running database migrations..."
 	$(DC_USED) run --rm backend alembic upgrade head
-	# Seed data - use run --rm like migrations for fresh database connections
-	@echo "Seeding official maps..."
-	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_official_maps.py
-	@echo "Seeding units..."
-	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_units.py
-	@echo "Seeding moves..."
-	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_moves.py
+	# Seed catalog data without wiping users, games, or other tables
+	@echo "Seeding catalog data..."
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps,units,moves --refresh
 	@echo "Setup complete!"
 	@if [ "$$RUN_TESTS" = "1" ]; then \
 		$(MAKE) test; \
@@ -113,6 +111,35 @@ upgrade:
 
 reset-db: down nuke first-launch
 
+wait-for-postgres:
+	@for i in 1 2 3 4 5; do \
+		if $(DC_USED) exec -T postgres pg_isready -U gameuser > /dev/null 2>&1; then \
+			exit 0; \
+		fi; \
+		if [ $$i -lt 5 ]; then sleep 2; fi; \
+	done; \
+	echo "Postgres is not ready. Run 'make up' first."; \
+	exit 1
+
+# Refresh selected catalog tables in place. Does not delete users, games, or moderation data.
+# Examples:
+#   make refresh-seed
+#   make refresh-seed SEED=maps,units
+#   make refresh-seed SEED=maps ENV=dev
+SEED ?= maps,units,moves
+refresh-seed: wait-for-postgres
+	@echo "Refreshing catalog tables: $(SEED)"
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only "$(SEED)" --refresh
+
+seed-maps: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps --refresh
+
+seed-units: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only units --refresh
+
+seed-moves: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only moves --refresh
+
 psql:
 	$(DC_USED) exec postgres psql -U gameuser -d game_db
 
@@ -135,4 +162,4 @@ test-frontend:
 test-infrastructure:
 	pytest tests/infrastructure
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db test test-backend test-frontend
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed seed-maps seed-units seed-moves test test-backend test-frontend
