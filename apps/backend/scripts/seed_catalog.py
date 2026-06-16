@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from scripts import seed_moves, seed_official_maps, seed_units
 
@@ -41,7 +44,32 @@ def refresh_catalogs(catalogs: list[str], *, refresh: bool = True) -> None:
         loader(refresh=refresh)
 
 
+def ensure_bootstrap_admin_account() -> None:
+    from app.bootstrap import BootstrapError, run_bootstrap_admin
+
+    print("\n=== Ensuring bootstrap admin account ===")
+    try:
+        run_bootstrap_admin()
+    except BootstrapError as exc:
+        raise SystemExit(f"Bootstrap admin setup failed: {exc}") from exc
+
+
+def run_from_args(args: argparse.Namespace) -> None:
+    if args.bootstrap_only:
+        ensure_bootstrap_admin_account()
+        print("\n✅ Bootstrap admin check complete.")
+        return
+
+    catalogs = parse_catalogs(args.only)
+    refresh_catalogs(catalogs, refresh=args.refresh)
+    if not args.skip_bootstrap:
+        ensure_bootstrap_admin_account()
+    print("\n✅ Catalog refresh complete.")
+
+
 def main() -> None:
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
     parser = argparse.ArgumentParser(
         description=(
             "Refresh selected catalog tables from seed JSON files. "
@@ -59,11 +87,18 @@ def main() -> None:
         default=True,
         help="Update existing seed rows instead of skipping them (default: true)",
     )
+    parser.add_argument(
+        "--skip-bootstrap",
+        action="store_true",
+        help="Do not create or sync the bootstrap admin account",
+    )
+    parser.add_argument(
+        "--bootstrap-only",
+        action="store_true",
+        help="Only create or sync the bootstrap admin account",
+    )
     args = parser.parse_args()
-
-    catalogs = parse_catalogs(args.only)
-    refresh_catalogs(catalogs, refresh=args.refresh)
-    print("\n✅ Catalog refresh complete.")
+    run_from_args(args)
 
 
 if __name__ == "__main__":

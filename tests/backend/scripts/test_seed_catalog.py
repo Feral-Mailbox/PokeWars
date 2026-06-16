@@ -1,3 +1,5 @@
+import argparse
+
 import pytest
 
 from scripts import seed_catalog, seed_units
@@ -44,3 +46,26 @@ def test_load_units_refresh_updates_existing(db, monkeypatch, tmp_path):
     result = db.query(models.Unit).filter_by(name="Testmon").first()
     assert result is not None
     assert result.types == ["Fire"]
+
+
+def test_run_from_args_bootstrap_only(monkeypatch):
+    called = {"bootstrap": False}
+
+    def fake_bootstrap() -> None:
+        called["bootstrap"] = True
+
+    def fail_refresh(*_args, **_kwargs):
+        raise AssertionError("refresh_catalogs should not run")
+
+    monkeypatch.setattr(seed_catalog, "ensure_bootstrap_admin_account", fake_bootstrap)
+    monkeypatch.setattr(seed_catalog, "refresh_catalogs", fail_refresh)
+
+    args = argparse.Namespace(
+        bootstrap_only=True,
+        skip_bootstrap=False,
+        only="maps",
+        refresh=True,
+    )
+    seed_catalog.run_from_args(args)
+
+    assert called["bootstrap"] is True

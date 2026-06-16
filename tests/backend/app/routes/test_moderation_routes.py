@@ -2,6 +2,8 @@ import json
 import os
 import tempfile
 
+import pytest
+
 import app.db.models as models
 from app.db.models import UserRole
 from app.dependencies import get_current_user
@@ -53,9 +55,10 @@ def test_bootstrap_admin_promotes_existing_user(db):
 
 
 def test_bootstrap_admin_skips_empty_username(db, monkeypatch):
-    from app.bootstrap import ensure_bootstrap_admin
+    from app.bootstrap import BootstrapError, ensure_bootstrap_admin
 
     monkeypatch.delenv("BOOTSTRAP_ADMIN_USERNAME", raising=False)
     monkeypatch.setenv("BOOTSTRAP_ADMIN_USERNAME", "   ")
-    ensure_bootstrap_admin(db)
+    with pytest.raises(BootstrapError):
+        ensure_bootstrap_admin(db)
     assert db.query(models.User).count() == 0

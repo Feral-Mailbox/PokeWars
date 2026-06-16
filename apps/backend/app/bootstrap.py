@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -7,6 +8,7 @@ from app.db.database import get_sessionmaker
 from app.db.models import User, UserRole
 
 logger = logging.getLogger("bootstrap")
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 _INSECURE_PASSWORDS = frozenset(
     {
@@ -19,11 +21,19 @@ _INSECURE_PASSWORDS = frozenset(
 )
 
 
+class BootstrapError(RuntimeError):
+    """Raised when the bootstrap admin account could not be created or verified."""
+
+
 def _bootstrap_settings() -> dict[str, str]:
+    from dotenv import load_dotenv
+
+    # Prefer the mounted .env over stale container env from an older compose start.
+    load_dotenv(BACKEND_ROOT / ".env", override=True)
     return {
         "username": os.getenv("BOOTSTRAP_ADMIN_USERNAME", "anorgandroid").strip(),
         "email": os.getenv("BOOTSTRAP_ADMIN_EMAIL", "anorgandroid@poketactics.local"),
-        "password": os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "").strip(),
+        "password": os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "").strip().strip('"'),
     }
 
 
@@ -45,6 +55,11 @@ def _hash_password(password: str) -> str:
     return hash_password(password)
 
 
+def _emit(message: str, *, level: int = logging.INFO) -> None:
+    print(message, flush=True)
+    logger.log(level, message)
+
+
 def _sync_bootstrap_password(user: User, password: str, db: Session) -> bool:
     """Update the bootstrap admin hash when BOOTSTRAP_ADMIN_PASSWORD changes."""
     if not _password_is_acceptable_for_sync(password):
@@ -61,34 +76,34 @@ def _sync_bootstrap_password(user: User, password: str, db: Session) -> bool:
     user.hashed_password = _hash_password(password)
     db.add(user)
     db.commit()
-    logger.info("Synced bootstrap admin password from BOOTSTRAP_ADMIN_PASSWORD")
+    _emit("Synced bootstrap admin password from BOOTSTRAP_ADMIN_PASSWORD")
     return True
 
 
-def ensure_bootstrap_admin(db: Session) -> None:
+def ensure_bootstrap_admin(db: Session) -> User:
     settings = _bootstrap_settings()
     username = settings["username"]
     if not username:
-        logger.warning("BOOTSTRAP_ADMIN_USERNAME is empty; skipping bootstrap admin")
-        return
+        _emit("BOOTSTRAP_ADMIN_USERNAME is empty; skipping bootstrap admin", level=logging.WARNING)
+        raise BootstrapError("BOOTSTRAP_ADMIN_USERNAME is empty")
 
     password = settings["password"]
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         if not _password_is_acceptable_for_create(password):
             if _password_is_acceptable_for_sync(password):
-                logger.error(
-                    "Bootstrap admin '%s' does not exist yet. "
+                message = (
+                    f"Bootstrap admin '{username}' does not exist yet. "
                     "BOOTSTRAP_ADMIN_PASSWORD must be at least 12 characters to "
-                    "auto-create the account, or register the user manually.",
-                    username,
+                    "auto-create the account, or register the user manually."
                 )
             else:
-                logger.error(
+                message = (
                     "BOOTSTRAP_ADMIN_PASSWORD must be set to a unique password of at least "
                     "12 characters before the bootstrap admin can be created."
                 )
-            return
+            _emit(f"ERROR: {message}", level=logging.ERROR)
+            raise BootstrapError(message)
 
         user = User(
             username=username,
@@ -101,29 +116,35 @@ def ensure_bootstrap_admin(db: Session) -> None:
         )
         db.add(user)
         db.commit()
-        logger.info("Created bootstrap admin account for '%s'", username)
-        return
+        db.refresh(user)
+        _emit(f"Created bootstrap admin account for '{username}'")
+        return user
 
-    _sync_bootstrap_password(user, password, db)
+    if _sync_bootstrap_password(user, password, db):
+        db.refresh(user)
 
     if user.role != UserRole.admin:
         user.role = UserRole.admin
         db.add(user)
         db.commit()
-        logger.info("Promoted existing user '%s' to admin", username)
-        return
+        db.refresh(user)
+        _emit(f"Promoted existing user '{username}' to admin")
+        return user
 
-    logger.info("Bootstrap admin '%s' already exists", username)
+    _emit(f"Bootstrap admin '{username}' already exists")
+    return user
 
 
-def run_bootstrap_admin() -> None:
+def run_bootstrap_admin() -> User:
     try:
         Session = get_sessionmaker()
         db = Session()
         try:
-            ensure_bootstrap_admin(db)
+            return ensure_bootstrap_admin(db)
         finally:
             db.close()
-    except Exception:
-        logger.exception("Bootstrap admin setup failed")
+    except BootstrapError:
         raise
+    except Exception as exc:
+        logger.exception("Bootstrap admin setup failed")
+        raise BootstrapError("Bootstrap admin setup failed") from exc

@@ -11,6 +11,7 @@
 #   make reset-db ENV=dev   - Reset dev database
 #   make refresh-seed       - Upsert all catalog tables (maps, units, moves)
 #   make refresh-seed SEED=maps,units ENV=dev
+#   make bootstrap-admin     - Recreate/sync admin without touching catalog data
 
 # Default environment - set to prod by default, override with ENV=dev for development
 ENV ?= prod
@@ -31,11 +32,10 @@ else
 $(error Invalid ENV value. Use ENV=prod or ENV=dev)
 endif
 
-# === Startup ===	
+# === Startup ===
 first-launch:
 	$(DC_USED) down --remove-orphans
-	$(DC_USED) up -d
-	# Wait for postgres to be ready
+	$(DC_USED) up -d postgres redis
 	@echo "Waiting for database to be ready..."
 	@sleep 5
 	@for i in 1 2 3 4 5; do \
@@ -48,20 +48,20 @@ first-launch:
 			sleep 3; \
 		fi; \
 	done
+	# If there are *no* version files, generate the initial migration
+	@test -n "$$(ls -A apps/backend/alembic/versions 2>/dev/null)" || \
+		$(DC_USED) run --rm backend alembic revision --autogenerate -m "init"
+	@echo "Running database migrations..."
+	$(DC_USED) run --rm backend alembic upgrade head
+	@echo "Seeding catalog data and bootstrap admin..."
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps,units,moves --refresh
+	@echo "Starting application services..."
+	$(DC_USED) up -d
 	@if [ "$(ENV)" = "dev" ]; then \
 		echo "Waiting for pgAdmin to be ready (this may take up to 30 seconds)..."; \
 		sleep 30; \
 	fi
-	# If there are *no* version files, generate the initial migration
-	@test -n "$$(ls -A apps/backend/alembic/versions 2>/dev/null)" || \
-		$(DC_USED) run --rm backend alembic revision --autogenerate -m "init"
-	# Always bring DB up to latest
-	@echo "Running database migrations..."
-	$(DC_USED) run --rm backend alembic upgrade head
-	# Seed catalog data without wiping users, games, or other tables
-	@echo "Seeding catalog data..."
-	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps,units,moves --refresh
-	@echo "Setup complete!"
+	@echo "Setup complete! Log in with BOOTSTRAP_ADMIN_USERNAME / BOOTSTRAP_ADMIN_PASSWORD from apps/backend/.env"
 	@if [ "$$RUN_TESTS" = "1" ]; then \
 		$(MAKE) test; \
 	else \
@@ -122,6 +122,7 @@ wait-for-postgres:
 	exit 1
 
 # Refresh selected catalog tables in place. Does not delete users, games, or moderation data.
+# Also ensures the bootstrap admin account exists (see BOOTSTRAP_ADMIN_* in apps/backend/.env).
 # Examples:
 #   make refresh-seed
 #   make refresh-seed SEED=maps,units
@@ -130,6 +131,12 @@ SEED ?= maps,units,moves
 refresh-seed: wait-for-postgres
 	@echo "Refreshing catalog tables: $(SEED)"
 	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only "$(SEED)" --refresh
+
+bootstrap-admin: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --bootstrap-only
+
+reset-bootstrap-password: wait-for-postgres
+	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/reset_bootstrap_password.py
 
 seed-maps: wait-for-postgres
 	$(DC_USED) run --rm -e PYTHONPATH=/app backend python scripts/seed_catalog.py --only maps --refresh
@@ -162,4 +169,4 @@ test-frontend:
 test-infrastructure:
 	pytest tests/infrastructure
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed seed-maps seed-units seed-moves test test-backend test-frontend
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves test test-backend test-frontend

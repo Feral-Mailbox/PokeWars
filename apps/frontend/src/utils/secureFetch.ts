@@ -10,7 +10,10 @@ export async function secureFetch(input: string | Request, init?: RequestInit) {
     finalInput = new Request("http://poketactics:3000" + input.url, input);
   }
 
-  const res = await fetch(finalInput, init);
+  const res = await fetch(finalInput, {
+    ...init,
+    credentials: init?.credentials ?? "include",
+  });
 
   return res;
 }
