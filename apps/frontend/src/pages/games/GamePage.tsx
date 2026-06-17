@@ -249,6 +249,37 @@ export default function GamePage() {
     return mapItemLabelsById[hoveredMapItem.itemId] ?? null;
   }, [hoveredMapItem, mapItemLabelsById]);
 
+  function getMapItemIdAtTile(x: number, y: number): number | null {
+    if (!mapItemIdTiles) return null;
+    const row = mapItemIdTiles[y];
+    if (!Array.isArray(row)) return null;
+    const value = row[x];
+    if (typeof value !== "number" || value <= 0) return null;
+    return value;
+  }
+
+  function getMapItemLabel(itemId: number): string | null {
+    if (mapItemLabelsById[itemId]) return mapItemLabelsById[itemId];
+    const item = availableItems.find((entry) => entry.id === itemId);
+    return item?.name ?? null;
+  }
+
+  const activeUnitPickUpItem = useMemo(() => {
+    if (!activeUnit || gameData?.status !== "in_progress") return null;
+    if (activeUnit.can_move === false) return null;
+    const [x, y] = activeUnit.tile ?? [];
+    if (typeof x !== "number" || typeof y !== "number") return null;
+    const itemId = getMapItemIdAtTile(x, y);
+    if (itemId == null) return null;
+    const swapped = Boolean(activeUnit.held_item_slug);
+    return {
+      itemId,
+      label: getMapItemLabel(itemId),
+      swapped,
+      buttonText: swapped ? "Swap Items" : "Pick Up",
+    };
+  }, [activeUnit, gameData?.status, mapItemIdTiles, mapItemLabelsById, availableItems]);
+
   const TYPE_COLORS: { [key: string]: string } = {
     Normal: "#A8A77A",
     Fire: "#EE8130",
@@ -1631,6 +1662,106 @@ export default function GamePage() {
     preMoveStateRef.current = null;
   }
 
+  async function handlePickUpItem() {
+    if (!activeUnit || !activeUnitPickUpItem) return;
+    if (!isMyTurn) {
+      setToastMessage("You can only pick up items on your turn.");
+      return;
+    }
+    if (activeUnit.user_id !== userId) {
+      setToastMessage("You can only pick up items with your own unit.");
+      return;
+    }
+    if (activeUnit.can_move === false) {
+      setToastMessage("This unit is locked and cannot act.");
+      return;
+    }
+
+    const activeId = activeUnit.instanceId ?? activeUnit.id;
+    const link = gameLinkRef.current;
+    if (!link) return;
+
+    const res = await secureFetch(`/api/games/${link}/pick_up_item`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: activeId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setToastMessage(err?.detail ?? "Unable to pick up or swap this item.");
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    const removedSet = new Set<number>(
+      Array.isArray(data?.removed_ids) ? data.removed_ids.map(Number) : []
+    );
+    const itemX = Number(data?.x);
+    const itemY = Number(data?.y);
+
+    const applyItemPickupToUnit = (unit: any) => ({
+      ...unit,
+      can_move: false,
+      held_item: data?.held_item ?? unit.held_item,
+      held_item_slug: data?.held_item_slug ?? unit.held_item_slug,
+      held_tm_move_id:
+        data?.held_tm_move_id != null ? Number(data.held_tm_move_id) : unit.held_tm_move_id,
+      move_pp: Array.isArray(data?.move_pp) ? data.move_pp.map(Number) : unit.move_pp,
+    });
+
+    const lockUnit = (prev: any) => {
+      if (!prev) return prev;
+      const id = prev.instanceId ?? prev.id;
+      if (removedSet.has(id)) return null;
+      if (id === activeId) return applyItemPickupToUnit(prev);
+      return prev;
+    };
+
+    setPlacedUnits((prev) =>
+      prev
+        .filter((u) => !removedSet.has(u.id))
+        .map((u) => (u.id === activeId ? applyItemPickupToUnit(u) : u))
+    );
+    setLockedUnit(lockUnit);
+    setHoveredUnit(lockUnit);
+    setHighlightedTiles([]);
+    setUnitOriginalTile(null);
+    setMoveTargeting(false);
+    setSelectedMove(null);
+    setSelectedMoveTarget(null);
+    setHoveredOverlayTile(null);
+    setAttackOverlay({ normal: [], invert: [] });
+    preMoveStateRef.current = null;
+    movementLockedUnitIdsRef.current.delete(activeId);
+
+    if (Number.isFinite(itemX) && Number.isFinite(itemY)) {
+      const swapped = Boolean(data?.swapped);
+      const droppedItemId =
+        data?.dropped_item_id != null ? Number(data.dropped_item_id) : null;
+      setGameData((prev) => {
+        if (!prev?.map_state?.item_id_tiles) return prev;
+        const nextTiles = prev.map_state.item_id_tiles.map((row: (number | null)[]) =>
+          Array.isArray(row) ? [...row] : row
+        );
+        if (Array.isArray(nextTiles[itemY])) {
+          nextTiles[itemY] = [...nextTiles[itemY]];
+          nextTiles[itemY][itemX] =
+            swapped && droppedItemId != null && Number.isFinite(droppedItemId)
+              ? droppedItemId
+              : null;
+        }
+        return {
+          ...prev,
+          map_state: {
+            ...prev.map_state,
+            item_id_tiles: nextTiles,
+          },
+        };
+      });
+    }
+  }
+
   function handleMoveCancel() {
     setMoveTargeting(false);
     setSelectedMove(null);
@@ -2637,6 +2768,84 @@ export default function GamePage() {
         }
       }
 
+      if (typeof event.data === "string" && event.data.startsWith("map_item_swapped:")) {
+        const [, xStr, yStr, itemIdStr] = event.data.split(":");
+        const x = Number(xStr);
+        const y = Number(yStr);
+        const itemId = Number(itemIdStr);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(itemId)) return;
+        setGameData((prev) => {
+          if (!prev?.map_state?.item_id_tiles) return prev;
+          const nextTiles = prev.map_state.item_id_tiles.map((row: (number | null)[]) =>
+            Array.isArray(row) ? [...row] : row
+          );
+          if (Array.isArray(nextTiles[y])) {
+            nextTiles[y] = [...nextTiles[y]];
+            nextTiles[y][x] = itemId;
+          }
+          return {
+            ...prev,
+            map_state: {
+              ...prev.map_state,
+              item_id_tiles: nextTiles,
+            },
+          };
+        });
+        return;
+      }
+
+      if (typeof event.data === "string" && event.data.startsWith("map_item_picked:")) {
+        const [, xStr, yStr] = event.data.split(":");
+        const x = Number(xStr);
+        const y = Number(yStr);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+        setGameData((prev) => {
+          if (!prev?.map_state?.item_id_tiles) return prev;
+          const nextTiles = prev.map_state.item_id_tiles.map((row: (number | null)[]) =>
+            Array.isArray(row) ? [...row] : row
+          );
+          if (Array.isArray(nextTiles[y])) {
+            nextTiles[y] = [...nextTiles[y]];
+            nextTiles[y][x] = null;
+          }
+          return {
+            ...prev,
+            map_state: {
+              ...prev.map_state,
+              item_id_tiles: nextTiles,
+            },
+          };
+        });
+        return;
+      }
+
+      if (typeof event.data === "string" && event.data.startsWith("unit_item_updated:")) {
+        const [, unitIdStr] = event.data.split(":");
+        const unitId = Number(unitIdStr);
+        secureFetch(`/api/games/${gameId}/units`)
+          .then((res) => res.json())
+          .then((backendUnits) => {
+            const updatedUnit = backendUnits.find((u: any) => u.id === unitId);
+            if (!updatedUnit) return;
+            const mapped = mapPlacedUnitFromBackend(updatedUnit);
+            setPlacedUnits((prev) =>
+              prev.map((u) => (u.id === unitId ? mapped : u))
+            );
+            setLockedUnit((prev) => {
+              if (!prev) return prev;
+              const id = prev.instanceId ?? prev.id;
+              return id === unitId ? toActiveUnitView(mapped) : prev;
+            });
+            setHoveredUnit((prev) => {
+              if (!prev) return prev;
+              const id = prev.instanceId ?? prev.id;
+              return id === unitId ? toActiveUnitView(mapped) : prev;
+            });
+          })
+          .catch((err) => console.error("Failed to fetch unit item update:", err));
+        return;
+      }
+
       if (typeof event.data === "string" && event.data.startsWith("unit_moved:")) {
         const [, unitIdStr, , xStr, yStr] = event.data.split(":");
         const unitId = Number(unitIdStr);
@@ -3131,6 +3340,7 @@ export default function GamePage() {
   };
 
   const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
+    setHoveredMapItem(null);
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
       const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
       setHoveredUnit(toActiveUnitView(live));
@@ -3145,6 +3355,7 @@ export default function GamePage() {
 
   const handleMapUnitClick = async (unitState: any) => {
     if (moveTargeting) return;
+    setHoveredMapItem(null);
 
     if (gameData?.status === "preparation") {
       if (isReady) return;
@@ -3476,6 +3687,16 @@ export default function GamePage() {
               onExecuteMove={handleExecuteMove}
               onCancelMove={handleMoveCancel}
               onWait={handleWait}
+              onPickUpItem={handlePickUpItem}
+              showPickUpButton={
+                isMyTurn &&
+                userId != null &&
+                activeUnit.user_id === userId &&
+                activeUnit.can_move !== false &&
+                activeUnitPickUpItem != null
+              }
+              pickUpItemLabel={activeUnitPickUpItem?.label ?? null}
+              pickUpButtonText={activeUnitPickUpItem?.buttonText ?? "Pick Up"}
               showWaitButton={
                 isMyTurn &&
                 userId != null &&

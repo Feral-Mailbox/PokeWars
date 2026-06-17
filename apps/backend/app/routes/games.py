@@ -7183,6 +7183,148 @@ def wait_unit(
     }
 
 
+@router.post("/{link}/pick_up_item")
+def pick_up_map_item(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        unit_id = int(payload.get("unit_id"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only pick up items with your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit is locked")
+
+    map_state = _get_or_create_game_map_state(game, db)
+    x = int(gu.current_x)
+    y = int(gu.current_y)
+    tiles = map_state.item_id_tiles
+    if not isinstance(tiles, list) or y < 0 or y >= len(tiles):
+        raise HTTPException(status_code=400, detail="No item on this tile")
+    row = tiles[y]
+    if not isinstance(row, list) or x < 0 or x >= len(row):
+        raise HTTPException(status_code=400, detail="No item on this tile")
+
+    item_id = row[x]
+    if not isinstance(item_id, int) or item_id <= 0:
+        raise HTTPException(status_code=400, detail="No item on this tile")
+
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    old_held_slug = get_unit_held_item(gu)
+    swapped = bool(old_held_slug)
+    dropped_item_id: int | None = None
+    if swapped:
+        old_item = resolve_item_record(old_held_slug, db)
+        if not old_item:
+            raise HTTPException(status_code=400, detail="Held item is invalid")
+        dropped_item_id = old_item.id
+
+    new_tiles = [list(r) if isinstance(r, list) else [] for r in tiles]
+    new_tiles[y][x] = dropped_item_id
+    map_state.item_id_tiles = new_tiles
+    db.add(map_state)
+
+    set_unit_held_item(gu, item.slug, db)
+    unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
+    if unit_info:
+        sync_tm_move_pp(gu, unit_info, db)
+
+    clear_movement_locked(game.link, gu.id)
+    gu.can_move = False
+    db.flush()
+
+    if swapped and old_held_slug:
+        old_item_name = resolve_held_item_name(old_held_slug, db) or old_held_slug
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(gu, db)} swapped {old_item_name} for {item.name}",
+            state,
+            db,
+        )
+    else:
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(gu, db)} picked up {item.name}",
+            state,
+            db,
+        )
+
+    removed_ids, turn_advanced, game_completed = advance_turn_if_player_has_no_actions(
+        game, state, current_player_id, db
+    )
+    if not turn_advanced and not game_completed:
+        db.commit()
+
+    attach_game_unit_loadout_fields(gu, db)
+
+    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    if swapped and dropped_item_id is not None:
+        redis_client.publish(
+            f"game_updates:{game.link}",
+            f"map_item_swapped:{x}:{y}:{dropped_item_id}",
+        )
+    else:
+        redis_client.publish(f"game_updates:{game.link}", f"map_item_picked:{x}:{y}")
+    redis_client.publish(f"game_updates:{game.link}", f"unit_item_updated:{gu.id}")
+    for rid in removed_ids:
+        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{rid}")
+    if turn_advanced:
+        redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
+        redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    if game_completed:
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+
+    return {
+        "ok": True,
+        "unit_id": gu.id,
+        "item_slug": item.slug,
+        "item_name": item.name,
+        "swapped": swapped,
+        "dropped_item_id": dropped_item_id,
+        "x": x,
+        "y": y,
+        "held_item": gu.held_item,
+        "held_item_slug": gu.held_item_slug,
+        "held_tm_move_id": gu.held_tm_move_id,
+        "move_pp": gu.move_pp,
+        "turn_advanced": turn_advanced,
+        "game_completed": game_completed,
+        "removed_ids": removed_ids,
+    }
+
+
 @router.post("/{link}/revert_position")
 def revert_unit_position(
     link: str,

@@ -11,17 +11,17 @@ export type PreparationItemOption = {
 };
 
 const ITEM_CATEGORY_OPTIONS = [
-  { value: "", label: "All items" },
-  { value: "berry", label: "Berries" },
-  { value: "gem", label: "Gems" },
-  { value: "type_boost", label: "Type Boost" },
-  { value: "plate", label: "Plates" },
-  { value: "memory", label: "Memories" },
-  { value: "incense", label: "Incense" },
-  { value: "power", label: "Power" },
-  { value: "unit_specific", label: "Unit Specific" },
-  { value: "misc", label: "Misc" },
-  { value: "tm", label: "TMs" },
+  { value: "", label: "All items", sortId: 0 },
+  { value: "berry", label: "Berries", sortId: 1 },
+  { value: "gem", label: "Gems", sortId: 68 },
+  { value: "type_boost", label: "Type Boost", sortId: 86 },
+  { value: "plate", label: "Plates", sortId: 104 },
+  { value: "memory", label: "Memories", sortId: 121 },
+  { value: "unit_specific", label: "Unit Specific", sortId: 139 },
+  { value: "incense", label: "Incense", sortId: 166 },
+  { value: "power", label: "Power", sortId: 175 },
+  { value: "misc", label: "Misc", sortId: 181 },
+  { value: "tm", label: "TMs", sortId: 257 },
 ] as const;
 
 type PreparationItemSelectPanelProps = {
@@ -48,7 +48,7 @@ export default function PreparationItemSelectPanel({
     const availableCategories = new Set(items.map((item) => item.category));
     return ITEM_CATEGORY_OPTIONS.filter(
       (option) => option.value === "" || availableCategories.has(option.value)
-    );
+    ).sort((a, b) => a.sortId - b.sortId);
   }, [items]);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function PreparationItemSelectPanel({
       const displayName = getItemDisplayName(item).toLowerCase();
       return displayName.includes(query) || String(item.name || "").toLowerCase().includes(query);
     })
-    .sort((a, b) => getItemDisplayName(a).localeCompare(getItemDisplayName(b)));
+    .sort((a, b) => a.id - b.id);
 
   const canAffordItem = (item: PreparationItemOption) =>
     cash + currentItemCost >= item.cost;

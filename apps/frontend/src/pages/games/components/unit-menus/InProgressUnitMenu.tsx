@@ -21,6 +21,10 @@ type InProgressUnitMenuProps = {
   onCancelMove: () => void;
   onWait: () => void;
   showWaitButton?: boolean;
+  onPickUpItem?: () => void;
+  showPickUpButton?: boolean;
+  pickUpItemLabel?: string | null;
+  pickUpButtonText?: string;
   getPlayerColor: (playerId: number) => string;
 };
 
@@ -39,6 +43,10 @@ export default function InProgressUnitMenu({
   onCancelMove,
   onWait,
   showWaitButton = false,
+  onPickUpItem,
+  showPickUpButton = false,
+  pickUpItemLabel = null,
+  pickUpButtonText = "Pick Up",
   getPlayerColor,
 }: InProgressUnitMenuProps) {
   const unit = activeUnit.unit;
@@ -81,6 +89,20 @@ export default function InProgressUnitMenu({
         onMoveHoverEnd={onMoveHoverEnd}
         onMoveSelect={onMoveSelect}
       />
+
+      {showPickUpButton && onPickUpItem && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPickUpItem();
+          }}
+          className="mt-3 w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded"
+        >
+          {pickUpButtonText}
+          {pickUpItemLabel ? `: ${pickUpItemLabel}` : ""}
+        </button>
+      )}
 
       {showWaitButton && (
         <button

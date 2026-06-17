@@ -87,6 +87,14 @@ export default function GameMapStage({
     [mapRenderData?.tile_data.overlay2]
   );
 
+  const occupiedTileKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const unit of placedUnits) {
+      keys.add(`${unit.tile[0]},${unit.tile[1]}`);
+    }
+    return keys;
+  }, [placedUnits]);
+
   useLayoutEffect(() => {
     if (!mapWidth || !mapHeight) return;
     if (canvasRef.current) setupPixelCanvas(canvasRef.current, mapWidth, mapHeight);
@@ -131,7 +139,7 @@ export default function GameMapStage({
           top: tile[1] * tileDrawSize,
           width: tileDrawSize,
           height: tileDrawSize,
-          zIndex: behindOverlay2 ? 3 : 1,
+          zIndex: behindOverlay2 ? 3 : 5,
           pointerEvents: moveTargeting ? "none" : "auto",
           cursor: moveTargeting ? "default" : "pointer",
         }}
@@ -224,6 +232,7 @@ export default function GameMapStage({
           itemIdTiles?.map((row, y) =>
             row.map((itemId, x) => {
               if (itemId == null || itemId <= 0) return null;
+              if (occupiedTileKeys.has(`${x},${y}`)) return null;
               return (
                 <div
                   key={`map-item-hit-${x}-${y}`}

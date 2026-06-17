@@ -2055,3 +2055,189 @@ def test_removing_held_tm_trims_extra_pp(db):
     )
     sync_tm_move_pp(game_unit, unit_info, db)
     assert game_unit.move_pp == [30]
+
+
+def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=1):
+    map_obj = models.Map(
+        name="Pickup Map",
+        creator_id=user.id,
+        is_official=True,
+        width=3,
+        height=3,
+        tileset_names=["grass"],
+        tile_data={"movement_cost": [[1, 1, 1], [1, 1, 1], [1, 1, 1]]},
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+    )
+    db.add(map_obj)
+    db.flush()
+
+    game = models.Game(
+        game_name="Pickup Game",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="pickup-game",
+    )
+    db.add(game)
+    db.flush()
+
+    db.add(
+        models.GameState(
+            game_id=game.id,
+            current_turn=0,
+            status=models.GameStatus.in_progress,
+            players=[user.id],
+        )
+    )
+
+    item_tiles = [[None, None, None], [None, item_id, None], [None, None, None]]
+    db.add(
+        models.GameMapState(
+            game_id=game.id,
+            map_id=map_obj.id,
+            weather_tiles=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            hazard_tiles=[[[], [], []], [[], [], []], [[], [], []]],
+            room_effect_tiles=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            terrain_effect_tiles=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            field_effect_tiles=[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+            item_id_tiles=item_tiles,
+        )
+    )
+
+    unit_info = models.Unit(
+        id=9001,
+        species_id=9001,
+        name="Bulbasaur",
+        species="Bulbasaur",
+        asset_folder="bulbasaur",
+        types=["Grass"],
+        base_stats={"hp": 45},
+        level_up_moves=[{"move_id": 9001, "level": 1}],
+        tm_moves=[],
+        egg_moves=[],
+        equipped_moves=[9001],
+    )
+    move = models.Move(id=9001, name="Tackle", type="Normal", category="Physical", pp=35)
+    item = models.Item(
+        id=item_id,
+        name="Oran Berry",
+        slug="oran_berry",
+        category="berry",
+        cost=100,
+    )
+    db.add_all([unit_info, move, item])
+    db.flush()
+
+    unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=unit_info.id,
+        user_id=user.id,
+        starting_x=unit_x,
+        starting_y=unit_y,
+        current_x=unit_x,
+        current_y=unit_y,
+        current_hp=45,
+        current_stats={"hp": 45},
+        can_move=True,
+        is_fainted=False,
+        move_pp=[35],
+        flags={"move_ids": [9001]},
+    )
+    db.add(unit)
+    db.commit()
+    return game, unit, item
+
+
+def test_pick_up_map_item_success(client, db, user):
+    game, unit, item = _create_in_progress_pickup_game(db, user)
+
+    resp = client.post(
+        f"/games/{game.link}/pick_up_item",
+        json={"unit_id": unit.id},
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["ok"] is True
+    assert payload["item_slug"] == item.slug
+    assert payload["turn_advanced"] is True
+
+    db.refresh(unit)
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
+    assert unit.can_move is False
+    assert unit.flags["held_item"] == item.slug
+    assert map_state.item_id_tiles[1][1] is None
+
+
+def test_pick_up_map_tm_item_allowed_without_start_with_tms(client, db, user):
+    tm_item = models.Item(
+        id=9010,
+        name="TM98",
+        slug="tm98",
+        category="tm",
+        cost=500,
+        move_id=9010,
+    )
+    tm_move = models.Move(id=9010, name="Skill Swap", type="Psychic", category="Status", pp=10)
+    db.add_all([tm_item, tm_move])
+
+    game, unit, _item = _create_in_progress_pickup_game(db, user, item_id=9010)
+    assert game.start_with_tms is False
+
+    resp = client.post(
+        f"/games/{game.link}/pick_up_item",
+        json={"unit_id": unit.id},
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["ok"] is True
+    assert payload["item_slug"] == tm_item.slug
+
+    db.refresh(unit)
+    assert unit.flags["held_item"] == tm_item.slug
+
+
+def test_pick_up_map_item_swaps_when_already_holding(client, db, user):
+    game, unit, item = _create_in_progress_pickup_game(db, user)
+    held_item = models.Item(
+        id=9002,
+        name="Leftovers",
+        slug="leftovers",
+        category="held",
+        cost=200,
+    )
+    db.add(held_item)
+    unit.flags = {"move_ids": [9001], "held_item": held_item.slug}
+    db.add(unit)
+    db.commit()
+
+    resp = client.post(
+        f"/games/{game.link}/pick_up_item",
+        json={"unit_id": unit.id},
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["ok"] is True
+    assert payload["swapped"] is True
+    assert payload["item_slug"] == item.slug
+    assert payload["dropped_item_id"] == held_item.id
+
+    db.refresh(unit)
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
+    assert unit.can_move is False
+    assert unit.flags["held_item"] == item.slug
+    assert map_state.item_id_tiles[1][1] == held_item.id
+
+
+def test_pick_up_map_item_rejects_when_no_item_on_tile(client, db, user):
+    game, unit, _item = _create_in_progress_pickup_game(db, user, unit_x=0, unit_y=0)
+
+    resp = client.post(
+        f"/games/{game.link}/pick_up_item",
+        json={"unit_id": unit.id},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "No item on this tile"
