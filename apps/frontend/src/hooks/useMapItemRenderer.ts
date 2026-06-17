@@ -1,6 +1,9 @@
 import { type RefObject, useEffect, useRef } from "react";
+import { RANDOM_TM_ITEM_ID } from "@/types/mapData";
 import { getTmMachineUrl, TM_SOURCE_SIZE } from "@/utils/gameAssets";
 import { MAP_TILE_DRAW_SIZE, setupPixelCanvas } from "@/utils/pixelCanvas";
+
+const RANDOM_TM_DISPLAY_TYPE = "Normal";
 
 export function useMapItemRenderer(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -36,9 +39,12 @@ export function useMapItemRenderer(
         if (!Array.isArray(row)) continue;
         for (let x = 0; x < row.length; x++) {
           const itemId = row[x];
-          if (itemId == null || itemId <= 0) continue;
+          if (itemId == null) continue;
 
-          const moveType = itemMoveTypeById[itemId];
+          const moveType =
+            itemId === RANDOM_TM_ITEM_ID
+              ? RANDOM_TM_DISPLAY_TYPE
+              : itemMoveTypeById[itemId];
           if (!moveType) continue;
 
           const img = tmImagesRef.current[moveType];
@@ -64,8 +70,11 @@ export function useMapItemRenderer(
       for (const row of itemIdTiles) {
         if (!Array.isArray(row)) continue;
         for (const itemId of row) {
-          if (itemId == null || itemId <= 0) continue;
-          const moveType = itemMoveTypeById[itemId];
+          if (itemId == null) continue;
+          const moveType =
+            itemId === RANDOM_TM_ITEM_ID
+              ? RANDOM_TM_DISPLAY_TYPE
+              : itemMoveTypeById[itemId];
           if (moveType) neededTypes.add(moveType);
         }
       }

@@ -231,7 +231,7 @@ export default function GameMapStage({
         {showMapItemTooltips &&
           itemIdTiles?.map((row, y) =>
             row.map((itemId, x) => {
-              if (itemId == null || itemId <= 0) return null;
+              if (itemId == null) return null;
               if (occupiedTileKeys.has(`${x},${y}`)) return null;
               return (
                 <div

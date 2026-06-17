@@ -29,6 +29,15 @@ export type ActiveUnitView = PlacedUnitState & {
   instanceId: number;
 };
 
+export function isVisibleOnMapUnit(
+  unit: Pick<PlacedUnitState, "is_fainted" | "current_hp" | "tile">,
+): boolean {
+  if (unit.is_fainted) return false;
+  if ((unit.current_hp ?? 0) <= 0) return false;
+  const [x, y] = unit.tile;
+  return x >= 0 && y >= 0;
+}
+
 export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
   const currentX = Number(backendUnit?.current_x ?? backendUnit?.starting_x ?? 0);
   const currentY = Number(backendUnit?.current_y ?? backendUnit?.starting_y ?? 0);
@@ -67,6 +76,12 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
         ? Number(backendUnit.ability_id)
         : null,
   };
+}
+
+export function mapVisiblePlacedUnitsFromBackend(backendUnits: any[]): PlacedUnitState[] {
+  return backendUnits
+    .map(mapPlacedUnitFromBackend)
+    .filter(isVisibleOnMapUnit);
 }
 
 export function toActiveUnitView(placed: PlacedUnitState): ActiveUnitView {

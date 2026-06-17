@@ -201,6 +201,19 @@ def test_start_game_resolves_random_tm_tiles(client, db, user):
     assert map_state.item_id_tiles[0][0] in {257, 258}
     assert map_state.item_id_tiles[0][1] is None
 
+    game_state = db.query(models.GameState).filter_by(game_id=game.id).first()
+    system_messages = [
+        entry["message"]
+        for entry in (game_state.replay_log or [])
+        if entry.get("event") == "system_log"
+    ]
+    assert "The game has begun! All players may now select their units" in system_messages
+    assert "The TM moves on the field have been revealed." in system_messages
+    assert (
+        system_messages.index("The game has begun! All players may now select their units")
+        < system_messages.index("The TM moves on the field have been revealed.")
+    )
+
 
 def test_get_open_games(client, db, user):
     # Create an open game

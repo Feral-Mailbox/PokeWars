@@ -14,10 +14,11 @@ import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
-import { mapPlacedUnitFromBackend, resolveMovePpIndex, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
+import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
 import { useMapDisplayScale } from "@/hooks/useMapDisplayScale";
+import { RANDOM_TM_ITEM_ID } from "@/types/mapData";
 import {
   buildMovementCostGrid,
   filterMovementTilesForUnit,
@@ -30,7 +31,8 @@ const TILE_SIZE = 16;
 const TILE_SCALE = 2;
 const TILE_DRAW_SIZE = TILE_SIZE * TILE_SCALE;
 
-function isActivePlacedUnit(unit: { current_hp?: number }): boolean {
+function isActivePlacedUnit(unit: { current_hp?: number; is_fainted?: boolean }): boolean {
+  if (unit.is_fainted) return false;
   return (unit.current_hp ?? 0) > 0;
 }
 
@@ -156,8 +158,9 @@ export default function GamePage() {
     unitOriginalTile: [number, number] | null;
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
-  const showMapItemTooltips =
-    gameData?.status === "preparation" || gameData?.status === "in_progress";
+  const isLobbyPhase =
+    gameData?.status === "open" || gameData?.status === "closed";
+  const showMapItemTooltips = Boolean(gameData?.map);
   const preparationItems = useMemo(() => {
     if (gameData?.start_with_tms) {
       return availableItems;
@@ -221,7 +224,9 @@ export default function GamePage() {
     const hasStateItems =
       Array.isArray(stateTiles) &&
       stateTiles.some(
-        (row) => Array.isArray(row) && row.some((id) => typeof id === "number" && id > 0)
+        (row) =>
+          Array.isArray(row) &&
+          row.some((id) => typeof id === "number" && (id > 0 || id === RANDOM_TM_ITEM_ID))
       );
     if (hasStateItems) return stateTiles;
 
@@ -234,7 +239,9 @@ export default function GamePage() {
         const value = Array.isArray(row) ? row[x] : null;
         if (value == null) return null;
         const id = Number(value);
-        return Number.isFinite(id) && id > 0 ? id : null;
+        if (!Number.isFinite(id)) return null;
+        if (id === RANDOM_TM_ITEM_ID) return RANDOM_TM_ITEM_ID;
+        return id > 0 ? id : null;
       });
     });
   }, [
@@ -246,8 +253,11 @@ export default function GamePage() {
 
   const hoveredMapItemLabel = useMemo(() => {
     if (!hoveredMapItem) return null;
+    if (hoveredMapItem.itemId === RANDOM_TM_ITEM_ID && isLobbyPhase) {
+      return "Random TM";
+    }
     return mapItemLabelsById[hoveredMapItem.itemId] ?? null;
-  }, [hoveredMapItem, mapItemLabelsById]);
+  }, [hoveredMapItem, mapItemLabelsById, isLobbyPhase]);
 
   function getMapItemIdAtTile(x: number, y: number): number | null {
     if (!mapItemIdTiles) return null;
@@ -541,7 +551,11 @@ export default function GamePage() {
         const row = value[y];
         return Array.from({ length: mapWidth }, (_, x) => {
           const v = Array.isArray(row) ? row[x] : null;
-          return v == null ? null : (Number(v) || null);
+          if (v == null) return null;
+          const id = Number(v);
+          if (!Number.isFinite(id)) return null;
+          if (id === RANDOM_TM_ITEM_ID) return RANDOM_TM_ITEM_ID;
+          return id > 0 ? id : null;
         });
       });
     };
@@ -1973,7 +1987,7 @@ export default function GamePage() {
       const unitsRes = await secureFetch(`/api/games/${link}/units`);
       if (unitsRes.ok) {
         const backendUnits = await unitsRes.json();
-        setPlacedUnits(backendUnits.map(mapPlacedUnitFromBackend));
+        setPlacedUnits(mapVisiblePlacedUnitsFromBackend(backendUnits));
       }
     }
 
@@ -2063,7 +2077,7 @@ export default function GamePage() {
       const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
       if (!unitsRes.ok) return;
       const backendUnits = await unitsRes.json();
-      const mapped = backendUnits.map(mapPlacedUnitFromBackend);
+      const mapped = mapVisiblePlacedUnitsFromBackend(backendUnits);
       const mappedById = new Map(mapped.map((u: PlacedUnitState) => [u.id, u]));
       const mergeUnit = (prev: any) => {
         if (!prev) return prev;
@@ -2083,10 +2097,12 @@ export default function GamePage() {
       }
       if (nextHpById.size > 0) {
         setPlacedUnits(prev =>
-          prev.map(u => {
-            const nextHp = nextHpById.get(u.id);
-            return nextHp == null ? u : { ...u, current_hp: nextHp };
-          })
+          prev
+            .map(u => {
+              const nextHp = nextHpById.get(u.id);
+              return nextHp == null ? u : { ...u, current_hp: nextHp };
+            })
+            .filter(isVisibleOnMapUnit)
         );
         setLockedUnit(prev => {
           if (!prev) return prev;
@@ -2229,7 +2245,7 @@ export default function GamePage() {
           : backendUnits;
 
 
-          const mappedUnits = visibleUnits.map(mapPlacedUnitFromBackend);
+          const mappedUnits = mapVisiblePlacedUnitsFromBackend(visibleUnits);
           setPlacedUnits(mappedUnits);
           placedUnitsRef.current = mappedUnits;
 
@@ -2238,10 +2254,7 @@ export default function GamePage() {
           }
         }
 
-        if (
-          data.status === "preparation" ||
-          data.status === "in_progress"
-        ) {
+        if (data.map) {
           await loadMapItemCatalog();
         }
 
@@ -2865,7 +2878,11 @@ export default function GamePage() {
       if (typeof event.data === "string" && event.data.startsWith("unit_removed:")) {
         const [, unitIdStr] = event.data.split(":");
         const unitId = Number(unitIdStr);
-        setPlacedUnits(prev => prev.filter(u => u.id !== unitId));
+        setPlacedUnits((prev) => {
+          const next = prev.filter((u) => u.id !== unitId);
+          placedUnitsRef.current = next;
+          return next;
+        });
         setLockedUnit(prev => {
           if (!prev) return prev;
           const id = prev.instanceId ?? prev.id;
@@ -2941,6 +2958,26 @@ export default function GamePage() {
           .then(backendUnits => {
             const updatedUnit = backendUnits.find((u: any) => u.id === unitId);
             if (updatedUnit) {
+              const mapped = mapPlacedUnitFromBackend(updatedUnit);
+              if (!isVisibleOnMapUnit(mapped)) {
+                setPlacedUnits((prev) => {
+                  const next = prev.filter((u) => u.id !== unitId);
+                  placedUnitsRef.current = next;
+                  return next;
+                });
+                setLockedUnit((prev) => {
+                  if (!prev) return prev;
+                  const id = prev.instanceId ?? prev.id;
+                  return id === unitId ? null : prev;
+                });
+                setHoveredUnit((prev) => {
+                  if (!prev) return prev;
+                  const id = prev.instanceId ?? prev.id;
+                  return id === unitId ? null : prev;
+                });
+                return;
+              }
+
               setPlacedUnits(prev =>
                 prev.map(u => u.id === unitId ? { 
                   ...u, 
@@ -2949,7 +2986,9 @@ export default function GamePage() {
                   stat_boosts: updatedUnit.stat_boosts || {},
                   status_effects: updatedUnit.status_effects ?? u.status_effects ?? [],
                   states: updatedUnit.states ?? u.states ?? [],
-                  move_pp: updatedUnit.move_pp || u.move_pp 
+                  move_pp: updatedUnit.move_pp || u.move_pp,
+                  is_fainted: mapped.is_fainted,
+                  tile: mapped.tile,
                 } : u)
               );
               setLockedUnit(prev => {
@@ -3018,7 +3057,7 @@ export default function GamePage() {
             visibleUnits = backendUnits;
           }
 
-          const mapped = visibleUnits.map(mapPlacedUnitFromBackend);
+          const mapped = mapVisiblePlacedUnitsFromBackend(visibleUnits);
 
           setPlacedUnits(mapped);
 
@@ -3573,7 +3612,7 @@ export default function GamePage() {
           onMapItemLeave={() => setHoveredMapItem(null)}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
-          placedUnits={placedUnits}
+          placedUnits={placedUnits.filter(isVisibleOnMapUnit)}
           tileDrawSize={TILE_DRAW_SIZE}
           moveTargeting={moveTargeting}
           getPlayerColor={getPlayerColor}

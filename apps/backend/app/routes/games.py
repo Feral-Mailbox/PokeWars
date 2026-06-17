@@ -5103,10 +5103,27 @@ def _resolve_random_tm_tiles(map_state: GameMapState, db: Session) -> bool:
     return changed
 
 
-def _resolve_random_tm_tiles_for_game(game: Game, db: Session) -> None:
+def _resolve_random_tm_tiles_for_game(game: Game, db: Session) -> bool:
     map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
     if map_state:
-        _resolve_random_tm_tiles(map_state, db)
+        return _resolve_random_tm_tiles(map_state, db)
+    return False
+
+
+def publish_random_tm_reveal_log_if_needed(
+    game_link: str,
+    had_random_tms: bool,
+    game_state: GameState,
+    db: Session,
+) -> None:
+    if not had_random_tms:
+        return
+    publish_system_log_event(
+        game_link,
+        "The TM moves on the field have been revealed.",
+        game_state,
+        db,
+    )
 
 
 def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
@@ -5666,12 +5683,15 @@ def start_game(
     if game.gamemode in ["Conquest", "Capture The Flag"]:
         if game_state.status == GameStatus.closed:
             game_state.status = GameStatus.preparation
-            _resolve_random_tm_tiles_for_game(game, db)
+            had_random_tms = _resolve_random_tm_tiles_for_game(game, db)
             publish_system_log_event(
                 game.link,
                 "The game has begun! All players may now select their units",
                 game_state,
                 db,
+            )
+            publish_random_tm_reveal_log_if_needed(
+                game.link, had_random_tms, game_state, db
             )
             db.commit()
             redis_client.publish(f"game_updates:{game.link}", "game_preparation")
@@ -5696,7 +5716,7 @@ def start_game(
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
     else:
         game_state.status = GameStatus.in_progress
-        _resolve_random_tm_tiles_for_game(game, db)
+        had_random_tms = _resolve_random_tm_tiles_for_game(game, db)
 
         if game_state.players:
                 game_state.current_turn = 0
@@ -5707,6 +5727,9 @@ def start_game(
         redis_client.publish(f"game_updates:{game.link}", "game_started")
         redis_client.publish(f"game_updates:{game.link}", "turn_started")
         publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
+        publish_random_tm_reveal_log_if_needed(
+            game.link, had_random_tms, game_state, db
+        )
         publish_turn_start_logs(game, game_state, db)
         db.commit()
         return {"detail": "Game started"}
@@ -5893,7 +5916,13 @@ def get_game_units(
     units = (
         db.query(GameUnit)
         .options(joinedload(GameUnit.unit))
-        .filter(GameUnit.game_id == game.id)
+        .filter(
+            GameUnit.game_id == game.id,
+            GameUnit.is_fainted == False,
+            GameUnit.current_hp > 0,
+            GameUnit.current_x >= 0,
+            GameUnit.current_y >= 0,
+        )
         .all()
     )
     
