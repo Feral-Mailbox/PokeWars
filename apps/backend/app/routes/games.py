@@ -63,6 +63,13 @@ def publish_game_ws_event(game_link: str, payload: dict) -> None:
         return
 
 
+def publish_player_state_updated(game_link: str) -> None:
+    try:
+        redis_client.publish(f"game_updates:{game_link}", "player_state_updated")
+    except Exception:
+        return
+
+
 def append_replay_log_event(game_state: GameState | None, payload: dict) -> None:
     if game_state is None:
         return
@@ -5173,6 +5180,16 @@ def _get_or_create_game_map_state(game: Game, db: Session) -> GameMapState:
 def _get_map_via_game_state(game: Game, db: Session) -> Map:
     return _get_or_create_game_map_state(game, db).map
 
+def _player_info_from_state(ps: GamePlayer, username: str) -> PlayerInfo:
+    return PlayerInfo(
+        id=ps.id,
+        player_id=ps.player_id,
+        cash_remaining=ps.cash_remaining,
+        username=username,
+        is_ready=ps.is_ready,
+        unit_count=len(ps.game_units or []),
+    )
+
 def serialize_game_response(game: Game, db: Session) -> GameResponse:
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
     if not game_state:
@@ -5182,13 +5199,7 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
     players = []
     for ps in player_states:
         u = db.query(User).filter_by(id=ps.player_id).first()
-        players.append(PlayerInfo(
-            id=ps.id,
-            player_id=ps.player_id,
-            cash_remaining=ps.cash_remaining,
-            username=u.username,
-            is_ready=ps.is_ready
-        ))
+        players.append(_player_info_from_state(ps, u.username))
 
     map_obj = _get_map_via_game_state(game, db)
     map_state_obj = _get_or_create_game_map_state(game, db)
@@ -5555,13 +5566,7 @@ def create_game(
         map_state=GameMapStateSchema.model_validate(game_map_state),
         max_players=new_game.max_players,
         host_id=user.id,
-        players=[PlayerInfo(
-            id=player_state.id,
-            player_id=user.id,
-            cash_remaining=player_state.cash_remaining,
-            username=user.username,
-            is_ready=player_state.is_ready
-        )],
+        players=[_player_info_from_state(player_state, user.username)],
         player_order=game_state.players,
         turn_deadline=game_state.turn_deadline,
         winner_id=game_state.winner_id,
@@ -5624,13 +5629,7 @@ def join_game(
     players = []
     for ps in player_states:
         user_obj = db.query(User).filter_by(id=ps.player_id).first()
-        players.append(PlayerInfo(
-            id=ps.id,
-            player_id=ps.player_id,
-            cash_remaining=ps.cash_remaining,
-            username=user_obj.username,
-            is_ready=ps.is_ready
-        ))
+        players.append(_player_info_from_state(ps, user_obj.username))
 
     return GameResponse(
         id=game.id,
@@ -5801,13 +5800,7 @@ def get_game_by_link(
     players = []
     for ps in player_states:
         user_obj = db.query(User).filter_by(id=ps.player_id).first()
-        players.append(PlayerInfo(
-            id=ps.id,
-            player_id=ps.player_id,
-            cash_remaining=ps.cash_remaining,
-            username=user_obj.username,
-            is_ready=ps.is_ready
-        ))
+        players.append(_player_info_from_state(ps, user_obj.username))
 
     return GameResponse(
         id=game.id,
@@ -6066,6 +6059,7 @@ def place_unit(
     db.refresh(new_unit)
 
     attach_game_unit_loadout_fields(new_unit, db)
+    publish_player_state_updated(game.link)
     return new_unit
 
 @router.post("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
@@ -6123,6 +6117,7 @@ def change_unit_item(
     db.commit()
     db.refresh(unit)
     attach_game_unit_loadout_fields(unit, db)
+    publish_player_state_updated(game.link)
     return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
 
 @router.delete("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
@@ -6169,6 +6164,7 @@ def remove_unit_item(
     db.commit()
     db.refresh(unit)
     attach_game_unit_loadout_fields(unit, db)
+    publish_player_state_updated(game.link)
     return GameUnitChangeItemResponse(unit=unit, cash_remaining=player_state.cash_remaining)
 
 @router.post("/{link}/units/{unit_id}/ability", response_model=GameUnitChangeAbilityResponse)
@@ -6221,6 +6217,7 @@ def change_unit_ability(
     db.commit()
     db.refresh(unit)
     attach_game_unit_loadout_fields(unit, db)
+    publish_player_state_updated(game.link)
     return GameUnitChangeAbilityResponse(unit=unit, cash_remaining=player_state.cash_remaining)
 
 @router.delete("/{link}/units/remove/{unit_id}")
@@ -6259,6 +6256,7 @@ def remove_unit(
 
     db.delete(unit)
     db.commit()
+    publish_player_state_updated(game.link)
     return {"detail": "Unit removed and cash refunded"}
 
 

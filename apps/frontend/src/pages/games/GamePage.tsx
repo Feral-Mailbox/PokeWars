@@ -3023,7 +3023,7 @@ export default function GamePage() {
         return;
       }
       
-      if (["player_joined", "game_started", "player_ready", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
+      if (["player_joined", "game_started", "player_ready", "player_state_updated", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
         if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
           clearMovementLocks();
           setLockedUnit(null);
@@ -3050,9 +3050,14 @@ export default function GamePage() {
           let visibleUnits;
           if (updatedGame.status === "preparation") {
             const playerRes = await secureFetch(`/api/games/${updatedGame.link}/player`);
-            const player = await playerRes.json();
-            const playerUnitIds = player.game_units ?? [];
-            visibleUnits = backendUnits.filter((u: any) => playerUnitIds.includes(u.id));
+            if (playerRes.ok) {
+              const player = await playerRes.json();
+              setCash(player.cash_remaining);
+              const playerUnitIds = player.game_units ?? [];
+              visibleUnits = backendUnits.filter((u: any) => playerUnitIds.includes(u.id));
+            } else {
+              visibleUnits = backendUnits;
+            }
           } else {
             visibleUnits = backendUnits;
           }
@@ -3222,6 +3227,34 @@ export default function GamePage() {
     }
     return out;
   }, [gameData?.players, playerColorMap]);
+
+  const sidebarPlayerSlots = useMemo(() => {
+    const players = Array.isArray(gameData?.players) ? gameData.players : [];
+    const order = Array.isArray(gameData?.player_order) ? gameData.player_order : [];
+    const maxPlayers = gameData?.max_players ?? players.length;
+    const playerById = new Map(players.map((player) => [player.player_id, player]));
+
+    return Array.from({ length: maxPlayers }, (_, slotIndex) => {
+      const playerId = order[slotIndex];
+      const player = playerId != null ? playerById.get(playerId) : undefined;
+
+      if (player) {
+        return {
+          kind: "joined" as const,
+          slotIndex,
+          playerId: player.player_id,
+          username: player.username,
+          cash: player.player_id === userId ? cash : player.cash_remaining,
+          unitCount: player.player_id === userId ? placedUnits.length : (player.unit_count ?? 0),
+        };
+      }
+
+      return {
+        kind: "waiting" as const,
+        slotIndex,
+      };
+    });
+  }, [gameData?.players, gameData?.player_order, gameData?.max_players, userId, cash, placedUnits]);
 
   const placedUnitAtTile = selectedTile
   ? placedUnits.find(
@@ -3664,6 +3697,9 @@ export default function GamePage() {
         onSendChat={handleSendChat}
         playerColorMap={playerColorMap}
         usernameColorMap={usernameColorMap}
+        playerSlots={sidebarPlayerSlots}
+        unitLimit={unitLimit}
+        currentUserId={userId}
       />
 
       {(() => {

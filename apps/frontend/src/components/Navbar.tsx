@@ -116,7 +116,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="h-16 flex flex-row justify-between items-center px-4 bg-gray-900 text-white fixed top-0 left-0 w-full z-10 shadow-md">
+    <nav className="h-16 flex flex-row justify-between items-center px-4 bg-gray-900 text-white fixed top-0 left-0 w-full z-50 shadow-md">
       <button onClick={() => navigate('/')}>
         <img
           src={logo}

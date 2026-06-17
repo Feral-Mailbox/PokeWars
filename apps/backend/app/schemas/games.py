@@ -32,6 +32,7 @@ class PlayerInfo(BaseModel):
     username: str
     cash_remaining: int
     is_ready: bool
+    unit_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
         

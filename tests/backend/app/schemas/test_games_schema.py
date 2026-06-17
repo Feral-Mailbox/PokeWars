@@ -16,8 +16,9 @@ def test_game_create_request():
     assert model.start_with_tms is False
 
 def test_player_info_fields():
-    model = PlayerInfo(id=1, player_id=5, username="Ash", cash_remaining=100, is_ready=False)
+    model = PlayerInfo(id=1, player_id=5, username="Ash", cash_remaining=100, is_ready=False, unit_count=2)
     assert model.is_ready is False
+    assert model.unit_count == 2
 
 def test_host_info_fields():
     model = HostInfo(id=99, username="HostGuy")

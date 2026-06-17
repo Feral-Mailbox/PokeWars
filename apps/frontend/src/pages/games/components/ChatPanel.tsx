@@ -8,6 +8,22 @@ type ChatEntry = {
   playerId?: number;
 };
 
+type PlayerSidebarSlot =
+  | {
+      kind: "joined";
+      slotIndex: number;
+      playerId: number;
+      username: string;
+      cash: number;
+      unitCount: number;
+    }
+  | {
+      kind: "waiting";
+      slotIndex: number;
+    };
+
+type SidebarTab = "players" | "chat";
+
 type MoveBullet = {
   text: string;
 };
@@ -35,6 +51,9 @@ interface ChatPanelProps {
   onSendChat: () => void;
   playerColorMap: Record<number, string>;
   usernameColorMap: Record<string, string>;
+  playerSlots: PlayerSidebarSlot[];
+  unitLimit: number;
+  currentUserId?: number | null;
 }
 
 function getPlayerColor(playerId: number, playerColorMap: Record<number, string>): string {
@@ -279,7 +298,11 @@ export default function ChatPanel({
   onSendChat,
   playerColorMap,
   usernameColorMap,
+  playerSlots,
+  unitLimit,
+  currentUserId,
 }: ChatPanelProps) {
+  const [activeTab, setActiveTab] = useState<SidebarTab>("players");
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const stored = localStorage.getItem("chatPanelCollapsed");
     return stored ? JSON.parse(stored) : false;
@@ -287,8 +310,9 @@ export default function ChatPanel({
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    if (activeTab !== "chat") return;
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatEntries]);
+  }, [chatEntries, activeTab]);
 
   useEffect(() => {
     localStorage.setItem("chatPanelCollapsed", JSON.stringify(isCollapsed));
@@ -309,7 +333,30 @@ export default function ChatPanel({
         }`}
       >
         <div className="px-3 py-2 border-b border-slate-700 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-100">Game Chat</h2>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("players")}
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                activeTab === "players"
+                  ? "bg-slate-700 text-slate-100"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Players
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("chat")}
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                activeTab === "chat"
+                  ? "bg-slate-700 text-slate-100"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Chat
+            </button>
+          </div>
           <button
             onClick={() => setIsCollapsed(true)}
             className="text-slate-400 hover:text-slate-200 text-xs font-semibold"
@@ -319,70 +366,128 @@ export default function ChatPanel({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">
-          {renderRows.length === 0 && <p className="text-slate-400">No messages yet.</p>}
+        {activeTab === "players" ? (
+          <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">
+            {playerSlots.length === 0 && <p className="text-slate-400">No players yet.</p>}
 
-          {renderRows.map((entry, index) => {
-            const prevEntry = index > 0 ? renderRows[index - 1] : null;
-            const showDivider = shouldRenderDivider(prevEntry, entry);
-
-            return (
-              <div key={entry.id}>
-                {showDivider && <div className="my-2 border-t border-slate-600"></div>}
-
-                {entry.kind === "chat" ? (
-                  <div className="break-words leading-snug">
-                    <span
-                      style={{ color: getPlayerTextColor(entry.playerId, playerColorMap) }}
-                      className="font-semibold mr-2"
+            <ul className="space-y-3">
+              {playerSlots.map((slot) => {
+                if (slot.kind === "waiting") {
+                  return (
+                    <li
+                      key={`waiting-${slot.slotIndex}`}
+                      className="rounded border border-dashed border-slate-600 bg-slate-800/30 px-3 py-2"
                     >
-                      {entry.username}
-                    </span>
-                    {renderTextWithMentions(entry.text, usernameColorMap, "text-slate-100")}
-                  </div>
-                ) : (
-                  <div className="break-words leading-snug">
-                    {renderTextWithMentions(entry.text, usernameColorMap, getSystemMessageClassName(entry.text))}
-                    {entry.group === "move" && Array.isArray(entry.bullets) && entry.bullets.length > 0 && (
-                      <ul className="mt-1 ml-4 list-disc text-slate-300 space-y-1">
-                        {entry.bullets.map((bullet, bulletIndex) => (
-                          <li key={`${entry.id}-bullet-${bulletIndex}`}>
-                            {renderTextWithMentions(bullet.text, usernameColorMap, "text-slate-300")}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="font-semibold text-slate-500 italic">Waiting for Player...</div>
+                    </li>
+                  );
+                }
+
+                const isSelf = currentUserId != null && slot.playerId === currentUserId;
+                const selfBorderColor = isSelf
+                  ? toOpaquePlayerColor(getPlayerColor(slot.playerId, playerColorMap))
+                  : undefined;
+
+                return (
+                  <li
+                    key={slot.playerId}
+                    className={`rounded bg-slate-800/60 px-3 py-2 ${
+                      isSelf ? "border-2" : "border border-slate-700"
+                    }`}
+                    style={isSelf ? { borderColor: selfBorderColor } : undefined}
+                  >
+                    <div
+                      className="font-semibold truncate"
+                      style={{ color: getPlayerTextColor(slot.playerId, playerColorMap) }}
+                    >
+                      {slot.username}
+                    </div>
+                    <div className="mt-1 text-slate-300">
+                      Cash: <span className="text-green-400">${slot.cash}</span>
+                    </div>
+                    <div className="text-slate-300">
+                      Units:{" "}
+                      <span
+                        className={
+                          slot.unitCount >= unitLimit ? "text-red-400" : "text-yellow-300"
+                        }
+                      >
+                        {slot.unitCount}/{unitLimit}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">
+              {renderRows.length === 0 && <p className="text-slate-400">No messages yet.</p>}
+
+              {renderRows.map((entry, index) => {
+                const prevEntry = index > 0 ? renderRows[index - 1] : null;
+                const showDivider = shouldRenderDivider(prevEntry, entry);
+
+                return (
+                  <div key={entry.id}>
+                    {showDivider && <div className="my-2 border-t border-slate-600"></div>}
+
+                    {entry.kind === "chat" ? (
+                      <div className="break-words leading-snug">
+                        <span
+                          style={{ color: getPlayerTextColor(entry.playerId, playerColorMap) }}
+                          className="font-semibold mr-2"
+                        >
+                          {entry.username}
+                        </span>
+                        {renderTextWithMentions(entry.text, usernameColorMap, "text-slate-100")}
+                      </div>
+                    ) : (
+                      <div className="break-words leading-snug">
+                        {renderTextWithMentions(entry.text, usernameColorMap, getSystemMessageClassName(entry.text))}
+                        {entry.group === "move" && Array.isArray(entry.bullets) && entry.bullets.length > 0 && (
+                          <ul className="mt-1 ml-4 list-disc text-slate-300 space-y-1">
+                            {entry.bullets.map((bullet, bulletIndex) => (
+                              <li key={`${entry.id}-bullet-${bulletIndex}`}>
+                                {renderTextWithMentions(bullet.text, usernameColorMap, "text-slate-300")}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
 
-          <div ref={chatEndRef} />
-        </div>
+              <div ref={chatEndRef} />
+            </div>
 
-        <form className="p-3 border-t border-slate-700 flex gap-2" onSubmit={handleSubmit}>
-          <input
-            value={chatInput}
-            onChange={(e) => onChatInputChange(e.target.value)}
-            maxLength={300}
-            placeholder="Send a message..."
-            className="flex-1 bg-slate-800 text-white text-sm rounded px-2 py-1 outline-none border border-slate-600 focus:border-blue-400"
-          />
-          <button
-            type="submit"
-            className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
-          >
-            Send
-          </button>
-        </form>
+            <form className="p-3 border-t border-slate-700 flex gap-2" onSubmit={handleSubmit}>
+              <input
+                value={chatInput}
+                onChange={(e) => onChatInputChange(e.target.value)}
+                maxLength={300}
+                placeholder="Send a message..."
+                className="flex-1 bg-slate-800 text-white text-sm rounded px-2 py-1 outline-none border border-slate-600 focus:border-blue-400"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+              >
+                Send
+              </button>
+            </form>
+          </>
+        )}
       </aside>
 
       {isCollapsed && (
         <button
           onClick={() => setIsCollapsed(false)}
           className="fixed top-24 right-4 z-30 w-12 h-12 bg-slate-900/95 border border-slate-700 rounded shadow-xl text-slate-400 hover:text-slate-200 text-lg font-bold flex items-center justify-center"
-          title="Expand chat"
+          title="Expand sidebar"
         >
           {"<"}
         </button>
