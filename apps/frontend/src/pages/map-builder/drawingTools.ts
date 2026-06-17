@@ -30,6 +30,7 @@ type FillRectOptions = {
   specialBrush: string;
   flagBrush: number | null;
   movementCostBrush: number;
+  itemBrush: number | null;
 };
 
 function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRectOptions) {
@@ -57,6 +58,9 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
       break;
     case "movement_cost":
       data.movement_cost[y][x] = options.movementCostBrush;
+      break;
+    case "items":
+      data.item_id_tiles[y][x] = options.itemBrush;
       break;
   }
 }
@@ -86,6 +90,9 @@ function applyEraseCell(data: MapTileData, x: number, y: number, layer: MapLayer
       break;
     case "movement_cost":
       data.movement_cost[y][x] = DEFAULT_MOVEMENT_COST;
+      break;
+    case "items":
+      data.item_id_tiles[y][x] = null;
       break;
   }
 }

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo } from "react";
 import UnitIdleSprite from "@/components/units/UnitIdleSprite";
+import { useMapItemRenderer } from "@/hooks/useMapItemRenderer";
 import { useOverlay2Renderer } from "@/hooks/useOverlay2Renderer";
 import { useOverlay3Renderer } from "@/hooks/useOverlay3Renderer";
 import { buildOverlay2TileSet } from "@/utils/mapTileDrawing";
@@ -45,6 +46,12 @@ type GameMapStageProps = {
   onUnitMouseEnter: (unitState: PlacedUnit) => void;
   onUnitMouseLeave: (unitState: PlacedUnit) => void;
   onUnitClick: (unitState: PlacedUnit) => void;
+  itemsCanvasRef?: any;
+  itemIdTiles?: (number | null)[][] | null;
+  itemMoveTypeById?: Record<number, string>;
+  showMapItemTooltips?: boolean;
+  onMapItemHover?: (itemId: number, clientX: number, clientY: number) => void;
+  onMapItemLeave?: () => void;
 };
 
 const pixelatedCanvasStyle = { imageRendering: "pixelated" as const };
@@ -68,6 +75,12 @@ export default function GameMapStage({
   onUnitMouseEnter,
   onUnitMouseLeave,
   onUnitClick,
+  itemsCanvasRef,
+  itemIdTiles,
+  itemMoveTypeById = {},
+  showMapItemTooltips = false,
+  onMapItemHover,
+  onMapItemLeave,
 }: GameMapStageProps) {
   const overlay2TileSet = useMemo(
     () => buildOverlay2TileSet(mapRenderData?.tile_data.overlay2),
@@ -77,10 +90,19 @@ export default function GameMapStage({
   useLayoutEffect(() => {
     if (!mapWidth || !mapHeight) return;
     if (canvasRef.current) setupPixelCanvas(canvasRef.current, mapWidth, mapHeight);
+    if (itemsCanvasRef?.current) setupPixelCanvas(itemsCanvasRef.current, mapWidth, mapHeight);
     if (overlayRef.current) setupPixelCanvas(overlayRef.current, mapWidth, mapHeight);
     if (overlay2Ref.current) setupPixelCanvas(overlay2Ref.current, mapWidth, mapHeight);
     if (overlay3Ref.current) setupPixelCanvas(overlay3Ref.current, mapWidth, mapHeight);
-  }, [mapWidth, mapHeight, canvasRef, overlayRef, overlay2Ref, overlay3Ref]);
+  }, [mapWidth, mapHeight, canvasRef, itemsCanvasRef, overlayRef, overlay2Ref, overlay3Ref]);
+
+  useMapItemRenderer(
+    itemsCanvasRef,
+    mapWidth,
+    mapHeight,
+    itemIdTiles,
+    itemMoveTypeById
+  );
 
   useOverlay2Renderer(overlay2Ref, mapRenderData);
   useOverlay3Renderer(overlay3Ref, mapRenderData);
@@ -181,7 +203,47 @@ export default function GameMapStage({
       >
         <canvas ref={canvasRef} id="mapCanvas" style={pixelatedCanvasStyle} />
 
+        {itemsCanvasRef && (
+          <canvas
+            ref={itemsCanvasRef}
+            id="itemsCanvas"
+            style={{
+              ...pixelatedCanvasStyle,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              zIndex: 1,
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
         {placedUnits.map((unitState) => renderUnit(unitState))}
+
+        {showMapItemTooltips &&
+          itemIdTiles?.map((row, y) =>
+            row.map((itemId, x) => {
+              if (itemId == null || itemId <= 0) return null;
+              return (
+                <div
+                  key={`map-item-hit-${x}-${y}`}
+                  style={{
+                    position: "absolute",
+                    left: x * tileDrawSize,
+                    top: y * tileDrawSize,
+                    width: tileDrawSize,
+                    height: tileDrawSize,
+                    zIndex: 3,
+                    pointerEvents: moveTargeting ? "none" : "auto",
+                    cursor: "help",
+                  }}
+                  onMouseEnter={(e) => onMapItemHover?.(itemId, e.clientX, e.clientY)}
+                  onMouseMove={(e) => onMapItemHover?.(itemId, e.clientX, e.clientY)}
+                  onMouseLeave={() => onMapItemLeave?.()}
+                />
+              );
+            })
+          )}
 
         <canvas
           ref={overlay2Ref}

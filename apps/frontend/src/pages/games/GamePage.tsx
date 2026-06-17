@@ -5,6 +5,7 @@ import { GAME_NOT_FOUND_MESSAGE } from "@/utils/gameLink";
 import { openBugReportWindow } from "@/utils/bugReport";
 import { useAuth } from "@/state/auth";
 import GameMapStage from "./components/GameMapStage";
+import MapItemTooltip from "./components/MapItemTooltip";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
@@ -106,6 +107,11 @@ export default function GamePage() {
   const [selectedMove, setSelectedMove] = useState<any | null>(null);
   const [moveTargeting, setMoveTargeting] = useState(false);
   const [hoveredOverlayTile, setHoveredOverlayTile] = useState<[number, number] | null>(null);
+  const [hoveredMapItem, setHoveredMapItem] = useState<{
+    itemId: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
   const [selectedMoveTarget, setSelectedMoveTarget] = useState<[number, number] | null>(null);
   const [lockedUnit, setLockedUnit] = useState<any | null>(null);
   const [unitOriginalTile, setUnitOriginalTile] = useState<[number, number] | null>(null);
@@ -129,6 +135,7 @@ export default function GamePage() {
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const overlay2Ref = useRef<HTMLCanvasElement>(null);
   const overlay3Ref = useRef<HTMLCanvasElement>(null);
+  const itemsCanvasRef = useRef<HTMLCanvasElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
@@ -149,6 +156,8 @@ export default function GamePage() {
     unitOriginalTile: [number, number] | null;
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
+  const showMapItemTooltips =
+    gameData?.status === "preparation" || gameData?.status === "in_progress";
   const preparationItems = useMemo(() => {
     if (gameData?.start_with_tms) {
       return availableItems;
@@ -186,6 +195,59 @@ export default function GamePage() {
       tile_data: gameData.map.tile_data,
     };
   }, [gameData?.map]);
+
+  const itemMoveTypeById = useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const item of availableItems) {
+      if (item?.category !== "tm" || item.move_id == null) continue;
+      const move = moveMap[item.move_id];
+      if (move?.type) map[item.id] = move.type;
+    }
+    return map;
+  }, [availableItems, moveMap]);
+
+  const mapItemLabelsById = useMemo(() => {
+    const labels: Record<number, string> = {};
+    for (const item of availableItems) {
+      if (item?.category !== "tm") continue;
+      const move = item.move_id != null ? moveMap[item.move_id] : null;
+      labels[item.id] = move?.name ? `${item.name} — ${move.name}` : item.name;
+    }
+    return labels;
+  }, [availableItems, moveMap]);
+
+  const mapItemIdTiles = useMemo(() => {
+    const stateTiles = gameData?.map_state?.item_id_tiles;
+    const hasStateItems =
+      Array.isArray(stateTiles) &&
+      stateTiles.some(
+        (row) => Array.isArray(row) && row.some((id) => typeof id === "number" && id > 0)
+      );
+    if (hasStateItems) return stateTiles;
+
+    const mapTiles = gameData?.map?.tile_data?.item_id_tiles;
+    if (!Array.isArray(mapTiles)) return stateTiles ?? null;
+
+    return Array.from({ length: mapTilesH }, (_, y) => {
+      const row = mapTiles[y];
+      return Array.from({ length: mapTilesW }, (_, x) => {
+        const value = Array.isArray(row) ? row[x] : null;
+        if (value == null) return null;
+        const id = Number(value);
+        return Number.isFinite(id) && id > 0 ? id : null;
+      });
+    });
+  }, [
+    gameData?.map_state?.item_id_tiles,
+    gameData?.map?.tile_data?.item_id_tiles,
+    mapTilesW,
+    mapTilesH,
+  ]);
+
+  const hoveredMapItemLabel = useMemo(() => {
+    if (!hoveredMapItem) return null;
+    return mapItemLabelsById[hoveredMapItem.itemId] ?? null;
+  }, [hoveredMapItem, mapItemLabelsById]);
 
   const TYPE_COLORS: { [key: string]: string } = {
     Normal: "#A8A77A",
@@ -1964,6 +2026,26 @@ export default function GamePage() {
   useEffect(() => {
     let cancelled = false;
 
+    const loadMapItemCatalog = async () => {
+      const [itemsRes, movesRes] = await Promise.all([
+        secureFetch("/api/items/all"),
+        secureFetch("/api/moves/all"),
+      ]);
+      if (cancelled) return;
+      if (itemsRes.ok) {
+        const items = await itemsRes.json();
+        setAvailableItems(Array.isArray(items) ? items : []);
+      }
+      if (movesRes.ok) {
+        const moves = await movesRes.json();
+        const mapped: Record<number, any> = {};
+        for (const move of moves) {
+          mapped[move.id] = move;
+        }
+        setMoveMap(mapped);
+      }
+    };
+
     const redirectWithToast = () => {
       navigate("/", { replace: true, state: { toastMessage: GAME_NOT_FOUND_MESSAGE } });
     };
@@ -2023,6 +2105,13 @@ export default function GamePage() {
           if (data.status === "in_progress") {
             await fetchAndApplyTurnlock(data.link, mappedUnits);
           }
+        }
+
+        if (
+          data.status === "preparation" ||
+          data.status === "in_progress"
+        ) {
+          await loadMapItemCatalog();
         }
 
         if (!cancelled) setGameLoading(false);
@@ -2090,15 +2179,6 @@ export default function GamePage() {
 
     fetchUnits();
 
-    const fetchItems = async () => {
-      const res = await secureFetch("/api/items/all");
-      if (!res.ok) return;
-      const items = await res.json();
-      setAvailableItems(Array.isArray(items) ? items : []);
-    };
-
-    fetchItems();
-
     const fetchAbilities = async () => {
       const res = await secureFetch("/api/abilities/all");
       if (!res.ok) return;
@@ -2108,6 +2188,28 @@ export default function GamePage() {
 
     fetchAbilities();
   }, [isPreparationPhase]);
+
+  useEffect(() => {
+    if (!showMapItemTooltips) return;
+    void (async () => {
+      const [itemsRes, movesRes] = await Promise.all([
+        secureFetch("/api/items/all"),
+        secureFetch("/api/moves/all"),
+      ]);
+      if (itemsRes.ok) {
+        const items = await itemsRes.json();
+        setAvailableItems(Array.isArray(items) ? items : []);
+      }
+      if (movesRes.ok) {
+        const moves = await movesRes.json();
+        const mapped: Record<number, any> = {};
+        for (const move of moves) {
+          mapped[move.id] = move;
+        }
+        setMoveMap(mapped);
+      }
+    })();
+  }, [showMapItemTooltips]);
 
   useEffect(() => {
     if (!gameData?.turn_deadline) return;
@@ -2455,6 +2557,12 @@ export default function GamePage() {
   }, [gameData?.status, moveTargeting, selectedMove, attackOverlay, mapTilesW, mapTilesH]);
 
   useEffect(() => {
+    if (!showMapItemTooltips || moveTargeting) {
+      setHoveredMapItem(null);
+    }
+  }, [showMapItemTooltips, moveTargeting]);
+
+  useEffect(() => {
     setLockedUnit(null);
     setHighlightedTiles([]);
     setUnitOriginalTile(null);
@@ -2463,6 +2571,7 @@ export default function GamePage() {
     setSelectedMove(null);
     setSelectedMoveTarget(null);
     setHoveredOverlayTile(null);
+    setHoveredMapItem(null);
     setAttackOverlay({ normal: [], invert: [] });
   }, [gameData?.current_turn]);
 
@@ -3236,6 +3345,14 @@ export default function GamePage() {
           overlayRef={overlayRef}
           overlay2Ref={overlay2Ref}
           overlay3Ref={overlay3Ref}
+          itemsCanvasRef={itemsCanvasRef}
+          itemIdTiles={mapItemIdTiles}
+          itemMoveTypeById={itemMoveTypeById}
+          showMapItemTooltips={showMapItemTooltips}
+          onMapItemHover={(itemId, clientX, clientY) =>
+            setHoveredMapItem({ itemId, clientX, clientY })
+          }
+          onMapItemLeave={() => setHoveredMapItem(null)}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
           placedUnits={placedUnits}
@@ -3246,6 +3363,17 @@ export default function GamePage() {
           onUnitMouseEnter={handleMapUnitMouseEnter}
           onUnitMouseLeave={handleMapUnitMouseLeave}
           onUnitClick={handleMapUnitClick}
+        />
+
+        <MapItemTooltip
+          label={hoveredMapItemLabel ?? ""}
+          x={hoveredMapItem?.clientX ?? 0}
+          y={hoveredMapItem?.clientY ?? 0}
+          visible={
+            showMapItemTooltips &&
+            hoveredMapItem != null &&
+            hoveredMapItemLabel != null
+          }
         />
 
         {gameData && (

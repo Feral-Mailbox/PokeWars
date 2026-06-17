@@ -9,6 +9,7 @@ export type MapTileData = {
   special_tiles: (string | null)[][];
   flags: (number | null)[][];
   movement_cost: number[][];
+  item_id_tiles: (number | null)[][];
 };
 
 export type MapExport = {
@@ -31,7 +32,8 @@ export type MapLayer =
   | "spawn_points"
   | "special_tiles"
   | "flags"
-  | "movement_cost";
+  | "movement_cost"
+  | "items";
 
 export const GAME_MODES = ["Conquest", "War", "Capture The Flag"] as const;
 
@@ -62,3 +64,6 @@ export const SPECIAL_TILE_TYPES = [
 ] as const;
 
 export type SpecialTileType = (typeof SPECIAL_TILE_TYPES)[number];
+
+/** Placeholder item id for map tiles that resolve to a random TM at game start. */
+export const RANDOM_TM_ITEM_ID = 0;

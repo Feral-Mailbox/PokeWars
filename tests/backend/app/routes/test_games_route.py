@@ -90,6 +90,114 @@ def test_create_game(client, db, user):
     assert data["players"][0]["username"] == "player1"
     assert data["gamemode"] == "Conquest"
 
+
+def test_create_game_seeds_item_id_tiles_from_map(client, db, user):
+    map_obj = models.Map(
+        name="TM Map",
+        creator_id=user.id,
+        is_official=True,
+        width=2,
+        height=2,
+        tileset_names=["grass"],
+        tile_data={
+            "item_id_tiles": [
+                [257, 0],
+                [None, 258],
+            ]
+        },
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+    )
+    db.add(map_obj)
+    db.commit()
+
+    resp = client.post("/games/create", json={
+        "game_name": "TM Game",
+        "map_name": "TM Map",
+        "max_players": 2,
+        "is_private": False,
+        "gamemode": "Conquest",
+    })
+    assert resp.status_code == 200
+
+    game = db.query(models.Game).filter_by(game_name="TM Game").first()
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
+    assert map_state is not None
+    assert map_state.item_id_tiles == [
+        [257, 0],
+        [None, 258],
+    ]
+
+
+def test_start_game_resolves_random_tm_tiles(client, db, user):
+    from app.routes.games import RANDOM_TM_ITEM_ID
+
+    user2 = models.User(
+        username="player2",
+        email="player2@example.com",
+        hashed_password="hashed",
+    )
+    db.add(user2)
+
+    db.add_all([
+        models.Item(id=257, name="TM001", slug="tm001", category="tm", cost=500),
+        models.Item(id=258, name="TM002", slug="tm002", category="tm", cost=500),
+    ])
+
+    map_obj = models.Map(
+        name="Random TM Map",
+        creator_id=user.id,
+        is_official=True,
+        width=2,
+        height=1,
+        tileset_names=["grass"],
+        tile_data={"item_id_tiles": [[RANDOM_TM_ITEM_ID, None]]},
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+    )
+    db.add(map_obj)
+    db.flush()
+
+    game = models.Game(
+        game_name="Random TM Game",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
+        max_players=2,
+        gamemode="Conquest",
+        is_private=False,
+        host_id=user.id,
+        link="random-tm-game",
+    )
+    db.add(game)
+    db.flush()
+
+    db.add(models.GameState(
+        game_id=game.id,
+        current_turn=0,
+        status=models.GameStatus.closed,
+        players=[user.id, user2.id],
+        replay_log=[],
+    ))
+    db.add(models.GameMapState(
+        game_id=game.id,
+        map_id=map_obj.id,
+        weather_tiles=[[0, 0]],
+        hazard_tiles=[[[], []]],
+        room_effect_tiles=[[0, 0]],
+        terrain_effect_tiles=[[0, 0]],
+        field_effect_tiles=[[0, 0]],
+        item_id_tiles=[[RANDOM_TM_ITEM_ID, None]],
+    ))
+    db.commit()
+
+    resp = client.post(f"/games/start/{game.id}")
+    assert resp.status_code == 200
+
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
+    assert map_state.item_id_tiles[0][0] in {257, 258}
+    assert map_state.item_id_tiles[0][1] is None
+
+
 def test_get_open_games(client, db, user):
     # Create an open game
     map = models.Map(

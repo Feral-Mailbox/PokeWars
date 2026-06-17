@@ -15,6 +15,7 @@ import {
   SPECIAL_TILE_TYPES,
   type MapLayer,
   type MapTileData,
+  RANDOM_TM_ITEM_ID,
   type TileRef,
 } from "@/types/mapData";
 import {
@@ -24,7 +25,8 @@ import {
   parseMapImport,
   resizeTileData,
 } from "@/utils/mapBuilder";
-import { getTilesetManifestUrl } from "@/utils/gameAssets";
+import { getTilesetManifestUrl, getTmMachineUrl } from "@/utils/gameAssets";
+import { secureFetch } from "@/utils/secureFetch";
 
 const LAYER_LABELS: Record<MapLayer, string> = {
   base: "Base tiles",
@@ -35,10 +37,19 @@ const LAYER_LABELS: Record<MapLayer, string> = {
   special_tiles: "Special tiles",
   flags: "Flags (CTF)",
   movement_cost: "Movement cost",
+  items: "Items (TMs)",
 };
 
 const INITIAL_WIDTH = 12;
 const INITIAL_HEIGHT = 8;
+
+type TmItemOption = {
+  id: number;
+  name: string;
+  slug: string;
+  moveName: string;
+  moveType: string;
+};
 
 export default function MapBuilderPage() {
   const { user, loading: authLoading } = useAuth();
@@ -69,6 +80,8 @@ export default function MapBuilderPage() {
   const [flagBrush, setFlagBrush] = useState<number | null>(1);
   const [specialBrush, setSpecialBrush] = useState<string>("grass");
   const [movementCostBrush, setMovementCostBrush] = useState(DEFAULT_MOVEMENT_COST);
+  const [itemBrush, setItemBrush] = useState<number | null>(null);
+  const [tmItems, setTmItems] = useState<TmItemOption[]>([]);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const strokeRecordedRef = useRef(false);
   const tileDataRef = useRef(tileData);
@@ -85,6 +98,53 @@ export default function MapBuilderPage() {
       .catch(() => {
         setAvailableTilesets(["Brick City.png", "Beach Houses.png", "Route 224.png"]);
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadTmItems = async () => {
+      try {
+        const [itemsRes, movesRes] = await Promise.all([
+          secureFetch("/api/items/all?category=tm"),
+          secureFetch("/api/moves/all"),
+        ]);
+        if (!itemsRes.ok || !movesRes.ok) return;
+        const items = (await itemsRes.json()) as Array<{
+          id: number;
+          name: string;
+          slug: string;
+          move_id: number | null;
+        }>;
+        const moves = (await movesRes.json()) as Array<{ id: number; name: string; type: string }>;
+        if (cancelled) return;
+        const moveById = new Map(moves.map((move) => [move.id, move]));
+        const options = items
+          .filter((item) => item.move_id != null && moveById.has(item.move_id))
+          .map((item) => {
+            const move = moveById.get(item.move_id!)!;
+            return {
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+              moveName: move.name,
+              moveType: move.type,
+            };
+          })
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+        setTmItems(options);
+        if (options.length > 0) {
+          setItemBrush((prev) => (prev == null ? RANDOM_TM_ITEM_ID : prev));
+        }
+      } catch {
+        if (!cancelled) {
+          setStatusMessage("Failed to load TM catalog for item placement.");
+        }
+      }
+    };
+    loadTmItems();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -112,6 +172,16 @@ export default function MapBuilderPage() {
   const activeTilesetIndex = useMemo(
     () => Math.max(0, tilesetNames.indexOf(activeTileset)),
     [tilesetNames, activeTileset]
+  );
+
+  const itemMoveTypeById = useMemo(
+    () => Object.fromEntries(tmItems.map((item) => [item.id, item.moveType])),
+    [tmItems]
+  );
+
+  const selectedTm = useMemo(
+    () => tmItems.find((item) => item.id === itemBrush) ?? null,
+    [tmItems, itemBrush]
   );
 
   const applyResize = useCallback(() => {
@@ -455,6 +525,52 @@ export default function MapBuilderPage() {
               <span className="text-gray-500">· Eraser resets to {DEFAULT_MOVEMENT_COST}</span>
             </div>
           )}
+          {activeLayer === "items" && (
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
+              <label className="flex items-center gap-2">
+                TM
+                <select
+                  className="min-w-[14rem] max-w-md rounded bg-gray-800 px-2 py-1 text-white"
+                  value={itemBrush ?? ""}
+                  onChange={(e) =>
+                    setItemBrush(e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  disabled={tmItems.length === 0}
+                >
+                  {tmItems.length === 0 ? (
+                    <option value="">Loading TMs…</option>
+                  ) : (
+                    <>
+                      <option value={RANDOM_TM_ITEM_ID}>Random TM</option>
+                      {tmItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} — {item.moveName}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              </label>
+              {itemBrush === RANDOM_TM_ITEM_ID ? (
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded border border-yellow-400/70 bg-purple-900/80 text-sm font-bold text-yellow-200"
+                  title="Random TM"
+                >
+                  ?
+                </span>
+              ) : (
+                selectedTm && (
+                  <img
+                    src={getTmMachineUrl(selectedTm.moveType)}
+                    alt={`${selectedTm.name} — ${selectedTm.moveName}`}
+                    className="h-8 w-8"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                )
+              )}
+              <span className="text-gray-500">· Eraser removes placed TMs</span>
+            </div>
+          )}
 
           <div className="overflow-auto rounded-lg border border-gray-700 bg-gray-950/50 p-4">
             <MapBuilderCanvas
@@ -469,6 +585,8 @@ export default function MapBuilderPage() {
               specialBrush={specialBrush}
               flagBrush={flagBrush}
               movementCostBrush={movementCostBrush}
+              itemBrush={itemBrush}
+              itemMoveTypeById={itemMoveTypeById}
               onStrokeStart={handleStrokeStart}
               onStrokeEnd={handleStrokeEnd}
               onTileDataChange={handleTileDataChange}

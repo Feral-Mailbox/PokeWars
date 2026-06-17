@@ -5,9 +5,9 @@ import {
   MAP_TILE_SIZE,
   setupPixelCanvas,
 } from "@/utils/pixelCanvas";
-import { getTilesetUrl } from "@/utils/gameAssets";
+import { getTilesetUrl, getTmMachineUrl, TM_SOURCE_SIZE } from "@/utils/gameAssets";
 import type { MapLayer, MapTileData, TileRef } from "@/types/mapData";
-import { DEFAULT_MOVEMENT_COST } from "@/types/mapData";
+import { DEFAULT_MOVEMENT_COST, RANDOM_TM_ITEM_ID } from "@/types/mapData";
 import type { DrawingTool } from "./drawingTools";
 import { fillRectOnMap, normalizeRect, paintCellOnMap } from "./drawingTools";
 
@@ -23,6 +23,8 @@ type MapBuilderCanvasProps = {
   specialBrush: string;
   flagBrush: number | null;
   movementCostBrush: number;
+  itemBrush: number | null;
+  itemMoveTypeById: Record<number, string>;
   onStrokeStart: () => void;
   onStrokeEnd: () => void;
   onTileDataChange: (next: MapTileData | ((prev: MapTileData) => MapTileData)) => void;
@@ -94,6 +96,8 @@ export default function MapBuilderCanvas({
   specialBrush,
   flagBrush,
   movementCostBrush,
+  itemBrush,
+  itemMoveTypeById,
   onStrokeStart,
   onStrokeEnd,
   onTileDataChange,
@@ -106,6 +110,8 @@ export default function MapBuilderCanvas({
   const anchorRef = useRef<{ x: number; y: number } | null>(null);
   const lastCellRef = useRef<{ x: number; y: number } | null>(null);
   const boxPreviewRef = useRef<{ x: number; y: number } | null>(null);
+  const tmImagesRef = useRef<Record<string, HTMLImageElement>>({});
+  const tmLoadedTypesRef = useRef<Set<string>>(new Set());
 
   const fillOptions = useCallback(
     (erase: boolean) => ({
@@ -116,8 +122,17 @@ export default function MapBuilderCanvas({
       specialBrush,
       flagBrush,
       movementCostBrush,
+      itemBrush,
     }),
-    [activeLayer, selectedTile, spawnBrush, specialBrush, flagBrush, movementCostBrush]
+    [
+      activeLayer,
+      selectedTile,
+      spawnBrush,
+      specialBrush,
+      flagBrush,
+      movementCostBrush,
+      itemBrush,
+    ]
   );
 
   const redraw = useCallback(() => {
@@ -185,6 +200,44 @@ export default function MapBuilderCanvas({
           ctx.fillStyle = cost === DEFAULT_MOVEMENT_COST ? "#ffffff66" : "#ffffff";
           ctx.fillText(String(cost), px, py);
         }
+
+        const itemId = tileData.item_id_tiles[y]?.[x];
+        if (itemId != null) {
+          if (itemId === RANDOM_TM_ITEM_ID) {
+            ctx.fillStyle = "#7c3aedcc";
+            ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
+            ctx.fillStyle = "#fef08a";
+            ctx.fillText("?", px, py);
+          } else {
+            const moveType = itemMoveTypeById[itemId];
+            if (moveType) {
+              const tmImage = tmImagesRef.current[moveType];
+              if (tmImage?.complete && tmImage.naturalWidth > 0) {
+                ctx.drawImage(
+                  tmImage,
+                  0,
+                  0,
+                  TM_SOURCE_SIZE,
+                  TM_SOURCE_SIZE,
+                  x * MAP_TILE_DRAW_SIZE,
+                  y * MAP_TILE_DRAW_SIZE,
+                  MAP_TILE_DRAW_SIZE,
+                  MAP_TILE_DRAW_SIZE
+                );
+              }
+            }
+          }
+          if (activeLayer === "items") {
+            ctx.strokeStyle = "#facc15aa";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+              x * MAP_TILE_DRAW_SIZE + 1,
+              y * MAP_TILE_DRAW_SIZE + 1,
+              MAP_TILE_DRAW_SIZE - 2,
+              MAP_TILE_DRAW_SIZE - 2
+            );
+          }
+        }
       }
     }
 
@@ -221,7 +274,37 @@ export default function MapBuilderCanvas({
       ctx.lineTo(width * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE);
       ctx.stroke();
     }
-  }, [width, height, tileData, activeLayer, tool]);
+  }, [width, height, tileData, activeLayer, tool, itemMoveTypeById]);
+
+  useEffect(() => {
+    const usedMoveTypes = new Set<string>();
+    for (const row of tileData.item_id_tiles) {
+      for (const itemId of row) {
+        if (itemId == null || itemId === RANDOM_TM_ITEM_ID) continue;
+        const moveType = itemMoveTypeById[itemId];
+        if (moveType) usedMoveTypes.add(moveType);
+      }
+    }
+    if (itemBrush != null && itemBrush !== RANDOM_TM_ITEM_ID) {
+      const brushType = itemMoveTypeById[itemBrush];
+      if (brushType) usedMoveTypes.add(brushType);
+    }
+
+    for (const moveType of usedMoveTypes) {
+      if (tmImagesRef.current[moveType]) continue;
+      const img = new Image();
+      img.src = getTmMachineUrl(moveType);
+      img.onload = () => {
+        tmLoadedTypesRef.current.add(moveType);
+        redraw();
+      };
+      img.onerror = () => {
+        tmLoadedTypesRef.current.add(moveType);
+        redraw();
+      };
+      tmImagesRef.current[moveType] = img;
+    }
+  }, [tileData.item_id_tiles, itemMoveTypeById, itemBrush, redraw]);
 
   useEffect(() => {
     loadedRef.current = new Set();

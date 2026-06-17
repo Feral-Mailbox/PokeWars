@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type PreparationItemOption = {
   id: number;
@@ -38,6 +38,19 @@ export default function PreparationItemSelectPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
+  const categoryOptions = useMemo(() => {
+    const availableCategories = new Set(items.map((item) => item.category));
+    return ITEM_CATEGORY_OPTIONS.filter(
+      (option) => option.value === "" || availableCategories.has(option.value)
+    );
+  }, [items]);
+
+  useEffect(() => {
+    if (categoryFilter && !categoryOptions.some((option) => option.value === categoryFilter)) {
+      setCategoryFilter("");
+    }
+  }, [categoryFilter, categoryOptions]);
+
   const currentItem = items.find((item) => item.slug === currentItemSlug) ?? null;
   const currentItemCost = currentItem?.cost ?? 0;
   const query = searchQuery.toLowerCase().trim();
@@ -66,7 +79,7 @@ export default function PreparationItemSelectPanel({
         onChange={(e) => setCategoryFilter(e.target.value)}
         className="mb-3 w-full rounded border border-gray-600 bg-gray-950 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-none"
       >
-        {ITEM_CATEGORY_OPTIONS.map((option) => (
+        {categoryOptions.map((option) => (
           <option key={option.value || "all"} value={option.value}>
             {option.label}
           </option>

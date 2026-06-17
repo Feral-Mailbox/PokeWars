@@ -10,6 +10,7 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
   const special_tiles: (string | null)[][] = [];
   const flags: (number | null)[][] = [];
   const movement_cost: number[][] = [];
+  const item_id_tiles: (number | null)[][] = [];
 
   for (let y = 0; y < height; y++) {
     base.push(Array.from({ length: width }, () => [0, 0] as TileRef));
@@ -20,9 +21,20 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
     special_tiles.push(Array.from({ length: width }, () => null));
     flags.push(Array.from({ length: width }, () => null));
     movement_cost.push(Array.from({ length: width }, () => DEFAULT_MOVEMENT_COST));
+    item_id_tiles.push(Array.from({ length: width }, () => null));
   }
 
-  return { base, overlay, overlay2, overlay3, spawn_points, special_tiles, flags, movement_cost };
+  return {
+    base,
+    overlay,
+    overlay2,
+    overlay3,
+    spawn_points,
+    special_tiles,
+    flags,
+    movement_cost,
+    item_id_tiles,
+  };
 }
 
 export function normalizeTileData(raw: Partial<MapTileData>, width: number, height: number): MapTileData {
@@ -59,6 +71,10 @@ export function normalizeTileData(raw: Partial<MapTileData>, width: number, heig
       if (typeof cost === "number" && cost >= 1) {
         empty.movement_cost[y][x] = cost;
       }
+      const itemId = raw.item_id_tiles?.[y]?.[x];
+      if (typeof itemId === "number" && itemId >= 0) {
+        empty.item_id_tiles[y][x] = itemId;
+      }
     }
   }
 
@@ -90,6 +106,7 @@ export function resizeTileData(
       next.special_tiles[y][x] = tileData.special_tiles[y][x];
       next.flags[y][x] = tileData.flags[y][x];
       next.movement_cost[y][x] = tileData.movement_cost[y][x];
+      next.item_id_tiles[y][x] = tileData.item_id_tiles?.[y]?.[x] ?? null;
     }
   }
 

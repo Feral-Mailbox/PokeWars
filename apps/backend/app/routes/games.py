@@ -4957,6 +4957,69 @@ def _build_hazard_2d_matrix(height: int, width: int):
     return [[[] for _ in range(width)] for _ in range(height)]
 
 
+def _normalize_item_id_tiles_from_map(map_obj: Map):
+    height = map_obj.height
+    width = map_obj.width
+    default = _build_2d_matrix(height, width, None)
+
+    tile_data = map_obj.tile_data
+    if not isinstance(tile_data, dict):
+        return default
+
+    raw = tile_data.get("item_id_tiles")
+    if not isinstance(raw, list):
+        return default
+
+    result = _build_2d_matrix(height, width, None)
+    for y in range(min(height, len(raw))):
+        row = raw[y]
+        if not isinstance(row, list):
+            continue
+        for x in range(min(width, len(row))):
+            value = row[x]
+            if isinstance(value, int) and value >= 0:
+                result[y][x] = value
+    return result
+
+
+RANDOM_TM_ITEM_ID = 0
+
+
+def _resolve_random_tm_tiles(map_state: GameMapState, db: Session) -> bool:
+    tiles = map_state.item_id_tiles
+    if not tiles:
+        return False
+
+    tm_ids = [
+        item.id
+        for item in db.query(Item).filter(Item.category == "tm").all()
+    ]
+    if not tm_ids:
+        return False
+
+    changed = False
+    new_tiles = []
+    for row in tiles:
+        new_row = []
+        for value in row:
+            if value == RANDOM_TM_ITEM_ID:
+                new_row.append(random.choice(tm_ids))
+                changed = True
+            else:
+                new_row.append(value)
+        new_tiles.append(new_row)
+
+    if changed:
+        map_state.item_id_tiles = new_tiles
+    return changed
+
+
+def _resolve_random_tm_tiles_for_game(game: Game, db: Session) -> None:
+    map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+    if map_state:
+        _resolve_random_tm_tiles(map_state, db)
+
+
 def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
     return GameMapState(
         game_id=game.id,
@@ -4966,7 +5029,7 @@ def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
         room_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         terrain_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         field_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
-        item_id_tiles=_build_2d_matrix(map_obj.height, map_obj.width, None),
+        item_id_tiles=_normalize_item_id_tiles_from_map(map_obj),
     )
 
 
@@ -5367,7 +5430,7 @@ def create_game(
         room_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         terrain_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         field_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
-        item_id_tiles=_build_2d_matrix(selected_map.height, selected_map.width, None),
+        item_id_tiles=_normalize_item_id_tiles_from_map(selected_map),
     )
     db.add(game_map_state)
 
@@ -5514,6 +5577,7 @@ def start_game(
     if game.gamemode in ["Conquest", "Capture The Flag"]:
         if game_state.status == GameStatus.closed:
             game_state.status = GameStatus.preparation
+            _resolve_random_tm_tiles_for_game(game, db)
             publish_system_log_event(
                 game.link,
                 "The game has begun! All players may now select their units",
@@ -5525,6 +5589,7 @@ def start_game(
             return {"detail": "Game moved to preparation phase"}
         elif game_state.status == GameStatus.preparation:
             game_state.status = GameStatus.in_progress
+            _resolve_random_tm_tiles_for_game(game, db)
 
             if game_state.players:
                 game_state.current_turn = 0
@@ -5542,6 +5607,7 @@ def start_game(
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
     else:
         game_state.status = GameStatus.in_progress
+        _resolve_random_tm_tiles_for_game(game, db)
 
         if game_state.players:
                 game_state.current_turn = 0
