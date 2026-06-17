@@ -3650,6 +3650,7 @@ export default function GamePage() {
             selectedUnit={null}
             occupiedTile={null}
             isReady={isReady}
+            getPlayerColor={getPlayerColor}
           />
         )}
         {gameData?.gamemode === "War" && <WarGame gameData={gameData} userId={userId!} />}
