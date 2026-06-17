@@ -1,0 +1,9 @@
+{
+  "id": 352,
+  "name": "TM096",
+  "slug": "tm096",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Eerie Impulse.",
+  "move_id": 598
+}

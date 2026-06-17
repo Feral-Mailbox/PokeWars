@@ -1,0 +1,9 @@
+{
+  "id": 258,
+  "name": "TM002",
+  "slug": "tm002",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Charm.",
+  "move_id": 204
+}

@@ -1,0 +1,22 @@
+{
+  "id": 885,
+  "name": "Trailblaze",
+  "description": "The user attacks suddenly as if leaping out from tall grass. The user's nimble footwork boosts its Speed stat.",
+  "type": "Grass",
+  "category": "Physical",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:raise_stat:speed:1"
+  ]
+}

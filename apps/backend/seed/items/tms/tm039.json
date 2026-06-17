@@ -1,0 +1,9 @@
+{
+  "id": 295,
+  "name": "TM039",
+  "slug": "tm039",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Low Sweep.",
+  "move_id": 490
+}

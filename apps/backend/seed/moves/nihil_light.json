@@ -1,0 +1,23 @@
+{
+  "id": 920,
+  "name": "Nihil Light",
+  "description": "The user attacks by unleashing a powerful light that defies all laws of nature, striking even Fairy types and ignoring any stat changes affecting its targets.",
+  "type": "Dragon",
+  "category": "Special",
+  "power": 200,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "line:4",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:ignore_stat_changes",
+    "self:ignore_fairy_immunity"
+  ]
+}

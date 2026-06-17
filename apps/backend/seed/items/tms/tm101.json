@@ -1,0 +1,9 @@
+{
+  "id": 357,
+  "name": "TM101",
+  "slug": "tm101",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Power Gem.",
+  "move_id": 408
+}

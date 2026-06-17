@@ -1,0 +1,9 @@
+{
+  "id": 336,
+  "name": "TM080",
+  "slug": "tm080",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Metronome.",
+  "move_id": 118
+}

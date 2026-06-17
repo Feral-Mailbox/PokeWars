@@ -1,0 +1,19 @@
+{
+  "id": 852,
+  "name": "Silk Trap",
+  "description": "The user spins a silken trap, protecting itself from damage while lowering the Speed stat of any attacker that makes direct contact.",
+  "type": "Bug",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:silk_trap"
+  ]
+}

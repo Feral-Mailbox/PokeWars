@@ -1,0 +1,9 @@
+{
+  "id": 382,
+  "name": "TM126",
+  "slug": "tm126",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Thunderbolt.",
+  "move_id": 85
+}

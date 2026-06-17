@@ -1,0 +1,9 @@
+{
+  "id": 341,
+  "name": "TM085",
+  "slug": "tm085",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Rest.",
+  "move_id": 156
+}

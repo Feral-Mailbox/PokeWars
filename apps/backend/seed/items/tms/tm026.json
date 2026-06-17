@@ -1,0 +1,9 @@
+{
+  "id": 282,
+  "name": "TM026",
+  "slug": "tm026",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Poison Tail.",
+  "move_id": 342
+}

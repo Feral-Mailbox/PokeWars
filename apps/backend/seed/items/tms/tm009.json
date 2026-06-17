@@ -1,0 +1,9 @@
+{
+  "id": 265,
+  "name": "TM009",
+  "slug": "tm009",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Thunder Fang.",
+  "move_id": 422
+}

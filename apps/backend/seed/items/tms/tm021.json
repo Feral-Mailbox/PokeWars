@@ -1,0 +1,9 @@
+{
+  "id": 277,
+  "name": "TM021",
+  "slug": "tm021",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Pounce.",
+  "move_id": 884
+}

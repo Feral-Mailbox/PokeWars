@@ -1,0 +1,9 @@
+{
+  "id": 308,
+  "name": "TM052",
+  "slug": "tm052",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Snowscape.",
+  "move_id": 883
+}

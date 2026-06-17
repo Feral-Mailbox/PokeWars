@@ -1,0 +1,22 @@
+{
+  "id": 895,
+  "name": "Aqua Cutter",
+  "description": "The user expels pressurized water to cut with a blade. This move has a heightened chance to land a critical hit.",
+  "type": "Water",
+  "category": "Physical",
+  "power": 70,
+  "accuracy": 100,
+  "pp": 20,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "high_crit_rate"
+  ]
+}

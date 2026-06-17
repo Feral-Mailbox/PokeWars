@@ -1,0 +1,9 @@
+{
+  "id": 431,
+  "name": "TM175",
+  "slug": "tm175",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Toxic.",
+  "move_id": 92
+}

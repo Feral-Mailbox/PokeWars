@@ -1,0 +1,9 @@
+{
+  "id": 388,
+  "name": "TM132",
+  "slug": "tm132",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Baton Pass.",
+  "move_id": 226
+}

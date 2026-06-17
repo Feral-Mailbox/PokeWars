@@ -1,0 +1,9 @@
+{
+  "id": 266,
+  "name": "TM010",
+  "slug": "tm010",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Ice Fang.",
+  "move_id": 423
+}

@@ -1,0 +1,9 @@
+{
+  "id": 428,
+  "name": "TM172",
+  "slug": "tm172",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Roar.",
+  "move_id": 46
+}

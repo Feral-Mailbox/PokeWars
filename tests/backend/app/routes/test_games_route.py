@@ -14,6 +14,14 @@ from app.routes.games import (
     apply_damage_based_move_effects,
     get_modified_accuracy_threshold,
     move_lands_on_target,
+    resolve_power_add,
+    resolve_power_multiplier,
+    resolve_weather_move_multiplier_for_move,
+    get_type_multiplier,
+    resolve_move_type_for_execution,
+    unit_has_glaive_rush,
+    resolve_move_type_from_held_item,
+    WEATHER_TO_ID,
 )
 
 from app.routes.games import (
@@ -1812,3 +1820,61 @@ def test_process_move_effects_reset_stats_target_clears_all_boosts(db):
     # All target stat boosts should be cleared
     for stat_name in ["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion", "crit"]:
         assert target.stat_boosts[stat_name] == []
+
+
+def test_resolve_power_add_times_hit_caps_total_power():
+    move = models.Move(name="Rage Fist", power=50, effects=["power_add:times_hit:50:350"])
+    attacker = models.GameUnit(flags={"times_hit": 10})
+
+    assert resolve_power_add(move, attacker) == 300
+
+
+def test_resolve_power_add_allies_defeated_since_turn():
+    move = models.Move(name="Last Respects", power=50, effects=["power_add:allies_defeated_since_turn:50"])
+    attacker = models.GameUnit(flags={"allies_defeated_since_turn": 2})
+
+    assert resolve_power_add(move, attacker) == 100
+
+
+def test_hydro_steam_weather_override_boosts_in_sun():
+    move = models.Move(name="Hydro Steam", type="Water", effects=["weather_override:sun:1.5"])
+    multiplier = resolve_weather_move_multiplier_for_move(move, "Water", WEATHER_TO_ID["sun"])
+
+    assert multiplier == 1.5
+
+
+def test_nihil_light_ignores_fairy_immunity():
+    multiplier = get_type_multiplier("Dragon", (["Fairy"],), ignore_fairy_immunity=True)
+
+    assert multiplier > 0
+
+
+def test_glaive_rush_forces_attacks_to_land():
+    move = models.Move(name="Tackle", accuracy=50, type="Normal", category="Physical")
+    attacker = models.GameUnit(stat_boosts={"accuracy": [], "evasion": []})
+    target = models.GameUnit(states=["glaive_rush", 1], stat_boosts={"evasion": [{"magnitude": 6, "expires_turn": 4}]})
+
+    assert unit_has_glaive_rush(target)
+    assert move_lands_on_target(move, attacker, target) is True
+
+
+def test_ivy_cudgel_type_changes_with_mask():
+    attacker = models.GameUnit(flags={"held_item": "hearthflame_mask"})
+    move = models.Move(
+        name="Ivy Cudgel",
+        type="Grass",
+        effects=["self:modify_move_type_by_held_item:mask"],
+    )
+
+    assert resolve_move_type_from_held_item(attacker, "mask") == "Fire"
+    assert resolve_move_type_for_execution(move, attacker, None) == "Fire"
+
+
+def test_resolve_power_multiplier_weather_sun():
+    move = models.Move(name="Test", effects=["conditional_power:weather:sun:1.5"])
+    attacker = models.GameUnit(current_x=0, current_y=0)
+    weather_tiles = [[WEATHER_TO_ID["sun"]]]
+
+    multiplier = resolve_power_multiplier(move, attacker, None, None, None, db=None, weather_tiles=weather_tiles)
+
+    assert multiplier == 1.5

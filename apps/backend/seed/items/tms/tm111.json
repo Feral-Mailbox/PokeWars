@@ -1,0 +1,9 @@
+{
+  "id": 367,
+  "name": "TM111",
+  "slug": "tm111",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Giga Drain.",
+  "move_id": 202
+}

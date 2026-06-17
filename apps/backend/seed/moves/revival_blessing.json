@@ -1,0 +1,20 @@
+{
+  "id": 863,
+  "name": "Revival Blessing",
+  "description": "The user bestows a loving blessing, reviving a party Pokémon that has fainted and restoring half that Pokémon's max HP, placing it somewhere around the user.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 1,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "target:revive:2"
+  ]
+}

@@ -149,6 +149,12 @@ export default function GamePage() {
     unitOriginalTile: [number, number] | null;
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
+  const preparationItems = useMemo(() => {
+    if (gameData?.start_with_tms) {
+      return availableItems;
+    }
+    return availableItems.filter((item) => item.category !== "tm");
+  }, [availableItems, gameData?.start_with_tms]);
   const unitLimit = gameData?.unit_limit ?? 6;
   const isUnitSelectMenuVisible =
     isPreparationPhase &&
@@ -3285,7 +3291,7 @@ export default function GamePage() {
               typeColors={TYPE_COLORS}
               statusIconSrc={getStatusIconSrc(placedUnitAtTile?.status_effects ?? [])}
               getStatColor={getStatColor}
-              items={availableItems}
+              items={preparationItems}
               abilities={availableAbilities}
               cash={cash}
               disabled={isReady}

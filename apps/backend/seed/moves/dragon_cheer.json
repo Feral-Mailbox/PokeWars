@@ -1,0 +1,22 @@
+{
+  "id": 913,
+  "name": "Dragon Cheer",
+  "description": "The user raises its allies' morale with a draconic cry so that their future attacks have a heightened chance of landing critical hits. This rouses Dragon types more.",
+  "type": "Dragon",
+  "category": "Status",
+  "pp": 15,
+  "range": "pulse:3",
+  "targeting": "ally",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "sound_based": true,
+  "effects": [
+    "target:raise_stat:condition:is_type:dragon:crit:2",
+    "target:raise_stat:condition:not_type:dragon:crit:1"
+  ]
+}

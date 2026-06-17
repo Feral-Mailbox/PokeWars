@@ -1,0 +1,9 @@
+{
+  "id": 466,
+  "name": "TM210",
+  "slug": "tm210",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Supercell Slam.",
+  "move_id": 916
+}

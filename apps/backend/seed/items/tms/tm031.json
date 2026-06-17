@@ -1,0 +1,9 @@
+{
+  "id": 287,
+  "name": "TM031",
+  "slug": "tm031",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Metal Claw.",
+  "move_id": 232
+}

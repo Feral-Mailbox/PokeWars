@@ -14,5 +14,6 @@ class ItemSchema(BaseModel):
     natural_gift_power: Optional[int]
     flavor: Optional[str]
     boost_type: Optional[str]
+    move_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

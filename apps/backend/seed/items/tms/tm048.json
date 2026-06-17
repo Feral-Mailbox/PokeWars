@@ -1,0 +1,9 @@
+{
+  "id": 304,
+  "name": "TM048",
+  "slug": "tm048",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Volt Switch.",
+  "move_id": 521
+}

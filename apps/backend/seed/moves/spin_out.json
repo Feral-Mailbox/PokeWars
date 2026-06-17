@@ -1,0 +1,22 @@
+{
+  "id": 859,
+  "name": "Spin Out",
+  "description": "The user spins furiously by straining its legs, inflicting damage on the target. This also harshly lowers the user's Speed stat.",
+  "type": "Steel",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:lower_stat:speed:2"
+  ]
+}

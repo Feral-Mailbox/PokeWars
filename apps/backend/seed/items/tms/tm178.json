@@ -1,0 +1,9 @@
+{
+  "id": 434,
+  "name": "TM178",
+  "slug": "tm178",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Gravity.",
+  "move_id": 356
+}

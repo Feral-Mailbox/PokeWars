@@ -1,0 +1,9 @@
+{
+  "id": 347,
+  "name": "TM091",
+  "slug": "tm091",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Toxic Spikes.",
+  "move_id": 390
+}

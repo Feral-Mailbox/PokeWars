@@ -1,0 +1,9 @@
+{
+  "id": 480,
+  "name": "TM224",
+  "slug": "tm224",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Curse.",
+  "move_id": 174
+}

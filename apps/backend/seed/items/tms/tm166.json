@@ -1,0 +1,9 @@
+{
+  "id": 422,
+  "name": "TM166",
+  "slug": "tm166",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Thunder.",
+  "move_id": 87
+}

@@ -113,6 +113,7 @@ class Game(Base):
     max_turns = Column(Integer, nullable=True)
     unit_limit = Column(Integer, nullable=True)
     turn_seconds = Column(Integer, nullable=False, default=300)
+    start_with_tms = Column(Boolean, default=False, nullable=False)
     is_private = Column(Boolean, default=True)
     host_id = Column(Integer, ForeignKey("users.id"))
     link = Column(String, unique=True, nullable=False)
@@ -366,6 +367,7 @@ class Item(Base):
     natural_gift_power = Column(Integer, nullable=True)
     flavor = Column(String, nullable=True)
     boost_type = Column(String, nullable=True)
+    move_id = Column(Integer, nullable=True)
 
     def __repr__(self):
         return f"<Item(name={self.name}, category={self.category}, slug={self.slug})>"

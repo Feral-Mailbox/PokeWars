@@ -1,0 +1,9 @@
+{
+  "id": 471,
+  "name": "TM215",
+  "slug": "tm215",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Scorching Sands.",
+  "move_id": 815
+}

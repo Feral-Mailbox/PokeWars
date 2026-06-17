@@ -1,0 +1,9 @@
+{
+  "id": 259,
+  "name": "TM003",
+  "slug": "tm003",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fake Tears.",
+  "move_id": 313
+}

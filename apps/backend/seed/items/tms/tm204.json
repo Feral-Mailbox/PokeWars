@@ -1,0 +1,9 @@
+{
+  "id": 460,
+  "name": "TM204",
+  "slug": "tm204",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Double-Edge.",
+  "move_id": 38
+}

@@ -1,0 +1,9 @@
+{
+  "id": 387,
+  "name": "TM131",
+  "slug": "tm131",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Pollen Puff.",
+  "move_id": 676
+}

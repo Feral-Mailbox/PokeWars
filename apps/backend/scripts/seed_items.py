@@ -20,6 +20,7 @@ def item_fields_from_data(data: dict) -> dict:
         "natural_gift_power": data.get("natural_gift_power"),
         "flavor": data.get("flavor"),
         "boost_type": data.get("boost_type"),
+        "move_id": data.get("move_id"),
     }
 
 

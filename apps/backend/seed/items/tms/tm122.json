@@ -1,0 +1,9 @@
+{
+  "id": 378,
+  "name": "TM122",
+  "slug": "tm122",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Encore.",
+  "move_id": 227
+}

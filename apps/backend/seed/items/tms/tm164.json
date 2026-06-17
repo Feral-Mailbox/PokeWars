@@ -1,0 +1,9 @@
+{
+  "id": 420,
+  "name": "TM164",
+  "slug": "tm164",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Brave Bird.",
+  "move_id": 413
+}

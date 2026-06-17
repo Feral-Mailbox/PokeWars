@@ -1,0 +1,9 @@
+{
+  "id": 391,
+  "name": "TM135",
+  "slug": "tm135",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Ice Beam.",
+  "move_id": 58
+}

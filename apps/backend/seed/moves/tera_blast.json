@@ -1,0 +1,22 @@
+{
+  "id": 851,
+  "name": "Tera Blast",
+  "description": "If the user is Terastallized, it unleashes energy of its Tera Type. This move inflicts damage using the Attack or Sp. Atk stat, whichever is higher for the user.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:use_best_offense"
+  ]
+}

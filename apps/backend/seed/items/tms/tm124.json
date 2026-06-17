@@ -1,0 +1,9 @@
+{
+  "id": 380,
+  "name": "TM124",
+  "slug": "tm124",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Ice Spinner.",
+  "move_id": 861
+}

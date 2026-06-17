@@ -1,0 +1,9 @@
+{
+  "id": 307,
+  "name": "TM051",
+  "slug": "tm051",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sandstorm.",
+  "move_id": 201
+}

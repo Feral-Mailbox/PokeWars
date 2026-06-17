@@ -1,0 +1,9 @@
+{
+  "id": 407,
+  "name": "TM151",
+  "slug": "tm151",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Phantom Force.",
+  "move_id": 566
+}

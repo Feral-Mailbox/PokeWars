@@ -1,0 +1,9 @@
+{
+  "id": 316,
+  "name": "TM060",
+  "slug": "tm060",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches U-turn.",
+  "move_id": 369
+}

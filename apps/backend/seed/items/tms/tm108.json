@@ -1,0 +1,9 @@
+{
+  "id": 364,
+  "name": "TM108",
+  "slug": "tm108",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Crunch.",
+  "move_id": 242
+}

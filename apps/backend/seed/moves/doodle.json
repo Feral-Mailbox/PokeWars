@@ -1,0 +1,22 @@
+{
+  "id": 867,
+  "name": "Doodle",
+  "description": "The user captures the very essence of the target in a sketch. This changes the Abilities of the user and surrounding ally Pokémon to that of the target.",
+  "type": "Normal",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 10,
+  "range": "pulse:3",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:copy_ability:target",
+    "ally:copy_ability:target"
+  ]
+}

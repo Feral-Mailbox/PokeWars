@@ -1,0 +1,9 @@
+{
+  "id": 394,
+  "name": "TM138",
+  "slug": "tm138",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Psychic Terrain.",
+  "move_id": 678
+}

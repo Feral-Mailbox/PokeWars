@@ -1,0 +1,9 @@
+{
+  "id": 283,
+  "name": "TM027",
+  "slug": "tm027",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Aerial Ace.",
+  "move_id": 332
+}

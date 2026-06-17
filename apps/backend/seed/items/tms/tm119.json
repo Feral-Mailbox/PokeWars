@@ -1,0 +1,9 @@
+{
+  "id": 375,
+  "name": "TM119",
+  "slug": "tm119",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Energy Ball.",
+  "move_id": 412
+}

@@ -1,0 +1,9 @@
+{
+  "id": 344,
+  "name": "TM088",
+  "slug": "tm088",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Swords Dance.",
+  "move_id": 14
+}

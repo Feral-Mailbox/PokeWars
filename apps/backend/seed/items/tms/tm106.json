@@ -1,0 +1,9 @@
+{
+  "id": 362,
+  "name": "TM106",
+  "slug": "tm106",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Drill Run.",
+  "move_id": 529
+}

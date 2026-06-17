@@ -1,0 +1,9 @@
+{
+  "id": 260,
+  "name": "TM004",
+  "slug": "tm004",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Agility.",
+  "move_id": 97
+}

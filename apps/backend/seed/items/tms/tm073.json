@@ -1,0 +1,9 @@
+{
+  "id": 329,
+  "name": "TM073",
+  "slug": "tm073",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Drain Punch.",
+  "move_id": 409
+}

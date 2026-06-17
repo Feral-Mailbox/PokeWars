@@ -1,0 +1,9 @@
+{
+  "id": 467,
+  "name": "TM211",
+  "slug": "tm211",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Electroweb.",
+  "move_id": 527
+}

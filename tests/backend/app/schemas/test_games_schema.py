@@ -13,6 +13,7 @@ def test_game_create_request():
     model = GameCreateRequest(**data)
     assert model.max_players == 2
     assert model.cash_per_turn is None
+    assert model.start_with_tms is False
 
 def test_player_info_fields():
     model = PlayerInfo(id=1, player_id=5, username="Ash", cash_remaining=100, is_ready=False)
@@ -41,6 +42,8 @@ def test_game_response_fields():
         cash_per_turn=None,
         max_turns=None,
         unit_limit=None,
+        turn_seconds=None,
+        start_with_tms=False,
         replay_log=None,
         link="abc123",
         timestamp=datetime.now()

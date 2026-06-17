@@ -1,0 +1,9 @@
+{
+  "id": 386,
+  "name": "TM130",
+  "slug": "tm130",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Helping Hand.",
+  "move_id": 270
+}

@@ -19,6 +19,7 @@ const ITEM_CATEGORY_OPTIONS = [
   { value: "power", label: "Power" },
   { value: "unit_specific", label: "Unit Specific" },
   { value: "misc", label: "Misc" },
+  { value: "tm", label: "TMs" },
 ] as const;
 
 type PreparationItemSelectPanelProps = {

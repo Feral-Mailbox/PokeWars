@@ -1,0 +1,9 @@
+{
+  "id": 462,
+  "name": "TM206",
+  "slug": "tm206",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Petal Blizzard.",
+  "move_id": 572
+}

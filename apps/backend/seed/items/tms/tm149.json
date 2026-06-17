@@ -1,0 +1,9 @@
+{
+  "id": 405,
+  "name": "TM149",
+  "slug": "tm149",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Earthquake.",
+  "move_id": 89
+}

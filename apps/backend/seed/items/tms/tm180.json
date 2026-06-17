@@ -1,0 +1,9 @@
+{
+  "id": 436,
+  "name": "TM180",
+  "slug": "tm180",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Gyro Ball.",
+  "move_id": 360
+}

@@ -13,6 +13,7 @@ const CreateGame = () => {
   const [unitLimit, setUnitLimit] = useState<number>(30);
   const [turnSeconds, setTurnSeconds] = useState<number>(300);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [startWithTMs, setStartWithTMs] = useState(false);
   const [gameName, setGameName] = useState("");
   const [userId, setUserId] = useState<number | null>(null);
 
@@ -127,6 +128,7 @@ const CreateGame = () => {
       max_turns: typeof maxTurns === 'string' ? parseInt(maxTurns, 10) || 10 : maxTurns,
       unit_limit: unitLimit,  
       turn_seconds: turnSeconds,
+      start_with_tms: startWithTMs,
     };
 
     const res = await secureFetch("/api/games/create", {
@@ -306,6 +308,17 @@ const CreateGame = () => {
             className="mr-2"
           />
           <label htmlFor="private">Private Game</label>
+        </div>
+
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="startWithTMs"
+            checked={startWithTMs}
+            onChange={() => setStartWithTMs((prev) => !prev)}
+            className="mr-2"
+          />
+          <label htmlFor="startWithTMs">Allow TM items during preparation</label>
         </div>
 
         {/* Submit Button */}

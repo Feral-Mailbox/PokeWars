@@ -1,0 +1,9 @@
+{
+  "id": 419,
+  "name": "TM163",
+  "slug": "tm163",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Hyper Beam.",
+  "move_id": 63
+}

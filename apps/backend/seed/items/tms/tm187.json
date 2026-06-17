@@ -1,0 +1,9 @@
+{
+  "id": 443,
+  "name": "TM187",
+  "slug": "tm187",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Icicle Spear.",
+  "move_id": 333
+}

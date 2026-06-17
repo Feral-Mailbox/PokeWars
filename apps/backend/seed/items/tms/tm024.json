@@ -1,0 +1,9 @@
+{
+  "id": 280,
+  "name": "TM024",
+  "slug": "tm024",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fire Spin.",
+  "move_id": 83
+}

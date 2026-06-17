@@ -1,0 +1,22 @@
+{
+  "id": 905,
+  "name": "Electro Shot",
+  "description": "The user gathers electricity on the first turn, boosting its Sp. Atk stat, then fires a high-voltage shot on the next turn. The shot will be fired immediately in rain.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 130,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "line:2",
+  "targeting": "enemy",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:apply_state:electro_shot"
+  ]
+}

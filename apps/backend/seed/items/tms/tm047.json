@@ -1,0 +1,9 @@
+{
+  "id": 303,
+  "name": "TM047",
+  "slug": "tm047",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Endure.",
+  "move_id": 203
+}

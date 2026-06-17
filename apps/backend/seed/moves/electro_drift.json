@@ -1,0 +1,22 @@
+{
+  "id": 879,
+  "name": "Electro Drift",
+  "description": "The user races forward at ultrafast speeds, piercing its target. This move's power is boosted more than usual if it's a supereffective hit.",
+  "type": "Electric",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_power:super_effective:1.33"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": 272,
+  "name": "TM016",
+  "slug": "tm016",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Psybeam.",
+  "move_id": 60
+}

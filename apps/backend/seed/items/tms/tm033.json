@@ -1,0 +1,9 @@
+{
+  "id": 289,
+  "name": "TM033",
+  "slug": "tm033",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Magical Leaf.",
+  "move_id": 345
+}

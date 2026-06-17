@@ -1,0 +1,9 @@
+{
+  "id": 446,
+  "name": "TM190",
+  "slug": "tm190",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Solar Blade.",
+  "move_id": 669
+}

@@ -1,0 +1,9 @@
+{
+  "id": 376,
+  "name": "TM120",
+  "slug": "tm120",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Psychic.",
+  "move_id": 94
+}

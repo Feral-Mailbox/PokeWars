@@ -1,0 +1,9 @@
+{
+  "id": 310,
+  "name": "TM054",
+  "slug": "tm054",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Psyshock.",
+  "move_id": 473
+}

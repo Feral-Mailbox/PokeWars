@@ -1,0 +1,9 @@
+{
+  "id": 356,
+  "name": "TM100",
+  "slug": "tm100",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dragon Dance.",
+  "move_id": 349
+}

@@ -1,0 +1,9 @@
+{
+  "id": 298,
+  "name": "TM042",
+  "slug": "tm042",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Night Shade.",
+  "move_id": 101
+}

@@ -1,0 +1,9 @@
+{
+  "id": 257,
+  "name": "TM001",
+  "slug": "tm001",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Take Down.",
+  "move_id": 36
+}

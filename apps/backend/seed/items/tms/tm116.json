@@ -1,0 +1,9 @@
+{
+  "id": 372,
+  "name": "TM116",
+  "slug": "tm116",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Stealth Rock.",
+  "move_id": 446
+}

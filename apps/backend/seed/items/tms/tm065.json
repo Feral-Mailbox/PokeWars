@@ -1,0 +1,9 @@
+{
+  "id": 321,
+  "name": "TM065",
+  "slug": "tm065",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Air Slash.",
+  "move_id": 403
+}

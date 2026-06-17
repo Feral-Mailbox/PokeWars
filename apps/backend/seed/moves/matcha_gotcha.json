@@ -1,0 +1,23 @@
+{
+  "id": 902,
+  "name": "Matcha Gotcha",
+  "description": "The user fires a blast of tea that it mixed. The user's HP is restored by up to half the damage taken by the target. This may also leave the target with a burn.",
+  "type": "Grass",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 90,
+  "pp": 15,
+  "range": "sweep:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "self:drain:2",
+    "target:status:burn:20"
+  ]
+}

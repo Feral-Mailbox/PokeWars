@@ -1,0 +1,9 @@
+{
+  "id": 454,
+  "name": "TM198",
+  "slug": "tm198",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Poltergeist.",
+  "move_id": 809
+}

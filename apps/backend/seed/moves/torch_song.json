@@ -1,0 +1,23 @@
+{
+  "id": 871,
+  "name": "Torch Song",
+  "description": "The user blows out raging flames as if singing a song, scorching the target. This also boosts the user's Sp. Atk stat.",
+  "type": "Fire",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": [
+    "self:raise_stat:special_attack:1"
+  ]
+}

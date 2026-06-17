@@ -1,0 +1,23 @@
+{
+  "id": 914,
+  "name": "Alluring Voice",
+  "description": "The user attacks the target using its angelic voice. This also confuses the target if its stats have been raised since its last turn.",
+  "type": "Fairy",
+  "category": "Special",
+  "power": 80,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "pulse:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "sound_based": true,
+  "effects": [
+    "target:apply_state:condition:stat_raised_since_turn:*:confusion:100"
+  ]
+}

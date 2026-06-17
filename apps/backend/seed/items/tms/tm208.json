@@ -1,0 +1,9 @@
+{
+  "id": 464,
+  "name": "TM208",
+  "slug": "tm208",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Whirlpool.",
+  "move_id": 250
+}

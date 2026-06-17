@@ -1,0 +1,9 @@
+{
+  "id": 301,
+  "name": "TM045",
+  "slug": "tm045",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Venoshock.",
+  "move_id": 474
+}

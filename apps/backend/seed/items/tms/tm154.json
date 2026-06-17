@@ -1,0 +1,9 @@
+{
+  "id": 410,
+  "name": "TM154",
+  "slug": "tm154",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Hydro Cannon.",
+  "move_id": 308
+}

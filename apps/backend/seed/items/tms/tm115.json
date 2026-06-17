@@ -1,0 +1,9 @@
+{
+  "id": 371,
+  "name": "TM115",
+  "slug": "tm115",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dragon Pulse.",
+  "move_id": 406
+}

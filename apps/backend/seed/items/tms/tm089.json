@@ -1,0 +1,9 @@
+{
+  "id": 345,
+  "name": "TM089",
+  "slug": "tm089",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Body Press.",
+  "move_id": 776
+}

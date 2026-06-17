@@ -1,0 +1,9 @@
+{
+  "id": 465,
+  "name": "TM209",
+  "slug": "tm209",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Muddy Water.",
+  "move_id": 330
+}

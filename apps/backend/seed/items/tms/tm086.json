@@ -1,0 +1,9 @@
+{
+  "id": 342,
+  "name": "TM086",
+  "slug": "tm086",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Rock Slide.",
+  "move_id": 157
+}

@@ -1,0 +1,9 @@
+{
+  "id": 300,
+  "name": "TM044",
+  "slug": "tm044",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dragon Tail.",
+  "move_id": 525
+}

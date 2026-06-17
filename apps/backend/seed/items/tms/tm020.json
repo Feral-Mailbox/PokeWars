@@ -1,0 +1,9 @@
+{
+  "id": 276,
+  "name": "TM020",
+  "slug": "tm020",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Trailblaze.",
+  "move_id": 885
+}

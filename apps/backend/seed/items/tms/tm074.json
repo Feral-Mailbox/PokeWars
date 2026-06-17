@@ -1,0 +1,9 @@
+{
+  "id": 330,
+  "name": "TM074",
+  "slug": "tm074",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Reflect.",
+  "move_id": 115
+}

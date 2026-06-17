@@ -1,0 +1,9 @@
+{
+  "id": 414,
+  "name": "TM158",
+  "slug": "tm158",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Focus Blast.",
+  "move_id": 411
+}

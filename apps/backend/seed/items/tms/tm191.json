@@ -1,0 +1,9 @@
+{
+  "id": 447,
+  "name": "TM191",
+  "slug": "tm191",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Uproar.",
+  "move_id": 253
+}

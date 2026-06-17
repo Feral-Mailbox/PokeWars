@@ -1,0 +1,9 @@
+{
+  "id": 440,
+  "name": "TM184",
+  "slug": "tm184",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Vacuum Wave.",
+  "move_id": 410
+}

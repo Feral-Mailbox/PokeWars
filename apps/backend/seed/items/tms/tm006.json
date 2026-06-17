@@ -1,0 +1,9 @@
+{
+  "id": 262,
+  "name": "TM006",
+  "slug": "tm006",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Scary Face.",
+  "move_id": 184
+}

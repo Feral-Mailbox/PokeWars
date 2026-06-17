@@ -1,0 +1,9 @@
+{
+  "id": 401,
+  "name": "TM145",
+  "slug": "tm145",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Water Pledge.",
+  "move_id": 518
+}

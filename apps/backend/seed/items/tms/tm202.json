@@ -1,0 +1,9 @@
+{
+  "id": 458,
+  "name": "TM202",
+  "slug": "tm202",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Pain Split.",
+  "move_id": 220
+}

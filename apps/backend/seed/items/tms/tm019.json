@@ -1,0 +1,9 @@
+{
+  "id": 275,
+  "name": "TM019",
+  "slug": "tm019",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Disarming Voice.",
+  "move_id": 574
+}

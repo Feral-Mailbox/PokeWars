@@ -1,0 +1,24 @@
+{
+  "id": 868,
+  "name": "Fillet Away",
+  "description": "The user sharply boosts its Attack and Sp. Atk stats by using its own HP.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "fail_if:below_half_hp",
+    "fail_if:stats_at_max:attack,special_attack,speed",
+    "self:damage:2",
+    "self:raise_stat:attack:2",
+    "self:raise_stat:special_attack:2",
+    "self:raise_stat:speed:2"
+  ]
+}

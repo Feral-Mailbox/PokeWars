@@ -1,0 +1,9 @@
+{
+  "id": 381,
+  "name": "TM125",
+  "slug": "tm125",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Flamethrower.",
+  "move_id": 53
+}

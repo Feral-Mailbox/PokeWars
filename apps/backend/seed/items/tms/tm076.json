@@ -1,0 +1,9 @@
+{
+  "id": 332,
+  "name": "TM076",
+  "slug": "tm076",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Rock Blast.",
+  "move_id": 350
+}

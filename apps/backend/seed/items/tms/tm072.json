@@ -1,0 +1,9 @@
+{
+  "id": 328,
+  "name": "TM072",
+  "slug": "tm072",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Electro Ball.",
+  "move_id": 486
+}

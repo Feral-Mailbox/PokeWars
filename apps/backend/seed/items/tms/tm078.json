@@ -1,0 +1,9 @@
+{
+  "id": 334,
+  "name": "TM078",
+  "slug": "tm078",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dragon Claw.",
+  "move_id": 337
+}

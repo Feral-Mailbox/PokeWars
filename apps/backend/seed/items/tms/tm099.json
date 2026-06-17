@@ -1,0 +1,9 @@
+{
+  "id": 355,
+  "name": "TM099",
+  "slug": "tm099",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Iron Head.",
+  "move_id": 442
+}

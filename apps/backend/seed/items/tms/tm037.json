@@ -1,0 +1,9 @@
+{
+  "id": 293,
+  "name": "TM037",
+  "slug": "tm037",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Draining Kiss.",
+  "move_id": 577
+}

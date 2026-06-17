@@ -1,0 +1,9 @@
+{
+  "id": 456,
+  "name": "TM200",
+  "slug": "tm200",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Scale Shot.",
+  "move_id": 799
+}

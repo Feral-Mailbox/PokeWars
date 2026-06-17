@@ -1,0 +1,21 @@
+{
+  "id": 880,
+  "name": "Shed Tail",
+  "description": "The user creates a substitute for itself using its own HP before switching places with a party Pokémon in waiting.",
+  "type": "Normal",
+  "category": "Status",
+  "pp": 10,
+  "targeting": "self",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:apply_state:substitute",
+    "self:damage:4",
+    "self:knockback:switch:1"
+  ]
+}

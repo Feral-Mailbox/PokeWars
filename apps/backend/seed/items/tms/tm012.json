@@ -1,0 +1,9 @@
+{
+  "id": 268,
+  "name": "TM012",
+  "slug": "tm012",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Low Kick.",
+  "move_id": 67
+}

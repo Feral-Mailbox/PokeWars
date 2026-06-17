@@ -1,0 +1,9 @@
+{
+  "id": 411,
+  "name": "TM155",
+  "slug": "tm155",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Frenzy Plant.",
+  "move_id": 338
+}

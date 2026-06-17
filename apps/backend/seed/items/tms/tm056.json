@@ -1,0 +1,9 @@
+{
+  "id": 312,
+  "name": "TM056",
+  "slug": "tm056",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Bullet Seed.",
+  "move_id": 331
+}

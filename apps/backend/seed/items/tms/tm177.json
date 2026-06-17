@@ -1,0 +1,9 @@
+{
+  "id": 433,
+  "name": "TM177",
+  "slug": "tm177",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Spite.",
+  "move_id": 180
+}

@@ -1,0 +1,9 @@
+{
+  "id": 338,
+  "name": "TM082",
+  "slug": "tm082",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Thunder Wave.",
+  "move_id": 86
+}

@@ -1,0 +1,9 @@
+{
+  "id": 475,
+  "name": "TM219",
+  "slug": "tm219",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Skitter Smack.",
+  "move_id": 806
+}

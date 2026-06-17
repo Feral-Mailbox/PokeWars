@@ -1,0 +1,9 @@
+{
+  "id": 291,
+  "name": "TM035",
+  "slug": "tm035",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Mud Shot.",
+  "move_id": 341
+}

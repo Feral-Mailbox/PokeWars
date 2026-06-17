@@ -1,0 +1,9 @@
+{
+  "id": 358,
+  "name": "TM102",
+  "slug": "tm102",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Gunk Shot.",
+  "move_id": 441
+}

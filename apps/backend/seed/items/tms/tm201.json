@@ -1,0 +1,9 @@
+{
+  "id": 457,
+  "name": "TM201",
+  "slug": "tm201",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Misty Explosion.",
+  "move_id": 802
+}

@@ -1,0 +1,9 @@
+{
+  "id": 350,
+  "name": "TM094",
+  "slug": "tm094",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dark Pulse.",
+  "move_id": 399
+}

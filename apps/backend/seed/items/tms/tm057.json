@@ -1,0 +1,9 @@
+{
+  "id": 313,
+  "name": "TM057",
+  "slug": "tm057",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches False Swipe.",
+  "move_id": 206
+}

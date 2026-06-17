@@ -1,0 +1,9 @@
+{
+  "id": 296,
+  "name": "TM040",
+  "slug": "tm040",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Air Cutter.",
+  "move_id": 314
+}

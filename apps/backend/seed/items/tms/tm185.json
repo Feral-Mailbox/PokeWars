@@ -1,0 +1,9 @@
+{
+  "id": 441,
+  "name": "TM185",
+  "slug": "tm185",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Lunge.",
+  "move_id": 679
+}

@@ -1,0 +1,9 @@
+{
+  "id": 444,
+  "name": "TM188",
+  "slug": "tm188",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Scald.",
+  "move_id": 503
+}

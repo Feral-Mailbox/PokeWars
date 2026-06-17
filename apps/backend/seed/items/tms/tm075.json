@@ -1,0 +1,9 @@
+{
+  "id": 331,
+  "name": "TM075",
+  "slug": "tm075",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Light Screen.",
+  "move_id": 113
+}

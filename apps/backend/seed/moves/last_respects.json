@@ -1,0 +1,22 @@
+{
+  "id": 854,
+  "name": "Last Respects",
+  "description": "The user attacks to avenge its allies. The more defeated allies there were since the user's last turn, the greater the move's power.",
+  "type": "Ghost",
+  "category": "Physical",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "power_add:allies_defeated_since_turn:50"
+  ]
+}

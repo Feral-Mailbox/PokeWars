@@ -1,0 +1,9 @@
+{
+  "id": 354,
+  "name": "TM098",
+  "slug": "tm098",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Skill Swap.",
+  "move_id": 285
+}

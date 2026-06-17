@@ -1,0 +1,9 @@
+{
+  "id": 393,
+  "name": "TM137",
+  "slug": "tm137",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Grassy Terrain.",
+  "move_id": 580
+}

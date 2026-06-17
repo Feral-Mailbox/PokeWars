@@ -1,0 +1,9 @@
+{
+  "id": 409,
+  "name": "TM153",
+  "slug": "tm153",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Blast Burn.",
+  "move_id": 307
+}

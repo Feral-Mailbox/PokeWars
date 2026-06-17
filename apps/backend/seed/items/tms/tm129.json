@@ -1,0 +1,9 @@
+{
+  "id": 385,
+  "name": "TM129",
+  "slug": "tm129",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Calm Mind.",
+  "move_id": 347
+}

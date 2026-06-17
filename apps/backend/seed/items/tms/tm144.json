@@ -1,0 +1,9 @@
+{
+  "id": 400,
+  "name": "TM144",
+  "slug": "tm144",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fire Pledge.",
+  "move_id": 519
+}

@@ -1,0 +1,9 @@
+{
+  "id": 339,
+  "name": "TM083",
+  "slug": "tm083",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Poison Jab.",
+  "move_id": 398
+}

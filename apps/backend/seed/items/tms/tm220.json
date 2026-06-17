@@ -1,0 +1,9 @@
+{
+  "id": 476,
+  "name": "TM220",
+  "slug": "tm220",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Meteor Beam.",
+  "move_id": 800
+}

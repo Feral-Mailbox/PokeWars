@@ -1,0 +1,9 @@
+{
+  "id": 286,
+  "name": "TM030",
+  "slug": "tm030",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Snarl.",
+  "move_id": 555
+}

@@ -1,0 +1,9 @@
+{
+  "id": 363,
+  "name": "TM107",
+  "slug": "tm107",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Will-O-Wisp.",
+  "move_id": 261
+}

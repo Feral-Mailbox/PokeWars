@@ -1,0 +1,9 @@
+{
+  "id": 270,
+  "name": "TM014",
+  "slug": "tm014",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Acrobatics.",
+  "move_id": 512
+}

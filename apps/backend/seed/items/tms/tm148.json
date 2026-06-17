@@ -1,0 +1,9 @@
+{
+  "id": 404,
+  "name": "TM148",
+  "slug": "tm148",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sludge Bomb.",
+  "move_id": 188
+}

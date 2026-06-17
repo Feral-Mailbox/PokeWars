@@ -1,0 +1,9 @@
+{
+  "id": 449,
+  "name": "TM193",
+  "slug": "tm193",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Weather Ball.",
+  "move_id": 311
+}

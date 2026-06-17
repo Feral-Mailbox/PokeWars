@@ -1,0 +1,9 @@
+{
+  "id": 389,
+  "name": "TM133",
+  "slug": "tm133",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Earth Power.",
+  "move_id": 414
+}

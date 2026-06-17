@@ -1,0 +1,9 @@
+{
+  "id": 402,
+  "name": "TM146",
+  "slug": "tm146",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Grass Pledge.",
+  "move_id": 520
+}

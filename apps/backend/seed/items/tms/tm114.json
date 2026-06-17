@@ -1,0 +1,9 @@
+{
+  "id": 370,
+  "name": "TM114",
+  "slug": "tm114",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Shadow Ball.",
+  "move_id": 247
+}

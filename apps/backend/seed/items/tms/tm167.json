@@ -1,0 +1,9 @@
+{
+  "id": 423,
+  "name": "TM167",
+  "slug": "tm167",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Close Combat.",
+  "move_id": 370
+}

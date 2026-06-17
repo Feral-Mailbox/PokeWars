@@ -1,0 +1,22 @@
+{
+  "id": 903,
+  "name": "Syrup Bomb",
+  "description": "The user sets off an explosion of sticky candy syrup, which coats the target and causes the target's Speed stat to drop each turn for three turns.",
+  "type": "Grass",
+  "category": "Special",
+  "power": 60,
+  "accuracy": 90,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "target:apply_state:syrup_bomb"
+  ]
+}

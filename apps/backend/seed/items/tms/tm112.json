@@ -1,0 +1,9 @@
+{
+  "id": 368,
+  "name": "TM112",
+  "slug": "tm112",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Aura Sphere.",
+  "move_id": 396
+}

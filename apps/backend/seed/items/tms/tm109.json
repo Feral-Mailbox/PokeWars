@@ -1,0 +1,9 @@
+{
+  "id": 365,
+  "name": "TM109",
+  "slug": "tm109",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Trick.",
+  "move_id": 271
+}

@@ -1,0 +1,9 @@
+{
+  "id": 284,
+  "name": "TM028",
+  "slug": "tm028",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Bulldoze.",
+  "move_id": 523
+}

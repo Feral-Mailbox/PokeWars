@@ -1,0 +1,9 @@
+{
+  "id": 477,
+  "name": "TM221",
+  "slug": "tm221",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Throat Chop.",
+  "move_id": 675
+}

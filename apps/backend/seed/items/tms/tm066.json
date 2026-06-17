@@ -1,0 +1,9 @@
+{
+  "id": 322,
+  "name": "TM066",
+  "slug": "tm066",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Body Slam.",
+  "move_id": 34
+}

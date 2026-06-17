@@ -1,0 +1,9 @@
+{
+  "id": 302,
+  "name": "TM046",
+  "slug": "tm046",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Avalanche.",
+  "move_id": 419
+}

@@ -1,0 +1,9 @@
+{
+  "id": 395,
+  "name": "TM139",
+  "slug": "tm139",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Misty Terrain.",
+  "move_id": 581
+}

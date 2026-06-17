@@ -1,0 +1,9 @@
+{
+  "id": 459,
+  "name": "TM203",
+  "slug": "tm203",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Psych Up.",
+  "move_id": 244
+}

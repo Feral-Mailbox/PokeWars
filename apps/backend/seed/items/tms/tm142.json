@@ -1,0 +1,9 @@
+{
+  "id": 398,
+  "name": "TM142",
+  "slug": "tm142",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Hydro Pump.",
+  "move_id": 56
+}

@@ -1,0 +1,9 @@
+{
+  "id": 297,
+  "name": "TM041",
+  "slug": "tm041",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Stored Power.",
+  "move_id": 500
+}

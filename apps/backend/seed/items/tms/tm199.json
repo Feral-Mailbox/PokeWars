@@ -1,0 +1,9 @@
+{
+  "id": 455,
+  "name": "TM199",
+  "slug": "tm199",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Lash Out.",
+  "move_id": 808
+}

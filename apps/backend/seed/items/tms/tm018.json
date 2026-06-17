@@ -1,0 +1,9 @@
+{
+  "id": 274,
+  "name": "TM018",
+  "slug": "tm018",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Thief.",
+  "move_id": 168
+}

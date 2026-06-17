@@ -1,0 +1,9 @@
+{
+  "id": 406,
+  "name": "TM150",
+  "slug": "tm150",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Stone Edge.",
+  "move_id": 444
+}

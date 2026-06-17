@@ -1,0 +1,9 @@
+{
+  "id": 377,
+  "name": "TM121",
+  "slug": "tm121",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Heavy Slam.",
+  "move_id": 484
+}

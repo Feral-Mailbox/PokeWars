@@ -1,0 +1,9 @@
+{
+  "id": 425,
+  "name": "TM169",
+  "slug": "tm169",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Draco Meteor.",
+  "move_id": 434
+}

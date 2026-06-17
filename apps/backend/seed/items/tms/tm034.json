@@ -1,0 +1,9 @@
+{
+  "id": 290,
+  "name": "TM034",
+  "slug": "tm034",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Icy Wind.",
+  "move_id": 196
+}

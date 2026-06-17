@@ -15,6 +15,7 @@ class GameCreateRequest(BaseModel):
     max_turns: Optional[int] = None
     unit_limit: Optional[int] = None
     turn_seconds: Optional[int] = 300
+    start_with_tms: bool = False
 
     @field_validator("turn_seconds")
     @classmethod
@@ -62,6 +63,7 @@ class GameResponse(BaseModel):
     max_turns: Optional[int]
     unit_limit: Optional[int]
     turn_seconds: Optional[int] = 300
+    start_with_tms: bool = False
     replay_log: Optional[Any]
     link: str
     timestamp: datetime

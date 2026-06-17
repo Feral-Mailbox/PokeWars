@@ -1,0 +1,22 @@
+{
+  "id": 865,
+  "name": "Triple Dive",
+  "description": "The user performs a perfectly timed triple dive, hitting the target with splashes of water three times in a row.",
+  "type": "Water",
+  "category": "Physical",
+  "power": 35,
+  "accuracy": 95,
+  "pp": 10,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:3"
+  ]
+}

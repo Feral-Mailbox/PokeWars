@@ -1,0 +1,9 @@
+{
+  "id": 374,
+  "name": "TM118",
+  "slug": "tm118",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Heat Wave.",
+  "move_id": 257
+}

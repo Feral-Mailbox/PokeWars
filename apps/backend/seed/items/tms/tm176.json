@@ -1,0 +1,9 @@
+{
+  "id": 432,
+  "name": "TM176",
+  "slug": "tm176",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sand Tomb.",
+  "move_id": 328
+}

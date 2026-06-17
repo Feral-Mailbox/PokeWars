@@ -1,0 +1,9 @@
+{
+  "id": 335,
+  "name": "TM079",
+  "slug": "tm079",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Dazzling Gleam.",
+  "move_id": 605
+}

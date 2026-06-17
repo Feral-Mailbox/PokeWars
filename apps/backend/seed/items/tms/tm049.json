@@ -1,0 +1,9 @@
+{
+  "id": 305,
+  "name": "TM049",
+  "slug": "tm049",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sunny Day.",
+  "move_id": 241
+}

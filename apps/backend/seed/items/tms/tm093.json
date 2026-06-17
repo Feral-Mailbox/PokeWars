@@ -1,0 +1,9 @@
+{
+  "id": 349,
+  "name": "TM093",
+  "slug": "tm093",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Flash Cannon.",
+  "move_id": 430
+}

@@ -1,0 +1,9 @@
+{
+  "id": 366,
+  "name": "TM110",
+  "slug": "tm110",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Liquidation.",
+  "move_id": 710
+}

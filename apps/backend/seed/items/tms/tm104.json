@@ -1,0 +1,9 @@
+{
+  "id": 360,
+  "name": "TM104",
+  "slug": "tm104",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Iron Defense.",
+  "move_id": 334
+}

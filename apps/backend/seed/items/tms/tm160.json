@@ -1,0 +1,9 @@
+{
+  "id": 416,
+  "name": "TM160",
+  "slug": "tm160",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Hurricane.",
+  "move_id": 542
+}

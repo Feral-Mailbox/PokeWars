@@ -1,0 +1,9 @@
+{
+  "id": 267,
+  "name": "TM011",
+  "slug": "tm011",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Water Pulse.",
+  "move_id": 352
+}

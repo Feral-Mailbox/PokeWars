@@ -1,0 +1,9 @@
+{
+  "id": 424,
+  "name": "TM168",
+  "slug": "tm168",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Solar Beam.",
+  "move_id": 76
+}

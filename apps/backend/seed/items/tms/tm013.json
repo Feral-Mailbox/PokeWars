@@ -1,0 +1,9 @@
+{
+  "id": 269,
+  "name": "TM013",
+  "slug": "tm013",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Acid Spray.",
+  "move_id": 491
+}

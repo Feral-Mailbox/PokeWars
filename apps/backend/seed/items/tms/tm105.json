@@ -1,0 +1,9 @@
+{
+  "id": 361,
+  "name": "TM105",
+  "slug": "tm105",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches X-Scissor.",
+  "move_id": 404
+}

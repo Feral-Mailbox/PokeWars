@@ -1,0 +1,9 @@
+{
+  "id": 392,
+  "name": "TM136",
+  "slug": "tm136",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Electric Terrain.",
+  "move_id": 604
+}

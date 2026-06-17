@@ -1,0 +1,9 @@
+{
+  "id": 450,
+  "name": "TM194",
+  "slug": "tm194",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Grassy Glide.",
+  "move_id": 803
+}

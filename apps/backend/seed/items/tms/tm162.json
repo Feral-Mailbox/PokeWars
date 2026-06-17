@@ -1,0 +1,9 @@
+{
+  "id": 418,
+  "name": "TM162",
+  "slug": "tm162",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Bug Buzz.",
+  "move_id": 405
+}

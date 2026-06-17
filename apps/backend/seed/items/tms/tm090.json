@@ -1,0 +1,9 @@
+{
+  "id": 346,
+  "name": "TM090",
+  "slug": "tm090",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Spikes.",
+  "move_id": 191
+}

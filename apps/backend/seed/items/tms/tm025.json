@@ -1,0 +1,9 @@
+{
+  "id": 281,
+  "name": "TM025",
+  "slug": "tm025",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Facade.",
+  "move_id": 263
+}

@@ -1,0 +1,9 @@
+{
+  "id": 421,
+  "name": "TM165",
+  "slug": "tm165",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Flare Blitz.",
+  "move_id": 394
+}

@@ -1,0 +1,9 @@
+{
+  "id": 273,
+  "name": "TM017",
+  "slug": "tm017",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Confuse Ray.",
+  "move_id": 109
+}

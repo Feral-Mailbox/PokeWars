@@ -1,0 +1,9 @@
+{
+  "id": 379,
+  "name": "TM123",
+  "slug": "tm123",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Surf.",
+  "move_id": 57
+}

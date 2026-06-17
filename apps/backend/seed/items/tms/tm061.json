@@ -1,0 +1,9 @@
+{
+  "id": 317,
+  "name": "TM061",
+  "slug": "tm061",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Shadow Claw.",
+  "move_id": 421
+}

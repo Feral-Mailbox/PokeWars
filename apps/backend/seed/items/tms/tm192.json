@@ -1,0 +1,9 @@
+{
+  "id": 448,
+  "name": "TM192",
+  "slug": "tm192",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Focus Punch.",
+  "move_id": 264
+}

@@ -1,0 +1,9 @@
+{
+  "id": 412,
+  "name": "TM156",
+  "slug": "tm156",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Outrage.",
+  "move_id": 200
+}

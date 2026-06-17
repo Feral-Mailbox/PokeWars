@@ -1,0 +1,9 @@
+{
+  "id": 263,
+  "name": "TM007",
+  "slug": "tm007",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Protect.",
+  "move_id": 182
+}

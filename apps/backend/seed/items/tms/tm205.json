@@ -1,0 +1,9 @@
+{
+  "id": 461,
+  "name": "TM205",
+  "slug": "tm205",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Endeavor.",
+  "move_id": 283
+}

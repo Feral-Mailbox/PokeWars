@@ -1,0 +1,9 @@
+{
+  "id": 399,
+  "name": "TM143",
+  "slug": "tm143",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Blizzard.",
+  "move_id": 59
+}

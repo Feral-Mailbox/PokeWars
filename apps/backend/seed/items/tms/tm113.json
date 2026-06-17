@@ -1,0 +1,9 @@
+{
+  "id": 369,
+  "name": "TM113",
+  "slug": "tm113",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Tailwind.",
+  "move_id": 366
+}

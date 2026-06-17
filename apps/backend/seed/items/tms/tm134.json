@@ -1,0 +1,9 @@
+{
+  "id": 390,
+  "name": "TM134",
+  "slug": "tm134",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Reversal.",
+  "move_id": 179
+}

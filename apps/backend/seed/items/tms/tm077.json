@@ -1,0 +1,9 @@
+{
+  "id": 333,
+  "name": "TM077",
+  "slug": "tm077",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Waterfall.",
+  "move_id": 127
+}

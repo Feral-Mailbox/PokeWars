@@ -1,0 +1,22 @@
+{
+  "id": 878,
+  "name": "Collision Course",
+  "description": "The user transforms and crashes to the ground, causing a massive prehistoric explosion. This move's power is boosted more than usual if it’s a supereffective hit.",
+  "type": "Fighting",
+  "category": "Physical",
+  "power": 100,
+  "accuracy": 100,
+  "pp": 5,
+  "range": "dash_attack",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": true,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "conditional_power:super_effective:1.33"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": 288,
+  "name": "TM032",
+  "slug": "tm032",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Swift.",
+  "move_id": 129
+}

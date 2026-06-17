@@ -1,0 +1,9 @@
+{
+  "id": 292,
+  "name": "TM036",
+  "slug": "tm036",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Rock Tomb.",
+  "move_id": 317
+}

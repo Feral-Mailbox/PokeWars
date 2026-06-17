@@ -1,0 +1,9 @@
+{
+  "id": 351,
+  "name": "TM095",
+  "slug": "tm095",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Leech Life.",
+  "move_id": 141
+}

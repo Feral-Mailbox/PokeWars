@@ -1,0 +1,9 @@
+{
+  "id": 323,
+  "name": "TM067",
+  "slug": "tm067",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fire Punch.",
+  "move_id": 7
+}

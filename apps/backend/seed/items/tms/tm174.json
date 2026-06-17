@@ -1,0 +1,9 @@
+{
+  "id": 430,
+  "name": "TM174",
+  "slug": "tm174",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Haze.",
+  "move_id": 114
+}

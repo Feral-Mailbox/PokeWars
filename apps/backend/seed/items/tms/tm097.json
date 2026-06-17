@@ -1,0 +1,9 @@
+{
+  "id": 353,
+  "name": "TM097",
+  "slug": "tm097",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fly.",
+  "move_id": 19
+}

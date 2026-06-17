@@ -1,0 +1,9 @@
+{
+  "id": 427,
+  "name": "TM171",
+  "slug": "tm171",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Tera Blast.",
+  "move_id": 851
+}

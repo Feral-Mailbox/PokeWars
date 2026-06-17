@@ -1,0 +1,9 @@
+{
+  "id": 314,
+  "name": "TM058",
+  "slug": "tm058",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Brick Break.",
+  "move_id": 280
+}

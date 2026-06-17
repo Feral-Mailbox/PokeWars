@@ -1,0 +1,9 @@
+{
+  "id": 384,
+  "name": "TM128",
+  "slug": "tm128",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Amnesia.",
+  "move_id": 133
+}

@@ -1,0 +1,9 @@
+{
+  "id": 470,
+  "name": "TM214",
+  "slug": "tm214",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sludge Wave.",
+  "move_id": 482
+}

@@ -1,0 +1,9 @@
+{
+  "id": 373,
+  "name": "TM117",
+  "slug": "tm117",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Hyper Voice.",
+  "move_id": 304
+}

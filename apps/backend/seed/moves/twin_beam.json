@@ -1,0 +1,22 @@
+{
+  "id": 888,
+  "name": "Twin Beam",
+  "description": "The user shoots mystical beams from its eyes to inflict damage. The target is hit twice in a row.",
+  "type": "Psychic",
+  "category": "Special",
+  "power": 40,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:2",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "effects": [
+    "multi_hit:2"
+  ]
+}

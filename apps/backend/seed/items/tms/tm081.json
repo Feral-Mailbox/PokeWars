@@ -1,0 +1,9 @@
+{
+  "id": 337,
+  "name": "TM081",
+  "slug": "tm081",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Grass Knot.",
+  "move_id": 447
+}

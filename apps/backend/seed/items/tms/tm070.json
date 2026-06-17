@@ -1,0 +1,9 @@
+{
+  "id": 326,
+  "name": "TM070",
+  "slug": "tm070",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Sleep Talk.",
+  "move_id": 214
+}

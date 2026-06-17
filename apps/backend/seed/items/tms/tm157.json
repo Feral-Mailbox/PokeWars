@@ -1,0 +1,9 @@
+{
+  "id": 413,
+  "name": "TM157",
+  "slug": "tm157",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Overheat.",
+  "move_id": 315
+}

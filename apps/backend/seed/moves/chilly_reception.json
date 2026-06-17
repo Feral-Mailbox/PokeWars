@@ -1,0 +1,21 @@
+{
+  "id": 881,
+  "name": "Chilly Reception",
+  "description": "The user tells a chillingly bad joke before switching places with an adjacent Pokémon in waiting. This summons hail for five turns.",
+  "type": "Ice",
+  "category": "Status",
+  "pp": 10,
+  "range": "pulse:6",
+  "targeting": "field",
+  "cooldown": 1,
+  "makes_contact": false,
+  "affected_by_protect": false,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": false,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "weather:hail",
+    "self:knockback:switch:1"
+  ]
+}

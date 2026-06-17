@@ -1,0 +1,9 @@
+{
+  "id": 320,
+  "name": "TM064",
+  "slug": "tm064",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Bulk Up.",
+  "move_id": 339
+}

@@ -249,7 +249,13 @@ SCREEN_EFFECT_DURATION = 5
 SIDE_SCREEN_STATE_NAMES = frozenset(
     {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}
 )
-VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo"}
+VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute"}
+
+HELD_ITEM_MASK_TYPE_MAP = {
+    "hearthflame_mask": "Fire",
+    "wellspring_mask": "Water",
+    "cornerstone_mask": "Rock",
+}
 
 STATUS_NAME_ALIASES = {
     "badly_poison": "badly_poisoned",
@@ -418,6 +424,12 @@ def resolve_item_record(item_ref: str | None, db: Session) -> Item | None:
     return db.query(Item).filter((Item.slug == ref) | (Item.name == ref)).first()
 
 
+def preparation_item_allowed(item: Item, game: Game) -> bool:
+    if item.category == "tm" and not game.start_with_tms:
+        return False
+    return True
+
+
 def attach_game_unit_loadout_fields(unit: GameUnit, db: Session) -> GameUnit:
     slug = get_unit_held_item(unit)
     unit.held_item_slug = slug
@@ -476,6 +488,7 @@ def snapshot_turn_stat_stages(user_id: int, game_id: int, db: Session) -> None:
         flags["stat_stages_at_turn_start"] = {
             stat: get_stat_stage(unit.stat_boosts, stat) for stat in ALL_STAT_EFFECT_KEYS
         }
+        flags["allies_defeated_since_turn"] = 0
         set_unit_flags(unit, flags, db)
 
 
@@ -489,6 +502,156 @@ def unit_stats_lowered_since_turn_start(unit: GameUnit) -> bool:
         if current < previous:
             return True
     return False
+
+
+def unit_stats_raised_since_turn_start(unit: GameUnit) -> bool:
+    snapshot = get_unit_flags(unit).get("stat_stages_at_turn_start")
+    if not isinstance(snapshot, dict):
+        return False
+    for stat in ALL_STAT_EFFECT_KEYS:
+        previous = int(snapshot.get(stat, 0) or 0)
+        current = get_stat_stage(unit.stat_boosts, stat)
+        if current > previous:
+            return True
+    return False
+
+
+def record_last_damage_received(target: GameUnit, attacker: GameUnit, damage: int, db: Session) -> None:
+    if damage <= 0:
+        return
+    flags = get_unit_flags(target)
+    flags["last_damage_attacker_id"] = int(attacker.id)
+    flags["last_damage_amount"] = int(damage)
+    flags["times_hit"] = int(flags.get("times_hit", 0) or 0) + 1
+    set_unit_flags(target, flags, db)
+
+
+def increment_allies_defeated_since_turn(fainted_unit: GameUnit, db: Session) -> None:
+    game_id = getattr(fainted_unit, "game_id", None)
+    user_id = getattr(fainted_unit, "user_id", None)
+    if not isinstance(game_id, int) or not isinstance(user_id, int):
+        return
+    allies = (
+        db.query(GameUnit)
+        .filter(
+            GameUnit.game_id == game_id,
+            GameUnit.user_id == user_id,
+            GameUnit.is_fainted == False,
+            GameUnit.current_hp > 0,
+        )
+        .all()
+    )
+    for ally in allies:
+        flags = get_unit_flags(ally)
+        flags["allies_defeated_since_turn"] = int(flags.get("allies_defeated_since_turn", 0) or 0) + 1
+        set_unit_flags(ally, flags, db)
+
+
+def unit_has_glaive_rush(unit: GameUnit) -> bool:
+    state = normalize_states(unit.states)
+    return bool(state and str(state[0]).lower() == "glaive_rush" and int(state[1]) > 0)
+
+
+def move_has_revive_effect(move: Move) -> bool:
+    if not move or not isinstance(move.effects, list):
+        return False
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 2 and parts[0] == "target" and parts[1] == "revive":
+            return True
+    return False
+
+
+def move_ignores_target_stat_changes(move: Move) -> bool:
+    return move_has_effect_token(move, "target:ignore_stat_changes")
+
+
+def move_ignores_fairy_immunity(move: Move) -> bool:
+    return move_has_effect_token(move, "self:ignore_fairy_immunity")
+
+
+def get_unboosted_battle_stat(unit: GameUnit, stat: str, db: Session) -> int:
+    stat = normalize_stat_name(stat)
+    effective = compute_effective_stats(unit, db)
+    boosted_value = int(effective.get(stat, 0) or 0)
+    if boosted_value <= 0:
+        return boosted_value
+    stage_multiplier = get_stat_multiplier(unit.stat_boosts, stat)
+    if stage_multiplier <= 0:
+        return boosted_value
+    return max(1, int(boosted_value / stage_multiplier))
+
+
+def resolve_move_type_from_held_item(attacker: GameUnit, item_category: str) -> str | None:
+    held_item = str(get_unit_held_item(attacker) or "").lower()
+    if not held_item:
+        return None
+    category = str(item_category or "").lower()
+    if category == "mask":
+        for slug, move_type in HELD_ITEM_MASK_TYPE_MAP.items():
+            if slug in held_item:
+                return move_type
+    return None
+
+
+def resolve_power_add(move: Move, attacker: GameUnit) -> int:
+    bonus = 0
+    if not move or not isinstance(move.effects, list):
+        return bonus
+
+    base_power = int(move.power or 0)
+    flags = get_unit_flags(attacker)
+
+    for effect in move.effects:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) < 3 or parts[0] != "power_add":
+            continue
+
+        try:
+            per_unit = int(parts[2])
+        except ValueError:
+            continue
+
+        if parts[1] == "times_hit":
+            hits = int(flags.get("times_hit", 0) or 0)
+            bonus += hits * per_unit
+            if len(parts) >= 4:
+                try:
+                    power_cap = int(parts[3])
+                    bonus = min(bonus, max(0, power_cap - base_power))
+                except ValueError:
+                    pass
+        elif parts[1] == "allies_defeated_since_turn":
+            defeated = int(flags.get("allies_defeated_since_turn", 0) or 0)
+            bonus += defeated * per_unit
+
+    return max(0, bonus)
+
+
+def resolve_weather_move_multiplier_for_move(
+    move: Move,
+    move_type: str | None,
+    weather_id: int,
+) -> float:
+    if move and isinstance(move.effects, list):
+        for effect in move.effects:
+            parts = str(effect or "").strip().lower().split(":")
+            if len(parts) >= 4 and parts[0] == "weather_override" and weather_condition_matches(weather_id, parts[1]):
+                try:
+                    return float(parts[2])
+                except ValueError:
+                    continue
+    return get_weather_move_multiplier(move_type, weather_id)
+
+
+def faint_unit_in_place(unit: GameUnit, db: Session) -> None:
+    unit.is_fainted = True
+    unit.current_hp = 0
+    unit.can_move = False
+    unit.current_x = -1
+    unit.current_y = -1
+    increment_allies_defeated_since_turn(unit, db)
+    db.add(unit)
 
 
 def normalize_timed_tile_cell(cell) -> list[int]:
@@ -580,6 +743,7 @@ def resolve_move_type_for_execution(
     move: Move,
     attacker: GameUnit,
     terrain_tiles: list | None,
+    db: Session | None = None,
 ) -> str:
     move_type = str(move.type or "Normal")
     if move_has_effect_token(move, "self:modify_move_type_by_terrain"):
@@ -593,6 +757,14 @@ def resolve_move_type_for_execution(
         }
         if mapped in type_map:
             return type_map[mapped]
+
+    for effect in move.effects or []:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 3 and parts[0] == "self" and parts[1] == "modify_move_type_by_held_item":
+            mapped_type = resolve_move_type_from_held_item(attacker, parts[2])
+            if mapped_type:
+                return mapped_type
+
     return move_type
 
 
@@ -602,6 +774,9 @@ def resolve_power_multiplier(
     target: GameUnit | None,
     terrain_tiles: list | None,
     field_effect_tiles: list | None,
+    db: Session,
+    *,
+    weather_tiles: list | None = None,
 ) -> float:
     multiplier = 1.0
     if not move or not isinstance(move.effects, list):
@@ -662,6 +837,37 @@ def resolve_power_multiplier(
             except ValueError:
                 continue
             if target is not None and unit_has_status_condition(target):
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "super_effective":
+            if target is None:
+                continue
+            move_type = str(move.type or "Normal")
+            target_types = list(getattr(target.unit, "types", None) or [])
+            if not target_types:
+                target_types = list(get_unit_types(target, db))
+            type_multiplier = get_type_multiplier(move_type, (target_types, target, db))
+            try:
+                factor = float(parts[2])
+            except ValueError:
+                continue
+            if type_multiplier > 1.0:
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "chance":
+            try:
+                chance = int(parts[2])
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            if random.randint(1, 100) <= chance:
+                multiplier *= factor
+        elif len(parts) >= 4 and parts[1] == "weather":
+            weather_name = parts[2]
+            try:
+                factor = float(parts[3])
+            except ValueError:
+                continue
+            attacker_weather_id = get_unit_weather_id(attacker, weather_tiles)
+            if weather_condition_matches(attacker_weather_id, weather_name):
                 multiplier *= factor
 
     return multiplier
@@ -796,6 +1002,7 @@ def validate_move_execution(
     attacker: GameUnit,
     targets: List[GameUnit],
     terrain_tiles: list | None,
+    db: Session,
 ) -> str | None:
     if move_requires_attacker_berry(move) and not unit_holds_item_type(attacker, "berry"):
         return "It doesn't have a Berry to eat"
@@ -811,6 +1018,39 @@ def validate_move_execution(
             return "But it failed"
         if any(get_unit_terrain_id(target, terrain_tiles) <= 0 for target in targets):
             return "But it failed"
+
+    attacker_types = get_unit_types(attacker, db)
+    for effect in move.effects or []:
+        parts = str(effect or "").strip().lower().split(":")
+        if len(parts) >= 3 and parts[0] == "requires" and parts[1] == "type":
+            required_type = parts[2]
+            if required_type not in attacker_types:
+                return "But it failed"
+        if str(effect or "").strip().lower() == "requires:last_damage_attacker":
+            flags = get_unit_flags(attacker)
+            last_attacker_id = flags.get("last_damage_attacker_id")
+            if last_attacker_id is None:
+                return "But it failed"
+            try:
+                last_attacker_id = int(last_attacker_id)
+            except (TypeError, ValueError):
+                return "But it failed"
+            last_attacker = db.query(GameUnit).filter(GameUnit.id == last_attacker_id).first()
+            if last_attacker is None or int(last_attacker.current_hp or 0) <= 0:
+                return "But it failed"
+        if len(parts) >= 2 and parts[0] == "fail_if":
+            if parts[1] == "below_half_hp":
+                max_hp = int((attacker.current_stats or {}).get("hp", attacker.current_hp or 0) or 0)
+                if max_hp > 0 and int(attacker.current_hp or 0) < (max_hp // 2):
+                    return "But it failed"
+            elif parts[1] == "stats_at_max" and len(parts) >= 3:
+                stat_names = [normalize_stat_name(token) for token in parts[2].split(",") if token.strip()]
+                if stat_names and all(get_stat_stage(attacker.stat_boosts, stat) >= 6 for stat in stat_names):
+                    return "But it failed"
+        if move_has_revive_effect(move):
+            att_state = normalize_states(attacker.states)
+            if att_state and att_state[0] == "heal_block" and int(att_state[1]) > 0:
+                return "But it failed"
 
     return None
 
@@ -947,6 +1187,85 @@ def try_add_hazard_stack(hazard_entries: list[list[int]], hazard_id: int, durati
 
     hazard_entries.append([hazard_id, duration_turns])
     return True
+
+
+def clear_hazards_on_tiles(map_state: "GameMapState", affected_tiles: list[tuple[int, int]], db: Session) -> bool:
+    if map_state is None or not isinstance(map_state.hazard_tiles, list):
+        return False
+
+    changed = False
+    for tx, ty in affected_tiles:
+        if ty < 0 or tx < 0 or ty >= len(map_state.hazard_tiles):
+            continue
+        row = map_state.hazard_tiles[ty]
+        if not isinstance(row, list) or tx >= len(row):
+            continue
+        if normalize_hazard_cell(row[tx]):
+            row[tx] = []
+            changed = True
+
+    if changed:
+        db.add(map_state)
+    return changed
+
+
+def clear_substitutes_on_tiles(
+    game_id: int,
+    affected_tiles: list[tuple[int, int]],
+    db: Session,
+    *,
+    game: "Game | None" = None,
+    game_state: "GameState | None" = None,
+) -> bool:
+    tile_set = set(affected_tiles)
+    if not tile_set:
+        return False
+
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    changed = False
+    for unit in units:
+        if int(unit.current_x) < 0 or int(unit.current_y) < 0:
+            continue
+        if (int(unit.current_x), int(unit.current_y)) not in tile_set:
+            continue
+        state = normalize_states(unit.states)
+        if state and str(state[0]).lower() == "substitute" and int(state[1]) > 0:
+            unit.states = []
+            db.add(unit)
+            changed = True
+            if game and game_state:
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(unit, db)}'s substitute was removed",
+                    game_state,
+                    db,
+                )
+    return changed
+
+
+def find_revival_placement_tile(attacker: GameUnit, map_obj: Map, db: Session, *, pulse: int = 3) -> tuple[int, int] | None:
+    width = int(getattr(map_obj, "width", 0) or 0)
+    height = int(getattr(map_obj, "height", 0) or 0)
+    if width <= 0 or height <= 0:
+        return None
+
+    origin_x = int(attacker.current_x)
+    origin_y = int(attacker.current_y)
+    affected_tiles = get_pulse_tiles_backend(origin_x, origin_y, pulse, width, height)
+    occupied = {
+        (int(unit.current_x), int(unit.current_y))
+        for unit in db.query(GameUnit).filter(
+            GameUnit.game_id == attacker.game_id,
+            GameUnit.is_fainted == False,
+            GameUnit.current_hp > 0,
+        ).all()
+        if int(unit.current_x) >= 0 and int(unit.current_y) >= 0
+    }
+
+    for tile in affected_tiles:
+        if tile not in occupied:
+            return tile
+    return None
 
 
 def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> int:
@@ -1108,7 +1427,12 @@ def get_move_affected_tiles(move: Move, attacker: GameUnit, width: int, height: 
     return []
 
 
-def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
+def get_type_multiplier(
+    move_type: str,
+    defender_types: List[str],
+    *,
+    ignore_fairy_immunity: bool = False,
+) -> float:
     # Backwards-compatible signature: accept optional defender unit by passing as third arg
     defender_unit = None
     db = None
@@ -1131,25 +1455,28 @@ def get_type_multiplier(move_type: str, defender_types: List[str]) -> float:
         key = str(dtype).lower()
         # Handle immunities; certain states (foresight/mind_reader) can bypass them
         if key in chart.get("immune", []):
-            try:
-                # If defender_unit supplied and has foresight/mind_reader, ignore specific immunities
-                if defender_unit is not None:
-                    s = normalize_states(defender_unit.states)
-                    if s and int(s[1]) > 0:
-                        state_name = s[0]
-                        if state_name == "foresight" and str(move_type).lower() in {"normal", "fighting"}:
-                            # bypass immunity
-                            pass
-                        elif state_name == "mind_reader" and str(move_type).lower() == "psychic":
-                            pass
+            if ignore_fairy_immunity and key == "fairy" and str(move_type).lower() == "dragon":
+                pass
+            else:
+                try:
+                    # If defender_unit supplied and has foresight/mind_reader, ignore specific immunities
+                    if defender_unit is not None:
+                        s = normalize_states(defender_unit.states)
+                        if s and int(s[1]) > 0:
+                            state_name = s[0]
+                            if state_name == "foresight" and str(move_type).lower() in {"normal", "fighting"}:
+                                # bypass immunity
+                                pass
+                            elif state_name == "mind_reader" and str(move_type).lower() == "psychic":
+                                pass
+                            else:
+                                return 0
                         else:
                             return 0
                     else:
                         return 0
-                else:
+                except Exception:
                     return 0
-            except Exception:
-                return 0
         if key in chart.get("weak", []):
             multiplier *= 2
         elif key in chart.get("resist", []):
@@ -1399,6 +1726,10 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
         unit.states = [state_name, random.randint(2, 5)]
     elif state_name == "flinch":
         unit.states = [state_name, 1]
+    elif state_name == "glaive_rush":
+        unit.states = [state_name, 1]
+    elif state_name == "substitute":
+        unit.states = [state_name, 9999]
     db.add(unit)
     return True
 
@@ -1582,6 +1913,9 @@ def matches_effect_condition(unit: GameUnit, condition: str, value: str, db: Ses
     if condition_name == "stat_boosted":
         return unit_has_positive_stat_stage(unit)
 
+    if condition_name == "stat_raised_since_turn":
+        return unit_stats_raised_since_turn_start(unit)
+
     return False
 
 
@@ -1737,6 +2071,9 @@ def move_lands_on_target(
     True if move lands on target based on modified accuracy threshold.
     If move has no accuracy (null), it is treated as perfect accuracy.
     """
+    if unit_has_glaive_rush(target):
+        return True
+
     threshold = get_modified_accuracy_threshold(
         resolve_move_accuracy(move, target, weather_tiles),
         attacker,
@@ -1853,6 +2190,21 @@ def compute_fixed_damage_effect(effect_str: str, attacker: GameUnit, target: Gam
         raw_damage = target_hp // denominator
         if target_hp > 0:
             raw_damage = max(1, raw_damage)
+    elif effect_mode == "last_damage_received":
+        if len(parts) < 4:
+            return 0
+        try:
+            multiplier = float(parts[3])
+        except ValueError:
+            return 0
+        flags = get_unit_flags(attacker)
+        try:
+            last_damage = int(flags.get("last_damage_amount", 0) or 0)
+        except (TypeError, ValueError):
+            last_damage = 0
+        if last_damage <= 0:
+            return 0
+        raw_damage = max(1, int(last_damage * multiplier))
     else:
         try:
             raw_damage = max(0, int(effect_mode))
@@ -1903,6 +2255,7 @@ def apply_fixed_damage_move_effects(
 
             target.current_hp = max(0, int(target.current_hp or 0) - damage)
             total_damage += damage
+            record_last_damage_received(target, attacker, damage, db)
 
         db.add(target)
         damage_results.append({"id": target.id, "damage": total_damage, "current_hp": target.current_hp})
@@ -2375,6 +2728,86 @@ def process_move_effects(
             db.add(map_state)
             continue
 
+        if parts[0] == "field" and parts[1].lower() == "clear_hazards":
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = (
+                db.query(GameMapState)
+                .options(joinedload(GameMapState.map))
+                .filter(GameMapState.game_id == game.id)
+                .first()
+            )
+            if map_state is None:
+                continue
+
+            map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            height = int(getattr(map_obj, "height", 0) or 0)
+            width = int(getattr(map_obj, "width", 0) or 0)
+            if height <= 0 or width <= 0:
+                continue
+
+            if affected_tiles_override:
+                affected_tiles = list(affected_tiles_override)
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+
+            if clear_hazards_on_tiles(map_state, affected_tiles, db) and game and game_state:
+                publish_system_log_event(game.link, "Hazards were cleared from the area", game_state, db)
+            continue
+
+        if parts[0] == "field" and parts[1].lower() == "clear_substitutes":
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_obj = db.query(Map).filter_by(id=game.map_id).first()
+            if not map_obj:
+                continue
+
+            width = int(getattr(map_obj, "width", 0) or 0)
+            height = int(getattr(map_obj, "height", 0) or 0)
+            if width <= 0 or height <= 0:
+                continue
+
+            if affected_tiles_override:
+                affected_tiles = list(affected_tiles_override)
+            else:
+                affected_tiles = get_move_affected_tiles(move, attacker, width, height)
+
+            clear_substitutes_on_tiles(game_id, affected_tiles, db, game=game, game_state=game_state)
+            continue
+
+        if parts[0] == "self" and parts[1].lower() == "clear_hazards":
+            game_id = getattr(attacker, "game_id", None)
+            if not isinstance(game_id, int):
+                continue
+
+            game = db.query(Game).filter(Game.id == game_id).first()
+            if not game:
+                continue
+
+            map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+            if map_state is None:
+                continue
+
+            tx = int(attacker.current_x)
+            ty = int(attacker.current_y)
+            clear_hazards_on_tiles(map_state, [(tx, ty)], db)
+            continue
+
         # Field tailwind: apply tailwind to the attacker's side
         if parts[0] == "field" and parts[1].lower() == "tailwind":
             game_id = getattr(attacker, "game_id", None)
@@ -2589,6 +3022,134 @@ def process_move_effects(
                         accuracy = int(parts[7])
                     except ValueError:
                         pass
+            elif len(parts) >= 7 and parts[2] == "condition" and parts[3].lower() == "is_type":
+                condition_value = parts[4]
+                stat_name = normalize_stat_name(parts[5])
+                try:
+                    magnitude_val = int(parts[6])
+                except ValueError:
+                    continue
+
+                if len(parts) >= 8:
+                    try:
+                        accuracy = int(parts[7])
+                    except ValueError:
+                        pass
+
+                if recipient == "self":
+                    if not matches_effect_condition(attacker, "type", condition_value, db):
+                        continue
+                elif recipient == "target":
+                    if not targets:
+                        continue
+                    filtered_targets = [
+                        target for target in targets
+                        if matches_effect_condition(target, "type", condition_value, db)
+                    ]
+                    if not filtered_targets:
+                        continue
+                    targets_for_effect = filtered_targets
+                else:
+                    continue
+
+                if random.randint(1, 100) > accuracy:
+                    continue
+
+                magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
+                target_stats = ALL_STAT_EFFECT_KEYS if stat_name == "all" else [stat_name]
+
+                if recipient == "self":
+                    for target_stat in target_stats:
+                        before_stage = get_stat_stage(attacker.stat_boosts, target_stat)
+                        apply_stat_change(attacker, target_stat, magnitude, current_turn, db)
+                        after_stage = get_stat_stage(attacker.stat_boosts, target_stat)
+                        if game and game_state:
+                            outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                            publish_system_log_event(
+                                game.link,
+                                f"{get_unit_display_name(attacker, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                                game_state,
+                                db,
+                            )
+                elif recipient == "target":
+                    for target in targets_for_effect:
+                        for target_stat in target_stats:
+                            before_stage = get_stat_stage(target.stat_boosts, target_stat)
+                            apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                            after_stage = get_stat_stage(target.stat_boosts, target_stat)
+                            if game and game_state:
+                                outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                                publish_system_log_event(
+                                    game.link,
+                                    f"{get_unit_display_name(target, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                                    game_state,
+                                    db,
+                                )
+                continue
+            elif len(parts) >= 7 and parts[2] == "condition" and parts[3].lower() == "not_type":
+                condition_value = parts[4]
+                stat_name = normalize_stat_name(parts[5])
+                try:
+                    magnitude_val = int(parts[6])
+                except ValueError:
+                    continue
+
+                if len(parts) >= 8:
+                    try:
+                        accuracy = int(parts[7])
+                    except ValueError:
+                        pass
+
+                if recipient == "self":
+                    if not matches_effect_condition(attacker, "not_type", condition_value, db):
+                        continue
+                elif recipient == "target":
+                    if not targets:
+                        continue
+                    filtered_targets = [
+                        target for target in targets
+                        if matches_effect_condition(target, "not_type", condition_value, db)
+                    ]
+                    if not filtered_targets:
+                        continue
+                    targets_for_effect = filtered_targets
+                else:
+                    continue
+
+                if random.randint(1, 100) > accuracy:
+                    continue
+
+                magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
+                target_stats = ALL_STAT_EFFECT_KEYS if stat_name == "all" else [stat_name]
+
+                if recipient == "self":
+                    for target_stat in target_stats:
+                        before_stage = get_stat_stage(attacker.stat_boosts, target_stat)
+                        apply_stat_change(attacker, target_stat, magnitude, current_turn, db)
+                        after_stage = get_stat_stage(attacker.stat_boosts, target_stat)
+                        if game and game_state:
+                            outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                            publish_system_log_event(
+                                game.link,
+                                f"{get_unit_display_name(attacker, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                                game_state,
+                                db,
+                            )
+                elif recipient == "target":
+                    for target in targets_for_effect:
+                        for target_stat in target_stats:
+                            before_stage = get_stat_stage(target.stat_boosts, target_stat)
+                            apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                            after_stage = get_stat_stage(target.stat_boosts, target_stat)
+                            if game and game_state:
+                                outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
+                                publish_system_log_event(
+                                    game.link,
+                                    f"{get_unit_display_name(target, db)}'s {format_stat_log_label(target_stat)} {outcome_phrase}",
+                                    game_state,
+                                    db,
+                                )
+                continue
             else:
                 if len(parts) < 4:
                     continue
@@ -2899,7 +3460,19 @@ def process_move_effects(
 
             state_name = parts[2]
             accuracy = 100
-            if len(parts) >= 4:
+            condition_type = None
+            condition_value = None
+
+            if state_name == "condition" and len(parts) >= 6:
+                condition_type = parts[3]
+                condition_value = parts[4]
+                state_name = parts[5]
+                if len(parts) >= 7:
+                    try:
+                        accuracy = int(parts[6])
+                    except ValueError:
+                        pass
+            elif len(parts) >= 4:
                 try:
                     accuracy = int(parts[3])
                 except ValueError:
@@ -2909,6 +3482,8 @@ def process_move_effects(
                 continue
 
             if recipient == "self":
+                if condition_type and not matches_effect_condition(attacker, condition_type, condition_value, db):
+                    continue
                 applied = apply_state_effect(attacker, state_name, db)
                 if applied and game and game_state:
                     publish_system_log_event(
@@ -2940,6 +3515,9 @@ def process_move_effects(
 
                 for target in targets:
                     if (target.current_hp or 0) <= 0:
+                        continue
+
+                    if condition_type and not matches_effect_condition(target, condition_type, condition_value, db):
                         continue
 
                     # Prevent confusion from being applied to Safeguard-protected targets
@@ -3010,6 +3588,72 @@ def process_move_effects(
                             game_state,
                             db,
                         )
+
+        elif effect_type == "copy_ability":
+            if len(parts) < 3:
+                continue
+
+            source_ref = parts[2]
+            if source_ref == "target":
+                if not targets:
+                    continue
+                source_unit = targets[0]
+            elif source_ref == "self":
+                source_unit = attacker
+            else:
+                continue
+
+            if is_ability_suppressed(source_unit):
+                continue
+
+            source_ability_id = get_unit_ability_id(source_unit)
+            if source_ability_id is None:
+                continue
+
+            recipients: list[GameUnit] = []
+            if recipient == "self":
+                recipients = [attacker]
+            elif recipient == "target":
+                recipients = [target for target in targets if (target.current_hp or 0) > 0]
+            elif recipient == "ally":
+                game_id = getattr(attacker, "game_id", None)
+                user_id = getattr(attacker, "user_id", None)
+                if not isinstance(game_id, int) or not isinstance(user_id, int):
+                    continue
+                try:
+                    ally_units = (
+                        db.query(GameUnit)
+                        .filter(GameUnit.game_id == game_id, GameUnit.user_id == user_id)
+                        .all()
+                    )
+                except Exception:
+                    ally_units = []
+                map_obj_local = None
+                if game is not None:
+                    map_obj_local = db.query(Map).filter_by(id=game.map_id).first()
+                if map_obj_local is None:
+                    continue
+                width = int(getattr(map_obj_local, "width", 0) or 0)
+                height = int(getattr(map_obj_local, "height", 0) or 0)
+                tile_set = set(get_move_affected_tiles(move, attacker, width, height))
+                recipients = [
+                    ally
+                    for ally in ally_units
+                    if (ally.current_hp or 0) > 0
+                    and (int(ally.current_x), int(ally.current_y)) in tile_set
+                ]
+
+            for unit in recipients:
+                set_unit_ability_id(unit, source_ability_id, db)
+                attach_game_unit_loadout_fields(unit, db)
+                if game and game_state:
+                    ability_name = resolve_ability_name(source_ability_id, db) or "ability"
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(unit, db)} copied {ability_name}",
+                        game_state,
+                        db,
+                    )
 
         elif effect_type == "defog":
             # Clear reflect/light_screen from target's side (target:defog)
@@ -3223,6 +3867,104 @@ def process_move_effects(
                     target.stat_boosts = default_stat_boosts()
                     target.current_stats = compute_effective_stats(target, db)
                     db.add(target)
+
+        elif effect_type == "give_cash":
+            if len(parts) < 3 or recipient != "target":
+                continue
+            try:
+                cash_amount = int(parts[2])
+            except ValueError:
+                continue
+            if cash_amount <= 0:
+                continue
+
+            for target in targets:
+                player_state = (
+                    db.query(GamePlayer)
+                    .filter_by(game_id=target.game_id, player_id=target.user_id)
+                    .first()
+                )
+                if player_state is None:
+                    continue
+                player_state.cash_remaining = int(player_state.cash_remaining or 0) + cash_amount
+                db.add(player_state)
+                if game and game_state:
+                    username = get_username_by_id(target.user_id, db)
+                    publish_system_log_event(
+                        game.link,
+                        f"{username} received {cash_amount} money",
+                        game_state,
+                        db,
+                    )
+
+        elif effect_type == "revive":
+            if len(parts) < 3 or recipient != "target":
+                continue
+            try:
+                hp_denominator = int(parts[2])
+                if hp_denominator <= 0:
+                    continue
+            except ValueError:
+                continue
+
+            att_state = normalize_states(attacker.states)
+            if att_state and att_state[0] == "heal_block" and int(att_state[1]) > 0:
+                if game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(attacker, db)} can't heal due to Heal Block",
+                        game_state,
+                        db,
+                    )
+                continue
+
+            map_obj = db.query(Map).filter_by(id=game.map_id).first() if game else None
+            if map_obj is None:
+                continue
+
+            for target in targets:
+                if not target.is_fainted and int(target.current_hp or 0) > 0:
+                    continue
+                if target.user_id != attacker.user_id:
+                    continue
+
+                placement = find_revival_placement_tile(attacker, map_obj, db)
+                if placement is None:
+                    if game and game_state:
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(target, db)} couldn't be revived",
+                            game_state,
+                            db,
+                        )
+                    continue
+
+                max_hp = int((target.current_stats or {}).get("hp", 1) or 1)
+                restored_hp = max(1, max_hp // hp_denominator)
+                target.is_fainted = False
+                target.current_hp = restored_hp
+                target.can_move = True
+                target.current_x, target.current_y = placement
+                target.starting_x, target.starting_y = placement
+                target.current_stats = compute_effective_stats(target, db)
+                db.add(target)
+
+                player_state = (
+                    db.query(GamePlayer)
+                    .filter_by(game_id=target.game_id, player_id=target.user_id)
+                    .first()
+                )
+                if player_state is not None and target.id not in (player_state.game_units or []):
+                    player_state.game_units = list(player_state.game_units or []) + [target.id]
+                    db.add(player_state)
+
+                if game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)} was revived with {restored_hp} HP",
+                        game_state,
+                        db,
+                    )
 
         elif effect_type == "instant_ko":
             if recipient == "self":
@@ -3967,6 +4709,7 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
         .filter(
             GameUnit.game_id == game_id,
             GameUnit.current_hp <= 0,
+            GameUnit.is_fainted == False,
         )
         .all()
     )
@@ -3975,14 +4718,9 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
 
     game = db.query(Game).filter(Game.id == game_id).first()
     game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
-    units_by_player: dict[int, int] = {}
-    all_units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
-    for gu in all_units:
-        units_by_player[gu.user_id] = units_by_player.get(gu.user_id, 0) + 1
 
     removed_ids: list[int] = []
     for unit in fainted_units:
-        unit.is_fainted = True
         if game:
             publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", game_state, db)
 
@@ -3991,18 +4729,21 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
             player_state.game_units.remove(unit.id)
             db.add(player_state)
 
-        units_by_player[unit.user_id] = max(0, units_by_player.get(unit.user_id, 0) - 1)
-        if game and units_by_player.get(unit.user_id, 0) == 0:
-            username = get_username_by_id(unit.user_id, db)
-            publish_system_log_event(
-                game.link,
-                f"{username} has no more units and is unable to battle!",
-                game_state,
-                db,
-            )
-
+        faint_unit_in_place(unit, db)
         removed_ids.append(unit.id)
-        db.delete(unit)
+
+    active_counts = get_remaining_unit_counts(game_id, db)
+    if game:
+        affected_users = {unit.user_id for unit in fainted_units}
+        for user_id in affected_users:
+            if active_counts.get(user_id, 0) == 0:
+                username = get_username_by_id(user_id, db)
+                publish_system_log_event(
+                    game.link,
+                    f"{username} has no more units and is unable to battle!",
+                    game_state,
+                    db,
+                )
 
     return removed_ids
 
@@ -4010,6 +4751,8 @@ def get_remaining_unit_counts(game_id: int, db: Session) -> dict:
     counts: dict[int, int] = {}
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
     for unit in units:
+        if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+            continue
         counts[unit.user_id] = counts.get(unit.user_id, 0) + 1
     return counts
 
@@ -4018,7 +4761,11 @@ def get_playable_player_ids_in_order(state: GameState, game_id: int, db: Session
     player_order = list(state.players or [])
     alive_player_rows = (
         db.query(GameUnit.user_id)
-        .filter(GameUnit.game_id == game_id)
+        .filter(
+            GameUnit.game_id == game_id,
+            GameUnit.is_fainted == False,
+            GameUnit.current_hp > 0,
+        )
         .distinct()
         .all()
     )
@@ -4302,6 +5049,7 @@ def serialize_game_response(game: Game, db: Session) -> GameResponse:
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
         turn_seconds=game.turn_seconds,
+        start_with_tms=game.start_with_tms,
         turn_deadline=game_state.turn_deadline,
         replay_log=game_state.replay_log,
         link=game.link,
@@ -4586,6 +5334,7 @@ def create_game(
         max_turns=data.max_turns,
         unit_limit=data.unit_limit,
         turn_seconds=data.turn_seconds or 300,
+        start_with_tms=data.start_with_tms,
     )
     db.add(new_game)
     db.flush()
@@ -4654,6 +5403,7 @@ def create_game(
         max_turns=new_game.max_turns,
         unit_limit=new_game.unit_limit,
         turn_seconds=new_game.turn_seconds,
+        start_with_tms=new_game.start_with_tms,
         replay_log=game_state.replay_log,
         link=new_game.link,
         timestamp=new_game.timestamp
@@ -4734,6 +5484,7 @@ def join_game(
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
         turn_seconds=game.turn_seconds,
+        start_with_tms=game.start_with_tms,
         replay_log=game_state.replay_log,
         link=game.link,
         timestamp=game.timestamp
@@ -4901,6 +5652,7 @@ def get_game_by_link(
         max_turns=game.max_turns,
         unit_limit=game.unit_limit,
         turn_seconds=game.turn_seconds,
+        start_with_tms=game.start_with_tms,
         replay_log=game_state.replay_log,
         link=game.link,
         timestamp=game.timestamp
@@ -5160,6 +5912,9 @@ def change_unit_item(
     new_item = db.query(Item).filter_by(id=payload.item_id).first()
     if not new_item:
         raise HTTPException(status_code=404, detail="Item not found")
+
+    if not preparation_item_allowed(new_item, game):
+        raise HTTPException(status_code=400, detail="TM items are not enabled for this game")
 
     old_slug = get_unit_held_item(unit)
     if old_slug == new_item.slug:
@@ -5618,7 +6373,10 @@ def execute_move(
         for ally in ally_units:
             if ally.id in known_target_ids:
                 continue
-            if (ally.current_hp or 0) <= 0:
+            if move_has_revive_effect(move):
+                if not ally.is_fainted and int(ally.current_hp or 0) > 0:
+                    continue
+            elif (ally.current_hp or 0) <= 0:
                 continue
             if (int(ally.current_x), int(ally.current_y)) in tile_set:
                 targets.append(ally)
@@ -5651,7 +6409,22 @@ def execute_move(
     if is_field_targeting:
         targets = []
 
-    move_failure = validate_move_execution(move, gu, targets, terrain_tiles)
+    if move_has_effect_token(move, "target:fixed_damage:last_damage_received"):
+        flags = get_unit_flags(gu)
+        last_attacker_id = flags.get("last_damage_attacker_id")
+        if last_attacker_id is not None:
+            try:
+                last_attacker = (
+                    db.query(GameUnit)
+                    .filter(GameUnit.game_id == game.id, GameUnit.id == int(last_attacker_id))
+                    .first()
+                )
+            except (TypeError, ValueError):
+                last_attacker = None
+            if last_attacker is not None and int(last_attacker.current_hp or 0) > 0:
+                targets = [last_attacker]
+
+    move_failure = validate_move_execution(move, gu, targets, terrain_tiles, db)
     if move_failure:
         publish_system_log_event(game.link, move_failure, state, db)
         db.commit()
@@ -5764,17 +6537,19 @@ def execute_move(
     elif landed_targets and move_deals_direct_damage(move):
         can_critical_hit = move_can_critical_hit(move)
         guaranteed_crit = move_has_effect_token(move, "guaranteed_crit")
-        effective_move_type = resolve_move_type_for_execution(move, gu, terrain_tiles)
+        effective_move_type = resolve_move_type_for_execution(move, gu, terrain_tiles, db)
         category = (move.category or "").lower()
         is_special = category == "special"
         attack_stat = "sp_attack" if is_special else "attack"
         defense_stat = "sp_defense" if is_special else "defense"
         move_crit_stage_bonus = 1 if move_has_high_crit_ratio(move) else 0
-        base_power = move.power or 0
+        base_power = (move.power or 0) + resolve_power_add(move, gu)
         attacker_types = gu.unit.types or []
         stab = 1.5 if effective_move_type in attacker_types else 1
         attacker_weather_id = get_unit_weather_id(gu, weather_tiles)
-        weather_move_multiplier = get_weather_move_multiplier(effective_move_type, attacker_weather_id)
+        weather_move_multiplier = resolve_weather_move_multiplier_for_move(move, effective_move_type, attacker_weather_id)
+        ignore_target_stats = move_ignores_target_stat_changes(move)
+        ignore_fairy = move_ignores_fairy_immunity(move)
 
         for target in landed_targets:
             total_damage = 0
@@ -5795,7 +6570,15 @@ def execute_move(
                 attack_stat = "sp_attack" if target_is_special else "attack"
                 defense_stat = "sp_defense" if target_is_special else "defense"
 
-            power_multiplier = resolve_power_multiplier(move, gu, target, terrain_tiles, field_effect_tiles)
+            power_multiplier = resolve_power_multiplier(
+                move,
+                gu,
+                target,
+                terrain_tiles,
+                field_effect_tiles,
+                db,
+                weather_tiles=weather_tiles,
+            )
             hit_powers = scaling_hit_powers or [base_power]
             hits_to_apply = len(hit_powers) if scaling_hit_powers else max(1, int(hit_count or 1))
             # Check if attacker has Laser Focus active; it should make the first hit a guaranteed critical
@@ -5823,8 +6606,12 @@ def execute_move(
                         break
 
                 power = int((hit_powers[hit_index] if hit_index < len(hit_powers) else base_power) * power_multiplier)
+                power = max(1, power)
                 attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
-                defense = (target.current_stats or {}).get(defense_stat, 1) or 1
+                if ignore_target_stats:
+                    defense = get_unboosted_battle_stat(target, defense_stat, db)
+                else:
+                    defense = (target.current_stats or {}).get(defense_stat, 1) or 1
                 for effect in move.effects or []:
                     parts = str(effect or "").strip().lower().split(":")
                     if len(parts) < 3 or parts[1] != "use_stat":
@@ -5889,6 +6676,7 @@ def execute_move(
                 type_multiplier = get_type_multiplier(
                     effective_move_type,
                     (getattr(target.unit, "types", None) or [], target, db),
+                    ignore_fairy_immunity=ignore_fairy,
                 )
                 # Tar Shot: doubles effectiveness of Fire-type moves against affected target
                 try:
@@ -5899,6 +6687,8 @@ def execute_move(
                     type_multiplier = type_multiplier * 2
                 base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
                 damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
+                if unit_has_glaive_rush(target):
+                    damage *= 2
                 # Apply side-wide screen reductions: Reflect halves physical damage,
                 # Light Screen halves special damage for affected player's side.
                 try:
@@ -5917,6 +6707,7 @@ def execute_move(
 
                 target.current_hp = max(0, (target.current_hp or 0) - damage)
                 total_damage += damage
+                record_last_damage_received(target, gu, damage, db)
                 first_hit = False
 
             if move_has_effect_token(move, "destroy_terrain:target") and map_state is not None:
@@ -5997,12 +6788,13 @@ def execute_move(
             .filter(GameUnit.game_id == game.id, GameUnit.id.in_(removed_ids))
             .all()
         )
-        units_by_player: dict[int, int] = {}
-        for unit in db.query(GameUnit).filter(GameUnit.game_id == game.id).all():
-            units_by_player[unit.user_id] = units_by_player.get(unit.user_id, 0) + 1
 
         removed_ids = [unit.id for unit in removed_units]
         for unit in removed_units:
+            if unit.is_fainted:
+                continue
+            if int(unit.current_hp or 0) > 0:
+                continue
             if unit.id not in faint_logged_ids:
                 publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", state, db)
 
@@ -6011,21 +6803,23 @@ def execute_move(
                 player_state.game_units.remove(unit.id)
                 db.add(player_state)
 
-            units_by_player[unit.user_id] = max(0, units_by_player.get(unit.user_id, 0) - 1)
-            if units_by_player.get(unit.user_id, 0) == 0:
-                username = get_username_by_id(unit.user_id, db)
+            faint_unit_in_place(unit, db)
+
+        active_counts = get_remaining_unit_counts(game.id, db)
+        affected_users = {unit.user_id for unit in removed_units}
+        for user_id in affected_users:
+            if active_counts.get(user_id, 0) == 0:
+                username = get_username_by_id(user_id, db)
                 publish_system_log_event(
                     game.link,
                     f"{username} has no more units and is unable to battle!",
                     state,
                     db,
                 )
-            db.delete(unit)
 
     if removed_ids:
         db.flush()
-        remaining_units = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
-        remaining_players = {unit.user_id for unit in remaining_units}
+        remaining_players = set(get_remaining_unit_counts(game.id, db).keys())
         if len(remaining_players) == 1:
             state.status = GameStatus.completed
             state.winner_id = next(iter(remaining_players))

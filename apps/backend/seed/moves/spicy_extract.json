@@ -1,0 +1,21 @@
+{
+  "id": 858,
+  "name": "Spicy Extract",
+  "description": "The user emits an incredibly spicy extract, sharply boosting the target's Attack stat and harshly lowering the target's Defense stat",
+  "type": "Grass",
+  "category": "Status",
+  "pp": 15,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "effects": [
+    "self:raise_stat:attack:2",
+    "target:lower_stat:defense:2"
+  ]
+}

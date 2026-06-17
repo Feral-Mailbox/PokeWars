@@ -1,0 +1,9 @@
+{
+  "id": 279,
+  "name": "TM023",
+  "slug": "tm023",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Charge Beam.",
+  "move_id": 451
+}

@@ -1,0 +1,9 @@
+{
+  "id": 403,
+  "name": "TM147",
+  "slug": "tm147",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Wild Charge.",
+  "move_id": 528
+}

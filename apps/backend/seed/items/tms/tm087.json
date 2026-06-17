@@ -1,0 +1,9 @@
+{
+  "id": 343,
+  "name": "TM087",
+  "slug": "tm087",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Taunt.",
+  "move_id": 269
+}

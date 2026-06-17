@@ -1,0 +1,9 @@
+{
+  "id": 452,
+  "name": "TM196",
+  "slug": "tm196",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Flip Turn.",
+  "move_id": 812
+}

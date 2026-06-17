@@ -1,0 +1,9 @@
+{
+  "id": 397,
+  "name": "TM141",
+  "slug": "tm141",
+  "category": "tm",
+  "cost": 500,
+  "description": "Teaches Fire Blast.",
+  "move_id": 126
+}
