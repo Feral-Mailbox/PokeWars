@@ -18,10 +18,6 @@
     "speed": 65,
     "range": 3
   },
-  "move_ids": [
-    44,
-    189
-  ],
   "archetype": "brawler",
   "ability_ids": [
     22,
@@ -45,5 +41,123 @@
     "Noivern",
     "baronessfaron"
   ],
-  "hidden_ability": 83
+  "hidden_ability": 83,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 43
+    },
+    {
+      "level": 1,
+      "move_id": 681
+    },
+    {
+      "level": 3,
+      "move_id": 28
+    },
+    {
+      "level": 6,
+      "move_id": 468
+    },
+    {
+      "level": 9,
+      "move_id": 328
+    },
+    {
+      "level": 12,
+      "move_id": 184
+    },
+    {
+      "level": 15,
+      "move_id": 44
+    },
+    {
+      "level": 18,
+      "move_id": 259
+    },
+    {
+      "level": 21,
+      "move_id": 91
+    },
+    {
+      "level": 24,
+      "move_id": 207
+    },
+    {
+      "level": 27,
+      "move_id": 242
+    },
+    {
+      "level": 30,
+      "move_id": 201
+    },
+    {
+      "level": 33,
+      "move_id": 492
+    },
+    {
+      "level": 36,
+      "move_id": 89
+    },
+    {
+      "level": 39,
+      "move_id": 37
+    }
+  ],
+  "tm_moves": [
+    34,
+    36,
+    38,
+    46,
+    89,
+    91,
+    156,
+    157,
+    164,
+    168,
+    174,
+    180,
+    182,
+    184,
+    188,
+    189,
+    201,
+    203,
+    214,
+    242,
+    263,
+    269,
+    270,
+    280,
+    317,
+    328,
+    341,
+    374,
+    399,
+    414,
+    421,
+    422,
+    424,
+    444,
+    446,
+    447,
+    492,
+    523,
+    555,
+    707,
+    806,
+    808,
+    815,
+    851
+  ],
+  "egg_moves": [
+    38,
+    68,
+    180,
+    401
+  ],
+  "equipped_moves": [
+    44,
+    189
+  ]
 }

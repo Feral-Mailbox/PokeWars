@@ -19,6 +19,8 @@ export type PlacedUnitState = {
   move_pp: number[];
   held_item: string | null;
   held_item_slug: string | null;
+  held_tm_move_id: number | null;
+  equipped_move_ids: number[];
   ability: string | null;
   ability_id: number | null;
 };
@@ -52,6 +54,13 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     move_pp: Array.isArray(backendUnit.move_pp) ? backendUnit.move_pp.map(Number) : [],
     held_item: backendUnit.held_item ?? null,
     held_item_slug: backendUnit.held_item_slug ?? null,
+    held_tm_move_id:
+      backendUnit.held_tm_move_id != null
+        ? Number(backendUnit.held_tm_move_id)
+        : null,
+    equipped_move_ids: Array.isArray(backendUnit.equipped_move_ids)
+      ? backendUnit.equipped_move_ids.map(Number)
+      : [],
     ability: backendUnit.ability ?? null,
     ability_id:
       backendUnit.ability_id != null
@@ -65,4 +74,23 @@ export function toActiveUnitView(placed: PlacedUnitState): ActiveUnitView {
     ...placed,
     instanceId: placed.id,
   };
+}
+
+export function getUnitMoveIds(unitState: PlacedUnitState): number[] {
+  const baseMoveIds = unitState.equipped_move_ids ?? [];
+  const tmMoveId = unitState.held_tm_move_id;
+  if (tmMoveId == null || baseMoveIds.includes(tmMoveId)) {
+    return baseMoveIds;
+  }
+  return [...baseMoveIds, tmMoveId];
+}
+
+export function resolveMovePpIndex(unitState: PlacedUnitState, moveId: number): number {
+  const baseMoveIds = unitState.equipped_move_ids ?? [];
+  const baseIndex = baseMoveIds.indexOf(moveId);
+  if (baseIndex >= 0) return baseIndex;
+  if (unitState.held_tm_move_id === moveId) {
+    return baseMoveIds.length;
+  }
+  return -1;
 }

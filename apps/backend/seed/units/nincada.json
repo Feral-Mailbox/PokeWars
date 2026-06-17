@@ -18,10 +18,6 @@
     "speed": 40,
     "range": 4
   },
-  "move_ids": [
-    450,
-    28
-  ],
   "archetype": "scout",
   "ability_ids": [
     14
@@ -44,5 +40,78 @@
   "sprite_credits": [
     "CHUNSOFT"
   ],
-  "hidden_ability": 50
+  "hidden_ability": 50,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 10
+    },
+    {
+      "level": 1,
+      "move_id": 28
+    },
+    {
+      "level": 5,
+      "move_id": 106
+    },
+    {
+      "level": 10,
+      "move_id": 206
+    },
+    {
+      "level": 15,
+      "move_id": 189
+    },
+    {
+      "level": 21,
+      "move_id": 71
+    },
+    {
+      "level": 25,
+      "move_id": 232
+    },
+    {
+      "level": 30,
+      "move_id": 154
+    },
+    {
+      "level": 35,
+      "move_id": 170
+    },
+    {
+      "level": 40,
+      "move_id": 91
+    }
+  ],
+  "tm_moves": [
+    76,
+    91,
+    141,
+    156,
+    164,
+    173,
+    182,
+    201,
+    202,
+    203,
+    206,
+    214,
+    241,
+    247,
+    263,
+    404,
+    405,
+    496
+  ],
+  "egg_moves": [
+    16,
+    175,
+    400,
+    450,
+    515
+  ],
+  "equipped_moves": [
+    450,
+    28
+  ]
 }

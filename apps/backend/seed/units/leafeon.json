@@ -17,11 +17,6 @@
     "speed": 95,
     "range": 4
   },
-  "move_ids": [
-    348,
-    235,
-    92
-  ],
   "ability_ids": [
     102
   ],
@@ -43,5 +38,156 @@
     "CHUNSOFT",
     "baronessfaron"
   ],
-  "hidden_ability": 34
+  "hidden_ability": 34,
+  "level_up_moves": [
+    {
+      "level": 0,
+      "move_id": 75
+    },
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 1,
+      "move_id": 36
+    },
+    {
+      "level": 1,
+      "move_id": 38
+    },
+    {
+      "level": 1,
+      "move_id": 39
+    },
+    {
+      "level": 1,
+      "move_id": 44
+    },
+    {
+      "level": 1,
+      "move_id": 45
+    },
+    {
+      "level": 1,
+      "move_id": 129
+    },
+    {
+      "level": 1,
+      "move_id": 204
+    },
+    {
+      "level": 1,
+      "move_id": 226
+    },
+    {
+      "level": 1,
+      "move_id": 270
+    },
+    {
+      "level": 1,
+      "move_id": 343
+    },
+    {
+      "level": 1,
+      "move_id": 383
+    },
+    {
+      "level": 5,
+      "move_id": 28
+    },
+    {
+      "level": 10,
+      "move_id": 98
+    },
+    {
+      "level": 15,
+      "move_id": 608
+    },
+    {
+      "level": 20,
+      "move_id": 73
+    },
+    {
+      "level": 25,
+      "move_id": 345
+    },
+    {
+      "level": 30,
+      "move_id": 235
+    },
+    {
+      "level": 35,
+      "move_id": 241
+    },
+    {
+      "level": 40,
+      "move_id": 202
+    },
+    {
+      "level": 45,
+      "move_id": 14
+    },
+    {
+      "level": 50,
+      "move_id": 348
+    },
+    {
+      "level": 55,
+      "move_id": 387
+    }
+  ],
+  "tm_moves": [
+    14,
+    34,
+    36,
+    38,
+    46,
+    63,
+    76,
+    91,
+    129,
+    156,
+    164,
+    174,
+    182,
+    189,
+    202,
+    203,
+    204,
+    214,
+    226,
+    240,
+    241,
+    247,
+    263,
+    270,
+    282,
+    304,
+    311,
+    313,
+    331,
+    332,
+    341,
+    345,
+    347,
+    402,
+    404,
+    412,
+    416,
+    437,
+    447,
+    500,
+    669,
+    803,
+    851,
+    885,
+    914
+  ],
+  "egg_moves": [],
+  "equipped_moves": [
+    348,
+    235,
+    92
+  ]
 }

@@ -13,7 +13,10 @@ def test_get_units_summary(client, db):
             asset_folder="pikachu",
             types=["Electric"],
             base_stats={"hp": 35, "attack": 55},
-            move_ids=[101],
+            level_up_moves=[{"move_id": 101, "level": 1}],
+            tm_moves=[],
+            egg_moves=[],
+            equipped_moves=[101],
             ability_ids=[201],
             hidden_ability=202,
             cost=200
@@ -26,7 +29,10 @@ def test_get_units_summary(client, db):
             asset_folder="charmander",
             types=["Fire"],
             base_stats={"hp": 39, "attack": 52},
-            move_ids=[102],
+            level_up_moves=[{"move_id": 102, "level": 1}],
+            tm_moves=[],
+            egg_moves=[],
+            equipped_moves=[102],
             ability_ids=[202],
             cost=150
         )

@@ -18,10 +18,6 @@
     "speed": 30,
     "range": 3
   },
-  "move_ids": [
-    232,
-    317
-  ],
   "archetype": "tank",
   "ability_ids": [
     5,
@@ -46,5 +42,119 @@
     "CHUNSOFT",
     "Emboarger"
   ],
-  "hidden_ability": 134
+  "hidden_ability": 134,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 1,
+      "move_id": 106
+    },
+    {
+      "level": 4,
+      "move_id": 232
+    },
+    {
+      "level": 8,
+      "move_id": 317
+    },
+    {
+      "level": 12,
+      "move_id": 46
+    },
+    {
+      "level": 16,
+      "move_id": 29
+    },
+    {
+      "level": 20,
+      "move_id": 182
+    },
+    {
+      "level": 24,
+      "move_id": 157
+    },
+    {
+      "level": 28,
+      "move_id": 442
+    },
+    {
+      "level": 33,
+      "move_id": 319
+    },
+    {
+      "level": 36,
+      "move_id": 36
+    },
+    {
+      "level": 40,
+      "move_id": 475
+    },
+    {
+      "level": 44,
+      "move_id": 231
+    },
+    {
+      "level": 48,
+      "move_id": 334
+    },
+    {
+      "level": 52,
+      "move_id": 484
+    },
+    {
+      "level": 56,
+      "move_id": 38
+    },
+    {
+      "level": 60,
+      "move_id": 368
+    }
+  ],
+  "tm_moves": [
+    34,
+    89,
+    91,
+    103,
+    156,
+    157,
+    164,
+    173,
+    179,
+    182,
+    201,
+    203,
+    213,
+    214,
+    231,
+    240,
+    241,
+    253,
+    263,
+    276,
+    317,
+    334,
+    414,
+    421,
+    442,
+    446,
+    484,
+    496,
+    523,
+    776
+  ],
+  "egg_moves": [
+    23,
+    174,
+    189,
+    283,
+    407,
+    457
+  ],
+  "equipped_moves": [
+    232,
+    317
+  ]
 }

@@ -17,12 +17,6 @@
     "speed": 110,
     "range": 3
   },
-  "move_ids": [
-    85,
-    411,
-    609,
-    245
-  ],
   "ability_ids": [
     9
   ],
@@ -43,5 +37,149 @@
   "sprite_credits": [
     "CHUNSOFT"
   ],
-  "hidden_ability": 31
+  "hidden_ability": 31,
+  "level_up_moves": [
+    {
+      "level": 0,
+      "move_id": 9
+    },
+    {
+      "level": 1,
+      "move_id": 39
+    },
+    {
+      "level": 1,
+      "move_id": 45
+    },
+    {
+      "level": 1,
+      "move_id": 84
+    },
+    {
+      "level": 1,
+      "move_id": 86
+    },
+    {
+      "level": 1,
+      "move_id": 87
+    },
+    {
+      "level": 1,
+      "move_id": 97
+    },
+    {
+      "level": 1,
+      "move_id": 98
+    },
+    {
+      "level": 1,
+      "move_id": 104
+    },
+    {
+      "level": 1,
+      "move_id": 113
+    },
+    {
+      "level": 1,
+      "move_id": 186
+    },
+    {
+      "level": 1,
+      "move_id": 204
+    },
+    {
+      "level": 1,
+      "move_id": 209
+    },
+    {
+      "level": 1,
+      "move_id": 231
+    },
+    {
+      "level": 1,
+      "move_id": 364
+    },
+    {
+      "level": 1,
+      "move_id": 417
+    },
+    {
+      "level": 1,
+      "move_id": 435
+    },
+    {
+      "level": 1,
+      "move_id": 486
+    },
+    {
+      "level": 1,
+      "move_id": 589
+    },
+    {
+      "level": 1,
+      "move_id": 609
+    },
+    {
+      "level": 5,
+      "move_id": 85
+    }
+  ],
+  "tm_moves": [
+    9,
+    34,
+    36,
+    57,
+    63,
+    85,
+    86,
+    87,
+    91,
+    97,
+    113,
+    115,
+    129,
+    156,
+    164,
+    168,
+    179,
+    182,
+    203,
+    204,
+    214,
+    227,
+    240,
+    263,
+    264,
+    268,
+    270,
+    280,
+    282,
+    283,
+    374,
+    411,
+    416,
+    417,
+    447,
+    451,
+    486,
+    521,
+    527,
+    528,
+    574,
+    577,
+    583,
+    598,
+    604,
+    851,
+    885,
+    914,
+    918
+  ],
+  "egg_moves": [],
+  "equipped_moves": [
+    85,
+    411,
+    609,
+    245
+  ]
 }

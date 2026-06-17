@@ -18,10 +18,6 @@
     "speed": 48,
     "range": 3
   },
-  "move_ids": [
-    246,
-    44
-  ],
   "archetype": "bruiser",
   "ability_ids": [
     173
@@ -45,5 +41,119 @@
     "baronessfaron",
     "Tainted#3886"
   ],
-  "hidden_ability": 5
+  "hidden_ability": 5,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 1,
+      "move_id": 39
+    },
+    {
+      "level": 4,
+      "move_id": 46
+    },
+    {
+      "level": 8,
+      "move_id": 246
+    },
+    {
+      "level": 12,
+      "move_id": 204
+    },
+    {
+      "level": 16,
+      "move_id": 44
+    },
+    {
+      "level": 20,
+      "move_id": 525
+    },
+    {
+      "level": 24,
+      "move_id": 23
+    },
+    {
+      "level": 28,
+      "move_id": 157
+    },
+    {
+      "level": 32,
+      "move_id": 242
+    },
+    {
+      "level": 36,
+      "move_id": 337
+    },
+    {
+      "level": 40,
+      "move_id": 37
+    },
+    {
+      "level": 44,
+      "move_id": 89
+    },
+    {
+      "level": 48,
+      "move_id": 32
+    }
+  ],
+  "tm_moves": [
+    34,
+    89,
+    91,
+    156,
+    157,
+    164,
+    173,
+    182,
+    184,
+    200,
+    201,
+    203,
+    204,
+    213,
+    214,
+    231,
+    241,
+    242,
+    263,
+    276,
+    280,
+    304,
+    317,
+    334,
+    337,
+    349,
+    350,
+    370,
+    372,
+    399,
+    406,
+    414,
+    422,
+    423,
+    424,
+    428,
+    442,
+    444,
+    446,
+    496,
+    523,
+    583,
+    706,
+    707
+  ],
+  "egg_moves": [
+    88,
+    174,
+    305,
+    397
+  ],
+  "equipped_moves": [
+    246,
+    44
+  ]
 }

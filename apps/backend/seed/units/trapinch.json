@@ -17,10 +17,6 @@
     "speed": 10,
     "range": 2
   },
-  "move_ids": [
-    89,
-    157
-  ],
   "archetype": "trapper",
   "ability_ids": [
     52,
@@ -48,5 +44,102 @@
     "CHUNSOFT",
     "Caitemis"
   ],
-  "hidden_ability": 125
+  "hidden_ability": 125,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 28
+    },
+    {
+      "level": 1,
+      "move_id": 310
+    },
+    {
+      "level": 8,
+      "move_id": 44
+    },
+    {
+      "level": 12,
+      "move_id": 189
+    },
+    {
+      "level": 16,
+      "move_id": 328
+    },
+    {
+      "level": 20,
+      "move_id": 523
+    },
+    {
+      "level": 24,
+      "move_id": 91
+    },
+    {
+      "level": 28,
+      "move_id": 242
+    },
+    {
+      "level": 32,
+      "move_id": 201
+    },
+    {
+      "level": 36,
+      "move_id": 414
+    },
+    {
+      "level": 40,
+      "move_id": 89
+    },
+    {
+      "level": 44,
+      "move_id": 276
+    },
+    {
+      "level": 48,
+      "move_id": 90
+    }
+  ],
+  "tm_moves": [
+    34,
+    36,
+    63,
+    89,
+    91,
+    156,
+    157,
+    164,
+    182,
+    189,
+    201,
+    202,
+    203,
+    214,
+    241,
+    242,
+    263,
+    317,
+    328,
+    341,
+    414,
+    444,
+    446,
+    450,
+    522,
+    523,
+    815,
+    851
+  ],
+  "egg_moves": [
+    16,
+    98,
+    175,
+    210,
+    364,
+    450,
+    660
+  ],
+  "equipped_moves": [
+    89,
+    157
+  ]
 }

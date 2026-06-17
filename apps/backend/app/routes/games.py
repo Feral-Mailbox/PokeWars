@@ -424,6 +424,90 @@ def resolve_item_record(item_ref: str | None, db: Session) -> Item | None:
     return db.query(Item).filter((Item.slug == ref) | (Item.name == ref)).first()
 
 
+def get_held_tm_item(unit: GameUnit, db: Session) -> Item | None:
+    item = resolve_item_record(get_unit_held_item(unit), db)
+    if not item or item.category != "tm" or not item.move_id:
+        return None
+    return item
+
+
+def get_held_tm_move_id(unit: GameUnit, db: Session) -> int | None:
+    item = get_held_tm_item(unit, db)
+    if not item:
+        return None
+    return int(item.move_id)
+
+
+def get_unit_learnset_move_ids(unit_info: Unit) -> set[int]:
+    move_ids: set[int] = set()
+    for entry in unit_info.level_up_moves or []:
+        if isinstance(entry, dict):
+            move_id = entry.get("move_id")
+            if move_id is not None:
+                move_ids.add(int(move_id))
+    for move_id in unit_info.tm_moves or []:
+        move_ids.add(int(move_id))
+    for move_id in unit_info.egg_moves or []:
+        move_ids.add(int(move_id))
+    return move_ids
+
+
+def get_default_equipped_move_ids(unit_info: Unit, level: int = 50) -> list[int]:
+    return [int(move_id) for move_id in (unit_info.equipped_moves or [])]
+
+
+def get_unit_equipped_move_ids(unit: GameUnit, unit_info: Unit) -> list[int]:
+    flags = get_unit_flags(unit)
+    stored = flags.get("move_ids")
+    if isinstance(stored, list) and stored:
+        return [int(move_id) for move_id in stored]
+    return get_default_equipped_move_ids(unit_info, unit.level or 50)
+
+
+def unit_knows_move(unit_info: Unit, move_id: int, unit: GameUnit, db: Session) -> bool:
+    equipped_move_ids = get_unit_equipped_move_ids(unit, unit_info)
+    if move_id in equipped_move_ids:
+        return True
+    tm_move_id = get_held_tm_move_id(unit, db)
+    if tm_move_id == move_id:
+        tm_moves = {int(mid) for mid in (unit_info.tm_moves or [])}
+        return move_id in tm_moves
+    return False
+
+
+def resolve_move_pp_index(unit: GameUnit, unit_info: Unit, move_id: int, db: Session) -> int | None:
+    equipped_move_ids = get_unit_equipped_move_ids(unit, unit_info)
+    if move_id in equipped_move_ids:
+        return equipped_move_ids.index(move_id)
+    tm_move_id = get_held_tm_move_id(unit, db)
+    if tm_move_id == move_id:
+        return len(equipped_move_ids)
+    return None
+
+
+def sync_tm_move_pp(unit: GameUnit, unit_info: Unit, db: Session) -> None:
+    base_move_ids = get_unit_equipped_move_ids(unit, unit_info)
+    tm_move_id = get_held_tm_move_id(unit, db)
+    has_extra_tm = tm_move_id is not None and tm_move_id not in base_move_ids
+    expected_len = len(base_move_ids) + (1 if has_extra_tm else 0)
+
+    pp_list = list(unit.move_pp) if isinstance(unit.move_pp, list) else []
+
+    while len(pp_list) < len(base_move_ids):
+        move = db.query(Move).filter_by(id=base_move_ids[len(pp_list)]).first()
+        pp_list.append(move.pp if move and move.pp is not None else 0)
+
+    if has_extra_tm:
+        if len(pp_list) < expected_len:
+            tm_move = db.query(Move).filter_by(id=tm_move_id).first()
+            pp_list.append(tm_move.pp if tm_move and tm_move.pp is not None else 0)
+    elif len(pp_list) > len(base_move_ids):
+        pp_list = pp_list[: len(base_move_ids)]
+
+    unit.move_pp = pp_list
+    db.add(unit)
+
+
 def preparation_item_allowed(item: Item, game: Game) -> bool:
     if item.category == "tm" and not game.start_with_tms:
         return False
@@ -434,8 +518,13 @@ def attach_game_unit_loadout_fields(unit: GameUnit, db: Session) -> GameUnit:
     slug = get_unit_held_item(unit)
     unit.held_item_slug = slug
     unit.held_item = resolve_held_item_name(slug, db)
+    unit.held_tm_move_id = get_held_tm_move_id(unit, db)
     unit.ability_id = get_unit_ability_id(unit)
     unit.ability = resolve_ability_name(unit.ability_id, db)
+    if unit.unit:
+        unit.equipped_move_ids = get_unit_equipped_move_ids(unit, unit.unit)
+    else:
+        unit.equipped_move_ids = []
     return unit
 
 
@@ -5830,6 +5919,8 @@ def get_game_units(
                 if not expected_keys.issubset(actual_keys):
                     unit.current_stats = compute_effective_stats(unit, db)
 
+        if unit.unit:
+            sync_tm_move_pp(unit, unit.unit, db)
         attach_game_unit_loadout_fields(unit, db)
     
     return units
@@ -5878,18 +5969,20 @@ def place_unit(
                 # With Nature = 1: floor((2 × Base × Level) / 100 + 5)
                 current_stats[stat_name] = int((2 * base_value * level) / 100 + 5)
 
-    # Initialize move_pp with full PP values from the unit's moves
+    # Initialize move_pp with full PP values from the unit's equipped moves
+    equipped_move_ids = get_default_equipped_move_ids(unit_info, level)
     move_pp = []
-    if unit_info.move_ids:
-        for move_id in unit_info.move_ids:
-            move = db.query(Move).filter_by(id=move_id).first()
-            if move and move.pp is not None:
-                move_pp.append(move.pp)
-            else:
-                move_pp.append(0)
+    for move_id in equipped_move_ids:
+        move = db.query(Move).filter_by(id=move_id).first()
+        if move and move.pp is not None:
+            move_pp.append(move.pp)
+        else:
+            move_pp.append(0)
     
     # Step 1: Create and persist new GameUnit
     initial_flags: dict = {}
+    if equipped_move_ids:
+        initial_flags["move_ids"] = equipped_move_ids
     if unit_info.ability_ids:
         initial_flags["ability_id"] = int(unit_info.ability_ids[0])
 
@@ -5995,6 +6088,7 @@ def change_unit_item(
 
     player_state.cash_remaining -= net_cost
     set_unit_held_item(unit, new_item.slug, db)
+    sync_tm_move_pp(unit, unit.unit, db)
     db.add(player_state)
     db.add(unit)
     db.commit()
@@ -6040,6 +6134,7 @@ def remove_unit_item(
         player_state.cash_remaining += old_item.cost
 
     set_unit_held_item(unit, None, db)
+    sync_tm_move_pp(unit, unit.unit, db)
     db.add(player_state)
     db.add(unit)
     db.commit()
@@ -6388,19 +6483,20 @@ def execute_move(
 
     # Check and decrement PP
     unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
-    if not unit_info or not unit_info.move_ids:
+    if not unit_info:
         raise HTTPException(status_code=400, detail="Unit has no moves")
-    
-    if move_id not in unit_info.move_ids:
+    equipped_move_ids = get_unit_equipped_move_ids(gu, unit_info)
+    if not equipped_move_ids and not get_held_tm_move_id(gu, db):
+        raise HTTPException(status_code=400, detail="Unit has no moves")
+
+    if not unit_knows_move(unit_info, move_id, gu, db):
         raise HTTPException(status_code=400, detail="Unit does not know this move")
-    
-    move_index = unit_info.move_ids.index(move_id)
-    
-    # Initialize move_pp if not set
-    if not gu.move_pp or len(gu.move_pp) == 0:
-        gu.move_pp = [move.pp if move.pp else 0 for move in 
-                      [db.query(Move).filter_by(id=mid).first() for mid in unit_info.move_ids]]
-        db.add(gu)
+
+    move_index = resolve_move_pp_index(gu, unit_info, move_id, db)
+    if move_index is None:
+        raise HTTPException(status_code=400, detail="Unit does not know this move")
+
+    sync_tm_move_pp(gu, unit_info, db)
     
     # Ensure move_pp array is long enough
     if len(gu.move_pp) <= move_index:

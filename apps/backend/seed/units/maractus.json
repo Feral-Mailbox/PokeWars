@@ -17,11 +17,6 @@
     "speed": 60,
     "range": 3
   },
-  "move_ids": [
-    596,
-    202,
-    389
-  ],
   "ability_ids": [
     11,
     34
@@ -42,5 +37,130 @@
   "sprite_credits": [
     "JFain"
   ],
-  "hidden_ability": 114
+  "hidden_ability": 114,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 64
+    },
+    {
+      "level": 1,
+      "move_id": 71
+    },
+    {
+      "level": 1,
+      "move_id": 275
+    },
+    {
+      "level": 1,
+      "move_id": 495
+    },
+    {
+      "level": 1,
+      "move_id": 596
+    },
+    {
+      "level": 4,
+      "move_id": 74
+    },
+    {
+      "level": 8,
+      "move_id": 72
+    },
+    {
+      "level": 12,
+      "move_id": 73
+    },
+    {
+      "level": 16,
+      "move_id": 389
+    },
+    {
+      "level": 20,
+      "move_id": 42
+    },
+    {
+      "level": 24,
+      "move_id": 202
+    },
+    {
+      "level": 28,
+      "move_id": 230
+    },
+    {
+      "level": 32,
+      "move_id": 235
+    },
+    {
+      "level": 36,
+      "move_id": 572
+    },
+    {
+      "level": 40,
+      "move_id": 178
+    },
+    {
+      "level": 44,
+      "move_id": 241
+    },
+    {
+      "level": 48,
+      "move_id": 76
+    },
+    {
+      "level": 52,
+      "move_id": 367
+    },
+    {
+      "level": 56,
+      "move_id": 80
+    },
+    {
+      "level": 60,
+      "move_id": 538
+    }
+  ],
+  "tm_moves": [
+    42,
+    76,
+    103,
+    156,
+    164,
+    173,
+    182,
+    191,
+    202,
+    203,
+    213,
+    214,
+    219,
+    240,
+    241,
+    253,
+    263,
+    270,
+    304,
+    311,
+    331,
+    340,
+    372,
+    398,
+    402,
+    409,
+    412,
+    437,
+    447,
+    496,
+    580,
+    675
+  ],
+  "egg_moves": [
+    388,
+    452
+  ],
+  "equipped_moves": [
+    596,
+    202,
+    389
+  ]
 }

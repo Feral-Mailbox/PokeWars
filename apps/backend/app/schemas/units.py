@@ -1,6 +1,10 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Dict, Optional
 
+class LevelUpMoveEntry(BaseModel):
+    move_id: int
+    level: int
+
 class StatBoostInstance(BaseModel):
     """Represents a single stat boost or debuff instance"""
     magnitude: int  # positive for boost, negative for debuff
@@ -17,7 +21,10 @@ class UnitSummary(BaseModel):
     types: List[str]
     cost: int
     base_stats: Dict[str, int]
-    move_ids: List[int]
+    level_up_moves: List[LevelUpMoveEntry]
+    tm_moves: List[int]
+    egg_moves: List[int]
+    equipped_moves: List[int]
     ability_ids: List[int]
     hidden_ability: Optional[int] = None
     portrait_credits: List[str]
@@ -38,7 +45,10 @@ class UnitDetail(BaseModel):
     types: List[str]
     base_stats: Dict[str, int]
     cost: int
-    move_ids: List[int]
+    level_up_moves: List[LevelUpMoveEntry]
+    tm_moves: List[int]
+    egg_moves: List[int]
+    equipped_moves: List[int]
     ability_ids: List[int]
     hidden_ability: Optional[int] = None
     evolution_cost: Optional[int]
@@ -107,6 +117,8 @@ class GameUnitSchema(BaseModel):
     move_pp: List[int] = Field(default_factory=list)
     held_item: Optional[str] = None
     held_item_slug: Optional[str] = None
+    held_tm_move_id: Optional[int] = None
+    equipped_move_ids: List[int] = Field(default_factory=list)
     ability: Optional[str] = None
     ability_id: Optional[int] = None
     unit: UnitSummary

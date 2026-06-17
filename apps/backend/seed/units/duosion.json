@@ -17,11 +17,6 @@
     "speed": 30,
     "range": 3
   },
-  "move_ids": [
-    94,
-    105,
-    113
-  ],
   "archetype": "special_tank",
   "ability_ids": [
     142,
@@ -49,5 +44,122 @@
     "baronessfaron",
     "Emmuffin"
   ],
-  "hidden_ability": 144
+  "hidden_ability": 144,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 93
+    },
+    {
+      "level": 1,
+      "move_id": 105
+    },
+    {
+      "level": 1,
+      "move_id": 182
+    },
+    {
+      "level": 1,
+      "move_id": 283
+    },
+    {
+      "level": 12,
+      "move_id": 60
+    },
+    {
+      "level": 16,
+      "move_id": 204
+    },
+    {
+      "level": 20,
+      "move_id": 473
+    },
+    {
+      "level": 24,
+      "move_id": 113
+    },
+    {
+      "level": 24,
+      "move_id": 115
+    },
+    {
+      "level": 28,
+      "move_id": 502
+    },
+    {
+      "level": 35,
+      "move_id": 220
+    },
+    {
+      "level": 40,
+      "move_id": 94
+    },
+    {
+      "level": 46,
+      "move_id": 285
+    },
+    {
+      "level": 52,
+      "move_id": 248
+    },
+    {
+      "level": 58,
+      "move_id": 472
+    }
+  ],
+  "tm_moves": [
+    60,
+    86,
+    87,
+    94,
+    101,
+    109,
+    113,
+    115,
+    129,
+    156,
+    157,
+    164,
+    182,
+    203,
+    204,
+    214,
+    220,
+    227,
+    240,
+    241,
+    244,
+    247,
+    248,
+    263,
+    270,
+    271,
+    283,
+    285,
+    286,
+    317,
+    334,
+    347,
+    356,
+    360,
+    412,
+    428,
+    430,
+    433,
+    473,
+    500,
+    678,
+    797,
+    851
+  ],
+  "egg_moves": [
+    109,
+    151,
+    310
+  ],
+  "equipped_moves": [
+    94,
+    105,
+    113
+  ]
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatTmDisplayName, unitCanLearnTmMove } from "./UnitMenuShared";
 
 export type PreparationItemOption = {
   id: number;
@@ -6,6 +7,7 @@ export type PreparationItemOption = {
   slug: string;
   category: string;
   cost: number;
+  move_id?: number | null;
 };
 
 const ITEM_CATEGORY_OPTIONS = [
@@ -26,6 +28,8 @@ type PreparationItemSelectPanelProps = {
   items: PreparationItemOption[];
   cash: number;
   currentItemSlug: string | null;
+  moveMap: Record<number, { name?: string }>;
+  unit?: any;
   onSelectItem: (itemId: number) => void;
 };
 
@@ -33,6 +37,8 @@ export default function PreparationItemSelectPanel({
   items,
   cash,
   currentItemSlug,
+  moveMap,
+  unit,
   onSelectItem,
 }: PreparationItemSelectPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,15 +61,29 @@ export default function PreparationItemSelectPanel({
   const currentItemCost = currentItem?.cost ?? 0;
   const query = searchQuery.toLowerCase().trim();
 
+  const getItemDisplayName = (item: PreparationItemOption) => {
+    if (item.category !== "tm" || item.move_id == null) {
+      return item.name;
+    }
+    return formatTmDisplayName(item.name, moveMap[item.move_id]?.name);
+  };
+
   const filteredItems = items
     .filter((item) => {
       if (categoryFilter && item.category !== categoryFilter) return false;
-      return String(item.name || "").toLowerCase().includes(query);
+      if (!query) return true;
+      const displayName = getItemDisplayName(item).toLowerCase();
+      return displayName.includes(query) || String(item.name || "").toLowerCase().includes(query);
     })
-    .sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    .sort((a, b) => getItemDisplayName(a).localeCompare(getItemDisplayName(b)));
 
   const canAffordItem = (item: PreparationItemOption) =>
     cash + currentItemCost >= item.cost;
+
+  const canUseTmItem = (item: PreparationItemOption) => {
+    if (item.category !== "tm" || item.move_id == null) return true;
+    return unitCanLearnTmMove(unit, item.move_id);
+  };
 
   return (
     <div className="mt-2 rounded border border-gray-600 bg-gray-900/80 p-3">
@@ -94,23 +114,26 @@ export default function PreparationItemSelectPanel({
         )}
         {filteredItems.map((item) => {
           const affordable = canAffordItem(item);
+          const usable = canUseTmItem(item);
           const isEquipped = item.slug === currentItemSlug;
+          const enabled = affordable && usable;
 
           return (
             <li key={item.id}>
               <button
                 type="button"
-                disabled={!affordable}
+                disabled={!enabled}
                 onClick={() => onSelectItem(item.id)}
+                title={!usable ? "This unit cannot learn this TM move." : undefined}
                 className={`flex w-full items-center justify-between rounded px-2 py-1 text-left ${
                   isEquipped
                     ? "bg-yellow-700/40 hover:bg-yellow-700/60"
-                    : affordable
+                    : enabled
                       ? "hover:bg-gray-700"
                       : "cursor-not-allowed opacity-50"
                 }`}
               >
-                <span className="font-medium">{item.name}</span>
+                <span className="font-medium">{getItemDisplayName(item)}</span>
                 <span className="text-green-400">${item.cost}</span>
               </button>
             </li>

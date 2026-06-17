@@ -17,10 +17,6 @@
     "speed": 35,
     "range": 3
   },
-  "move_ids": [
-    61,
-    11
-  ],
   "archetype": "brawler",
   "ability_ids": [
     52,
@@ -45,5 +41,121 @@
     "CHUNSOFT",
     "Caitemis"
   ],
-  "hidden_ability": 91
+  "hidden_ability": 91,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 55
+    },
+    {
+      "level": 1,
+      "move_id": 106
+    },
+    {
+      "level": 4,
+      "move_id": 43
+    },
+    {
+      "level": 8,
+      "move_id": 269
+    },
+    {
+      "level": 12,
+      "move_id": 61
+    },
+    {
+      "level": 16,
+      "move_id": 282
+    },
+    {
+      "level": 20,
+      "move_id": 458
+    },
+    {
+      "level": 24,
+      "move_id": 182
+    },
+    {
+      "level": 28,
+      "move_id": 400
+    },
+    {
+      "level": 32,
+      "move_id": 534
+    },
+    {
+      "level": 36,
+      "move_id": 14
+    },
+    {
+      "level": 40,
+      "move_id": 242
+    },
+    {
+      "level": 44,
+      "move_id": 152
+    },
+    {
+      "level": 48,
+      "move_id": 283
+    },
+    {
+      "level": 52,
+      "move_id": 12
+    }
+  ],
+  "tm_moves": [
+    14,
+    34,
+    36,
+    38,
+    56,
+    57,
+    58,
+    59,
+    91,
+    127,
+    156,
+    157,
+    164,
+    168,
+    182,
+    188,
+    196,
+    203,
+    206,
+    214,
+    232,
+    240,
+    242,
+    250,
+    263,
+    269,
+    280,
+    282,
+    283,
+    317,
+    330,
+    334,
+    341,
+    349,
+    352,
+    374,
+    404,
+    710,
+    851,
+    886
+  ],
+  "egg_moves": [
+    38,
+    163,
+    232,
+    246,
+    415,
+    453
+  ],
+  "equipped_moves": [
+    61,
+    11
+  ]
 }

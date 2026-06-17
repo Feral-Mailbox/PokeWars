@@ -17,10 +17,6 @@
     "speed": 50,
     "range": 3
   },
-  "move_ids": [
-    181,
-    43
-  ],
   "ability_ids": [
     39,
     115
@@ -45,5 +41,110 @@
   "sprite_credits": [
     "CHUNSOFT"
   ],
-  "hidden_ability": 141
+  "hidden_ability": 141,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 29
+    },
+    {
+      "level": 1,
+      "move_id": 181
+    },
+    {
+      "level": 1,
+      "move_id": 310
+    },
+    {
+      "level": 5,
+      "move_id": 43
+    },
+    {
+      "level": 10,
+      "move_id": 104
+    },
+    {
+      "level": 15,
+      "move_id": 420
+    },
+    {
+      "level": 20,
+      "move_id": 182
+    },
+    {
+      "level": 25,
+      "move_id": 196
+    },
+    {
+      "level": 30,
+      "move_id": 524
+    },
+    {
+      "level": 35,
+      "move_id": 44
+    },
+    {
+      "level": 40,
+      "move_id": 423
+    },
+    {
+      "level": 45,
+      "move_id": 883
+    },
+    {
+      "level": 50,
+      "move_id": 311
+    },
+    {
+      "level": 55,
+      "move_id": 242
+    },
+    {
+      "level": 60,
+      "move_id": 59
+    }
+  ],
+  "tm_moves": [
+    34,
+    36,
+    58,
+    59,
+    113,
+    156,
+    164,
+    180,
+    182,
+    191,
+    196,
+    203,
+    214,
+    240,
+    242,
+    247,
+    263,
+    270,
+    311,
+    313,
+    333,
+    352,
+    419,
+    423,
+    506,
+    851,
+    861,
+    883,
+    885,
+    886
+  ],
+  "egg_moves": [
+    50,
+    205,
+    335,
+    415,
+    556
+  ],
+  "equipped_moves": [
+    181,
+    43
+  ]
 }

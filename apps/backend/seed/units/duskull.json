@@ -17,10 +17,6 @@
     "speed": 25,
     "range": 3
   },
-  "move_ids": [
-    101,
-    261
-  ],
   "archetype": "stall",
   "ability_ids": [
     26
@@ -45,5 +41,110 @@
     "CHUNSOFT",
     "JFain"
   ],
-  "hidden_ability": 119
+  "hidden_ability": 119,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 43
+    },
+    {
+      "level": 1,
+      "move_id": 310
+    },
+    {
+      "level": 4,
+      "move_id": 50
+    },
+    {
+      "level": 8,
+      "move_id": 425
+    },
+    {
+      "level": 12,
+      "move_id": 109
+    },
+    {
+      "level": 16,
+      "move_id": 101
+    },
+    {
+      "level": 20,
+      "move_id": 371
+    },
+    {
+      "level": 24,
+      "move_id": 261
+    },
+    {
+      "level": 28,
+      "move_id": 212
+    },
+    {
+      "level": 32,
+      "move_id": 506
+    },
+    {
+      "level": 36,
+      "move_id": 174
+    },
+    {
+      "level": 40,
+      "move_id": 247
+    },
+    {
+      "level": 44,
+      "move_id": 248
+    }
+  ],
+  "tm_moves": [
+    58,
+    59,
+    94,
+    101,
+    109,
+    114,
+    141,
+    156,
+    164,
+    168,
+    174,
+    180,
+    182,
+    196,
+    203,
+    214,
+    220,
+    240,
+    241,
+    244,
+    247,
+    248,
+    261,
+    263,
+    269,
+    270,
+    271,
+    285,
+    286,
+    347,
+    356,
+    374,
+    399,
+    433,
+    451,
+    506,
+    566,
+    806,
+    809,
+    851
+  ],
+  "egg_moves": [
+    114,
+    220,
+    262
+  ],
+  "equipped_moves": [
+    101,
+    261
+  ]
 }

@@ -7,6 +7,22 @@ export const UNIT_MENU_WIDTH_CLASS = "w-96";
 /** Pixel width for menu positioning math in GamePage (matches UNIT_MENU_WIDTH_CLASS). */
 export const UNIT_MENU_WIDTH_PX = 384;
 
+export function formatTmDisplayName(itemName: string, moveName?: string | null): string {
+  const match = String(itemName || "").match(/^TM0*(\d+)$/i);
+  if (!match) {
+    return moveName ? `${itemName} - ${moveName}` : itemName;
+  }
+  const number = parseInt(match[1], 10);
+  const label = `TM${String(number).padStart(2, "0")}`;
+  return moveName ? `${label} - ${moveName}` : label;
+}
+
+export function unitCanLearnTmMove(unit: any, moveId: number): boolean {
+  const tmMoves = unit?.tm_moves;
+  if (!Array.isArray(tmMoves)) return false;
+  return tmMoves.includes(moveId);
+}
+
 export function normalizeCredits(credits: any): string[] {
   if (!Array.isArray(credits)) return [];
   return credits
@@ -202,22 +218,31 @@ export function UnitMoveList({
   onMoveHoverEnd: () => void;
   onMoveSelect?: (move: any) => void;
 }) {
-  const unit = unitState?.unit;
-  if (!unit?.move_ids?.length) return null;
+  const baseMoveIds: number[] = unitState?.equipped_move_ids ?? [];
+  const tmMoveId =
+    unitState?.held_tm_move_id != null ? Number(unitState.held_tm_move_id) : null;
+  const moveIds =
+    tmMoveId != null && !baseMoveIds.includes(tmMoveId)
+      ? [...baseMoveIds, tmMoveId]
+      : baseMoveIds;
+  if (!moveIds.length) return null;
 
   const isLocked = unitState?.can_move === false;
+  const unit = unitState?.unit;
 
   return (
     <div className="mt-3">
       <h3 className="text-md font-semibold mb-1">Moves:</h3>
       <ul className="space-y-2 text-sm">
-        {unit.move_ids.map((id: number, moveIndex: number) => {
+        {moveIds.map((id: number, moveIndex: number) => {
           const move = moveMap[id];
           if (!move) return null;
 
           const movePP = unitState?.move_pp?.[moveIndex] ?? move.pp ?? 0;
           const maxPP = move.pp ?? 0;
           const ppPercentage = maxPP > 0 ? (movePP / maxPP) * 100 : 0;
+          const isTmMove = tmMoveId != null && id === tmMoveId && !baseMoveIds.includes(id);
+          const tmMoveUsable = !isTmMove || unitCanLearnTmMove(unit, id);
 
           let ppColor = "#ffffff";
           if (ppPercentage <= 10) {
@@ -226,23 +251,30 @@ export function UnitMoveList({
             ppColor = "#eab308";
           }
 
-          const disabled = (selectEnabled && moveTargeting) || (selectEnabled && isLocked);
+          const disabled =
+            !tmMoveUsable ||
+            (selectEnabled && moveTargeting) ||
+            (selectEnabled && isLocked);
 
           return (
             <li key={id}>
               <button
                 type="button"
-                onMouseEnter={() => !isLocked && onMoveHoverStart(move)}
+                onMouseEnter={() => !isLocked && tmMoveUsable && onMoveHoverStart(move)}
                 onMouseLeave={onMoveHoverEnd}
                 onClick={() => {
-                  if (!selectEnabled || !onMoveSelect || isLocked) return;
+                  if (!selectEnabled || !onMoveSelect || isLocked || !tmMoveUsable) return;
                   onMoveSelect(move);
                 }}
                 disabled={disabled}
+                title={!tmMoveUsable ? "This unit cannot learn this TM move." : undefined}
                 className={`w-full text-left border border-gray-600 p-2 rounded hover:bg-gray-700 focus:outline-none ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div className="flex justify-between font-bold">
-                  <span>{move.name}</span>
+                  <span>
+                    {move.name}
+                    {isTmMove ? " (TM)" : ""}
+                  </span>
                   <span
                     className="text-xs font-medium px-2 py-0.5 rounded"
                     style={{ backgroundColor: typeColors[move.type] ?? "#444" }}

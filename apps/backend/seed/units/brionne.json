@@ -17,11 +17,6 @@
     "speed": 50,
     "range": 3
   },
-  "move_ids": [
-    61,
-    196,
-    392
-  ],
   "ability_ids": [
     67
   ],
@@ -45,5 +40,109 @@
     "Anonymous",
     "baronessfaron"
   ],
-  "hidden_ability": 204
+  "hidden_ability": 204,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 1
+    },
+    {
+      "level": 1,
+      "move_id": 45
+    },
+    {
+      "level": 1,
+      "move_id": 55
+    },
+    {
+      "level": 1,
+      "move_id": 574
+    },
+    {
+      "level": 9,
+      "move_id": 453
+    },
+    {
+      "level": 12,
+      "move_id": 608
+    },
+    {
+      "level": 15,
+      "move_id": 196
+    },
+    {
+      "level": 20,
+      "move_id": 47
+    },
+    {
+      "level": 25,
+      "move_id": 61
+    },
+    {
+      "level": 30,
+      "move_id": 227
+    },
+    {
+      "level": 35,
+      "move_id": 581
+    },
+    {
+      "level": 40,
+      "move_id": 304
+    },
+    {
+      "level": 45,
+      "move_id": 585
+    },
+    {
+      "level": 50,
+      "move_id": 56
+    }
+  ],
+  "tm_moves": [
+    34,
+    56,
+    57,
+    58,
+    59,
+    127,
+    129,
+    133,
+    156,
+    164,
+    182,
+    196,
+    203,
+    204,
+    214,
+    227,
+    240,
+    250,
+    253,
+    263,
+    270,
+    304,
+    352,
+    512,
+    518,
+    574,
+    577,
+    581,
+    583,
+    812,
+    813,
+    851,
+    861,
+    886
+  ],
+  "egg_moves": [
+    195,
+    392,
+    791
+  ],
+  "equipped_moves": [
+    61,
+    196,
+    392
+  ]
 }

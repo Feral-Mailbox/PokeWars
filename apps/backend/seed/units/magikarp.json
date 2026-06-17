@@ -17,9 +17,6 @@
     "speed": 80,
     "range": 3
   },
-  "move_ids": [
-    150
-  ],
   "ability_ids": [
     33
   ],
@@ -41,5 +38,24 @@
   "sprite_credits": [
     "CHUNSOFT"
   ],
-  "hidden_ability": 155
+  "hidden_ability": 155,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 150
+    },
+    {
+      "level": 15,
+      "move_id": 33
+    },
+    {
+      "level": 25,
+      "move_id": 175
+    }
+  ],
+  "tm_moves": [],
+  "egg_moves": [],
+  "equipped_moves": [
+    150
+  ]
 }

@@ -17,12 +17,6 @@
     "speed": 45,
     "range": 2
   },
-  "move_ids": [
-    325,
-    89,
-    261,
-    220
-  ],
   "archetype": "tank_bruiser",
   "ability_ids": [
     46
@@ -43,5 +37,155 @@
   "sprite_credits": [
     "CHUNSOFT"
   ],
-  "hidden_ability": 119
+  "hidden_ability": 119,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 7
+    },
+    {
+      "level": 1,
+      "move_id": 8
+    },
+    {
+      "level": 1,
+      "move_id": 9
+    },
+    {
+      "level": 1,
+      "move_id": 20
+    },
+    {
+      "level": 1,
+      "move_id": 43
+    },
+    {
+      "level": 1,
+      "move_id": 50
+    },
+    {
+      "level": 1,
+      "move_id": 310
+    },
+    {
+      "level": 1,
+      "move_id": 325
+    },
+    {
+      "level": 1,
+      "move_id": 356
+    },
+    {
+      "level": 1,
+      "move_id": 425
+    },
+    {
+      "level": 12,
+      "move_id": 109
+    },
+    {
+      "level": 16,
+      "move_id": 101
+    },
+    {
+      "level": 20,
+      "move_id": 371
+    },
+    {
+      "level": 24,
+      "move_id": 261
+    },
+    {
+      "level": 28,
+      "move_id": 212
+    },
+    {
+      "level": 32,
+      "move_id": 506
+    },
+    {
+      "level": 36,
+      "move_id": 174
+    },
+    {
+      "level": 42,
+      "move_id": 247
+    },
+    {
+      "level": 48,
+      "move_id": 248
+    },
+    {
+      "level": 54,
+      "move_id": 194
+    }
+  ],
+  "tm_moves": [
+    7,
+    8,
+    9,
+    34,
+    58,
+    59,
+    63,
+    89,
+    94,
+    101,
+    109,
+    114,
+    118,
+    129,
+    141,
+    156,
+    157,
+    164,
+    168,
+    174,
+    180,
+    182,
+    196,
+    203,
+    214,
+    220,
+    240,
+    241,
+    244,
+    247,
+    248,
+    261,
+    263,
+    264,
+    269,
+    270,
+    271,
+    280,
+    285,
+    286,
+    317,
+    347,
+    356,
+    374,
+    399,
+    411,
+    416,
+    433,
+    451,
+    506,
+    566,
+    806,
+    809,
+    851,
+    912
+  ],
+  "egg_moves": [
+    114,
+    220,
+    262
+  ],
+  "equipped_moves": [
+    325,
+    89,
+    261,
+    220
+  ]
 }

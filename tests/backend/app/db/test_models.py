@@ -83,7 +83,8 @@ def test_game_player_relationship(db_session):
 def test_unit_model(db_session):
     unit = Unit(
         species_id=1, name="Pikachu", species="Mouse", asset_folder="pikachu",
-        types=["Electric"], base_stats={"hp": 35}, move_ids=[], ability_ids=[],
+        types=["Electric"], base_stats={"hp": 35},
+        level_up_moves=[], tm_moves=[], egg_moves=[], equipped_moves=[], ability_ids=[],
         cost=300
     )
     db_session.add(unit)

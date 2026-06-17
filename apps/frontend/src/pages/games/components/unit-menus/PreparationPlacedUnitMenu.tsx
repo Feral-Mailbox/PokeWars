@@ -5,6 +5,7 @@ import {
   UnitInfoHeader,
   UnitInfoStats,
   UnitMoveList,
+  formatTmDisplayName,
 } from "./UnitMenuShared";
 import PreparationItemSelectPanel, {
   type PreparationItemOption,
@@ -103,6 +104,17 @@ export default function PreparationPlacedUnitMenu({
     setItemPickerOpen(false);
   };
 
+  const equippedItemLabel = useMemo(() => {
+    const slug = placedUnitAtTile?.held_item_slug;
+    if (!slug) return placedUnitAtTile?.held_item ?? null;
+    const item = items.find((entry) => entry.slug === slug);
+    if (!item) return placedUnitAtTile?.held_item ?? null;
+    if (item.category === "tm" && item.move_id != null) {
+      return formatTmDisplayName(item.name, moveMap[item.move_id]?.name);
+    }
+    return item.name;
+  }, [items, moveMap, placedUnitAtTile?.held_item, placedUnitAtTile?.held_item_slug]);
+
   return (
     <div className={`${UNIT_MENU_WIDTH_CLASS} bg-gray-800 text-white p-4 border border-yellow-500 rounded-lg shadow-lg max-h-[calc(100vh-8rem)] overflow-y-auto`}>
       <UnitInfoHeader
@@ -113,7 +125,7 @@ export default function PreparationPlacedUnitMenu({
         states={placedUnitAtTile?.states}
         typeColors={typeColors}
         ability={placedUnitAtTile?.ability}
-        item={placedUnitAtTile?.held_item}
+        item={equippedItemLabel}
         onRemoveItem={!disabled && placedUnitAtTile?.held_item_slug ? onRemoveItem : undefined}
       />
 
@@ -172,6 +184,8 @@ export default function PreparationPlacedUnitMenu({
           items={items}
           cash={cash}
           currentItemSlug={placedUnitAtTile?.held_item_slug ?? null}
+          moveMap={moveMap}
+          unit={unit}
           onSelectItem={handleSelectItem}
         />
       )}

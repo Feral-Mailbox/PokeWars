@@ -21,6 +21,10 @@ from app.routes.games import (
     resolve_move_type_for_execution,
     unit_has_glaive_rush,
     resolve_move_type_from_held_item,
+    get_held_tm_move_id,
+    unit_knows_move,
+    resolve_move_pp_index,
+    sync_tm_move_pp,
     WEATHER_TO_ID,
 )
 
@@ -725,7 +729,10 @@ def make_unit_definition(unit_types):
         asset_folder="testmon",
         types=unit_types,
         base_stats={"hp": 100},
-        move_ids=[],
+        level_up_moves=[],
+        tm_moves=[],
+        egg_moves=[],
+        equipped_moves=[],
         ability_ids=[],
         cost=0,
         portrait_credits=[],
@@ -1986,3 +1993,65 @@ def test_resolve_power_multiplier_weather_sun():
     multiplier = resolve_power_multiplier(move, attacker, None, None, None, db=None, weather_tiles=weather_tiles)
 
     assert multiplier == 1.5
+
+
+def test_held_tm_grants_move_and_pp_index(db):
+    tm_item = models.Item(id=9001, name="TM001", slug="tm001", category="tm", cost=500, move_id=42)
+    tm_move = models.Move(id=42, name="Flamethrower", type="Fire", category="Special", pp=15)
+    unit_info = models.Unit(
+        id=1,
+        species_id=1,
+        name="Charmander",
+        species="Charmander",
+        asset_folder="charmander",
+        types=["Fire"],
+        base_stats={"hp": 39},
+        level_up_moves=[{"move_id": 10, "level": 1}, {"move_id": 20, "level": 5}],
+        tm_moves=[42],
+        egg_moves=[],
+        equipped_moves=[10, 20],
+    )
+    base_move = models.Move(id=10, name="Scratch", type="Normal", category="Physical", pp=35)
+    db.add_all([tm_item, tm_move, unit_info, base_move])
+    db.flush()
+
+    game_unit = models.GameUnit(
+        flags={"held_item": "tm001", "move_ids": [10, 20]},
+        move_pp=[35, 20],
+    )
+
+    assert get_held_tm_move_id(game_unit, db) == 42
+    assert unit_knows_move(unit_info, 42, game_unit, db) is True
+    assert unit_knows_move(unit_info, 99, game_unit, db) is False
+    assert resolve_move_pp_index(game_unit, unit_info, 42, db) == 2
+
+    sync_tm_move_pp(game_unit, unit_info, db)
+    assert game_unit.move_pp == [35, 20, 15]
+
+
+def test_removing_held_tm_trims_extra_pp(db):
+    tm_item = models.Item(id=9002, name="TM002", slug="tm002", category="tm", cost=500, move_id=43)
+    tm_move = models.Move(id=43, name="Thunderbolt", type="Electric", category="Special", pp=15)
+    unit_info = models.Unit(
+        id=2,
+        species_id=2,
+        name="Pikachu",
+        species="Pikachu",
+        asset_folder="pikachu",
+        types=["Electric"],
+        base_stats={"hp": 35},
+        level_up_moves=[{"move_id": 11, "level": 1}],
+        tm_moves=[43],
+        egg_moves=[],
+        equipped_moves=[11],
+    )
+    base_move = models.Move(id=11, name="Quick Attack", type="Normal", category="Physical", pp=30)
+    db.add_all([tm_item, tm_move, unit_info, base_move])
+    db.flush()
+
+    game_unit = models.GameUnit(
+        flags={"move_ids": [11]},
+        move_pp=[30, 15],
+    )
+    sync_tm_move_pp(game_unit, unit_info, db)
+    assert game_unit.move_pp == [30]

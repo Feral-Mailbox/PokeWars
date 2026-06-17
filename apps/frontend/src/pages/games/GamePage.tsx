@@ -8,13 +8,13 @@ import GameMapStage from "./components/GameMapStage";
 import MapItemTooltip from "./components/MapItemTooltip";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
+import { formatTmDisplayName, UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
 import ConquestGame from "./modes/ConquestGame";
 import WarGame from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
-import { UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
-import { mapPlacedUnitFromBackend, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
+import { mapPlacedUnitFromBackend, resolveMovePpIndex, toActiveUnitView, type PlacedUnitState } from "./mapPlacedUnit";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
 import { useMapDisplayScale } from "@/hooks/useMapDisplayScale";
@@ -211,7 +211,7 @@ export default function GamePage() {
     for (const item of availableItems) {
       if (item?.category !== "tm") continue;
       const move = item.move_id != null ? moveMap[item.move_id] : null;
-      labels[item.id] = move?.name ? `${item.name} — ${move.name}` : item.name;
+      labels[item.id] = formatTmDisplayName(item.name, move?.name);
     }
     return labels;
   }, [availableItems, moveMap]);
@@ -1884,7 +1884,7 @@ export default function GamePage() {
     if (!gameData?.link || !activeUnit?.instanceId || !selectedMove) return;
     
     // Find the moveIndex and check PP (only if move_pp is initialized)
-    const moveIndex = activeUnit.unit?.move_ids?.indexOf(selectedMove.id) ?? -1;
+    const moveIndex = resolveMovePpIndex(activeUnit, selectedMove.id);
     if (moveIndex === -1) return;
     
     // Only check PP on frontend if move_pp array is properly initialized
@@ -2287,10 +2287,17 @@ export default function GamePage() {
         // Only initialize move_pp if it's completely missing or empty
         // Don't overwrite existing values from the backend
         if (!Array.isArray(unit.move_pp) || unit.move_pp.length === 0) {
-          const ppArray = unit.unit.move_ids?.map((moveId: number) => {
+          const ppArray = unit.equipped_move_ids?.map((moveId: number) => {
             const move = moveMap[moveId];
             return move?.pp ?? 0;
           }) ?? [];
+          if (
+            unit.held_tm_move_id != null &&
+            !unit.equipped_move_ids?.includes(unit.held_tm_move_id)
+          ) {
+            const tmMove = moveMap[unit.held_tm_move_id];
+            ppArray.push(tmMove?.pp ?? 0);
+          }
           return { ...unit, move_pp: ppArray };
         }
         return unit;

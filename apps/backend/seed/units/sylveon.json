@@ -17,11 +17,6 @@
     "speed": 60,
     "range": 4
   },
-  "move_ids": [
-    304,
-    581,
-    361
-  ],
   "ability_ids": [
     56
   ],
@@ -42,5 +37,149 @@
   "sprite_credits": [
     "baronessfaron"
   ],
-  "hidden_ability": 182
+  "hidden_ability": 182,
+  "level_up_moves": [
+    {
+      "level": 0,
+      "move_id": 574
+    },
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 1,
+      "move_id": 36
+    },
+    {
+      "level": 1,
+      "move_id": 38
+    },
+    {
+      "level": 1,
+      "move_id": 39
+    },
+    {
+      "level": 1,
+      "move_id": 44
+    },
+    {
+      "level": 1,
+      "move_id": 45
+    },
+    {
+      "level": 1,
+      "move_id": 204
+    },
+    {
+      "level": 1,
+      "move_id": 226
+    },
+    {
+      "level": 1,
+      "move_id": 270
+    },
+    {
+      "level": 1,
+      "move_id": 343
+    },
+    {
+      "level": 1,
+      "move_id": 383
+    },
+    {
+      "level": 5,
+      "move_id": 28
+    },
+    {
+      "level": 10,
+      "move_id": 98
+    },
+    {
+      "level": 15,
+      "move_id": 608
+    },
+    {
+      "level": 20,
+      "move_id": 129
+    },
+    {
+      "level": 25,
+      "move_id": 113
+    },
+    {
+      "level": 30,
+      "move_id": 577
+    },
+    {
+      "level": 35,
+      "move_id": 581
+    },
+    {
+      "level": 40,
+      "move_id": 285
+    },
+    {
+      "level": 45,
+      "move_id": 244
+    },
+    {
+      "level": 50,
+      "move_id": 585
+    },
+    {
+      "level": 55,
+      "move_id": 387
+    }
+  ],
+  "tm_moves": [
+    34,
+    36,
+    38,
+    46,
+    63,
+    91,
+    94,
+    113,
+    115,
+    129,
+    156,
+    164,
+    174,
+    182,
+    203,
+    204,
+    214,
+    226,
+    240,
+    241,
+    244,
+    247,
+    263,
+    270,
+    285,
+    304,
+    311,
+    313,
+    345,
+    347,
+    416,
+    473,
+    500,
+    574,
+    577,
+    581,
+    583,
+    605,
+    802,
+    851,
+    885,
+    914
+  ],
+  "egg_moves": [],
+  "equipped_moves": [
+    304,
+    581,
+    361
+  ]
 }

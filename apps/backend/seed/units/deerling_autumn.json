@@ -18,10 +18,6 @@
     "speed": 75,
     "range": 3
   },
-  "move_ids": [
-    36,
-    331
-  ],
   "ability_ids": [
     34,
     157
@@ -44,5 +40,107 @@
   "sprite_credits": [
     "baronessfaron"
   ],
-  "hidden_ability": 32
+  "hidden_ability": 32,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 4,
+      "move_id": 45
+    },
+    {
+      "level": 7,
+      "move_id": 28
+    },
+    {
+      "level": 10,
+      "move_id": 24
+    },
+    {
+      "level": 13,
+      "move_id": 73
+    },
+    {
+      "level": 16,
+      "move_id": 331
+    },
+    {
+      "level": 20,
+      "move_id": 36
+    },
+    {
+      "level": 24,
+      "move_id": 428
+    },
+    {
+      "level": 28,
+      "move_id": 412
+    },
+    {
+      "level": 32,
+      "move_id": 204
+    },
+    {
+      "level": 37,
+      "move_id": 38
+    },
+    {
+      "level": 42,
+      "move_id": 76
+    }
+  ],
+  "tm_moves": [
+    34,
+    36,
+    38,
+    76,
+    86,
+    91,
+    97,
+    113,
+    156,
+    164,
+    182,
+    202,
+    203,
+    204,
+    214,
+    226,
+    240,
+    241,
+    247,
+    263,
+    270,
+    283,
+    313,
+    331,
+    345,
+    402,
+    412,
+    428,
+    437,
+    447,
+    523,
+    528,
+    580,
+    583,
+    803,
+    851,
+    885
+  ],
+  "egg_moves": [
+    29,
+    97,
+    214,
+    226,
+    235,
+    313,
+    388
+  ],
+  "equipped_moves": [
+    36,
+    331
+  ]
 }

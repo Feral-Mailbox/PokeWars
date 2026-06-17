@@ -18,11 +18,6 @@
     "speed": 20,
     "range": 2
   },
-  "move_ids": [
-    438,
-    442,
-    191
-  ],
   "archetype": "wall_disruptor",
   "ability_ids": [
     160
@@ -42,5 +37,108 @@
   "sprite_credits": [
     "Top_Kec"
   ],
-  "hidden_ability": 107
+  "hidden_ability": 107,
+  "level_up_moves": [
+    {
+      "level": 0,
+      "move_id": 438
+    },
+    {
+      "level": 1,
+      "move_id": 33
+    },
+    {
+      "level": 1,
+      "move_id": 42
+    },
+    {
+      "level": 1,
+      "move_id": 106
+    },
+    {
+      "level": 1,
+      "move_id": 232
+    },
+    {
+      "level": 15,
+      "move_id": 275
+    },
+    {
+      "level": 20,
+      "move_id": 430
+    },
+    {
+      "level": 25,
+      "move_id": 442
+    },
+    {
+      "level": 30,
+      "move_id": 120
+    },
+    {
+      "level": 35,
+      "move_id": 334
+    },
+    {
+      "level": 43,
+      "move_id": 174
+    },
+    {
+      "level": 49,
+      "move_id": 360
+    },
+    {
+      "level": 56,
+      "move_id": 153
+    }
+  ],
+  "tm_moves": [
+    14,
+    42,
+    63,
+    76,
+    85,
+    86,
+    87,
+    120,
+    156,
+    164,
+    173,
+    182,
+    191,
+    201,
+    202,
+    203,
+    213,
+    214,
+    241,
+    263,
+    279,
+    331,
+    334,
+    360,
+    371,
+    372,
+    398,
+    402,
+    412,
+    416,
+    421,
+    430,
+    438,
+    442,
+    446,
+    447,
+    484,
+    496,
+    523,
+    693,
+    776
+  ],
+  "egg_moves": [],
+  "equipped_moves": [
+    438,
+    442,
+    191
+  ]
 }

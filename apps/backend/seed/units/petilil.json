@@ -17,11 +17,6 @@
     "speed": 30,
     "range": 3
   },
-  "move_ids": [
-    72,
-    79,
-    312
-  ],
   "ability_ids": [
     34,
     20
@@ -44,5 +39,106 @@
   "sprite_credits": [
     "Emmuffin"
   ],
-  "hidden_ability": 102
+  "hidden_ability": 102,
+  "level_up_moves": [
+    {
+      "level": 1,
+      "move_id": 71
+    },
+    {
+      "level": 1,
+      "move_id": 74
+    },
+    {
+      "level": 3,
+      "move_id": 270
+    },
+    {
+      "level": 6,
+      "move_id": 78
+    },
+    {
+      "level": 9,
+      "move_id": 72
+    },
+    {
+      "level": 12,
+      "move_id": 204
+    },
+    {
+      "level": 15,
+      "move_id": 345
+    },
+    {
+      "level": 18,
+      "move_id": 79
+    },
+    {
+      "level": 21,
+      "move_id": 202
+    },
+    {
+      "level": 24,
+      "move_id": 73
+    },
+    {
+      "level": 27,
+      "move_id": 495
+    },
+    {
+      "level": 30,
+      "move_id": 412
+    },
+    {
+      "level": 33,
+      "move_id": 235
+    },
+    {
+      "level": 36,
+      "move_id": 241
+    },
+    {
+      "level": 39,
+      "move_id": 494
+    },
+    {
+      "level": 42,
+      "move_id": 437
+    }
+  ],
+  "tm_moves": [
+    76,
+    156,
+    164,
+    182,
+    202,
+    203,
+    204,
+    214,
+    227,
+    241,
+    263,
+    270,
+    331,
+    345,
+    402,
+    412,
+    437,
+    447,
+    676,
+    803,
+    851,
+    885
+  ],
+  "egg_moves": [
+    230,
+    275,
+    361,
+    388
+  ],
+  "equipped_moves": [
+    72,
+    79,
+    312
+  ]
 }
