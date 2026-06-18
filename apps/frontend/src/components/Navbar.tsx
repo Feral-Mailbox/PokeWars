@@ -80,9 +80,10 @@ const Navbar = () => {
     });
 
     if (res?.ok) {
-      const data = await res.json();
-      setUser(data);
+      await res.json();
       setShowDropdown(false);
+      window.location.reload();
+      return;
     } else {
       let message = isRegister ? 'Registration failed' : 'Login failed';
       try {
@@ -107,7 +108,7 @@ const Navbar = () => {
     } finally {
       setUser(null);
       setIsRegister(false);
-      navigate('/');
+      window.location.reload();
     }
   };
 

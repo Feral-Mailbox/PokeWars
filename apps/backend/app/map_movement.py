@@ -566,3 +566,42 @@ def unit_can_occupy_tile(
     if tile in LEDGE_TILES:
         return unit_can_stand_on_ledge(unit_types, ability_names)
     return True
+
+
+DISPLACEMENT_MOVE_KINDS = frozenset({"dash_attack", "jump_attack"})
+
+
+def is_displacement_move_kind(kind: str) -> bool:
+    return kind in DISPLACEMENT_MOVE_KINDS
+
+
+def get_displacement_landing_tile(
+    origin_x: int,
+    origin_y: int,
+    effect_tiles: list[tuple[int, int]],
+    range_kind: str,
+) -> tuple[int, int] | None:
+    if not is_displacement_move_kind(range_kind) or not effect_tiles:
+        return None
+
+    best: tuple[int, int] | None = None
+    best_dist = 0
+    for tx, ty in effect_tiles:
+        dx = tx - origin_x
+        dy = ty - origin_y
+        if dx != 0 and dy != 0:
+            continue
+        dist = abs(dx) + abs(dy)
+        if dist not in (1, 2):
+            continue
+        if dist > best_dist:
+            best_dist = dist
+            best = (tx, ty)
+
+    if best is None:
+        return None
+
+    bx, by = best
+    if best_dist == 1:
+        return bx, by
+    return origin_x + (bx - origin_x) // 2, origin_y + (by - origin_y) // 2

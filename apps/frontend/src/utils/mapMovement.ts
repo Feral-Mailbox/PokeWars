@@ -4,6 +4,7 @@ export const GRASS_TILE = "grass";
 export const SAND_TILE = "sand";
 export const SAND_MOVEMENT_COST = 2;
 export const ICE_TILE = "ice";
+export const IMPASSABLE_TILE = "impassable";
 export const LEDGE_UP = "ledge_up";
 export const LEDGE_DOWN = "ledge_down";
 export const LEDGE_LEFT = "ledge_left";
@@ -359,6 +360,7 @@ export function buildMovementCostGrid(
   return baseCosts.map((row, y) =>
     row.map((cost, x) => {
       const tile = getSpecialTile(specialTiles, x, y);
+      if (tile === IMPASSABLE_TILE) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile === WATER_TILE && !canWater) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile === ROCK_TILE && !canRock) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile != null && LEDGE_TILES.has(tile) && !canStandOnLedge) return 0;
@@ -433,6 +435,7 @@ export function unitCanOccupyTile(
   abilityNames?: string[] | null
 ): boolean {
   const tile = getSpecialTile(specialTiles, x, y);
+  if (tile === IMPASSABLE_TILE) return false;
   if (tile === WATER_TILE) return unitCanCrossWater(unitTypes, abilityNames);
   if (tile === ROCK_TILE) return unitCanCrossRock(unitTypes, abilityNames);
   if (tile != null && LEDGE_TILES.has(tile)) {

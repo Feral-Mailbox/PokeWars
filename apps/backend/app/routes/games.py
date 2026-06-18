@@ -24,8 +24,10 @@ from app.dependencies import get_db, get_current_user, ensure_user_can_chat
 from app.moderation.service import apply_chat_moderation
 from app.map_movement import (
     build_movement_cost_grid,
+    get_displacement_landing_tile,
     get_grass_incoming_accuracy_multiplier,
     get_tile_defense_multiplier,
+    is_displacement_move_kind,
     is_stump_tile,
     movement_range_with_terrain,
     resolve_movement_destination,
@@ -6508,6 +6510,40 @@ def execute_move(
     )
     attacker_types = get_unit_types(gu, db)
 
+    range_kind, _ = parse_move_range_spec(move)
+    if is_displacement_move_kind(range_kind):
+        if not effect_tiles:
+            raise HTTPException(status_code=400, detail="This cannot work.")
+        landing = get_displacement_landing_tile(
+            int(gu.current_x),
+            int(gu.current_y),
+            effect_tiles,
+            range_kind,
+        )
+        if landing is None:
+            raise HTTPException(status_code=400, detail="This cannot work.")
+        lx, ly = landing
+        attacker_ability_names = get_unit_ability_names(gu, db)
+        if not unit_can_occupy_tile(
+            special_tiles,
+            lx,
+            ly,
+            attacker_types,
+            set(attacker_ability_names or []),
+        ):
+            raise HTTPException(status_code=400, detail="This cannot work.")
+        occupied_tiles = {
+            (int(unit.current_x), int(unit.current_y))
+            for unit in db.query(GameUnit).filter(
+                GameUnit.game_id == game.id,
+                GameUnit.id != gu.id,
+                GameUnit.current_hp > 0,
+            ).all()
+            if int(unit.current_x) >= 0 and int(unit.current_y) >= 0
+        }
+        if (lx, ly) in occupied_tiles:
+            raise HTTPException(status_code=400, detail="This cannot work.")
+
     # Check and decrement PP
     unit_info = db.query(Unit).filter_by(id=gu.unit_id).first()
     if not unit_info:
@@ -7030,6 +7066,18 @@ def execute_move(
             }
 
     attacker_removed = gu.id in removed_ids
+    displacement_landing = None
+    if is_displacement_move_kind(range_kind):
+        displacement_landing = get_displacement_landing_tile(
+            int(gu.current_x),
+            int(gu.current_y),
+            effect_tiles,
+            range_kind,
+        )
+    if not attacker_removed and displacement_landing is not None:
+        gu.current_x, gu.current_y = displacement_landing
+        db.add(gu)
+
     if not attacker_removed:
         gu.can_move = False
         db.flush()
@@ -7132,6 +7180,12 @@ def execute_move(
         db.commit()
 
     redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    if displacement_landing is not None and not attacker_removed:
+        lx, ly = displacement_landing
+        redis_client.publish(
+            f"game_updates:{game.link}",
+            f"unit_moved:{gu.id}:{gu.user_id}:{lx}:{ly}",
+        )
     for unit_id in removed_ids:
         redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
     

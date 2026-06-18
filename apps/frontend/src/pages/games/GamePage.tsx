@@ -24,8 +24,15 @@ import {
   filterMovementTilesForUnit,
   getMovementRangeWithTerrain,
   resolveMovementDestination,
+  unitCanOccupyTile,
   unitCanPassThroughUnits,
 } from "@/utils/mapMovement";
+import {
+  filterInBoundsTiles,
+  getDisplacementAttackTiles,
+  getDisplacementLandingTile,
+  isDisplacementMoveKind,
+} from "@/utils/displacementMoves";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -953,10 +960,12 @@ export default function GamePage() {
         next.normal = [origin];
       } else if (kind === "adjacent") {
         next.normal = getAdjacentTiles(origin);
-      } else if (kind === "dash_attack") {
-        const { step, attack } = getDashAttackTiles(origin);
-        next.invert = step;  // dash step
-        next.normal = attack; // attack tiles
+      } else if (kind === "dash_attack" || kind === "jump_attack") {
+        const { step, attack } = getDisplacementAttackTiles(origin);
+        const boundedStep = filterInBoundsTiles(step, mapTilesW, mapTilesH);
+        const boundedAttack = filterInBoundsTiles(attack, mapTilesW, mapTilesH);
+        next.invert = boundedStep;
+        next.normal = boundedAttack;
       } else if (kind === "blast") {
         next.normal = getBlastTiles(origin, offset || 1);
       } else if (kind === "sweep") {
@@ -1002,21 +1011,56 @@ export default function GamePage() {
   }
 
   function getDashAttackTiles([x, y]: [number, number]) {
-    const step: [number, number][] = [
-      [x, y - 1], // up
-      [x, y + 1], // down
-      [x - 1, y], // left
-      [x + 1, y], // right
-    ].filter(([cx, cy]) => inBounds(cx, cy));
+    return getDisplacementAttackTiles([x, y]);
+  }
 
-    const attack: [number, number][] = [
-      [x, y - 2],
-      [x, y + 2],
-      [x - 2, y],
-      [x + 2, y],
-    ].filter(([cx, cy]) => inBounds(cx, cy));
+  function canUnitLandOnTile(
+    unitState: any,
+    x: number,
+    y: number,
+    ignoreUnitId?: number
+  ): boolean {
+    const specialTiles = getMapSpecialTiles();
+    const unitTypes = getUnitTypesForMovement(unitState);
+    if (!unitCanOccupyTile(specialTiles, x, y, unitTypes)) return false;
+    if (isTileOccupied(x, y, ignoreUnitId)) return false;
+    return true;
+  }
 
-    return { step, attack };
+  function validateDisplacementMoveLanding(
+    unitState: any,
+    target: [number, number] | null,
+    move: any
+  ): string | null {
+    const { kind } = parseRangeSpec(move);
+    if (!isDisplacementMoveKind(kind)) return null;
+    if (!target) return "Select a target tile.";
+
+    const origin = getActiveOrigin();
+    const landing = getDisplacementLandingTile(origin, target, kind);
+    if (!landing) return "This cannot work.";
+
+    const unitId = unitState?.instanceId ?? unitState?.id;
+    if (!canUnitLandOnTile(unitState, landing[0], landing[1], unitId)) {
+      return "This cannot work.";
+    }
+    return null;
+  }
+
+  function getDisplacementLandingOverlayTiles(): [number, number][] {
+    const kind = activeMove ? parseRangeSpec(activeMove).kind : "";
+    if (!isDisplacementMoveKind(kind)) return attackOverlay.invert;
+
+    const directionalTarget = moveTargeting
+      ? selectedMoveTarget ?? hoveredOverlayTile
+      : null;
+    if (directionalTarget) {
+      const origin = getActiveOrigin();
+      const landing = getDisplacementLandingTile(origin, directionalTarget, kind);
+      return landing ? [landing] : [];
+    }
+
+    return attackOverlay.invert;
   }
   
   function getBlastTiles([x, y]: [number, number], offset: number) {
@@ -2042,6 +2086,16 @@ export default function GamePage() {
     }
     
     const activeId = activeUnit.instanceId;
+    const displacementError = validateDisplacementMoveLanding(
+      activeUnit,
+      selectedMoveTarget,
+      selectedMove
+    );
+    if (displacementError) {
+      setToastMessage(displacementError);
+      return;
+    }
+
     const attackTiles = selectedDirectionalTiles.length > 0 ? selectedDirectionalTiles : attackOverlay.normal;
     const attackTileSet = new Set(attackTiles.map(([x, y]) => `${x},${y}`));
     const currentUnits = placedUnitsRef.current;
@@ -2067,7 +2121,10 @@ export default function GamePage() {
       })
     });
     if (!res.ok) {
-      setToastMessage("Unable to execute move.");
+      const err = await res.json().catch(() => ({}));
+      setToastMessage(
+        typeof err?.detail === "string" ? err.detail : "Unable to execute move."
+      );
       return;
     }
 
@@ -2524,11 +2581,12 @@ export default function GamePage() {
       ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
     });
 
-    if (attackOverlay.invert.length) {
+    const displacementLandingTiles = getDisplacementLandingOverlayTiles();
+    if (displacementLandingTiles.length) {
       ctx.save();
       ctx.globalCompositeOperation = "difference";
       ctx.fillStyle = "#FFFFFF";
-      attackOverlay.invert.forEach(([x, y]) => {
+      displacementLandingTiles.forEach(([x, y]) => {
         ctx.fillRect(x * TILE_DRAW_SIZE, y * TILE_DRAW_SIZE, TILE_DRAW_SIZE, TILE_DRAW_SIZE);
       });
       ctx.restore();
@@ -2606,6 +2664,7 @@ export default function GamePage() {
     hoveredOverlayTile,
     selectedMoveTarget,
     activeMove,
+    hoveredOverlayTile,
     gameData?.map_state,
     weatherIconRefresh,
     hazardIconRefresh,
