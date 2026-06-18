@@ -2,7 +2,7 @@
   "id": 64,
   "name": "Peck",
   "description": "The target is jabbed with a sharply pointed beak or horn.",
-  "type": "Normal",
+  "type": "Flying",
   "category": "Physical",
   "power": 35,
   "accuracy": 100,
