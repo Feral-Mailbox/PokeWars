@@ -18,6 +18,9 @@ export function getTilesetManifestUrl(): string {
 /** TM machine sprites are 48×48; map tiles draw at 32×32 logical pixels. */
 export const TM_SOURCE_SIZE = 48;
 
+/** Pokeball / Master Ball map sprites use the same 48×48 source size as TM machines. */
+export const POKEBALL_SOURCE_SIZE = TM_SOURCE_SIZE;
+
 export function moveTypeToTmAssetKey(type: string): string {
   return type.trim().toUpperCase();
 }
@@ -25,4 +28,12 @@ export function moveTypeToTmAssetKey(type: string): string {
 export function getTmMachineUrl(moveType: string): string {
   const key = moveTypeToTmAssetKey(moveType);
   return `${getAssetBase()}/objects/tms/machine_${key}.png`;
+}
+
+export function getPokeballUrl(): string {
+  return `${getAssetBase()}/objects/pokeballs/POKEBALL.png`;
+}
+
+export function getMasterBallUrl(): string {
+  return `${getAssetBase()}/objects/pokeballs/MASTERBALL.png`;
 }

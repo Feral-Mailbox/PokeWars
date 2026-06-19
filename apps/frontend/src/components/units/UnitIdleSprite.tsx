@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { applyOpaquePixelOverlay } from "@/utils/spriteOverlay";
 
 interface UnitIdleSpriteProps {
   assetFolder: string;
@@ -232,20 +233,7 @@ export default function UnitIdleSprite({
           frameCtx.drawImage(spriteImage, frameIndex * fw, 0, fw, fh, 0, 0, fw, fh);
 
           const imageData = frameCtx.getImageData(0, 0, fw, fh);
-          const data = imageData.data;
-
-          for (let y = 0; y < fh; y++) {
-            for (let x = 0; x < fw; x++) {
-              const i = (y * fw + x) * 4;
-              const alpha = data[i + 3];
-              if (alpha > 0) {
-                ctx.fillStyle = overlayColor!;
-                ctx.globalAlpha = 0.7;
-                ctx.fillRect(x, y, 1, 1);
-              }
-            }
-          }
-          ctx.globalAlpha = 1.0;
+          applyOpaquePixelOverlay(ctx, imageData, 0, 0, overlayColor);
         }
       }
 

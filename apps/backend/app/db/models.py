@@ -208,6 +208,9 @@ class GameMapState(Base):
     # Item identity (item IDs are nullable when no item exists).
     item_id_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
 
+    # War mode objective state (pokeball / master_ball ownership and HP).
+    objective_tiles = Column(MutableList.as_mutable(JSON), nullable=False, default=list)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

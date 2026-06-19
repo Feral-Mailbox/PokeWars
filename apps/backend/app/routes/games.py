@@ -22,6 +22,24 @@ from app.schemas.units import (
 )
 from app.dependencies import get_db, get_current_user, ensure_user_can_chat
 from app.moderation.service import apply_chat_moderation
+from app.war_mode import (
+    apply_capture_damage,
+    apply_war_round_income,
+    build_objective_tiles_from_map,
+    can_capture_objective,
+    can_summon_on_objective,
+    get_current_round,
+    get_objective_at,
+    get_player_number,
+    get_war_draw_player_ids,
+    get_war_eliminated_player_ids,
+    format_objective_kind_label,
+    is_war_game,
+    mark_master_ball_original_owners,
+    mark_objective_tiles_dirty,
+    restore_objectives_for_units,
+    restore_unoccupied_damaged_objectives,
+)
 from app.map_movement import (
     build_movement_cost_grid,
     get_displacement_landing_tile,
@@ -70,6 +88,53 @@ def publish_player_state_updated(game_link: str) -> None:
         redis_client.publish(f"game_updates:{game_link}", "player_state_updated")
     except Exception:
         return
+
+
+def publish_map_state_updated(game_link: str) -> None:
+    try:
+        redis_client.publish(f"game_updates:{game_link}", "map_state_updated")
+    except Exception:
+        return
+
+
+def publish_objective_cell_updated(game_link: str, x: int, y: int, cell: dict) -> None:
+    try:
+        hp = int(cell.get("hp", 20))
+        owner = int(cell.get("owner") or 0)
+        kind = str(cell.get("kind", "pokeball"))
+        redis_client.publish(
+            f"game_updates:{game_link}",
+            f"objective_updated:{x}:{y}:{hp}:{owner}:{kind}",
+        )
+        publish_map_state_updated(game_link)
+    except Exception:
+        return
+
+
+def maybe_restore_war_objectives_at_turn_end(game: Game, db: Session) -> None:
+    if not is_war_game(game):
+        return
+    map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+    if not map_state:
+        return
+    restored = restore_unoccupied_damaged_objectives(map_state, game.id, db)
+    if not restored:
+        return
+    db.add(map_state)
+    for x, y, cell in restored:
+        publish_objective_cell_updated(game.link, x, y, cell)
+
+
+def _initialize_war_objective_tiles(game: Game, state: GameState, map_state: GameMapState, map_obj: Map) -> None:
+    if not is_war_game(game):
+        return
+    player_order = list(state.players or [])
+    map_state.objective_tiles = build_objective_tiles_from_map(
+        map_obj,
+        player_order,
+        map_state.objective_tiles or None,
+    )
+    mark_master_ball_original_owners(map_state.objective_tiles)
 
 
 def append_replay_log_event(game_state: GameState | None, payload: dict) -> None:
@@ -216,6 +281,13 @@ def publish_turn_start_logs(game: Game, state: GameState, db: Session) -> None:
     if is_round_start:
         round_number = (current_turn_index // players_count) + 1
         publish_system_log_event(game.link, f"Turn {round_number}", state, db)
+        if is_war_game(game):
+            map_state = (
+                db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+            )
+            if map_state:
+                apply_war_round_income(game, state, map_state, db)
+                publish_player_state_updated(game.link)
 
     current_player_id = players[current_turn_index % players_count]
     current_player_name = get_username_by_id(int(current_player_id), db)
@@ -4830,6 +4902,24 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
         faint_unit_in_place(unit, db)
         removed_ids.append(unit.id)
 
+    if game and is_war_game(game):
+        map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
+        if map_state and restore_objectives_for_units(map_state, fainted_units):
+            db.add(map_state)
+            for unit in fainted_units:
+                cell = get_objective_at(
+                    map_state.objective_tiles,
+                    int(unit.current_x),
+                    int(unit.current_y),
+                )
+                if cell:
+                    publish_objective_cell_updated(
+                        game.link,
+                        int(unit.current_x),
+                        int(unit.current_y),
+                        cell,
+                    )
+
     active_counts = get_remaining_unit_counts(game_id, db)
     if game:
         affected_users = {unit.user_id for unit in fainted_units}
@@ -4885,7 +4975,16 @@ def reconcile_playable_players(game: Game, state: GameState, db: Session) -> tup
             state.current_turn = 0
         return previous_players, [], False
 
-    playable_players = get_playable_player_ids_in_order(state, game.id, db)
+    map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+
+    if is_war_game(game) and map_state:
+        playable_players = [
+            player_id
+            for player_id in previous_players
+            if int(player_id) not in set(get_war_eliminated_player_ids(game, state, map_state, db))
+        ]
+    else:
+        playable_players = get_playable_player_ids_in_order(state, game.id, db)
     eliminated_players = [player_id for player_id in previous_players if player_id not in playable_players]
 
     if playable_players != previous_players:
@@ -4954,6 +5053,10 @@ def advance_turn_if_player_has_no_actions(
     if remaining_units > 0:
         return removed_ids or [], False, False
 
+    if is_war_game(game):
+        # War players can summon from objectives after all units wait; only End Turn advances.
+        return removed_ids or [], False, False
+
     removed_ids = list(removed_ids or [])
 
     units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
@@ -4973,6 +5076,8 @@ def advance_turn_if_player_has_no_actions(
     end_turn_removed_ids = remove_fainted_units_from_play(game.id, db)
     if end_turn_removed_ids:
         removed_ids = list(set(removed_ids + end_turn_removed_ids))
+
+    maybe_restore_war_objectives_at_turn_end(game, db)
 
     remaining_units_after_end_turn_damage = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
     remaining_players_after_end_turn_damage = {unit.user_id for unit in remaining_units_after_end_turn_damage}
@@ -5040,6 +5145,10 @@ def advance_turn_if_player_has_no_actions(
 
 
 def get_draw_player_ids(game: Game, state: GameState, db: Session) -> List[int]:
+    if is_war_game(game):
+        map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+        if map_state:
+            return get_war_draw_player_ids(game, state, db, map_state)
     counts = get_remaining_unit_counts(game.id, db)
     if not counts:
         return list(state.players or [])
@@ -5145,6 +5254,7 @@ def _create_default_game_map_state(game: Game, map_obj: Map) -> GameMapState:
         terrain_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         field_effect_tiles=_build_2d_matrix(map_obj.height, map_obj.width, 0),
         item_id_tiles=_normalize_item_id_tiles_from_map(map_obj),
+        objective_tiles=[],
     )
 
 
@@ -5274,6 +5384,8 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         decrement_and_expire_hazards(game.id, db)
 
     removed_ids = remove_fainted_units_from_play(game.id, db)
+
+    maybe_restore_war_objectives_at_turn_end(game, db)
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -5550,8 +5662,10 @@ def create_game(
         terrain_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         field_effect_tiles=_build_2d_matrix(selected_map.height, selected_map.width, 0),
         item_id_tiles=_normalize_item_id_tiles_from_map(selected_map),
+        objective_tiles=[],
     )
     db.add(game_map_state)
+    _initialize_war_objective_tiles(new_game, game_state, game_map_state, selected_map)
 
     publish_system_log_event(new_game.link, f"{user.username} created the lobby", game_state, db)
 
@@ -5618,6 +5732,12 @@ def join_game(
     )
     db.add(player_state)
 
+    if is_war_game(game):
+        map_obj = db.query(Map).filter_by(id=game.map_id).first()
+        map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+        if map_obj and map_state:
+            _initialize_war_objective_tiles(game, game_state, map_state, map_obj)
+
     if len(game_state.players) >= game.max_players:
         game_state.status = GameStatus.closed
         redis_client.publish(f"game_updates:{game.link}", "player_joined")
@@ -5680,11 +5800,16 @@ def start_game(
     if len(game_state.players) < game.max_players:
         raise HTTPException(status_code=400, detail="Game not full")
 
-    # Consolidated logic for all modes
-    if game.gamemode in ["Conquest", "Capture The Flag"]:
+    # Consolidated logic for modes with a preparation phase
+    if game.gamemode in ["Conquest", "Capture The Flag", "War"]:
         if game_state.status == GameStatus.closed:
             game_state.status = GameStatus.preparation
             had_random_tms = _resolve_random_tm_tiles_for_game(game, db)
+            if is_war_game(game):
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+                if map_obj and map_state:
+                    _initialize_war_objective_tiles(game, game_state, map_state, map_obj)
             publish_system_log_event(
                 game.link,
                 "The game has begun! All players may now select their units",
@@ -5695,11 +5820,18 @@ def start_game(
                 game.link, had_random_tms, game_state, db
             )
             db.commit()
+            if is_war_game(game):
+                publish_map_state_updated(game.link)
             redis_client.publish(f"game_updates:{game.link}", "game_preparation")
             return {"detail": "Game moved to preparation phase"}
         elif game_state.status == GameStatus.preparation:
             game_state.status = GameStatus.in_progress
             _resolve_random_tm_tiles_for_game(game, db)
+            if is_war_game(game):
+                map_obj = db.query(Map).filter_by(id=game.map_id).first()
+                map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+                if map_obj and map_state:
+                    _initialize_war_objective_tiles(game, game_state, map_state, map_obj)
 
             if game_state.players:
                 game_state.current_turn = 0
@@ -5712,28 +5844,13 @@ def start_game(
             publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
             publish_turn_start_logs(game, game_state, db)
             db.commit()
+            if is_war_game(game):
+                publish_map_state_updated(game.link)
             return {"detail": "Game started"}
         else:
             raise HTTPException(status_code=400, detail="Game already in progress or completed")
     else:
-        game_state.status = GameStatus.in_progress
-        had_random_tms = _resolve_random_tm_tiles_for_game(game, db)
-
-        if game_state.players:
-                game_state.current_turn = 0
-                game_state.turn_deadline = datetime.now(timezone.utc) + timedelta(seconds=game.turn_seconds)
-
-        compute_turn_locks(game, game_state, db)
-        db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_started")
-        redis_client.publish(f"game_updates:{game.link}", "turn_started")
-        publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
-        publish_random_tm_reveal_log_if_needed(
-            game.link, had_random_tms, game_state, db
-        )
-        publish_turn_start_logs(game, game_state, db)
-        db.commit()
-        return {"detail": "Game started"}
+        raise HTTPException(status_code=400, detail="Unsupported game mode")
 
 
 @router.post("/{link}/chat")
@@ -5860,7 +5977,7 @@ def toggle_ready_state(
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
-    if game.gamemode not in ["Conquest", "Capture The Flag"]:
+    if game.gamemode not in ["Conquest", "Capture The Flag", "War"]:
         raise HTTPException(status_code=400, detail="This game mode does not support readiness toggling")
 
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
@@ -5977,6 +6094,74 @@ def place_unit(
     if unit_info.cost > player_state.cash_remaining:
         raise HTTPException(status_code=400, detail="Not enough cash")
 
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    war_summon = False
+    map_state = None
+    objective_cell = None
+    if is_war_game(game):
+        if not state:
+            raise HTTPException(status_code=400, detail="Invalid game state")
+
+        map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+        if not map_state:
+            raise HTTPException(status_code=500, detail="Map state missing")
+
+        objective_cell = get_objective_at(map_state.objective_tiles, unit_data.x, unit_data.y)
+        player_number = get_player_number(list(state.players or []), user.id)
+        if player_number is None:
+            raise HTTPException(status_code=400, detail="Player not in game")
+
+        if state.status == GameStatus.preparation:
+            if not objective_cell:
+                raise HTTPException(status_code=400, detail="Units must be placed on owned objectives")
+            if int(objective_cell.get("owner") or 0) != player_number:
+                raise HTTPException(status_code=400, detail="You can only place units on your objectives")
+            if game.unit_limit is not None and len(player_state.game_units or []) >= int(game.unit_limit):
+                raise HTTPException(status_code=400, detail="Unit limit reached")
+            occupied = (
+                db.query(GameUnit)
+                .filter(
+                    GameUnit.game_id == game.id,
+                    GameUnit.current_x == unit_data.x,
+                    GameUnit.current_y == unit_data.y,
+                    GameUnit.current_hp > 0,
+                )
+                .first()
+            )
+            if occupied:
+                raise HTTPException(status_code=400, detail="Tile occupied")
+        elif state.status == GameStatus.in_progress:
+            playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+            if completed_now:
+                raise HTTPException(status_code=400, detail="Game completed")
+            if not playable_players or state.current_turn is None:
+                raise HTTPException(status_code=400, detail="Invalid game state")
+            current_player_id = playable_players[state.current_turn % len(playable_players)]
+            if current_player_id != user.id:
+                raise HTTPException(status_code=403, detail="Not your turn")
+            if game.unit_limit is not None and len(player_state.game_units or []) >= int(game.unit_limit):
+                raise HTTPException(status_code=400, detail="Unit limit reached")
+            occupied = (
+                db.query(GameUnit)
+                .filter(
+                    GameUnit.game_id == game.id,
+                    GameUnit.current_x == unit_data.x,
+                    GameUnit.current_y == unit_data.y,
+                    GameUnit.current_hp > 0,
+                )
+                .first()
+            )
+            if occupied:
+                raise HTTPException(status_code=400, detail="Tile occupied")
+            if not objective_cell:
+                raise HTTPException(status_code=400, detail="Units can only be summoned on owned objectives")
+            current_round = get_current_round(state)
+            if not can_summon_on_objective(objective_cell, player_number, current_round):
+                raise HTTPException(status_code=400, detail="This objective already summoned a unit this round")
+            war_summon = True
+        else:
+            raise HTTPException(status_code=400, detail="Cannot place units in the current game phase")
+
     # Calculate current_stats from base_stats using stat formulas
     # Assumptions: EV=0, IV=0, Nature=1
     level = 50
@@ -6028,6 +6213,8 @@ def place_unit(
         move_pp=move_pp,
         flags=initial_flags,
     )
+    if war_summon:
+        new_unit.can_move = False
     db.add(new_unit)
     db.flush()
     
@@ -6054,6 +6241,11 @@ def place_unit(
     player_state.cash_remaining -= unit_info.cost
     player_state.game_units.append(new_unit.id)
 
+    if war_summon and map_state and objective_cell is not None and state is not None:
+        objective_cell["last_summon_round"] = get_current_round(state)
+        mark_objective_tiles_dirty(map_state)
+        db.add(map_state)
+
     # Step 3: Ensure SQLAlchemy registers state as dirty
     db.add(player_state)
 
@@ -6062,6 +6254,18 @@ def place_unit(
 
     attach_game_unit_loadout_fields(new_unit, db)
     publish_player_state_updated(game.link)
+    redis_client.publish(f"game_updates:{game.link}", f"unit_placed:{new_unit.id}")
+    if war_summon:
+        publish_map_state_updated(game.link)
+        if state is not None:
+            removed_ids, _, game_completed = advance_turn_if_player_has_no_actions(
+                game, state, user.id, db
+            )
+            if game_completed:
+                redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            elif removed_ids:
+                for unit_id in removed_ids:
+                    redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
     return new_unit
 
 @router.post("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
@@ -6329,6 +6533,8 @@ def end_turn(
         decrement_and_expire_hazards(game.id, db)
 
     removed_ids = remove_fainted_units_from_play(game.id, db)
+
+    maybe_restore_war_objectives_at_turn_end(game, db)
 
     # Reset can_move for the current player's units before advancing turn
     current_player_units = db.query(GameUnit).filter(
@@ -7066,11 +7272,13 @@ def execute_move(
             }
 
     attacker_removed = gu.id in removed_ids
+    attacker_from_x = int(gu.current_x)
+    attacker_from_y = int(gu.current_y)
     displacement_landing = None
     if is_displacement_move_kind(range_kind):
         displacement_landing = get_displacement_landing_tile(
-            int(gu.current_x),
-            int(gu.current_y),
+            attacker_from_x,
+            attacker_from_y,
             effect_tiles,
             range_kind,
         )
@@ -7089,7 +7297,7 @@ def execute_move(
 
     end_turn_removed_ids: List[int] = []
 
-    if remaining_units == 0:
+    if remaining_units == 0 and not is_war_game(game):
         units_to_sync = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
         for unit in units_to_sync:
             unit.starting_x = unit.current_x
@@ -7200,6 +7408,132 @@ def execute_move(
         "missed_target_ids": missed_target_ids,
         "removed_ids": removed_ids
     }
+
+@router.post("/{link}/war/capture")
+def capture_objective(
+    link: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        unit_id = int(payload.get("unit_id"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    game = db.query(Game).filter(Game.link == link).first()
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+    if not is_war_game(game):
+        raise HTTPException(status_code=400, detail="Capture is only available in War mode")
+
+    state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not state or state.status != GameStatus.in_progress:
+        raise HTTPException(status_code=400, detail="Game not in progress")
+
+    playable_players, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        raise HTTPException(status_code=400, detail="Game completed")
+
+    if not playable_players or state.current_turn is None:
+        raise HTTPException(status_code=400, detail="Invalid game state")
+
+    current_player_id = playable_players[state.current_turn % len(playable_players)]
+    if current_player_id != user.id:
+        raise HTTPException(status_code=403, detail="Not your turn")
+
+    gu = db.query(GameUnit).filter(GameUnit.id == unit_id, GameUnit.game_id == game.id).first()
+    if not gu:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    if gu.user_id != user.id:
+        raise HTTPException(status_code=403, detail="You can only capture with your own unit")
+    if not gu.can_move:
+        raise HTTPException(status_code=400, detail="Unit is locked")
+
+    map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+    if not map_state:
+        raise HTTPException(status_code=500, detail="Map state missing")
+
+    objective_cell = get_objective_at(map_state.objective_tiles, int(gu.current_x), int(gu.current_y))
+    if not objective_cell:
+        raise HTTPException(status_code=400, detail="Unit is not on an objective")
+
+    player_number = get_player_number(list(state.players or []), user.id)
+    if player_number is None:
+        raise HTTPException(status_code=400, detail="Player not in game")
+    if not can_capture_objective(objective_cell, player_number):
+        raise HTTPException(status_code=400, detail="You already own this objective")
+
+    capturer_max_hp = int((gu.current_stats or {}).get("hp", gu.current_hp or 0) or 0)
+    capturer_current_hp = int(gu.current_hp or 0)
+    captured, _ = apply_capture_damage(
+        objective_cell,
+        player_number,
+        capturer_current_hp,
+        capturer_max_hp,
+    )
+    mark_objective_tiles_dirty(map_state)
+    gu.can_move = False
+    db.add(map_state)
+    db.add(gu)
+    db.flush()
+
+    objective_x = int(gu.current_x)
+    objective_y = int(gu.current_y)
+    objective_kind_label = format_objective_kind_label(objective_cell.get("kind"))
+    unit_label = get_unit_display_name(gu, db)
+    if captured:
+        publish_system_log_event(
+            game.link,
+            f"{unit_label} has captured a {objective_kind_label}.",
+            state,
+            db,
+        )
+    else:
+        remaining_hp = int(objective_cell.get("hp", 0))
+        publish_system_log_event(
+            game.link,
+            f"{unit_label} attempts to claim a {objective_kind_label}. It has {remaining_hp} health left.",
+            state,
+            db,
+        )
+
+    _, _, completed_now = reconcile_playable_players(game, state, db)
+    if completed_now:
+        db.commit()
+        publish_objective_cell_updated(game.link, objective_x, objective_y, objective_cell)
+        redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        return {
+            "ok": True,
+            "unit_id": gu.id,
+            "captured": captured,
+            "objective": objective_cell,
+            "turn_advanced": False,
+            "game_completed": True,
+        }
+
+    removed_ids: list[int] = []
+    _, turn_advanced, game_completed = advance_turn_if_player_has_no_actions(
+        game, state, current_player_id, db, removed_ids=[]
+    )
+    if not turn_advanced and not game_completed:
+        db.commit()
+
+    publish_objective_cell_updated(game.link, objective_x, objective_y, objective_cell)
+    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+
+    return {
+        "ok": True,
+        "unit_id": gu.id,
+        "captured": captured,
+        "objective": objective_cell,
+        "turn_advanced": turn_advanced,
+        "game_completed": game_completed,
+    }
+
 
 @router.post("/{link}/wait")
 def wait_unit(

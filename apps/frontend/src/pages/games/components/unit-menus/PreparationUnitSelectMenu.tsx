@@ -3,6 +3,7 @@ import { UNIT_MENU_WIDTH_CLASS } from "./UnitMenuShared";
 
 type PreparationUnitSelectMenuProps = {
   availableUnits: any[];
+  cash: number;
   unitSearchQuery: string;
   unitTypeFilterPrimary: string;
   unitTypeFilterSecondary: string;
@@ -20,6 +21,7 @@ type PreparationUnitSelectMenuProps = {
 
 export default function PreparationUnitSelectMenu({
   availableUnits,
+  cash,
   unitSearchQuery,
   unitTypeFilterPrimary,
   unitTypeFilterSecondary,
@@ -122,12 +124,21 @@ export default function PreparationUnitSelectMenu({
             No units match the current filters.
           </li>
         )}
-        {filteredUnits.map((unit) => (
+        {filteredUnits.map((unit) => {
+          const unitCost = Number(unit.cost ?? 0);
+          const canAfford = cash >= unitCost;
+          return (
           <li
             key={unit.id}
             data-unit
-            className="flex items-center justify-between px-2 py-1 hover:bg-gray-700 rounded cursor-pointer"
-            onClick={() => onSelectUnit(unit)}
+            className={`flex items-center justify-between px-2 py-1 rounded ${
+              canAfford
+                ? "hover:bg-gray-700 cursor-pointer"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+            onClick={() => {
+              if (canAfford) onSelectUnit(unit);
+            }}
           >
             <div className="flex items-center gap-2">
               <UnitPortrait assetFolder={unit.asset_folder} />
@@ -151,7 +162,8 @@ export default function PreparationUnitSelectMenu({
             </div>
             <span>${unit.cost}</span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );

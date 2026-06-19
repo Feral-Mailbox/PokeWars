@@ -1,6 +1,10 @@
 import { useLayoutEffect, useMemo } from "react";
 import UnitIdleSprite from "@/components/units/UnitIdleSprite";
 import { useMapItemRenderer } from "@/hooks/useMapItemRenderer";
+import {
+  useMapObjectiveRenderer,
+  type ObjectiveTileState,
+} from "@/hooks/useMapObjectiveRenderer";
 import { useOverlay2Renderer } from "@/hooks/useOverlay2Renderer";
 import { useOverlay3Renderer } from "@/hooks/useOverlay3Renderer";
 import { buildOverlay2TileSet } from "@/utils/mapTileDrawing";
@@ -49,6 +53,10 @@ type GameMapStageProps = {
   itemsCanvasRef?: any;
   itemIdTiles?: (number | null)[][] | null;
   itemMoveTypeById?: Record<number, string>;
+  objectivesCanvasRef?: any;
+  objectiveTiles?: (ObjectiveTileState | null)[][] | null;
+  objectiveSelectedTile?: [number, number] | null;
+  playerOrder?: number[];
   showMapItemTooltips?: boolean;
   onMapItemHover?: (itemId: number, clientX: number, clientY: number) => void;
   onMapItemLeave?: () => void;
@@ -78,6 +86,10 @@ export default function GameMapStage({
   itemsCanvasRef,
   itemIdTiles,
   itemMoveTypeById = {},
+  objectivesCanvasRef,
+  objectiveTiles,
+  objectiveSelectedTile = null,
+  playerOrder = [],
   showMapItemTooltips = false,
   onMapItemHover,
   onMapItemLeave,
@@ -99,10 +111,13 @@ export default function GameMapStage({
     if (!mapWidth || !mapHeight) return;
     if (canvasRef.current) setupPixelCanvas(canvasRef.current, mapWidth, mapHeight);
     if (itemsCanvasRef?.current) setupPixelCanvas(itemsCanvasRef.current, mapWidth, mapHeight);
+    if (objectivesCanvasRef?.current) {
+      setupPixelCanvas(objectivesCanvasRef.current, mapWidth, mapHeight);
+    }
     if (overlayRef.current) setupPixelCanvas(overlayRef.current, mapWidth, mapHeight);
     if (overlay2Ref.current) setupPixelCanvas(overlay2Ref.current, mapWidth, mapHeight);
     if (overlay3Ref.current) setupPixelCanvas(overlay3Ref.current, mapWidth, mapHeight);
-  }, [mapWidth, mapHeight, canvasRef, itemsCanvasRef, overlayRef, overlay2Ref, overlay3Ref]);
+  }, [mapWidth, mapHeight, canvasRef, itemsCanvasRef, objectivesCanvasRef, overlayRef, overlay2Ref, overlay3Ref]);
 
   useMapItemRenderer(
     itemsCanvasRef,
@@ -110,6 +125,18 @@ export default function GameMapStage({
     mapHeight,
     itemIdTiles,
     itemMoveTypeById
+  );
+
+  useMapObjectiveRenderer(
+    objectivesCanvasRef,
+    mapWidth,
+    mapHeight,
+    objectiveTiles,
+    {
+      selectedTile: objectiveSelectedTile,
+      playerOrder,
+      getPlayerColor,
+    }
   );
 
   useOverlay2Renderer(overlay2Ref, mapRenderData);
@@ -210,6 +237,21 @@ export default function GameMapStage({
         }}
       >
         <canvas ref={canvasRef} id="mapCanvas" style={pixelatedCanvasStyle} />
+
+        {objectivesCanvasRef && (
+          <canvas
+            ref={objectivesCanvasRef}
+            id="objectivesCanvas"
+            style={{
+              ...pixelatedCanvasStyle,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              zIndex: 1,
+              pointerEvents: "none",
+            }}
+          />
+        )}
 
         {itemsCanvasRef && (
           <canvas

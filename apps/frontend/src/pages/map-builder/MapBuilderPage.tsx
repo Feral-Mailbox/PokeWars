@@ -8,24 +8,26 @@ import { useMapBuilderHistory } from "./useMapBuilderHistory";
 import { DRAWING_TOOL_LABELS, type DrawingTool } from "./drawingTools";
 import {
   DEFAULT_MOVEMENT_COST,
-  GAME_MODES,
+  encodeWarObjective,
   MOVEMENT_COST_VALUES,
   PLAYER_COUNTS,
   PLAYER_IDS,
   SPECIAL_TILE_TYPES,
   type MapLayer,
   type MapTileData,
+  type WarObjectiveKind,
   RANDOM_TM_ITEM_ID,
   type TileRef,
 } from "@/types/mapData";
 import {
   buildMapExport,
+  canExportMap,
   createEmptyTileData,
   downloadMapJson,
   parseMapImport,
   resizeTileData,
 } from "@/utils/mapBuilder";
-import { getTilesetManifestUrl, getTmMachineUrl } from "@/utils/gameAssets";
+import { getTilesetManifestUrl, getTmMachineUrl, getPokeballUrl, getMasterBallUrl } from "@/utils/gameAssets";
 import { secureFetch } from "@/utils/secureFetch";
 
 const LAYER_LABELS: Record<MapLayer, string> = {
@@ -33,8 +35,9 @@ const LAYER_LABELS: Record<MapLayer, string> = {
   overlay: "Overlay 1",
   overlay2: "Overlay 2",
   overlay3: "Overlay 3",
-  spawn_points: "Spawn points",
+  spawn_points: "Conquest",
   special_tiles: "Special tiles",
+  war: "War",
   flags: "Flags (CTF)",
   movement_cost: "Movement cost",
   items: "Items (TMs)",
@@ -71,14 +74,16 @@ export default function MapBuilderPage() {
   const [tilesetNames, setTilesetNames] = useState<string[]>(["Brick City.png"]);
   const [activeTileset, setActiveTileset] = useState("Brick City.png");
   const [availableTilesets, setAvailableTilesets] = useState<string[]>([]);
-  const [allowedModes, setAllowedModes] = useState<string[]>([...GAME_MODES]);
   const [allowedPlayerCounts, setAllowedPlayerCounts] = useState<number[]>([2, 3, 4]);
+  const [showAllOverlays, setShowAllOverlays] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>("base");
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("pencil");
   const [selectedTile, setSelectedTile] = useState<TileRef>([0, 0]);
   const [spawnBrush, setSpawnBrush] = useState<number | null>(1);
   const [flagBrush, setFlagBrush] = useState<number | null>(1);
   const [specialBrush, setSpecialBrush] = useState<string>("grass");
+  const [warObjectiveKind, setWarObjectiveKind] = useState<WarObjectiveKind>("pokeball");
+  const [warOwnerBrush, setWarOwnerBrush] = useState<number | null>(null);
   const [movementCostBrush, setMovementCostBrush] = useState(DEFAULT_MOVEMENT_COST);
   const [itemBrush, setItemBrush] = useState<number | null>(null);
   const [tmItems, setTmItems] = useState<TmItemOption[]>([]);
@@ -184,6 +189,19 @@ export default function MapBuilderPage() {
     [tmItems, itemBrush]
   );
 
+  const warBrush = useMemo(() => {
+    const owner =
+      warObjectiveKind === "master_ball"
+        ? warOwnerBrush ?? 1
+        : warOwnerBrush;
+    return encodeWarObjective(warObjectiveKind, owner);
+  }, [warObjectiveKind, warOwnerBrush]);
+
+  const exportValidation = useMemo(
+    () => canExportMap(tilesetNames, allowedPlayerCounts, tileData),
+    [tilesetNames, allowedPlayerCounts, tileData]
+  );
+
   const applyResize = useCallback(() => {
     const nextWidth = Math.max(1, Math.min(64, draftWidth));
     const nextHeight = Math.max(1, Math.min(64, draftHeight));
@@ -235,22 +253,13 @@ export default function MapBuilderPage() {
   }, [activeTilesetIndex]);
 
   const handleExport = () => {
-    if (tilesetNames.length === 0) {
-      setStatusMessage("Select at least one tileset.");
-      return;
-    }
-    if (allowedModes.length === 0) {
-      setStatusMessage("Select at least one game mode.");
-      return;
-    }
-    if (allowedPlayerCounts.length === 0) {
-      setStatusMessage("Select at least one player count.");
+    if (!exportValidation.ok) {
+      setStatusMessage(exportValidation.message ?? "Cannot export this map.");
       return;
     }
     const map = buildMapExport({
       name: mapName,
       tilesetNames,
-      allowedModes,
       allowedPlayerCounts,
       width: mapWidth,
       height: mapHeight,
@@ -275,7 +284,6 @@ export default function MapBuilderPage() {
       resetHistory(map.tile_data);
       setTilesetNames(map.tileset_names);
       setActiveTileset(map.tileset_names[0] ?? "Brick City.png");
-      setAllowedModes(map.allowed_modes);
       setAllowedPlayerCounts(map.allowed_player_counts);
       setStatusMessage(`Imported "${map.name}".`);
     } catch (err) {
@@ -372,7 +380,9 @@ export default function MapBuilderPage() {
             <button
               type="button"
               onClick={handleExport}
-              className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+              disabled={!exportValidation.ok}
+              title={exportValidation.message ?? undefined}
+              className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export JSON
             </button>
@@ -387,6 +397,10 @@ export default function MapBuilderPage() {
               Map size changed — click Apply size to update the canvas ({mapWidth}×{mapHeight} → {draftWidth}×
               {draftHeight}).
             </p>
+          )}
+
+          {!exportValidation.ok && exportValidation.message && (
+            <p className="text-sm text-amber-400">{exportValidation.message}</p>
           )}
 
           <div className="flex flex-wrap gap-2">
@@ -441,7 +455,7 @@ export default function MapBuilderPage() {
           )}
           {activeLayer === "spawn_points" && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
-              Spawn brush:
+              Conquest spawn brush:
               {PLAYER_IDS.map((player) => (
                 <button
                   key={player}
@@ -480,6 +494,69 @@ export default function MapBuilderPage() {
                 ))}
               </select>
             </label>
+          )}
+          {activeLayer === "war" && (
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
+              <div className="flex flex-wrap items-center gap-2">
+                <span>Objective:</span>
+                <button
+                  type="button"
+                  onClick={() => setWarObjectiveKind("pokeball")}
+                  className={`rounded px-2 py-1 ${
+                    warObjectiveKind === "pokeball" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                  }`}
+                >
+                  Pokeball
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWarObjectiveKind("master_ball");
+                    setWarOwnerBrush((prev) => prev ?? 1);
+                  }}
+                  className={`rounded px-2 py-1 ${
+                    warObjectiveKind === "master_ball" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                  }`}
+                >
+                  Master Ball
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span>Owner:</span>
+                {warObjectiveKind === "pokeball" && (
+                  <button
+                    type="button"
+                    onClick={() => setWarOwnerBrush(null)}
+                    className={`rounded px-2 py-1 ${
+                      warOwnerBrush === null ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    None
+                  </button>
+                )}
+                {PLAYER_IDS.map((player) => (
+                  <button
+                    key={player}
+                    type="button"
+                    onClick={() => setWarOwnerBrush(player)}
+                    className={`rounded px-2 py-1 ${
+                      warOwnerBrush === player ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    P{player}
+                  </button>
+                ))}
+              </div>
+              <img
+                src={warObjectiveKind === "master_ball" ? getMasterBallUrl() : getPokeballUrl()}
+                alt={warObjectiveKind === "master_ball" ? "Master Ball" : "Pokeball"}
+                className="h-8 w-8"
+                style={{ imageRendering: "pixelated" }}
+              />
+              <span className="text-gray-500">
+                · Eraser removes objectives only · Each player needs exactly one master ball to export
+              </span>
+            </div>
           )}
           {activeLayer === "flags" && (
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
@@ -587,6 +664,8 @@ export default function MapBuilderPage() {
               movementCostBrush={movementCostBrush}
               itemBrush={itemBrush}
               itemMoveTypeById={itemMoveTypeById}
+              warBrush={warBrush}
+              showAllOverlays={showAllOverlays}
               onStrokeStart={handleStrokeStart}
               onStrokeEnd={handleStrokeEnd}
               onTileDataChange={handleTileDataChange}
@@ -635,27 +714,11 @@ export default function MapBuilderPage() {
           </section>
 
           <section className="rounded-lg border border-gray-700 bg-gray-900/70 p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-300">Game modes</h2>
-            <div className="space-y-2 text-sm">
-              {GAME_MODES.map((mode) => (
-                <label key={mode} className="flex items-center gap-2 text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={allowedModes.includes(mode)}
-                    onChange={() =>
-                      setAllowedModes((prev) =>
-                        prev.includes(mode) ? prev.filter((m) => m !== mode) : [...prev, mode]
-                      )
-                    }
-                  />
-                  {mode}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-gray-700 bg-gray-900/70 p-4">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-300">Player counts</h2>
+            <p className="mb-3 text-xs text-gray-500">
+              Maps export for Conquest and War. Each player up to the highest count selected needs at least one
+              Conquest spawn point and exactly one master ball on the War layer.
+            </p>
             <div className="space-y-2 text-sm">
               {PLAYER_COUNTS.map((count) => (
                 <label key={count} className="flex items-center gap-2 text-gray-300">
@@ -672,6 +735,18 @@ export default function MapBuilderPage() {
                 </label>
               ))}
             </div>
+            <label className="mt-4 flex items-center gap-2 border-t border-gray-700 pt-4 text-sm text-gray-300">
+              <input
+                type="checkbox"
+                checked={showAllOverlays}
+                onChange={(e) => setShowAllOverlays(e.target.checked)}
+              />
+              Show all overlay layers
+            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              When off, Conquest spawns, special tiles, War objectives, flags, and items are only visible on their
+              active tab.
+            </p>
           </section>
         </aside>
       </div>

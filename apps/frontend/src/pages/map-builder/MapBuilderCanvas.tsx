@@ -5,9 +5,9 @@ import {
   MAP_TILE_SIZE,
   setupPixelCanvas,
 } from "@/utils/pixelCanvas";
-import { getTilesetUrl, getTmMachineUrl, TM_SOURCE_SIZE } from "@/utils/gameAssets";
+import { getTilesetUrl, getTmMachineUrl, getPokeballUrl, getMasterBallUrl, TM_SOURCE_SIZE, POKEBALL_SOURCE_SIZE } from "@/utils/gameAssets";
 import type { MapLayer, MapTileData, TileRef } from "@/types/mapData";
-import { DEFAULT_MOVEMENT_COST, RANDOM_TM_ITEM_ID } from "@/types/mapData";
+import { DEFAULT_MOVEMENT_COST, RANDOM_TM_ITEM_ID, isWarObjectiveTile, parseWarObjectiveTile } from "@/types/mapData";
 import type { DrawingTool } from "./drawingTools";
 import { fillRectOnMap, normalizeRect, paintCellOnMap } from "./drawingTools";
 
@@ -25,6 +25,8 @@ type MapBuilderCanvasProps = {
   movementCostBrush: number;
   itemBrush: number | null;
   itemMoveTypeById: Record<number, string>;
+  warBrush: string;
+  showAllOverlays?: boolean;
   onStrokeStart: () => void;
   onStrokeEnd: () => void;
   onTileDataChange: (next: MapTileData | ((prev: MapTileData) => MapTileData)) => void;
@@ -98,6 +100,8 @@ export default function MapBuilderCanvas({
   movementCostBrush,
   itemBrush,
   itemMoveTypeById,
+  warBrush,
+  showAllOverlays = false,
   onStrokeStart,
   onStrokeEnd,
   onTileDataChange,
@@ -112,6 +116,8 @@ export default function MapBuilderCanvas({
   const boxPreviewRef = useRef<{ x: number; y: number } | null>(null);
   const tmImagesRef = useRef<Record<string, HTMLImageElement>>({});
   const tmLoadedTypesRef = useRef<Set<string>>(new Set());
+  const pokeballImageRef = useRef<HTMLImageElement | null>(null);
+  const masterBallImageRef = useRef<HTMLImageElement | null>(null);
 
   const fillOptions = useCallback(
     (erase: boolean) => ({
@@ -123,6 +129,7 @@ export default function MapBuilderCanvas({
       flagBrush,
       movementCostBrush,
       itemBrush,
+      warBrush,
     }),
     [
       activeLayer,
@@ -132,6 +139,7 @@ export default function MapBuilderCanvas({
       flagBrush,
       movementCostBrush,
       itemBrush,
+      warBrush,
     ]
   );
 
@@ -166,32 +174,88 @@ export default function MapBuilderCanvas({
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
+    const showSpawn = showAllOverlays || activeLayer === "spawn_points";
+    const showSpecial = showAllOverlays || activeLayer === "special_tiles";
+    const showWar = showAllOverlays || activeLayer === "war";
+    const showFlags = showAllOverlays || activeLayer === "flags";
+    const showItems = showAllOverlays || activeLayer === "items";
+
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         const px = x * MAP_TILE_DRAW_SIZE + MAP_TILE_DRAW_SIZE / 2;
         const py = y * MAP_TILE_DRAW_SIZE + MAP_TILE_DRAW_SIZE / 2;
 
-        if (activeLayer === "spawn_points" || tileData.spawn_points[y]?.[x] != null) {
+        if (showSpawn) {
           const spawn = tileData.spawn_points[y]?.[x];
           if (spawn != null) {
             ctx.fillStyle = `${SPAWN_COLORS[spawn - 1] ?? "#fff"}88`;
             ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
             ctx.fillStyle = "#fff";
+            ctx.font = "bold 10px sans-serif";
             ctx.fillText(String(spawn), px, py);
           }
         }
 
         const special = tileData.special_tiles[y]?.[x];
-        if (special) {
+        if (showSpecial && special && !isWarObjectiveTile(special)) {
           ctx.fillStyle = `${SPECIAL_COLORS[special] ?? "#fff"}99`;
           ctx.fillRect(x * MAP_TILE_DRAW_SIZE + 2, y * MAP_TILE_DRAW_SIZE + 2, MAP_TILE_DRAW_SIZE - 4, 8);
         }
 
+        const warObjective =
+          showWar && special && isWarObjectiveTile(special)
+            ? parseWarObjectiveTile(special)
+            : null;
+        if (warObjective) {
+          const imageKey = warObjective.kind === "master_ball" ? "master_ball" : "pokeball";
+          const warImage =
+            imageKey === "master_ball" ? masterBallImageRef.current : pokeballImageRef.current;
+          if (warImage?.complete && warImage.naturalWidth > 0) {
+            ctx.drawImage(
+              warImage,
+              0,
+              0,
+              POKEBALL_SOURCE_SIZE,
+              POKEBALL_SOURCE_SIZE,
+              x * MAP_TILE_DRAW_SIZE,
+              y * MAP_TILE_DRAW_SIZE,
+              MAP_TILE_DRAW_SIZE,
+              MAP_TILE_DRAW_SIZE
+            );
+          }
+          if (activeLayer === "war") {
+            ctx.strokeStyle = "#facc15aa";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+              x * MAP_TILE_DRAW_SIZE + 1,
+              y * MAP_TILE_DRAW_SIZE + 1,
+              MAP_TILE_DRAW_SIZE - 2,
+              MAP_TILE_DRAW_SIZE - 2
+            );
+          }
+          if (warObjective.owner != null) {
+            ctx.fillStyle = `${SPAWN_COLORS[warObjective.owner - 1] ?? "#fff"}99`;
+            ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, 4);
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 8px sans-serif";
+            ctx.fillText(
+              warObjective.kind === "master_ball" ? `MB${warObjective.owner}` : `P${warObjective.owner}`,
+              px,
+              y * MAP_TILE_DRAW_SIZE + 8
+            );
+          } else if (warObjective.kind === "pokeball") {
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 8px sans-serif";
+            ctx.fillText("PB", px, y * MAP_TILE_DRAW_SIZE + 8);
+          }
+        }
+
         const flag = tileData.flags[y]?.[x];
-        if (flag != null && activeLayer === "flags") {
+        if (showFlags && flag != null) {
           ctx.fillStyle = "#facc1588";
           ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
           ctx.fillStyle = "#000";
+          ctx.font = "bold 10px sans-serif";
           ctx.fillText(`F${flag}`, px, py);
         }
 
@@ -202,7 +266,7 @@ export default function MapBuilderCanvas({
         }
 
         const itemId = tileData.item_id_tiles[y]?.[x];
-        if (itemId != null) {
+        if (showItems && itemId != null) {
           if (itemId === RANDOM_TM_ITEM_ID) {
             ctx.fillStyle = "#7c3aedcc";
             ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
@@ -274,7 +338,24 @@ export default function MapBuilderCanvas({
       ctx.lineTo(width * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE);
       ctx.stroke();
     }
-  }, [width, height, tileData, activeLayer, tool, itemMoveTypeById]);
+  }, [width, height, tileData, activeLayer, tool, itemMoveTypeById, warBrush, showAllOverlays]);
+
+  useEffect(() => {
+    if (!pokeballImageRef.current) {
+      const img = new Image();
+      img.src = getPokeballUrl();
+      img.onload = () => redraw();
+      img.onerror = () => redraw();
+      pokeballImageRef.current = img;
+    }
+    if (!masterBallImageRef.current) {
+      const img = new Image();
+      img.src = getMasterBallUrl();
+      img.onload = () => redraw();
+      img.onerror = () => redraw();
+      masterBallImageRef.current = img;
+    }
+  }, [redraw]);
 
   useEffect(() => {
     const usedMoveTypes = new Set<string>();

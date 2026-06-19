@@ -1,4 +1,4 @@
-import { DEFAULT_MOVEMENT_COST, type MapLayer, type MapTileData, type TileRef } from "@/types/mapData";
+import { DEFAULT_MOVEMENT_COST, type MapLayer, type MapTileData, type TileRef, isWarObjectiveTile } from "@/types/mapData";
 
 export type DrawingTool = "pencil" | "box" | "eraser";
 
@@ -31,6 +31,7 @@ type FillRectOptions = {
   flagBrush: number | null;
   movementCostBrush: number;
   itemBrush: number | null;
+  warBrush: string;
 };
 
 function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRectOptions) {
@@ -61,6 +62,9 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
       break;
     case "items":
       data.item_id_tiles[y][x] = options.itemBrush;
+      break;
+    case "war":
+      data.special_tiles[y][x] = options.warBrush;
       break;
   }
 }
@@ -94,6 +98,13 @@ function applyEraseCell(data: MapTileData, x: number, y: number, layer: MapLayer
     case "items":
       data.item_id_tiles[y][x] = null;
       break;
+    case "war": {
+      const current = data.special_tiles[y][x];
+      if (isWarObjectiveTile(current)) {
+        data.special_tiles[y][x] = null;
+      }
+      break;
+    }
   }
 }
 

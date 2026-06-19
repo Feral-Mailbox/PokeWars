@@ -1,4 +1,5 @@
 import type { MapExport, MapTileData, TileRef } from "@/types/mapData";
+import { DEFAULT_MAP_ALLOWED_MODES } from "@/types/mapData";
 import { DEFAULT_MOVEMENT_COST } from "@/types/mapData";
 
 export function createEmptyTileData(width: number, height: number): MapTileData {
@@ -122,10 +123,93 @@ export function slugifyMapName(name: string): string {
     .slice(0, 64);
 }
 
+export type WarExportValidation = {
+  ok: boolean;
+  message: string | null;
+};
+
+/** Each player slot up to the max allowed count must have at least one spawn point. */
+export function validateConquestSpawnExport(
+  tileData: MapTileData,
+  allowedPlayerCounts: number[]
+): WarExportValidation {
+  if (allowedPlayerCounts.length === 0) {
+    return { ok: false, message: "Select at least one player count." };
+  }
+
+  const maxPlayers = Math.max(...allowedPlayerCounts);
+  const spawnCounts = new Map<number, number>();
+
+  for (const row of tileData.spawn_points) {
+    for (const cell of row) {
+      if (cell == null || cell < 1 || cell > 8) continue;
+      spawnCounts.set(cell, (spawnCounts.get(cell) ?? 0) + 1);
+    }
+  }
+
+  for (let player = 1; player <= maxPlayers; player += 1) {
+    const count = spawnCounts.get(player) ?? 0;
+    if (count < 1) {
+      return {
+        ok: false,
+        message: `Player ${player} must have at least one Conquest spawn point (found ${count}).`,
+      };
+    }
+  }
+
+  return { ok: true, message: null };
+}
+
+/** Each player slot up to the max allowed count must have exactly one master ball. */
+export function validateWarMapExport(
+  tileData: MapTileData,
+  allowedPlayerCounts: number[]
+): WarExportValidation {
+  if (allowedPlayerCounts.length === 0) {
+    return { ok: false, message: "Select at least one player count." };
+  }
+
+  const maxPlayers = Math.max(...allowedPlayerCounts);
+  const masterCounts = new Map<number, number>();
+
+  for (const row of tileData.special_tiles) {
+    for (const cell of row) {
+      if (!cell?.startsWith("master_ball_p")) continue;
+      const player = Number(cell.replace("master_ball_p", ""));
+      if (!Number.isFinite(player) || player < 1 || player > 8) continue;
+      masterCounts.set(player, (masterCounts.get(player) ?? 0) + 1);
+    }
+  }
+
+  for (let player = 1; player <= maxPlayers; player += 1) {
+    const count = masterCounts.get(player) ?? 0;
+    if (count !== 1) {
+      return {
+        ok: false,
+        message: `Player ${player} must have exactly one master ball (found ${count}).`,
+      };
+    }
+  }
+
+  return { ok: true, message: null };
+}
+
+export function canExportMap(
+  tilesetNames: string[],
+  allowedPlayerCounts: number[],
+  tileData: MapTileData
+): WarExportValidation {
+  if (tilesetNames.length === 0) {
+    return { ok: false, message: "Select at least one tileset." };
+  }
+  const conquest = validateConquestSpawnExport(tileData, allowedPlayerCounts);
+  if (!conquest.ok) return conquest;
+  return validateWarMapExport(tileData, allowedPlayerCounts);
+}
+
 export function buildMapExport(input: {
   name: string;
   tilesetNames: string[];
-  allowedModes: string[];
   allowedPlayerCounts: number[];
   width: number;
   height: number;
@@ -136,7 +220,7 @@ export function buildMapExport(input: {
     name: input.name.trim() || "Untitled Map",
     is_official: false,
     tileset_names: input.tilesetNames,
-    allowed_modes: input.allowedModes,
+    allowed_modes: [...DEFAULT_MAP_ALLOWED_MODES],
     allowed_player_counts: input.allowedPlayerCounts,
     width: input.width,
     height: input.height,

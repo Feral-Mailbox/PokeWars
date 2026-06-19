@@ -39,12 +39,12 @@
         ],
         "special_tiles": [
             [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
-            [null, null, "grass", null, null, null, null, "grass", "grass", null, null, null],
-            [null, null, "grass", null, null, null, null, "grass", "grass", null, null, null],
+            [null, "master_ball_p1", null, null, null, null, null, null, null, "master_ball_p2", null, null],
+            [null, null, "pokeball", null, null, null, null, "pokeball", "pokeball", null, null, null],
+            [null, null, "grass", null, null, "pokeball", null, "grass", "grass", null, null, null],
             [null, null, null, "grass", "grass", null, null, null, null, "grass", null, null],
             [null, null, null, "grass", "grass", null, null, null, null, "grass", null, null],
-            [null, null, null, null, null, null, null, null, null, null, null, null],
+            [null, "master_ball_p3", null, null, null, null, null, null, null, "master_ball_p4", null, null],
             [null, null, null, null, null, null, null, null, null, null, null, null]
         ],
         "flags": [

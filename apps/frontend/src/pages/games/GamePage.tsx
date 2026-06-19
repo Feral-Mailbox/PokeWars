@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
 import { GAME_NOT_FOUND_MESSAGE } from "@/utils/gameLink";
@@ -11,7 +11,11 @@ import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlaced
 import { formatTmDisplayName, UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
 import ConquestGame from "./modes/ConquestGame";
-import WarGame from "./modes/WarGame";
+import WarGame, {
+  canSelectWarObjectiveTile,
+  getWarCaptureTarget,
+  patchObjectiveTile,
+} from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
 import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
@@ -145,6 +149,7 @@ export default function GamePage() {
   const overlay2Ref = useRef<HTMLCanvasElement>(null);
   const overlay3Ref = useRef<HTMLCanvasElement>(null);
   const itemsCanvasRef = useRef<HTMLCanvasElement>(null);
+  const objectivesCanvasRef = useRef<HTMLCanvasElement>(null);
   const mapStageRef = useRef<HTMLDivElement>(null);
   const gameHeaderRef = useRef<HTMLHeadingElement>(null);
   const weatherIconCacheRef = useRef<Record<number, HTMLImageElement>>({});
@@ -165,6 +170,7 @@ export default function GamePage() {
     unitOriginalTile: [number, number] | null;
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
+  const isWarMode = gameData?.gamemode === "War";
   const isLobbyPhase =
     gameData?.status === "open" || gameData?.status === "closed";
   const showMapItemTooltips = Boolean(gameData?.map);
@@ -175,6 +181,7 @@ export default function GamePage() {
     return availableItems.filter((item) => item.category !== "tm");
   }, [availableItems, gameData?.start_with_tms]);
   const unitLimit = gameData?.unit_limit ?? 6;
+  const myPlacedUnitCount = placedUnits.filter((u) => u.user_id === userId).length;
   const isUnitSelectMenuVisible =
     isPreparationPhase &&
     selectedTile &&
@@ -189,6 +196,23 @@ export default function GamePage() {
       ? gameData.player_order[gameData.current_turn % gameData.player_order.length]
       : null;
   const isMyTurn = userId != null && currentPlayerId === userId;
+
+  const isWarSummonMenuVisible =
+    isWarMode &&
+    gameData?.status === "in_progress" &&
+    isMyTurn &&
+    selectedTile &&
+    !placedUnits.some(
+      (u) =>
+        u.tile[0] === selectedTile[0] &&
+        u.tile[1] === selectedTile[1] &&
+        (u.current_hp ?? 0) > 0
+    ) &&
+    myPlacedUnitCount < unitLimit;
+  const warCaptureTarget = useMemo(
+    () => getWarCaptureTarget(activeUnit, gameData, userId ?? -1),
+    [activeUnit, gameData, userId]
+  );
 
   const mapWidth = gameData?.map?.width ? gameData.map.width * TILE_DRAW_SIZE : 0;
   const mapHeight = gameData?.map?.height ? gameData.map.height * TILE_DRAW_SIZE : 0;
@@ -575,6 +599,7 @@ export default function GamePage() {
       terrain_effect_tiles: normalizeTimedEffectGrid(raw.terrain_effect_tiles),
       field_effect_tiles: normalizeNumberGrid(raw.field_effect_tiles),
       item_id_tiles: normalizeItemIdGrid(raw.item_id_tiles),
+      objective_tiles: Array.isArray(raw.objective_tiles) ? raw.objective_tiles : [],
     };
   }
 
@@ -2049,6 +2074,53 @@ export default function GamePage() {
     setUnitOriginalTile(null);
   }
 
+  const handleWarObjectiveSelect = useCallback(
+    async (tile: [number, number] | null) => {
+      if (isPreparationPhase && isReady) return;
+
+      if (!tile) {
+        setSelectedTile(null);
+        return;
+      }
+
+      if (isPreparationPhase) {
+        const liveUnits = placedUnitsRef.current;
+        if (liveUnits.length >= unitLimit) {
+          setSelectedTile(null);
+          setToastMessage("You've reached the maximum number of units!");
+          return;
+        }
+        if (liveUnits.some((u) => u.tile[0] === tile[0] && u.tile[1] === tile[1])) {
+          setToastMessage("This tile is already occupied!");
+          return;
+        }
+        setSelectedTile((prev) => {
+          if (prev && prev[0] === tile[0] && prev[1] === tile[1]) {
+            return [...tile];
+          }
+          return tile;
+        });
+        return;
+      }
+
+      if (!isWarMode || !isMyTurn || gameData?.status !== "in_progress" || userId == null) return;
+
+      if (!canSelectWarObjectiveTile(gameData, userId, tile[0], tile[1], placedUnitsRef.current)) {
+        return;
+      }
+
+      const myUnits = placedUnitsRef.current.filter((u) => u.user_id === userId).length;
+      if (myUnits >= unitLimit) {
+        setToastMessage("You've reached the maximum number of units!");
+        return;
+      }
+
+      await releaseLockedUnitMenu();
+      setSelectedTile(tile);
+    },
+    [isPreparationPhase, isReady, isWarMode, isMyTurn, gameData, userId, unitLimit]
+  );
+
 
   const handleStartGame = async () => {
     const res = await secureFetch(`/api/games/start/${gameData.id}`, { method: "POST" });
@@ -2345,7 +2417,9 @@ export default function GamePage() {
   }, []);
 
   useEffect(() => {
-    if (!isPreparationPhase) return;
+    const needsUnitCatalog =
+      isPreparationPhase || (isWarMode && gameData?.status === "in_progress");
+    if (!needsUnitCatalog) return;
 
     const fetchUnits = async () => {
       const res = await secureFetch("/api/units/summary");
@@ -2388,7 +2462,7 @@ export default function GamePage() {
     };
 
     fetchAbilities();
-  }, [isPreparationPhase]);
+  }, [isPreparationPhase, isWarMode, gameData?.status]);
 
   useEffect(() => {
     if (!showMapItemTooltips) return;
@@ -2511,10 +2585,10 @@ export default function GamePage() {
   }, [placedUnits, activeMove]);
 
   useEffect(() => {
-    if (isReady) {
+    if (isReady && isPreparationPhase) {
       setSelectedTile(null);
     }
-  }, [isReady]);
+  }, [isReady, isPreparationPhase]);
 
   useEffect(() => {
     if (!isUnitSelectMenuVisible) {
@@ -2688,6 +2762,22 @@ export default function GamePage() {
         }
         return;
       }
+
+      if (
+        isWarMode &&
+        myTurnRef.current &&
+        userId != null &&
+        canSelectWarObjectiveTile(
+          gameDataRef.current,
+          userId,
+          x,
+          y,
+          placedUnitsRef.current
+        )
+      ) {
+        void handleWarObjectiveSelect(clickedTile);
+        return;
+      }
       
       if (!lockedUnit || !unitOriginalTile || !myTurnRef.current) return;
       if (lockedUnit.can_move === false) {
@@ -2739,7 +2829,7 @@ export default function GamePage() {
 
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [highlightedTiles, lockedUnit, unitOriginalTile, moveTargeting, selectedMove, attackOverlay, mapTilesW, mapTilesH]);
+  }, [highlightedTiles, lockedUnit, unitOriginalTile, moveTargeting, selectedMove, attackOverlay, mapTilesW, mapTilesH, isWarMode, userId, handleWarObjectiveSelect]);
 
   useEffect(() => {
     if (gameData?.status !== "in_progress") return;
@@ -2838,6 +2928,29 @@ export default function GamePage() {
         } catch {
           // Ignore malformed payloads and continue with legacy string handlers.
         }
+      }
+
+      if (typeof event.data === "string" && event.data.startsWith("objective_updated:")) {
+        const [, xStr, yStr, hpStr, ownerStr, kind] = event.data.split(":");
+        const x = Number(xStr);
+        const y = Number(yStr);
+        const hp = Number(hpStr);
+        const owner = Number(ownerStr);
+        if (
+          Number.isFinite(x) &&
+          Number.isFinite(y) &&
+          Number.isFinite(hp) &&
+          Number.isFinite(owner)
+        ) {
+          setGameData((prev) =>
+            patchObjectiveTile(prev, x, y, {
+              hp,
+              owner,
+              kind: kind || undefined,
+            })
+          );
+        }
+        return;
       }
 
       if (typeof event.data === "string" && event.data.startsWith("map_item_swapped:")) {
@@ -3082,7 +3195,7 @@ export default function GamePage() {
         return;
       }
       
-      if (["player_joined", "game_started", "player_ready", "player_state_updated", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
+      if (["player_joined", "game_started", "player_ready", "player_state_updated", "map_state_updated", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
         if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
           clearMovementLocks();
           setLockedUnit(null);
@@ -3095,6 +3208,7 @@ export default function GamePage() {
           setHoveredOverlayTile(null);
           setAttackOverlay({ normal: [], invert: [] });
           preMoveStateRef.current = null;
+          setSelectedTile(null);
         }
         (async () => {
           const res = await secureFetch(`/api/games/${gameData.link}`);
@@ -3107,16 +3221,18 @@ export default function GamePage() {
           const backendUnits = await unitsRes.json();
 
           let visibleUnits;
+          const playerRes = await secureFetch(`/api/games/${updatedGame.link}/player`);
+          let playerUnitIds: number[] = [];
+          if (playerRes.ok) {
+            const player = await playerRes.json();
+            setCash(player.cash_remaining);
+            playerUnitIds = player.game_units ?? [];
+          }
+
           if (updatedGame.status === "preparation") {
-            const playerRes = await secureFetch(`/api/games/${updatedGame.link}/player`);
-            if (playerRes.ok) {
-              const player = await playerRes.json();
-              setCash(player.cash_remaining);
-              const playerUnitIds = player.game_units ?? [];
-              visibleUnits = backendUnits.filter((u: any) => playerUnitIds.includes(u.id));
-            } else {
-              visibleUnits = backendUnits;
-            }
+            visibleUnits = playerRes.ok
+              ? backendUnits.filter((u: any) => playerUnitIds.includes(u.id))
+              : backendUnits;
           } else {
             visibleUnits = backendUnits;
           }
@@ -3304,7 +3420,7 @@ export default function GamePage() {
           playerId: player.player_id,
           username: player.username,
           cash: player.player_id === userId ? cash : player.cash_remaining,
-          unitCount: player.player_id === userId ? placedUnits.length : (player.unit_count ?? 0),
+          unitCount: player.player_id === userId ? myPlacedUnitCount : (player.unit_count ?? 0),
         };
       }
 
@@ -3313,7 +3429,7 @@ export default function GamePage() {
         slotIndex,
       };
     });
-  }, [gameData?.players, gameData?.player_order, gameData?.max_players, userId, cash, placedUnits]);
+  }, [gameData?.players, gameData?.player_order, gameData?.max_players, userId, cash, myPlacedUnitCount]);
 
   const placedUnitAtTile = selectedTile
   ? placedUnits.find(
@@ -3470,6 +3586,91 @@ export default function GamePage() {
     setSelectedTile(null);
   };
 
+  const handleWarSummonUnit = async (unit: any) => {
+    if (!selectedTile || !gameData?.link) return;
+    if (unit.cost > cash) {
+      setToastMessage("You don't have enough cash to buy this unit!");
+      return;
+    }
+
+    const payload = {
+      unit_id: unit.id,
+      x: selectedTile[0],
+      y: selectedTile[1],
+      current_hp: 100,
+      stat_boosts: {},
+      status_effects: [],
+      is_fainted: false,
+    };
+
+    const res = await secureFetch(`/api/games/${gameData.link}/units/place`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      setToastMessage(typeof err?.detail === "string" ? err.detail : "Failed to summon unit.");
+      return;
+    }
+
+    const placedUnit = await res.json();
+    setPlacedUnits((prev) => [...prev, mapPlacedUnitFromBackend(placedUnit)]);
+    setCash((prev) => prev - unit.cost);
+    setSelectedTile(null);
+
+    const gameRes = await secureFetch(`/api/games/${gameData.link}`);
+    if (gameRes.ok) {
+      setGameData(normalizeGameData(await gameRes.json()));
+    }
+    const playerRes = await secureFetch(`/api/games/${gameData.link}/player`);
+    if (playerRes.ok) {
+      const player = await playerRes.json();
+      setCash(player.cash_remaining);
+    }
+  };
+
+  const handleWarCapture = async () => {
+    if (!activeUnit || !warCaptureTarget || !gameData?.link) return;
+
+    const activeId = activeUnit.instanceId ?? activeUnit.id;
+    const res = await secureFetch(`/api/games/${gameData.link}/war/capture`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: activeId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setToastMessage(err?.detail ?? "Capture failed.");
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    setPlacedUnits((prev) =>
+      prev.map((u) => (u.id === activeId ? { ...u, can_move: false } : u))
+    );
+    setLockedUnit((prev) =>
+      prev && (prev.instanceId ?? prev.id) === activeId ? { ...prev, can_move: false } : prev
+    );
+
+    if (data?.objective && warCaptureTarget) {
+      setGameData((prev) =>
+        patchObjectiveTile(prev, warCaptureTarget.x, warCaptureTarget.y, {
+          hp: Number(data.objective.hp ?? warCaptureTarget.max_hp),
+          owner: Number(data.objective.owner ?? 0),
+          kind: data.objective.kind,
+        })
+      );
+    } else {
+      const gameRes = await secureFetch(`/api/games/${gameData.link}`);
+      if (gameRes.ok) {
+        setGameData(normalizeGameData(await gameRes.json()));
+      }
+    }
+  };
+
   const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
     setHoveredMapItem(null);
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
@@ -3618,7 +3819,9 @@ export default function GamePage() {
             ) : isReady ? (
               "You're ready! Waiting on other players..."
             ) : (
-              "Preparation phase — pick your team!"
+              isWarMode
+                ? "Preparation phase — place units on your objectives!"
+                : "Preparation phase — pick your team!"
             )
           ) : gameData?.status === "completed" ? (
             winnerPlayer
@@ -3685,6 +3888,19 @@ export default function GamePage() {
           </div>
         )}
 
+        {isWarMode && gameData?.status === "in_progress" && (
+          <div className="flex items-center justify-start gap-8 mb-2">
+            <div className="text-white font-semibold">
+              Cash: <span className="text-green-400">${cash}</span>
+            </div>
+            <div className="text-white font-semibold">
+              Units: <span className={myPlacedUnitCount >= unitLimit ? "text-red-400" : "text-yellow-300"}>
+                {myPlacedUnitCount}/{unitLimit}
+              </span>
+            </div>
+          </div>
+        )}
+
         <GameMapStage
           mapWidth={mapWidth}
           mapHeight={mapHeight}
@@ -3697,6 +3913,10 @@ export default function GamePage() {
           itemsCanvasRef={itemsCanvasRef}
           itemIdTiles={mapItemIdTiles}
           itemMoveTypeById={itemMoveTypeById}
+          objectivesCanvasRef={isWarMode ? objectivesCanvasRef : undefined}
+          objectiveTiles={isWarMode ? gameData?.map_state?.objective_tiles : null}
+          objectiveSelectedTile={isWarMode ? selectedTile : null}
+          playerOrder={gameData?.player_order ?? []}
           showMapItemTooltips={showMapItemTooltips}
           onMapItemHover={(itemId, clientX, clientY) =>
             setHoveredMapItem({ itemId, clientX, clientY })
@@ -3745,7 +3965,16 @@ export default function GamePage() {
             getPlayerColor={getPlayerColor}
           />
         )}
-        {gameData?.gamemode === "War" && <WarGame gameData={gameData} userId={userId!} />}
+        {gameData?.gamemode === "War" && (
+          <WarGame
+            gameData={gameData}
+            userId={userId!}
+            onObjectiveSelect={handleWarObjectiveSelect}
+            isMyTurn={isMyTurn}
+            isReady={isReady}
+            placedUnits={placedUnits}
+          />
+        )}
         {gameData?.gamemode === "Capture The Flag" && <CaptureTheFlagGame gameData={gameData} userId={userId!} />}
       </div>
 
@@ -3790,6 +4019,7 @@ export default function GamePage() {
           panel = (
             <PreparationUnitSelectMenu
               availableUnits={availableUnits}
+              cash={cash}
               unitSearchQuery={unitSearchQuery}
               unitTypeFilterPrimary={unitTypeFilterPrimary}
               unitTypeFilterSecondary={unitTypeFilterSecondary}
@@ -3803,6 +4033,27 @@ export default function GamePage() {
               onSortByChange={setUnitSortBy}
               onSortDirectionChange={setUnitSortDirection}
               onSelectUnit={handlePlacePreparationUnit}
+            />
+          );
+        }
+        else if (isWarSummonMenuVisible) {
+          panel = (
+            <PreparationUnitSelectMenu
+              availableUnits={availableUnits}
+              cash={cash}
+              unitSearchQuery={unitSearchQuery}
+              unitTypeFilterPrimary={unitTypeFilterPrimary}
+              unitTypeFilterSecondary={unitTypeFilterSecondary}
+              unitSortBy={unitSortBy}
+              unitSortDirection={unitSortDirection}
+              unitTypeOptions={unitTypeOptions}
+              typeColors={TYPE_COLORS}
+              onSearchChange={setUnitSearchQuery}
+              onPrimaryTypeChange={setUnitTypeFilterPrimary}
+              onSecondaryTypeChange={setUnitTypeFilterSecondary}
+              onSortByChange={setUnitSortBy}
+              onSortDirectionChange={setUnitSortDirection}
+              onSelectUnit={handleWarSummonUnit}
             />
           );
         }
@@ -3822,6 +4073,13 @@ export default function GamePage() {
               onExecuteMove={handleExecuteMove}
               onCancelMove={handleMoveCancel}
               onWait={handleWait}
+              onCapture={handleWarCapture}
+              showCaptureButton={Boolean(warCaptureTarget)}
+              captureHpLabel={
+                warCaptureTarget
+                  ? `HP ${warCaptureTarget.hp}/${warCaptureTarget.max_hp}`
+                  : null
+              }
               onPickUpItem={handlePickUpItem}
               showPickUpButton={
                 isMyTurn &&
