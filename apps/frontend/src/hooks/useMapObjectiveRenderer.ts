@@ -49,7 +49,7 @@ type ObjectiveRendererOptions = {
 };
 
 export function useMapObjectiveRenderer(
-  canvasRef: RefObject<HTMLCanvasElement | null>,
+  canvasRef: RefObject<HTMLCanvasElement | null> | null | undefined,
   mapPixelWidth: number,
   mapPixelHeight: number,
   objectiveTiles: (ObjectiveTileState | null)[][] | null | undefined,
@@ -59,6 +59,7 @@ export function useMapObjectiveRenderer(
   const { selectedTile = null, playerOrder = [], getPlayerColor } = options;
 
   useEffect(() => {
+    if (!canvasRef) return;
     const canvas = canvasRef.current;
     if (!canvas || !mapPixelWidth || !mapPixelHeight) return;
 

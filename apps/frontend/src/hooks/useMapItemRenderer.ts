@@ -6,7 +6,7 @@ import { MAP_TILE_DRAW_SIZE, setupPixelCanvas } from "@/utils/pixelCanvas";
 const RANDOM_TM_DISPLAY_TYPE = "Normal";
 
 export function useMapItemRenderer(
-  canvasRef: RefObject<HTMLCanvasElement | null>,
+  canvasRef: RefObject<HTMLCanvasElement | null> | null | undefined,
   mapPixelWidth: number,
   mapPixelHeight: number,
   itemIdTiles: (number | null)[][] | null | undefined,
@@ -15,6 +15,7 @@ export function useMapItemRenderer(
   const tmImagesRef = useRef<Record<string, HTMLImageElement>>({});
 
   useEffect(() => {
+    if (!canvasRef) return;
     const canvas = canvasRef.current;
     if (!canvas || !mapPixelWidth || !mapPixelHeight) return;
 
