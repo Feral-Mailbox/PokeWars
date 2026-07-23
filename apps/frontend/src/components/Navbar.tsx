@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { secureFetch } from '@/utils/secureFetch';
 import { isStaff } from '../types/user';
 import type { User } from '../types/user';
-import logo from '../assets/react.svg';
+import logo from '../assets/logo.svg';
 
 const Navbar = () => {
   const { user, setUser, authPrompt, clearAuthPrompt } = useAuth();
@@ -121,8 +121,8 @@ const Navbar = () => {
       <button onClick={() => navigate('/')}>
         <img
           src={logo}
-          alt="logo"
-          className="w-8 h-8 transition-transform duration-1000 hover:rotate-[360deg]"
+          alt="PokéTactics logo"
+          className="h-10 w-10 transition-transform duration-200 hover:scale-105"
         />
       </button>
 

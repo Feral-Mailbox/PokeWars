@@ -1,5 +1,8 @@
 public/*
-!public/vite.svg
+!public/favicon.svg
+!public/favicon.ico
+!public/favicon-16.png
+!public/favicon-32.png
 node_modules
 .git
 certs

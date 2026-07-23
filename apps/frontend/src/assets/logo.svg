@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PokeTactics">
+  <defs>
+    <linearGradient id="shieldFace" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="32" y1="2" x2="32" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fde68a"/>
+      <stop offset="0.45" stop-color="#eab308"/>
+      <stop offset="1" stop-color="#a16207"/>
+    </linearGradient>
+    <linearGradient id="ballTop" x1="32" y1="14" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ef4444"/>
+      <stop offset="1" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="ballBottom" x1="32" y1="32" x2="32" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <clipPath id="ballClip">
+      <circle cx="32" cy="32" r="16"/>
+    </clipPath>
+  </defs>
+
+  <!-- shield rim -->
+  <path
+    d="M32 3.5
+       C44 3.5 54.5 7.5 56.5 12.5
+       C56.5 28 49.5 44.5 32 60.5
+       C14.5 44.5 7.5 28 7.5 12.5
+       C9.5 7.5 20 3.5 32 3.5Z"
+    fill="url(#rim)"
+  />
+  <!-- shield face -->
+  <path
+    d="M32 7
+       C42.5 7 51.2 10.2 52.8 14.2
+       C52.8 27.8 46.8 42.2 32 56.2
+       C17.2 42.2 11.2 27.8 11.2 14.2
+       C12.8 10.2 21.5 7 32 7Z"
+    fill="url(#shieldFace)"
+  />
+
+  <!-- front-facing ball -->
+  <g>
+    <circle cx="32" cy="32" r="17.25" fill="#0b1220"/>
+    <g clip-path="url(#ballClip)">
+      <rect x="16" y="16" width="32" height="16" fill="url(#ballTop)"/>
+      <rect x="16" y="32" width="32" height="16" fill="url(#ballBottom)"/>
+      <rect x="16" y="29.5" width="32" height="5" fill="#0f172a"/>
+    </g>
+    <circle cx="32" cy="32" r="16" fill="none" stroke="#0f172a" stroke-width="1.5"/>
+    <!-- center button -->
+    <circle cx="32" cy="32" r="5.4" fill="#0f172a"/>
+    <circle cx="32" cy="32" r="3.6" fill="#f8fafc"/>
+    <circle cx="32" cy="32" r="1.7" fill="#e2e8f0"/>
+  </g>
+</svg>

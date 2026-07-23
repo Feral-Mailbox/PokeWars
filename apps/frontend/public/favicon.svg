@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#0f172a"/>
+  <g fill="#1e293b" stroke="#334155" stroke-width="0.75">
+    <rect x="4" y="4" width="7.5" height="7.5" rx="1"/>
+    <rect x="12.25" y="4" width="7.5" height="7.5" rx="1"/>
+    <rect x="20.5" y="4" width="7.5" height="7.5" rx="1"/>
+    <rect x="4" y="12.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="12.25" y="12.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="20.5" y="12.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="4" y="20.5" width="7.5" height="7.5" rx="1"/>
+    <rect x="12.25" y="20.5" width="7.5" height="7.5" rx="1"/>
+  </g>
+  <rect x="20.5" y="20.5" width="7.5" height="7.5" rx="1" fill="#eab308" stroke="#facc15" stroke-width="0.75"/>
+  <g fill="#f8fafc">
+    <path d="M6.4 10.2h3.9c2.05 0 3.35 1.15 3.35 2.95 0 1.85-1.3 3-3.35 3H8.55v3.7H6.4V10.2zm2.15 1.85v2.25h1.55c.95 0 1.45-.45 1.45-1.15 0-.7-.5-1.1-1.45-1.1H8.55z"/>
+    <path d="M15.35 10.2h8.1v1.95h-2.95v7.55h-2.2V12.15h-2.95V10.2z"/>
+  </g>
+</svg>
