@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from app.schemas.games import GameCreateRequest, PlayerInfo, HostInfo, GameResponse, GameStateSchema
 from app.schemas.maps import MapDetail
-from datetime import datetime
+
 
 def test_game_create_request():
     data = {
@@ -15,17 +17,29 @@ def test_game_create_request():
     assert model.cash_per_turn is None
     assert model.start_with_tms is False
 
+
 def test_player_info_fields():
     model = PlayerInfo(id=1, player_id=5, username="Ash", cash_remaining=100, is_ready=False, unit_count=2)
     assert model.is_ready is False
     assert model.unit_count == 2
 
+
 def test_host_info_fields():
     model = HostInfo(id=99, username="HostGuy")
     assert model.username == "HostGuy"
 
+
 def test_game_response_fields():
-    map_data = MapDetail(id=1, name="Arena", allowed_modes=["Conquest"], allowed_player_counts=[2], width=10, height=10, tileset_names=["grass"], tile_data={})
+    map_data = MapDetail(
+        id=1,
+        name="Arena",
+        allowed_modes=["Conquest"],
+        allowed_player_counts=[2],
+        width=10,
+        height=10,
+        tileset_names=["grass"],
+        tile_data={},
+    )
     game = GameResponse(
         id=1,
         is_private=True,
@@ -35,6 +49,7 @@ def test_game_response_fields():
         max_players=2,
         host_id=1,
         players=[],
+        player_order=[1],
         winner_id=None,
         gamemode="Conquest",
         status="open",
@@ -47,9 +62,11 @@ def test_game_response_fields():
         start_with_tms=False,
         replay_log=None,
         link="abc123",
-        timestamp=datetime.now()
+        timestamp=datetime.now(),
     )
     assert game.map.name == "Arena"
+    assert game.player_order == [1]
+
 
 def test_game_state_schema():
     model = GameStateSchema(

@@ -178,7 +178,7 @@ test: test-backend test-frontend test-infrastructure
 
 test-backend: ensure-venv
 	mkdir -p coverage/backend
-	PYTHONPATH=apps/backend $(PYTEST) tests/backend \
+	PYTHONPATH=apps/backend:. $(PYTEST) tests/backend \
 		--cov=app \
 		--cov-report=term-missing \
 		--cov-report=html:coverage/backend \

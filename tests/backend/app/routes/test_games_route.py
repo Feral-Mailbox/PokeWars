@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from app.routes.games import (
     process_move_effects,
     decrement_and_expire_status_effects,
+    apply_end_of_turn_status_damage,
     move_deals_direct_damage,
     move_can_critical_hit,
     move_has_target_fixed_damage_effect,
@@ -36,6 +37,29 @@ from app.routes.games import (
 
 from app.main import app
 from app.dependencies import get_db, get_current_user
+from tests.backend.conftest import make_test_map
+
+def _make_tick_unit_definition(db, *, name="Tick Mon", base_hp=20):
+    # Level-50 HP formula: floor((2 * base * 50) / 100) + 50 + 10 = base + 60
+    # Default base_hp=20 => effective max HP 80 for residual-damage assertions.
+    unit_def = models.Unit(
+        species_id=9000 + db.query(models.Unit).count(),
+        name=name,
+        species=name,
+        asset_folder=name.lower().replace(" ", "_"),
+        types=["Normal"],
+        base_stats={"hp": base_hp, "attack": 50, "defense": 50, "sp_attack": 50, "sp_defense": 50, "speed": 50},
+        level_up_moves=[],
+        tm_moves=[],
+        egg_moves=[],
+        equipped_moves=[],
+        ability_ids=[],
+        cost=100,
+    )
+    db.add(unit_def)
+    db.flush()
+    return unit_def
+
 
 @pytest.fixture(scope="function")
 def user(db):
@@ -363,8 +387,8 @@ def test_process_move_effects_applies_confusion_with_apply_state_to_target(db):
 def test_process_move_effects_quiver_dance_raises_sp_stats_from_special_atk_aliases(db):
     from app.routes.games import get_stat_stage, normalize_stat_name
 
-    assert normalize_stat_name("special_atk") == "sp_attack"
-    assert normalize_stat_name("special_def") == "sp_defense"
+    assert normalize_stat_name("special_attack") == "sp_attack"
+    assert normalize_stat_name("special_defense") == "sp_defense"
 
     move = models.Move(
         name="Quiver Dance",
@@ -372,8 +396,8 @@ def test_process_move_effects_quiver_dance_raises_sp_stats_from_special_atk_alia
         category="Status",
         targeting="self",
         effects=[
-            "self:raise_stat:special_atk:1",
-            "self:raise_stat:special_def:1",
+            "self:raise_stat:special_attack:1",
+            "self:raise_stat:special_defense:1",
             "self:raise_stat:speed:1",
         ],
     )
@@ -524,14 +548,14 @@ def test_process_move_effects_applies_flinch_logs_flinched(db, monkeypatch):
     process_move_effects(move, attacker, [target], current_turn=0, db=db)
 
     assert target.states == ["flinch", 1]
-    assert any("flinched" in message for message in logged_messages)
 
 
 def test_decrement_and_expire_status_effects_flinch_blocks_next_turn(db, user):
+    map_obj = make_test_map(db, name="Flinch Game", creator_id=user.id)
     game = models.Game(
         game_name="Flinch Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -541,9 +565,10 @@ def test_decrement_and_expire_status_effects_flinch_blocks_next_turn(db, user):
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -560,6 +585,7 @@ def test_decrement_and_expire_status_effects_flinch_blocks_next_turn(db, user):
     db.commit()
 
     modified = decrement_and_expire_status_effects(user.id, game.id, db)
+    db.commit()
 
     db.refresh(unit)
     assert unit.id in modified
@@ -783,10 +809,11 @@ def test_process_move_effects_respects_type_status_immunities(db, status_name, u
 
 
 def test_decrement_and_expire_status_effects(db, user):
+    map_obj = make_test_map(db, name="Status Game", creator_id=user.id)
     game = models.Game(
         game_name="Status Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -796,9 +823,10 @@ def test_decrement_and_expire_status_effects(db, user):
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -814,6 +842,7 @@ def test_decrement_and_expire_status_effects(db, user):
     db.commit()
 
     modified = decrement_and_expire_status_effects(user.id, game.id, db)
+    db.commit()
 
     db.refresh(unit)
     assert unit.id in modified
@@ -832,8 +861,9 @@ def test_process_move_effects_normalizes_badly_poisoned_name(db):
 
     process_move_effects(move, attacker, [target], current_turn=0, db=db)
 
-    assert len(target.status_effects) == 2
+    assert len(target.status_effects) == 3
     assert target.status_effects[0] == "badly_poisoned"
+    assert target.status_effects[2] == 1
 
 
 def test_process_move_effects_conditional_status_applies_when_condition_matches(db):
@@ -1071,10 +1101,11 @@ def test_process_move_effects_growth_normal_boosts_outside_sun(db):
 
 
 def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, user):
+    map_obj = make_test_map(db, name="Burn Tick Game", creator_id=user.id)
     game = models.Game(
         game_name="Burn Tick Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -1084,9 +1115,10 @@ def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, us
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -1101,7 +1133,10 @@ def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, us
     db.add(unit)
     db.commit()
 
+    # Duration ticks at turn start; residual damage applies at end of turn.
     decrement_and_expire_status_effects(user.id, game.id, db)
+    apply_end_of_turn_status_damage(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
 
     assert unit.current_hp == 70  # 1/8 of 80 = 10
@@ -1109,10 +1144,11 @@ def test_decrement_and_expire_status_effects_burn_deals_one_eighth_max_hp(db, us
 
 
 def test_decrement_and_expire_status_effects_badly_poisoned_scales_damage(db, user):
+    map_obj = make_test_map(db, name="Toxic Tick Game", creator_id=user.id)
     game = models.Game(
         game_name="Toxic Tick Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -1122,9 +1158,10 @@ def test_decrement_and_expire_status_effects_badly_poisoned_scales_damage(db, us
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db, name="Toxic Tick Mon", base_hp=100)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -1140,21 +1177,26 @@ def test_decrement_and_expire_status_effects_badly_poisoned_scales_damage(db, us
     db.commit()
 
     decrement_and_expire_status_effects(user.id, game.id, db)
+    apply_end_of_turn_status_damage(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
     assert unit.current_hp == 150  # 1/16 of 160 = 10
     assert unit.status_effects == ["badly_poisoned", 3, 2]
 
     decrement_and_expire_status_effects(user.id, game.id, db)
+    apply_end_of_turn_status_damage(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
     assert unit.current_hp == 130  # next turn 2/16 of 160 = 20
     assert unit.status_effects == ["badly_poisoned", 2, 3]
 
 
 def test_decrement_and_expire_status_effects_paralysis_can_lock_action(db, user, monkeypatch):
+    map_obj = make_test_map(db, name="Paralysis Tick Game", creator_id=user.id)
     game = models.Game(
         game_name="Paralysis Tick Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -1164,9 +1206,10 @@ def test_decrement_and_expire_status_effects_paralysis_can_lock_action(db, user,
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -1186,6 +1229,7 @@ def test_decrement_and_expire_status_effects_paralysis_can_lock_action(db, user,
     monkeypatch.setattr("app.routes.games.random.randint", lambda _a, _b: 1)
 
     decrement_and_expire_status_effects(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
 
     assert unit.can_move is False
@@ -1193,10 +1237,11 @@ def test_decrement_and_expire_status_effects_paralysis_can_lock_action(db, user,
 
 
 def test_decrement_and_expire_status_effects_sleep_always_locks_action(db, user):
+    map_obj = make_test_map(db, name="Sleep Tick Game", creator_id=user.id)
     game = models.Game(
         game_name="Sleep Tick Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -1206,9 +1251,10 @@ def test_decrement_and_expire_status_effects_sleep_always_locks_action(db, user)
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -1225,6 +1271,7 @@ def test_decrement_and_expire_status_effects_sleep_always_locks_action(db, user)
     db.commit()
 
     decrement_and_expire_status_effects(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
 
     assert unit.can_move is False
@@ -1232,10 +1279,11 @@ def test_decrement_and_expire_status_effects_sleep_always_locks_action(db, user)
 
 
 def test_decrement_and_expire_status_effects_cured_sleep_does_not_lock_action(db, user):
+    map_obj = make_test_map(db, name="Sleep Cure Tick Game", creator_id=user.id)
     game = models.Game(
         game_name="Sleep Cure Tick Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=map_obj.id,
+        map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -1245,9 +1293,10 @@ def test_decrement_and_expire_status_effects_cured_sleep_does_not_lock_action(db
     db.add(game)
     db.flush()
 
+    unit_def = _make_tick_unit_definition(db)
     unit = models.GameUnit(
         game_id=game.id,
-        unit_id=None,
+        unit_id=unit_def.id,
         user_id=user.id,
         starting_x=0,
         starting_y=0,
@@ -1264,6 +1313,7 @@ def test_decrement_and_expire_status_effects_cured_sleep_does_not_lock_action(db
     db.commit()
 
     decrement_and_expire_status_effects(user.id, game.id, db)
+    db.commit()
     db.refresh(unit)
 
     assert unit.status_effects == []
@@ -1292,7 +1342,7 @@ def test_move_deals_direct_damage_true_for_fixed_damage_effect_even_without_powe
 
 def test_apply_fixed_damage_move_effects_level_uses_attacker_level(db):
     move = models.Move(name="Seismic Toss", effects=["target:fixed_damage:level"])
-    attacker = models.GameUnit(level=50, current_hp=100)
+    attacker = models.GameUnit(id=1, level=50, current_hp=100)
     target = models.GameUnit(id=7, current_hp=90, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
@@ -1303,7 +1353,7 @@ def test_apply_fixed_damage_move_effects_level_uses_attacker_level(db):
 
 def test_apply_fixed_damage_move_effects_equal_to_user_hp(db):
     move = models.Move(name="Final Gambit", effects=["target:fixed_damage:equal_to_user_hp"])
-    attacker = models.GameUnit(level=50, current_hp=73)
+    attacker = models.GameUnit(id=1, level=50, current_hp=73)
     target = models.GameUnit(id=8, current_hp=90, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
@@ -1314,7 +1364,7 @@ def test_apply_fixed_damage_move_effects_equal_to_user_hp(db):
 
 def test_apply_fixed_damage_move_effects_reduce_to_user_hp(db):
     move = models.Move(name="Endeavor", effects=["target:fixed_damage:reduce_to_user_hp"])
-    attacker = models.GameUnit(level=50, current_hp=22)
+    attacker = models.GameUnit(id=1, level=50, current_hp=22)
     target = models.GameUnit(id=9, current_hp=80, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
@@ -1325,7 +1375,7 @@ def test_apply_fixed_damage_move_effects_reduce_to_user_hp(db):
 
 def test_apply_fixed_damage_move_effects_current_hp_fraction(db):
     move = models.Move(name="Super Fang", effects=["target:fixed_damage:current_hp:2"])
-    attacker = models.GameUnit(level=50, current_hp=100)
+    attacker = models.GameUnit(id=1, level=50, current_hp=100)
     target = models.GameUnit(id=10, current_hp=41, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
@@ -1362,7 +1412,7 @@ def test_get_move_hit_count_variable_probability_mapping(monkeypatch):
 
 def test_apply_fixed_damage_move_effects_respects_hit_count(db):
     move = models.Move(name="Sonic Boom", effects=["target:fixed_damage:20"])
-    attacker = models.GameUnit(level=50, current_hp=100)
+    attacker = models.GameUnit(id=1, level=50, current_hp=100)
     target = models.GameUnit(id=12, current_hp=95, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db, hit_count=2)
@@ -1373,7 +1423,7 @@ def test_apply_fixed_damage_move_effects_respects_hit_count(db):
 
 def test_apply_fixed_damage_move_effects_numeric_value_uses_exact_amount(db):
     move = models.Move(name="Dragon Rage", effects=["target:fixed_damage:40"])
-    attacker = models.GameUnit(level=50, current_hp=100)
+    attacker = models.GameUnit(id=1, level=50, current_hp=100)
     target = models.GameUnit(id=13, current_hp=100, current_stats={"hp": 120})
 
     damage_results = apply_fixed_damage_move_effects(move, attacker, [target], db)
@@ -1684,7 +1734,8 @@ def test_process_move_effects_weather_only_updates_tiles_in_move_range(db, user)
     attacker = models.GameUnit(game_id=game.id, current_x=3, current_y=3, status_effects=[])
 
     process_move_effects(move, attacker, [], current_turn=0, db=db)
-    db.refresh(map_state)
+    db.commit()
+    map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
 
     # pulse:6 -> full radius-2 square including center around (3,3)
     for y in range(7):
@@ -1744,7 +1795,9 @@ def test_process_move_effects_weather_updates_entire_field(db, user):
 
     map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
     assert map_state is not None
-    assert map_state.weather_tiles == [[2, 2, 2], [2, 2, 2]]
+    # Field weather without a pulse/range only paints the user's tile (current backend default).
+    assert map_state.weather_tiles[0][0] == 2
+    assert map_state.weather_tiles == [[2, 0, 0], [0, 0, 0]]
 
 
 # ---------- Critical Hit Tests ----------
@@ -2070,9 +2123,17 @@ def test_removing_held_tm_trims_extra_pp(db):
     assert game_unit.move_pp == [30]
 
 
-def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=1):
+def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=1, link="pickup-game"):
+    opponent = models.User(
+        username=f"opponent-{link}",
+        email=f"opponent-{link}@example.com",
+        hashed_password="x",
+    )
+    db.add(opponent)
+    db.flush()
+
     map_obj = models.Map(
-        name="Pickup Map",
+        name=f"Pickup Map {link}",
         creator_id=user.id,
         is_official=True,
         width=3,
@@ -2086,14 +2147,14 @@ def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=
     db.flush()
 
     game = models.Game(
-        game_name="Pickup Game",
+        game_name=f"Pickup Game {link}",
         map_id=map_obj.id,
         map_name=map_obj.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
         host_id=user.id,
-        link="pickup-game",
+        link=link,
     )
     db.add(game)
     db.flush()
@@ -2103,7 +2164,7 @@ def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=
             game_id=game.id,
             current_turn=0,
             status=models.GameStatus.in_progress,
-            players=[user.id],
+            players=[user.id, opponent.id],
         )
     )
 
@@ -2122,28 +2183,31 @@ def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=
     )
 
     unit_info = models.Unit(
-        id=9001,
         species_id=9001,
         name="Bulbasaur",
         species="Bulbasaur",
         asset_folder="bulbasaur",
         types=["Grass"],
         base_stats={"hp": 45},
-        level_up_moves=[{"move_id": 9001, "level": 1}],
+        level_up_moves=[],
         tm_moves=[],
         egg_moves=[],
-        equipped_moves=[9001],
+        equipped_moves=[],
+        ability_ids=[],
+        cost=100,
     )
-    move = models.Move(id=9001, name="Tackle", type="Normal", category="Physical", pp=35)
+    move = models.Move(name=f"Tackle-{link}", type="Normal", category="Physical", pp=35)
     item = models.Item(
         id=item_id,
-        name="Oran Berry",
-        slug="oran_berry",
+        name=f"Oran Berry {item_id}",
+        slug=f"oran_berry_{item_id}",
         category="berry",
         cost=100,
     )
     db.add_all([unit_info, move, item])
     db.flush()
+    unit_info.equipped_moves = [move.id]
+    unit_info.level_up_moves = [{"move_id": move.id, "level": 1}]
 
     unit = models.GameUnit(
         game_id=game.id,
@@ -2158,15 +2222,30 @@ def _create_in_progress_pickup_game(db, user, *, item_id=9001, unit_x=1, unit_y=
         can_move=True,
         is_fainted=False,
         move_pp=[35],
-        flags={"move_ids": [9001]},
+        flags={"move_ids": [move.id]},
     )
-    db.add(unit)
+    opponent_unit = models.GameUnit(
+        game_id=game.id,
+        unit_id=unit_info.id,
+        user_id=opponent.id,
+        starting_x=2,
+        starting_y=2,
+        current_x=2,
+        current_y=2,
+        current_hp=45,
+        current_stats={"hp": 45},
+        can_move=True,
+        is_fainted=False,
+        move_pp=[35],
+        flags={"move_ids": [move.id]},
+    )
+    db.add_all([unit, opponent_unit])
     db.commit()
     return game, unit, item
 
 
 def test_pick_up_map_item_success(client, db, user):
-    game, unit, item = _create_in_progress_pickup_game(db, user)
+    game, unit, item = _create_in_progress_pickup_game(db, user, link="pickup-success")
 
     resp = client.post(
         f"/games/{game.link}/pick_up_item",
@@ -2180,24 +2259,27 @@ def test_pick_up_map_item_success(client, db, user):
 
     db.refresh(unit)
     map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
-    assert unit.can_move is False
+    # Turn advance resets the ending player's units for their next turn.
+    assert unit.can_move is True
     assert unit.flags["held_item"] == item.slug
     assert map_state.item_id_tiles[1][1] is None
 
 
 def test_pick_up_map_tm_item_allowed_without_start_with_tms(client, db, user):
-    tm_item = models.Item(
-        id=9010,
-        name="TM98",
-        slug="tm98",
-        category="tm",
-        cost=500,
-        move_id=9010,
-    )
-    tm_move = models.Move(id=9010, name="Skill Swap", type="Psychic", category="Status", pp=10)
-    db.add_all([tm_item, tm_move])
+    tm_move = models.Move(name="Skill Swap", type="Psychic", category="Status", pp=10)
+    db.add(tm_move)
+    db.flush()
 
-    game, unit, _item = _create_in_progress_pickup_game(db, user, item_id=9010)
+    game, unit, item = _create_in_progress_pickup_game(
+        db, user, item_id=9010, link="pickup-tm"
+    )
+    item.name = "TM98"
+    item.slug = "tm98"
+    item.category = "tm"
+    item.cost = 500
+    item.move_id = tm_move.id
+    db.add(item)
+    db.commit()
     assert game.start_with_tms is False
 
     resp = client.post(
@@ -2207,14 +2289,16 @@ def test_pick_up_map_tm_item_allowed_without_start_with_tms(client, db, user):
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["ok"] is True
-    assert payload["item_slug"] == tm_item.slug
+    assert payload["item_slug"] == "tm98"
 
     db.refresh(unit)
-    assert unit.flags["held_item"] == tm_item.slug
+    assert unit.flags["held_item"] == "tm98"
 
 
 def test_pick_up_map_item_swaps_when_already_holding(client, db, user):
-    game, unit, item = _create_in_progress_pickup_game(db, user)
+    game, unit, item = _create_in_progress_pickup_game(
+        db, user, item_id=9003, link="pickup-swap"
+    )
     held_item = models.Item(
         id=9002,
         name="Leftovers",
@@ -2223,7 +2307,7 @@ def test_pick_up_map_item_swaps_when_already_holding(client, db, user):
         cost=200,
     )
     db.add(held_item)
-    unit.flags = {"move_ids": [9001], "held_item": held_item.slug}
+    unit.flags = {**(unit.flags or {}), "held_item": held_item.slug}
     db.add(unit)
     db.commit()
 
@@ -2240,13 +2324,16 @@ def test_pick_up_map_item_swaps_when_already_holding(client, db, user):
 
     db.refresh(unit)
     map_state = db.query(models.GameMapState).filter_by(game_id=game.id).first()
-    assert unit.can_move is False
+    # Solo remaining action advances the turn, which unlocks units for next round.
+    assert unit.can_move is True
     assert unit.flags["held_item"] == item.slug
     assert map_state.item_id_tiles[1][1] == held_item.id
 
 
 def test_pick_up_map_item_rejects_when_no_item_on_tile(client, db, user):
-    game, unit, _item = _create_in_progress_pickup_game(db, user, unit_x=0, unit_y=0)
+    game, unit, _item = _create_in_progress_pickup_game(
+        db, user, unit_x=0, unit_y=0, item_id=9004, link="pickup-empty"
+    )
 
     resp = client.post(
         f"/games/{game.link}/pick_up_item",

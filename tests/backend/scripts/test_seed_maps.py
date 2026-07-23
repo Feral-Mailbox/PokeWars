@@ -33,5 +33,6 @@ def test_load_maps(db, monkeypatch):
             json.dump(map_data, f)
         seed_official_maps.load_maps()
 
+        db.expire_all()
         updated = db.query(models.Map).filter_by(name="Test Map").first()
         assert updated.width == 12

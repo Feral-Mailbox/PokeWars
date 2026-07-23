@@ -58,13 +58,20 @@ def test_create_game(db_session):
     test_map = Map(name="Lake", creator=host, width=5, height=5,
         tileset_names=["water"], tile_data=[[0]*5]*5,
         allowed_modes=["War"], allowed_player_counts=[2])
+    db_session.add_all([host, test_map])
+    db_session.flush()
     game = Game(
-        game_name="Test Game", map=test_map, host_id=1,
-        gamemode=GameMode.war, map_name="Lake", link="abc123"
+        game_name="Test Game",
+        map_id=test_map.id,
+        host_id=host.id,
+        gamemode=GameMode.war,
+        map_name="Lake",
+        link="abc123",
     )
-    db_session.add_all([host, test_map, game])
+    db_session.add(game)
     db_session.commit()
-    assert game.map.name == "Lake"
+    assert game.map_id == test_map.id
+    assert game.map_name == "Lake"
 
 # --- GAME STATE / PLAYER ---
 def test_game_state_creation(db_session):
@@ -93,10 +100,22 @@ def test_unit_model(db_session):
     assert not unit.is_legendary
 
 def test_game_unit_model(db_session):
-    gu = GameUnit(game_id=1, unit_id=1, user_id=1, x=2, y=3, current_hp=35, level=50)
+    gu = GameUnit(
+        game_id=1,
+        unit_id=1,
+        user_id=1,
+        starting_x=2,
+        starting_y=3,
+        current_x=2,
+        current_y=3,
+        current_hp=35,
+        current_stats={"hp": 35},
+        level=50,
+    )
     db_session.add(gu)
     db_session.commit()
-    assert gu.stat_boosts == {}
+    assert gu.starting_x == 2
+    assert gu.current_y == 3
 
 # --- MOVE / ABILITY / TOURNAMENT / ETC ---
 def test_move_repr(db_session):

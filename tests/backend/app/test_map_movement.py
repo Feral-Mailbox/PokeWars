@@ -151,7 +151,9 @@ def test_slide_on_ice_from_stops_before_occupied_tile():
     special = [[None, "ice", None, None]]
     costs = [[1, 1, 1, 1]]
     occupied = {(2, 0)}
-    assert slide_on_ice_from(1, 0, 1, 0, special, 4, 1, {"grass"}, occupied=occupied) == (1, 0)
+    assert slide_on_ice_from(
+        1, 0, 1, 0, special, 4, 1, {"grass"}, occupied_tiles=occupied
+    ) == (1, 0)
 
 
 def test_resolve_movement_destination_slides_when_entering_ice():
@@ -301,16 +303,18 @@ def test_stump_tile_movement_and_defense():
 
 
 def test_movement_range_skips_impassable_water_tiles():
+    # 2-row map so path can go around the impassable center tile of the first row.
     costs = [
         [1, IMPOSSIBLE_MOVEMENT_COST, 1],
+        [1, 1, 1],
     ]
     tiles = movement_range_with_terrain(
         start=(0, 0),
-        rng=3,
+        rng=5,
         movement_costs=costs,
         special_tiles=None,
         width=3,
-        height=1,
+        height=2,
         unit_types={"grass"},
     )
     coords = {(t[0], t[1]) for t in tiles}
@@ -432,10 +436,11 @@ def test_impassable_tile_blocks_all_units():
 
 
 def test_can_enter_tile_and_destination_helpers():
-    special = [[None, "ledge_up"]]
+    # Column vector: (0,0)=empty, (0,1)=ledge_up
+    special = [[None], ["ledge_up"]]
     assert can_enter_tile(special, 0, 1, 0, 0, {"grass"}) is True
     assert can_enter_tile(special, 0, 0, 0, 1, {"grass"}) is False
-    assert is_valid_movement_destination(special, 0, 0, {"grass"}) is False
-    assert is_valid_movement_destination(special, 0, 0, {"flying"}) is True
+    assert is_valid_movement_destination(special, 0, 1, {"grass"}) is False
+    assert is_valid_movement_destination(special, 0, 1, {"flying"}) is True
     assert unit_can_stand_on_ledge({"flying"}) is True
     assert unit_can_stand_on_ledge({"rock"}) is False

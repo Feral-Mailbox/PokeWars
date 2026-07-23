@@ -45,9 +45,17 @@ def test_moderation_queue_accessible_to_admin(client, db):
         app.dependency_overrides.pop(get_current_user, None)
 
 
-def test_bootstrap_admin_promotes_existing_user(db):
+def test_bootstrap_admin_promotes_existing_user(db, monkeypatch):
     from app.bootstrap import ensure_bootstrap_admin
 
+    monkeypatch.setattr(
+        "app.bootstrap._bootstrap_settings",
+        lambda: {
+            "username": "anorgandroid",
+            "email": "anorgandroid@example.com",
+            "password": "very-strong-bootstrap-password",
+        },
+    )
     user = _make_user(db, "anorgandroid", role=UserRole.user)
     ensure_bootstrap_admin(db)
     db.refresh(user)
@@ -57,8 +65,10 @@ def test_bootstrap_admin_promotes_existing_user(db):
 def test_bootstrap_admin_skips_empty_username(db, monkeypatch):
     from app.bootstrap import BootstrapError, ensure_bootstrap_admin
 
-    monkeypatch.delenv("BOOTSTRAP_ADMIN_USERNAME", raising=False)
-    monkeypatch.setenv("BOOTSTRAP_ADMIN_USERNAME", "   ")
+    monkeypatch.setattr(
+        "app.bootstrap._bootstrap_settings",
+        lambda: {"username": "", "email": "a@b.c", "password": "very-strong-bootstrap-password"},
+    )
     with pytest.raises(BootstrapError):
         ensure_bootstrap_admin(db)
     assert db.query(models.User).count() == 0

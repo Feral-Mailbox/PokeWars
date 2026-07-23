@@ -88,8 +88,10 @@ def test_handle_unit_left_objective_tile_restores_hp():
     assert cell["hp"] == 20
 
 
-def test_restore_unoccupied_damaged_objectives():
+def test_restore_unoccupied_damaged_objectives(monkeypatch):
     from app.war_mode import restore_unoccupied_damaged_objectives
+
+    monkeypatch.setattr("app.war_mode.mark_objective_tiles_dirty", lambda _state: None)
 
     cell = make_objective_cell("pokeball", 0)
     cell["hp"] = 10

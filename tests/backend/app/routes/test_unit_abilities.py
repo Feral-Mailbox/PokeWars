@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 import app.db.models as models
 from app.dependencies import get_current_user, get_db
 from app.main import app
+from tests.backend.conftest import make_test_map
 from app.routes.games import (
     HIDDEN_ABILITY_COST,
     ability_change_net_cost,
@@ -194,10 +195,11 @@ def test_change_unit_ability_endpoint_updates_cash(client, db, user):
         hidden_ability=31,
         cost=400,
     )
+    game_map = make_test_map(db, name="Ability Map", creator_id=user.id)
     game = models.Game(
         game_name="Ability Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=game_map.id,
+        map_name=game_map.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
@@ -272,10 +274,11 @@ def test_change_unit_ability_rejects_insufficient_cash(client, db, user):
         hidden_ability=31,
         cost=400,
     )
+    game_map = make_test_map(db, name="Ability Map 2", creator_id=user.id)
     game = models.Game(
         game_name="Ability Game",
-        map_id=None,
-        map_name="n/a",
+        map_id=game_map.id,
+        map_name=game_map.name,
         max_players=2,
         gamemode="Conquest",
         is_private=False,
