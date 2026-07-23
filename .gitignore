@@ -17,6 +17,14 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+*.cover
+
+# Frontend coverage
+apps/frontend/coverage/
 
 # Vite + React
 .vite/

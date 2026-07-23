@@ -88,7 +88,18 @@ make nuke
 # Open a dev shell inside backend container
 make shell
 
+# Run all tests
+make test
+
+# Run tests with coverage reports
+make coverage
+# Backend HTML  → coverage/backend/index.html
+# Frontend HTML → apps/frontend/coverage/index.html
+
 ```
+
+`make test` / `make coverage` create a local `.venv` (if missing) and install `apps/backend/requirements.dev.txt`.  
+Frontend coverage uses Vitest (`npm run test:coverage`), or Docker Node if `npm` isn’t on your PATH.
 
 ---
 

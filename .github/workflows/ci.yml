@@ -20,10 +20,16 @@ jobs:
       - name: Install backend test dependencies
         run: pip install -r apps/backend/requirements.dev.txt
 
-      - name: Backend tests
+      - name: Backend tests with coverage
         env:
           SESSION_SECRET: ci-test-session-secret-value
-        run: PYTHONPATH=apps/backend pytest tests/backend --cov=app
+        run: |
+          mkdir -p coverage/backend
+          PYTHONPATH=apps/backend pytest tests/backend \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=html:coverage/backend \
+            --cov-report=xml:coverage/backend/coverage.xml
 
       - name: Infrastructure tests
         run: pip install PyYAML && pytest tests/infrastructure
@@ -35,6 +41,17 @@ jobs:
           cache: npm
           cache-dependency-path: apps/frontend/package-lock.json
 
-      - name: Frontend tests
+      - name: Frontend tests with coverage
         working-directory: apps/frontend
-        run: npm ci && npx vitest run
+        run: npm ci && npm run test:coverage
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage/backend
+            apps/frontend/coverage
+          if-no-files-found: warn
+          retention-days: 14

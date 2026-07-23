@@ -164,15 +164,43 @@ dev-shell:
 	$(DC_USED) exec backend /bin/sh
 
 # === Tests ===
-test: test-backend test-frontend test-infrastructure 
+VENV ?= .venv
+PYTEST = $(VENV)/bin/pytest
 
-test-backend:
-	PYTHONPATH=apps/backend pytest tests/backend --cov=app
+ensure-venv:
+	@if [ ! -x "$(PYTEST)" ]; then \
+		echo "Creating $(VENV) and installing backend test dependencies..."; \
+		python3 -m venv $(VENV); \
+		$(VENV)/bin/pip install -r apps/backend/requirements.dev.txt; \
+	fi
+
+test: test-backend test-frontend test-infrastructure
+
+test-backend: ensure-venv
+	mkdir -p coverage/backend
+	PYTHONPATH=apps/backend $(PYTEST) tests/backend \
+		--cov=app \
+		--cov-report=term-missing \
+		--cov-report=html:coverage/backend \
+		--cov-report=xml:coverage/backend/coverage.xml
 
 test-frontend:
-	cd apps/frontend && npx vitest run --coverage
+	@if command -v npm >/dev/null 2>&1; then \
+		cd apps/frontend && npm run test:coverage; \
+	else \
+		echo "npm not found locally; running frontend tests via Docker..."; \
+		docker run --rm \
+			-v "$(CURDIR)/apps/frontend:/app" \
+			-w /app \
+			node:20-alpine \
+			sh -c "npm ci && npm run test:coverage"; \
+	fi
 
-test-infrastructure:
-	pytest tests/infrastructure
+test-infrastructure: ensure-venv
+	$(PYTEST) tests/infrastructure
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities test test-backend test-frontend
+coverage: test-backend test-frontend
+	@echo "Backend HTML: coverage/backend/index.html"
+	@echo "Frontend HTML: apps/frontend/coverage/index.html"
+
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities ensure-venv test test-backend test-frontend test-infrastructure coverage

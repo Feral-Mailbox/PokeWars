@@ -1,0 +1,26 @@
+[run]
+branch = True
+source = app
+omit =
+    */alembic/*
+    */seed/*
+    */scripts/*
+    */tests/*
+    */__pycache__/*
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+
+[html]
+directory = coverage/backend
+
+[xml]
+output = coverage/backend/coverage.xml

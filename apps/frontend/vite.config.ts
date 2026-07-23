@@ -70,8 +70,17 @@ export default defineConfig({
     globals: true,
     setupFiles: './tests/setup.ts',
     coverage: {
-      provider: "v8",
-      reporter: ["text", "lcov"], // text summary and lcov for CI tools
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'lcov', 'html', 'json-summary'],
+      reportsDirectory: './coverage',
+      reportOnFailure: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/main.tsx',
+        'src/**/*.d.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/__tests__/**',
+      ],
     },
   } as InlineConfig,
   resolve: {
