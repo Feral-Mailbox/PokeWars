@@ -273,7 +273,11 @@ def find_shortest_path(
     if (sx, sy) == (ex, ey):
         return [(sx, sy)]
 
-    blocked_tiles = blocked_tiles or set()
+    # Ghost-types path through units; callers may still pass occupied tiles.
+    if unit_can_pass_through_units(unit_types):
+        blocked_tiles = set()
+    else:
+        blocked_tiles = blocked_tiles or set()
     parent: dict[tuple[int, int], tuple[int, int]] = {}
     q = deque([(sx, sy)])
     seen: set[tuple[int, int]] = {(sx, sy)}
@@ -508,7 +512,10 @@ def movement_range_with_terrain(
     from collections import deque
 
     sx, sy = start
-    blocked_tiles = blocked_tiles or set()
+    if unit_can_pass_through_units(unit_types):
+        blocked_tiles = set()
+    else:
+        blocked_tiles = blocked_tiles or set()
     seen: set[tuple[int, int]] = set()
     out: list[list[int]] = []
     q = deque([(sx, sy, 0)])

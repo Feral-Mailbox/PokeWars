@@ -8,7 +8,15 @@ def test_create_and_decode_session_token_round_trip():
 
 def test_decode_session_token_rejects_tampered_token():
     token = create_session_token(7)
-    tampered = token[:-1] + ("a" if token[-1] != "a" else "b")
+    header, payload, signature = token.split(".")
+    # Flip a high-entropy signature character. Changing only the final base64
+    # character is unreliable: unused padding bits mean several alphabet chars
+    # (e.g. Y/Z/a/b) decode to the same signature bytes.
+    sig_chars = list(signature)
+    mid = len(sig_chars) // 2
+    sig_chars[mid] = "A" if sig_chars[mid] != "A" else "B"
+    tampered = f"{header}.{payload}.{''.join(sig_chars)}"
+    assert tampered != token
     assert decode_session_token(tampered) is None
 
 

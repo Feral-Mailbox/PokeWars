@@ -1,11 +1,12 @@
-import re
 from pathlib import Path
+
 
 def test_nginx_config_contains_expected_blocks():
     conf = Path("infrastructure/nginx/default.conf").read_text()
 
-    # Required locations
-    required_locations = ["/", "/api/", "/api/ws/", "/assets/"]
+    # Edge nginx proxies API/WS to backend and everything else to the frontend
+    # container (which serves Vite bundles and /game-assets/).
+    required_locations = ["/", "/api/", "/api/ws/"]
     for loc in required_locations:
         assert f"location {loc}" in conf, f"Missing location block: {loc}"
 

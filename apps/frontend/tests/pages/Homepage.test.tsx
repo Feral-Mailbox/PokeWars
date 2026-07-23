@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import Homepage from '../../src/pages/Homepage';
 
 vi.mock('../../src/state/auth', () => ({
@@ -26,6 +26,17 @@ const loggedInUser = {
   role: 'user' as const,
 };
 
+function renderHomepage(initialEntries: Array<string | { pathname: string; state?: unknown }> = ['/']) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Routes>
+        <Route path="/" element={<Homepage />} />
+        <Route path="/games/:gameId" element={<div>Opened game</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
 describe('Homepage', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -38,11 +49,7 @@ describe('Homepage', () => {
       requestAuthPrompt: mockRequestAuthPrompt,
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     expect(screen.getByRole('heading', { name: /PokéTactics/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Log in/i })).toBeInTheDocument();
@@ -56,11 +63,7 @@ describe('Homepage', () => {
       requestAuthPrompt: mockRequestAuthPrompt,
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     fireEvent.click(screen.getByRole('button', { name: /Log in/i }));
     expect(mockRequestAuthPrompt).toHaveBeenCalledWith('login');
@@ -76,11 +79,7 @@ describe('Homepage', () => {
       requestAuthPrompt: mockRequestAuthPrompt,
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     expect(screen.getByText(/Welcome back, testuser/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Create Game/i })).toHaveAttribute('href', '/games/create');
@@ -95,11 +94,7 @@ describe('Homepage', () => {
     } as ReturnType<typeof useAuth>);
     vi.mocked(secureFetch).mockResolvedValue({ ok: true } as Response);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     fireEvent.change(screen.getByPlaceholderText(/Paste link or game ID/i), {
       target: { value: 'abc123' },
@@ -107,7 +102,7 @@ describe('Homepage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Go$/i }));
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/games/abc123');
+      expect(screen.getByText('Opened game')).toBeInTheDocument();
     });
     expect(secureFetch).toHaveBeenCalledWith('/api/games/abc123');
   });
@@ -119,11 +114,7 @@ describe('Homepage', () => {
       requestAuthPrompt: mockRequestAuthPrompt,
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     fireEvent.change(screen.getByPlaceholderText(/Paste link or game ID/i), {
       target: { value: 'not a valid link!!!' },
@@ -142,11 +133,7 @@ describe('Homepage', () => {
     } as ReturnType<typeof useAuth>);
     vi.mocked(secureFetch).mockResolvedValue({ ok: false } as Response);
 
-    render(
-      <MemoryRouter>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage();
 
     fireEvent.change(screen.getByPlaceholderText(/Paste link or game ID/i), {
       target: { value: '2' },
@@ -156,7 +143,7 @@ describe('Homepage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/Game not found/i);
     });
-    expect(window.location.pathname).not.toBe('/games/2');
+    expect(screen.queryByText('Opened game')).not.toBeInTheDocument();
   });
 
   it('shows a toast passed from router state after redirect', () => {
@@ -166,11 +153,7 @@ describe('Homepage', () => {
       requestAuthPrompt: mockRequestAuthPrompt,
     } as ReturnType<typeof useAuth>);
 
-    render(
-      <MemoryRouter initialEntries={[{ pathname: '/', state: { toastMessage: 'Game not found. Check the link and try again.' } }]}>
-        <Homepage />
-      </MemoryRouter>,
-    );
+    renderHomepage([{ pathname: '/', state: { toastMessage: 'Game not found. Check the link and try again.' } }]);
 
     expect(screen.getByRole('alert')).toHaveTextContent(/Game not found/i);
   });

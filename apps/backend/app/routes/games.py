@@ -803,10 +803,11 @@ def resolve_weather_move_multiplier_for_move(
     move_type: str | None,
     weather_id: int,
 ) -> float:
+    # Format: weather_override:<weather>:<multiplier>
     if move and isinstance(move.effects, list):
         for effect in move.effects:
             parts = str(effect or "").strip().lower().split(":")
-            if len(parts) >= 4 and parts[0] == "weather_override" and weather_condition_matches(weather_id, parts[1]):
+            if len(parts) >= 3 and parts[0] == "weather_override" and weather_condition_matches(weather_id, parts[1]):
                 try:
                     return float(parts[2])
                 except ValueError:
@@ -864,9 +865,15 @@ def get_terrain_id_at_position(terrain_tiles: list | None, x: int, y: int) -> in
     return get_timed_effect_id_at_position(terrain_tiles, x, y)
 
 
+def get_unit_coords(unit: GameUnit, default: int = -1) -> tuple[int, int]:
+    """Read unit tile coords; treat only None as missing so 0,0 is valid."""
+    x = getattr(unit, "current_x", None)
+    y = getattr(unit, "current_y", None)
+    return (default if x is None else int(x), default if y is None else int(y))
+
+
 def get_unit_terrain_id(unit: GameUnit, terrain_tiles: list | None) -> int:
-    x = int(getattr(unit, "current_x", -1) or -1)
-    y = int(getattr(unit, "current_y", -1) or -1)
+    x, y = get_unit_coords(unit)
     return get_terrain_id_at_position(terrain_tiles, x, y)
 
 
@@ -893,8 +900,7 @@ def get_field_effect_at_position(field_effect_tiles: list | None, x: int, y: int
 
 
 def is_gravity_active_at(unit: GameUnit, field_effect_tiles: list | None) -> bool:
-    x = int(getattr(unit, "current_x", -1) or -1)
-    y = int(getattr(unit, "current_y", -1) or -1)
+    x, y = get_unit_coords(unit)
     gravity_id = FIELD_EFFECT_TO_ID.get("gravity", 0)
     return gravity_id > 0 and get_field_effect_at_position(field_effect_tiles, x, y) == gravity_id
 
@@ -1451,8 +1457,7 @@ def get_weather_id_at_position(weather_tiles: list | None, x: int, y: int) -> in
 
 
 def get_unit_weather_id(unit: GameUnit, weather_tiles: list | None) -> int:
-    x = int(getattr(unit, "current_x", -1) or -1)
-    y = int(getattr(unit, "current_y", -1) or -1)
+    x, y = get_unit_coords(unit)
     return get_weather_id_at_position(weather_tiles, x, y)
 
 
@@ -2627,6 +2632,7 @@ def process_move_effects(
 
     weather_raise_stat_applied: set[tuple[str, str]] = set()
     terrain_raise_stat_applied: set[tuple[str, str]] = set()
+    weather_heal_applied: set[str] = set()
     
     for effect_str in move.effects:
         raw_token = str(effect_str or "").strip()
@@ -3934,6 +3940,10 @@ def process_move_effects(
 
                 # For conditional healing based on weather
                 if condition_type.lower() == "weather":
+                    # Only the first matching weather heal condition applies (sun/clear/*).
+                    if recipient in weather_heal_applied:
+                        continue
+
                     # Determine weather_id for attacker or target
                     if recipient == "self":
                         weather_id = get_unit_weather_id(attacker, weather_tiles)
@@ -3946,6 +3956,8 @@ def process_move_effects(
                     # Check if condition matches
                     if not weather_condition_matches(weather_id, condition_value):
                         continue
+
+                    weather_heal_applied.add(recipient)
 
                     # Apply the conditional heal
                     if recipient == "self":
@@ -4728,8 +4740,7 @@ def apply_end_of_round_stump_tile_effects(game_id: int, db: Session) -> list[int
         if not target_receives_grass_tile_bonuses(unit_types, ability_names):
             continue
 
-        x = int(getattr(unit, "current_x", -1) or -1)
-        y = int(getattr(unit, "current_y", -1) or -1)
+        x, y = get_unit_coords(unit)
         if not is_stump_tile(special_tiles, x, y):
             continue
 
@@ -4791,8 +4802,7 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
         if current_hp <= 0:
             continue
 
-        x = int(getattr(unit, "current_x", -1) or -1)
-        y = int(getattr(unit, "current_y", -1) or -1)
+        x, y = get_unit_coords(unit)
         entries = get_hazard_entries_at_position(hazard_tiles, x, y)
         if not entries:
             continue
