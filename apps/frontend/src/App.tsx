@@ -13,6 +13,7 @@ import AdminPage from './pages/admin/AdminPage';
 import MapBuilderPage from './pages/map-builder/MapBuilderPage';
 import ReportBug from './pages/ReportBug';
 import GameGuide from './pages/GameGuide';
+import PlayerProfilePage from './pages/PlayerProfilePage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/player/:trainerId" element={<PlayerProfilePage />} />
         <Route path="/games/create" element={<CreateGame />} />
         <Route path="/games/join" element={<JoinGame />} />
         <Route path="/games/in-progress" element={<ActiveGames />} />

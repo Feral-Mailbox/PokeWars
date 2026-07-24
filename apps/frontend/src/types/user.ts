@@ -2,6 +2,7 @@ export type UserRole = "user" | "moderator" | "admin";
 
 export type User = {
   id: number;
+  trainer_id: string;
   username: string;
   email: string;
   avatar: string;

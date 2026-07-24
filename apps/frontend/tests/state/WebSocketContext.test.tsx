@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 
 vi.mock('@/state/auth', () => ({
   useAuth: () => ({
-    user: { id: 1, username: 'tester' },
+    user: { id: 1, trainer_id: 'A1B2C3D4', username: 'tester' },
     loading: false,
   }),
 }));

@@ -68,6 +68,7 @@ function staffAuth() {
   vi.mocked(useAuth).mockReturnValue({
     user: {
       id: 2,
+      trainer_id: 'A1B2C3D4',
       username: "mod",
       email: "m@b.c",
       avatar: "",

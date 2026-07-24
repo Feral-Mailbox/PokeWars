@@ -35,6 +35,7 @@ describe("MapBuilderPage access", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 1,
+        trainer_id: 'A1B2C3D4',
         username: "ash",
         email: "a@b.c",
         avatar: "",
@@ -58,6 +59,7 @@ describe("MapBuilderPage access", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 2,
+        trainer_id: 'A1B2C3D4',
         username: "mod",
         email: "m@b.c",
         avatar: "",

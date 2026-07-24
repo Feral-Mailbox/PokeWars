@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from fastapi import Request, HTTPException
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Enum, Boolean, Table, create_engine, Float, event
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 from sqlalchemy.sql import func
@@ -68,6 +68,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    trainer_id = Column(String(8), unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
@@ -84,6 +85,15 @@ class User(Base):
     maps = relationship("Map", back_populates="creator")
     game_states = relationship("GamePlayer", back_populates="player")
     game_units = relationship("GameUnit", back_populates="owner")
+
+
+@event.listens_for(User, "before_insert")
+def _assign_trainer_id(mapper, connection, target):
+    if getattr(target, "trainer_id", None):
+        return
+    from app.utils.trainer_id import allocate_unique_trainer_id
+
+    target.trainer_id = allocate_unique_trainer_id(connection, User.__table__)
 
 # ======================
 # FRIENDS

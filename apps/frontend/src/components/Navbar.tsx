@@ -26,9 +26,9 @@ const Navbar = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await secureFetch<User>('/api/me');
+        const res = await secureFetch('/api/me');
         if (res?.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as User;
           setUser(data);
         } else {
           setUser(null);
@@ -128,7 +128,20 @@ const Navbar = () => {
 
       <div className="flex flex-row items-center gap-4 relative">
         <span className="text-sm text-gray-300">
-          {user ? `Welcome, ${user.username}` : 'Welcome'}
+          {user ? (
+            <>
+              Welcome,{' '}
+              <button
+                type="button"
+                onClick={() => navigate(`/player/${user.trainer_id}`)}
+                className="font-medium text-white hover:text-blue-400 transition-colors"
+              >
+                {user.username}
+              </button>
+            </>
+          ) : (
+            'Welcome'
+          )}
         </span>
 
         {/* Games dropdown */}

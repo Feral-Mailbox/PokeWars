@@ -31,6 +31,7 @@ describe("AdminPage", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 1,
+        trainer_id: 'A1B2C3D4',
         username: "ash",
         email: "a@b.c",
         avatar: "",
@@ -49,6 +50,7 @@ describe("AdminPage", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 2,
+        trainer_id: 'A1B2C3D4',
         username: "mod",
         email: "m@b.c",
         avatar: "",
@@ -76,6 +78,7 @@ describe("AdminPage", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 3,
+        trainer_id: 'A1B2C3D4',
         username: "mod2",
         email: "m2@b.c",
         avatar: "",
@@ -105,6 +108,7 @@ describe("AdminPage", () => {
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 4,
+        trainer_id: 'A1B2C3D4',
         username: "admin",
         email: "a@b.c",
         avatar: "",
@@ -125,6 +129,7 @@ describe("AdminPage", () => {
             {
               id: 11,
               user_id: 99,
+              trainer_id: 'A1B2C3D4',
               username: "offender",
               game_id: 1,
               game_link: "abc",
@@ -150,6 +155,7 @@ describe("AdminPage", () => {
           json: async () => ({
             id: 11,
             user_id: 99,
+            trainer_id: 'A1B2C3D4',
             username: "offender",
             game_id: 1,
             game_link: "abc",
@@ -170,6 +176,7 @@ describe("AdminPage", () => {
           status: 200,
           json: async () => ({
             id: 99,
+            trainer_id: 'A1B2C3D4',
             username: "offender",
             role: "user",
             is_banned: false,

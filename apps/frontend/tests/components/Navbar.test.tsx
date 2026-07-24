@@ -81,6 +81,7 @@ describe("Navbar", () => {
       ok: true,
       json: async () => ({
         id: 1,
+        trainer_id: 'A1B2C3D4',
         username: "testuser",
         email: "t@e.com",
         avatar: "",
@@ -160,6 +161,7 @@ describe("Navbar", () => {
     mockAuth({
       user: {
         id: 2,
+        trainer_id: 'A1B2C3D4',
         username: "mod",
         email: "m@e.com",
         avatar: "",
@@ -175,10 +177,13 @@ describe("Navbar", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("Welcome, mod")).toBeInTheDocument();
+    expect(screen.getByText(/Welcome,/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "mod" })).toBeInTheDocument();
     expect(screen.getByText("Map Builder")).toBeInTheDocument();
     expect(screen.getByText("Moderation")).toBeInTheDocument();
 
+    await user.click(screen.getByRole("button", { name: "mod" }));
+    expect(mockNavigate).toHaveBeenCalledWith("/player/A1B2C3D4");
     await user.click(screen.getByText("Map Builder"));
     expect(mockNavigate).toHaveBeenCalledWith("/map-builder");
     await user.click(screen.getByText("Moderation"));

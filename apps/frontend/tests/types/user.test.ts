@@ -3,6 +3,7 @@ import { isAdmin, isStaff, type User } from "@/types/user";
 
 const baseUser: User = {
   id: 1,
+  trainer_id: 'A1B2C3D4',
   username: "ash",
   email: "ash@example.com",
   avatar: "",

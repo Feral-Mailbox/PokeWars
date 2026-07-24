@@ -18,6 +18,7 @@ const mockRequestAuthPrompt = vi.fn();
 
 const loggedInUser = {
   id: 1,
+  trainer_id: 'A1B2C3D4',
   username: 'testuser',
   email: 'test@example.com',
   avatar: '',
