@@ -51,7 +51,8 @@ def _upsert_admin(username: str, email: str, password: str) -> None:
                 email=email,
                 hashed_password=hashed,
                 avatar="default.png",
-                elo=1000,
+                elo_conquest=1000,
+                elo_war=1000,
                 currency=0,
                 role=UserRole.admin,
             )

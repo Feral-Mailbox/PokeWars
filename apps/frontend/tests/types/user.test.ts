@@ -7,7 +7,8 @@ const baseUser: User = {
   username: "ash",
   email: "ash@example.com",
   avatar: "",
-  elo: 1000,
+  elo_conquest: 1000,
+  elo_war: 1000,
   currency: 0,
   role: "user",
 };

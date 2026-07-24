@@ -44,7 +44,7 @@ def test_bootstrap_admin_syncs_password_for_existing_user(db, monkeypatch):
         email="anorgandroid@example.com",
         hashed_password=hash_password("previous-password-value"),
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000, elo_war=1000,
         currency=0,
         role=models.UserRole.admin,
     )
@@ -93,7 +93,7 @@ def test_sync_skips_unacceptable_password(db, monkeypatch):
         email="a@b.c",
         hashed_password=hash_password("previous-password-value"),
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000, elo_war=1000,
         currency=0,
         role=UserRole.admin,
     )
@@ -112,7 +112,7 @@ def test_sync_rehashes_when_verify_raises(db, monkeypatch):
         email="a@b.c",
         hashed_password=hash_password("previous-password-value"),
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000, elo_war=1000,
         currency=0,
         role=UserRole.admin,
     )
@@ -150,7 +150,7 @@ def test_ensure_existing_admin_already_exists(db, monkeypatch):
         email="a@b.c",
         hashed_password=hash_password(password),
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000, elo_war=1000,
         currency=0,
         role=UserRole.admin,
     )

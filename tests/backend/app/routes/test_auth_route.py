@@ -22,7 +22,8 @@ def test_register_success(client):
     assert resp.status_code == 200
     data = resp.json()
     assert data["username"] == "testuser"
-    assert data["elo"] == 1000
+    assert data["elo_conquest"] == 1000
+    assert data["elo_war"] == 1000
     assert "trainer_id" in data
     assert len(data["trainer_id"]) == 8
     _assert_session_cookie(resp)

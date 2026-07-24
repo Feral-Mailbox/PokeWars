@@ -30,7 +30,8 @@ def test_create_user(db_session):
     db_session.add(user)
     db_session.commit()
     assert user.avatar == "default.png"
-    assert user.elo == 1000
+    assert user.elo_conquest == 1000
+    assert user.elo_war == 1000
 
 def test_friend_relationship(db_session):
     u1 = User(username="red", email="red@example.com", hashed_password="pw")

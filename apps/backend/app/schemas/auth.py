@@ -15,7 +15,8 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     avatar: str
-    elo: int
+    elo_conquest: int
+    elo_war: int
     currency: int
     role: str = "user"
 
@@ -40,7 +41,8 @@ class PublicPlayerProfile(BaseModel):
     trainer_id: str
     username: str
     avatar: str
-    elo: int
+    elo_conquest: int
+    elo_war: int
     currency: int
     role: str = "user"
 

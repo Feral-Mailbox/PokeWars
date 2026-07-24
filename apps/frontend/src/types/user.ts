@@ -6,7 +6,8 @@ export type User = {
   username: string;
   email: string;
   avatar: string;
-  elo: number;
+  elo_conquest: number;
+  elo_war: number;
   currency: number;
   role: UserRole;
 };

@@ -40,7 +40,8 @@ def register(req: RegisterRequest, response: Response, db: Session = Depends(get
         email=req.email,
         hashed_password=hash_password(req.password),
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000,
+        elo_war=1000,
         currency=0,
     )
     db.add(user)

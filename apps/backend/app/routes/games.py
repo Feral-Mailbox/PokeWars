@@ -54,6 +54,14 @@ from app.map_movement import (
     unit_can_pass_through_units,
     IMPOSSIBLE_MOVEMENT_COST,
 )
+from app.elo import (
+    apply_floor,
+    build_placements,
+    compute_elo_deltas,
+    elo_attr_for_gamemode,
+    elo_label_for_gamemode,
+    DEFAULT_ELO,
+)
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
@@ -187,6 +195,94 @@ def publish_system_log_event(
     if game_state is not None and db is not None:
         db.add(game_state)
     publish_game_ws_event(game_link, payload)
+
+
+def record_eliminations(state: GameState, eliminated_player_ids: List[int]) -> None:
+    if not eliminated_player_ids:
+        return
+    order = [int(pid) for pid in (state.elimination_order or [])]
+    seen = set(order)
+    changed = False
+    for pid in eliminated_player_ids:
+        pid = int(pid)
+        if pid not in seen:
+            order.append(pid)
+            seen.add(pid)
+            changed = True
+    if changed:
+        state.elimination_order = order
+
+
+def settle_match_elo(game: Game, state: GameState, db: Session) -> None:
+    """Apply pairwise placement Elo once when a match is completed."""
+    if state.status != GameStatus.completed:
+        return
+    if bool(getattr(state, "elo_applied", False)):
+        return
+
+    roster_rows = db.query(GamePlayer.player_id).filter_by(game_id=game.id).all()
+    roster = [int(row[0]) for row in roster_rows]
+    if len(roster) < 2:
+        state.elo_applied = True
+        db.add(state)
+        return
+
+    draw_ids: List[int] = []
+    if state.winner_id is None:
+        try:
+            draw_ids = [int(pid) for pid in get_draw_player_ids(game, state, db)]
+        except Exception:
+            draw_ids = []
+
+    places = build_placements(
+        roster,
+        elimination_order=[int(pid) for pid in (state.elimination_order or [])],
+        winner_id=int(state.winner_id) if state.winner_id is not None else None,
+        draw_ids=draw_ids,
+    )
+    elo_attr = elo_attr_for_gamemode(game.gamemode)
+    elo_label = elo_label_for_gamemode(game.gamemode)
+    users = {
+        int(user.id): user
+        for user in db.query(User).filter(User.id.in_(roster)).all()
+    }
+    ratings = {
+        pid: int(getattr(users[pid], elo_attr, DEFAULT_ELO) or DEFAULT_ELO)
+        for pid in roster
+        if pid in users
+    }
+    if len(ratings) < 2:
+        state.elo_applied = True
+        db.add(state)
+        return
+
+    deltas = compute_elo_deltas(ratings, places)
+    publish_system_log_event(game.link, f"{elo_label} updates", state, db)
+    for pid in sorted(ratings.keys(), key=lambda p: (places.get(p, 999), p)):
+        user = users[pid]
+        before = ratings[pid]
+        delta = int(deltas.get(pid, 0))
+        after = apply_floor(before, delta)
+        setattr(user, elo_attr, after)
+        db.add(user)
+        sign = f"+{delta}" if delta >= 0 else str(delta)
+        place = places.get(pid)
+        place_label = f"#{place} " if place is not None else ""
+        publish_system_log_event(
+            game.link,
+            f"{place_label}{user.username}: {before} → {after} ({sign})",
+            state,
+            db,
+        )
+
+    state.elo_applied = True
+    db.add(state)
+
+
+def notify_game_completed(game: Game, state: GameState, db: Session) -> None:
+    settle_match_elo(game, state, db)
+    db.commit()
+    redis_client.publish(f"game_updates:{game.link}", "game_completed")
 
 
 def publish_turn_remaining_warning_if_needed(
@@ -5008,6 +5104,7 @@ def reconcile_playable_players(game: Game, state: GameState, db: Session) -> tup
     else:
         playable_players = get_playable_player_ids_in_order(state, game.id, db)
     eliminated_players = [player_id for player_id in previous_players if player_id not in playable_players]
+    record_eliminations(state, eliminated_players)
 
     if playable_players != previous_players:
         state.players = playable_players
@@ -5022,10 +5119,12 @@ def reconcile_playable_players(game: Game, state: GameState, db: Session) -> tup
             state.winner_id = playable_players[0]
             winner_name = get_username_by_id(playable_players[0], db)
             publish_system_log_event(game.link, f"{winner_name} won", state, db)
+            settle_match_elo(game, state, db)
             completed_now = True
         elif len(playable_players) == 0:
             state.status = GameStatus.completed
             state.winner_id = None
+            settle_match_elo(game, state, db)
             completed_now = True
 
     return playable_players, eliminated_players, completed_now
@@ -5111,7 +5210,7 @@ def advance_turn_if_player_has_no_actions(
         db.commit()
         for unit_id in removed_ids:
             redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return removed_ids, False, True
 
     current_player_units = (
@@ -5129,7 +5228,7 @@ def advance_turn_if_player_has_no_actions(
         db.commit()
         for unit_id in removed_ids:
             redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return removed_ids, False, True
 
     if not playable_players:
@@ -5151,7 +5250,7 @@ def advance_turn_if_player_has_no_actions(
         db.commit()
         for unit_id in removed_ids:
             redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return removed_ids, False, True
 
     now = datetime.now(timezone.utc)
@@ -5378,7 +5477,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return True
     if not playable_players:
         return False
@@ -5423,7 +5522,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return True
     if not playable_players:
         return False
@@ -5447,7 +5546,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return True
     
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
@@ -5459,7 +5558,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
         else:
             state.winner_id = None
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return True
     
     state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
@@ -5935,7 +6034,7 @@ def get_game_by_link(
     _, _, completed_now = reconcile_playable_players(game, game_state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, game_state, db)
 
     advance_if_expired(game, game_state, db)
 
@@ -6046,7 +6145,7 @@ def get_game_units(
         _, _, completed_now = reconcile_playable_players(game, state, db)
         if completed_now:
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            notify_game_completed(game, state, db)
 
     # Expire session objects to ensure fresh data from database
     db.expire_all()
@@ -6287,7 +6386,7 @@ def place_unit(
                 game, state, user.id, db
             )
             if game_completed:
-                redis_client.publish(f"game_updates:{game.link}", "game_completed")
+                notify_game_completed(game, state, db)
             elif removed_ids:
                 for unit_id in removed_ids:
                     redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
@@ -6507,7 +6606,7 @@ def get_turnlock(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {}
 
     # Return the locks for the player whose turn it is (i.e., the “frozen” sets)
@@ -6534,7 +6633,7 @@ def end_turn(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {"detail": "Game completed"}
 
     if not playable_players or state.current_turn is None:
@@ -6572,7 +6671,7 @@ def end_turn(
     playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {"detail": "Game completed"}
     if not playable_players:
         raise HTTPException(status_code=400, detail="Invalid game state")
@@ -6594,7 +6693,7 @@ def end_turn(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {"detail": "Game completed"}
 
     # Check if game should be completed (max_turns represents full rounds, not individual player turns)
@@ -6606,7 +6705,7 @@ def end_turn(
         else:
             state.winner_id = None
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {"detail": "Game completed"}
 
     now = datetime.now(timezone.utc)
@@ -6656,7 +6755,7 @@ def execute_move(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:
@@ -7285,7 +7384,7 @@ def execute_move(
             db.commit()
             for unit_id in removed_ids:
                 redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            notify_game_completed(game, state, db)
             redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True, 
@@ -7360,7 +7459,7 @@ def execute_move(
             db.commit()
             for unit_id in removed_ids:
                 redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            notify_game_completed(game, state, db)
             redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True,
@@ -7381,7 +7480,7 @@ def execute_move(
         playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
         if completed_now:
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            notify_game_completed(game, state, db)
             redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True,
@@ -7410,7 +7509,7 @@ def execute_move(
         if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
             state.status = GameStatus.completed
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "game_completed")
+            notify_game_completed(game, state, db)
         else:
             now = datetime.now(timezone.utc)
             state.turn_deadline = now + timedelta(seconds=game.turn_seconds)
@@ -7469,7 +7568,7 @@ def capture_objective(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:
@@ -7540,7 +7639,7 @@ def capture_objective(
         db.commit()
         publish_objective_cell_updated(game.link, objective_x, objective_y, objective_cell)
         redis_client.publish(f"game_updates:{game.link}", "unit_locked")
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         return {
             "ok": True,
             "unit_id": gu.id,
@@ -7593,7 +7692,7 @@ def wait_unit(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:
@@ -7656,7 +7755,7 @@ def pick_up_map_item(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:
@@ -7754,7 +7853,7 @@ def pick_up_map_item(
         redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
         redis_client.publish(f"game_updates:{game.link}", "turn_started")
     if game_completed:
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
 
     return {
         "ok": True,
@@ -7798,7 +7897,7 @@ def revert_unit_position(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:
@@ -7872,7 +7971,7 @@ def move_unit(
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
-        redis_client.publish(f"game_updates:{game.link}", "game_completed")
+        notify_game_completed(game, state, db)
         raise HTTPException(status_code=400, detail="Game completed")
 
     if not playable_players or state.current_turn is None:

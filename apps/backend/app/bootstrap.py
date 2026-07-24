@@ -110,7 +110,8 @@ def ensure_bootstrap_admin(db: Session) -> User:
             email=settings["email"],
             hashed_password=_hash_password(password),
             avatar="default.png",
-            elo=1000,
+            elo_conquest=1000,
+            elo_war=1000,
             currency=0,
             role=UserRole.admin,
         )

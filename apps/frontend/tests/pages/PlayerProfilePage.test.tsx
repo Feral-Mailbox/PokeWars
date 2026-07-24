@@ -18,7 +18,8 @@ const publicProfile = {
   trainer_id: '214D27D0',
   username: 'anorgandroid',
   avatar: 'default.png',
-  elo: 1000,
+  elo_conquest: 1000,
+  elo_war: 1000,
   currency: 0,
   role: 'admin',
 };
@@ -29,7 +30,8 @@ const ownUser = {
   username: 'anorgandroid',
   email: 'anorgandroid@gmail.com',
   avatar: 'default.png',
-  elo: 1000,
+  elo_conquest: 1000,
+  elo_war: 1000,
   currency: 0,
   role: 'admin' as const,
 };
@@ -78,7 +80,31 @@ describe('PlayerProfilePage', () => {
       expect(screen.getByRole('heading', { name: 'anorgandroid' })).toBeInTheDocument();
     });
     expect(screen.getByText('214D27D0')).toBeInTheDocument();
+    expect(screen.getByText('Conquest Elo')).toBeInTheDocument();
+    expect(screen.getByText('War Elo')).toBeInTheDocument();
+    expect(screen.getAllByText('1000')).toHaveLength(2);
     expect(screen.queryByText('Email')).not.toBeInTheDocument();
+  });
+
+  it('defaults missing elo fields to 1000', async () => {
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        trainer_id: '214D27D0',
+        username: 'anorgandroid',
+        avatar: 'default.png',
+        currency: 0,
+        role: 'admin',
+      }),
+    } as Response);
+
+    renderPlayer('/player/214D27D0');
+
+    await waitFor(() => {
+      expect(screen.getByText('Conquest Elo')).toBeInTheDocument();
+    });
+    expect(screen.getAllByText('1000')).toHaveLength(2);
   });
 
   it('shows email when viewing your own trainer profile', async () => {

@@ -22,7 +22,8 @@ const loggedInUser = {
   username: 'testuser',
   email: 'test@example.com',
   avatar: '',
-  elo: 1000,
+  elo_conquest: 1000,
+  elo_war: 1000,
   currency: 0,
   role: 'user' as const,
 };

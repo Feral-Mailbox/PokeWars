@@ -16,9 +16,9 @@ def test_user_response_fields():
         username="brock",
         email="brock@example.com",
         avatar="default.png",
-        elo=1000,
+        elo_conquest=1000, elo_war=1000,
         currency=0,
         role="user",
     )
-    assert model.model_dump()["elo"] == 1000
+    assert model.model_dump()["elo_conquest"] == 1000
     assert model.trainer_id == "A3F2C91B"

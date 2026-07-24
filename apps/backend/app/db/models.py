@@ -73,7 +73,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     avatar = Column(String, default="default.png")
-    elo = Column(Integer, default=1000)
+    elo_conquest = Column(Integer, default=1000, nullable=False)
+    elo_war = Column(Integer, default=1000, nullable=False)
     currency = Column(Integer, default=0)
     role = Column(Enum(UserRole), default=UserRole.user, nullable=False)
     is_banned = Column(Boolean, default=False, nullable=False)
@@ -148,6 +149,9 @@ class GameState(Base):
     turn_deadline = Column(DateTime(timezone=True), nullable=True)
     winner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     replay_log = Column(MutableList.as_mutable(JSON), nullable=True, default=list)
+    # Player ids in the order they were eliminated (earliest = first entry = worst place).
+    elimination_order = Column(MutableList.as_mutable(JSON), nullable=True, default=list)
+    elo_applied = Column(Boolean, default=False, nullable=False)
 
     # Relationships
     game = relationship("Game")

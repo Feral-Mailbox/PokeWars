@@ -10,7 +10,7 @@ def test_get_me_success(client, db):
         email="gary@example.com",
         hashed_password="pw",
         avatar="default.png",
-        elo=1500,
+        elo_conquest=1500, elo_war=1500,
         currency=250
     )
     db.add(user)
@@ -21,7 +21,8 @@ def test_get_me_success(client, db):
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "gary"
-    assert data["elo"] == 1500
+    assert data["elo_conquest"] == 1500
+    assert data["elo_war"] == 1500
     assert data["currency"] == 250
     assert len(data["trainer_id"]) == 8
 
@@ -45,7 +46,7 @@ def test_get_player_by_trainer_id_public(client, db):
         email="ash-public@example.com",
         hashed_password="pw",
         avatar="default.png",
-        elo=1337,
+        elo_conquest=1337, elo_war=1337,
         currency=42,
     )
     db.add(user)
@@ -57,7 +58,8 @@ def test_get_player_by_trainer_id_public(client, db):
     data = response.json()
     assert data["username"] == "public-ash"
     assert data["trainer_id"] == user.trainer_id
-    assert data["elo"] == 1337
+    assert data["elo_conquest"] == 1337
+    assert data["elo_war"] == 1337
     assert data["currency"] == 42
     assert "email" not in data
     assert "id" not in data

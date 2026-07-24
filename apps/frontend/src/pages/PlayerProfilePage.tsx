@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../state/auth';
 import { secureFetch } from '@/utils/secureFetch';
 import type { User } from '../types/user';
-import { ProfileCard, type ProfileViewModel } from './ProfileCard';
+import { ProfileCard, normalizeProfileView, type ProfileViewModel } from './ProfileCard';
 
 type LoadState =
   | { status: 'loading' }
@@ -47,7 +47,7 @@ export default function PlayerProfilePage() {
           return;
         }
 
-        const data = (await res.json()) as ProfileViewModel;
+        const data = normalizeProfileView(await res.json());
         let profile = data;
         let isOwn = Boolean(user?.trainer_id && user.trainer_id.toUpperCase() === normalized);
 
@@ -59,23 +59,18 @@ export default function PlayerProfilePage() {
               if (!cancelled) {
                 setUser(me);
               }
-              profile = {
+              profile = normalizeProfileView({
                 ...data,
+                ...me,
                 email: me.email,
-                elo: me.elo,
-                currency: me.currency,
-                username: me.username,
-                avatar: me.avatar,
-                role: me.role,
-                trainer_id: me.trainer_id,
-              };
+              });
               isOwn = true;
             } else if (user) {
-              profile = { ...data, email: user.email };
+              profile = normalizeProfileView({ ...data, email: user.email });
             }
           } catch {
             if (user) {
-              profile = { ...data, email: user.email };
+              profile = normalizeProfileView({ ...data, email: user.email });
             }
           }
         }
