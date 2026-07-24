@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { UserRole } from '../types/user';
 
 export type ProfileViewModel = {
@@ -63,9 +64,10 @@ export function AvatarMark({ username, avatar }: { username: string; avatar: str
 type ProfileCardProps = {
   profile: ProfileViewModel;
   showEmail?: boolean;
+  children?: ReactNode;
 };
 
-export function ProfileCard({ profile, showEmail = false }: ProfileCardProps) {
+export function ProfileCard({ profile, showEmail = false, children }: ProfileCardProps) {
   const view = normalizeProfileView(profile);
 
   return (
@@ -106,6 +108,8 @@ export function ProfileCard({ profile, showEmail = false }: ProfileCardProps) {
           <dd className="mt-1 font-mono tracking-wide text-white">{view.trainer_id}</dd>
         </div>
       </dl>
+
+      {children}
     </div>
   );
 }

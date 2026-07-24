@@ -131,8 +131,10 @@ describe('PlayerProfilePage', () => {
     renderPlayer('/player/214D27D0');
 
     await waitFor(() => {
-      expect(screen.getByText('Email')).toBeInTheDocument();
       expect(screen.getByText('anorgandroid@gmail.com')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /account settings/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /update email/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /update password/i })).toBeInTheDocument();
     });
   });
 

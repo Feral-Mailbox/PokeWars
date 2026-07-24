@@ -4,6 +4,7 @@ import { useAuth } from '../state/auth';
 import { secureFetch } from '@/utils/secureFetch';
 import type { User } from '../types/user';
 import { ProfileCard, normalizeProfileView, type ProfileViewModel } from './ProfileCard';
+import { ProfileAccountSettings } from './ProfileAccountSettings';
 
 type LoadState =
   | { status: 'loading' }
@@ -91,6 +92,21 @@ export default function PlayerProfilePage() {
     };
   }, [trainerId, user?.trainer_id, setUser]);
 
+  const handleUserUpdated = (updated: User) => {
+    setUser(updated);
+    setState((prev) => {
+      if (prev.status !== 'ready') return prev;
+      return {
+        ...prev,
+        profile: normalizeProfileView({
+          ...prev.profile,
+          ...updated,
+          email: updated.email,
+        }),
+      };
+    });
+  };
+
   if (state.status === 'loading') {
     return (
       <div className="mx-auto max-w-2xl px-4 pt-24 pb-12 text-left text-gray-400">
@@ -111,5 +127,15 @@ export default function PlayerProfilePage() {
     );
   }
 
-  return <ProfileCard profile={state.profile} showEmail={state.isOwn} />;
+  return (
+    <ProfileCard profile={state.profile} showEmail={state.isOwn}>
+      {state.isOwn && state.profile.email ? (
+        <ProfileAccountSettings
+          key={state.profile.email}
+          email={state.profile.email}
+          onUserUpdated={handleUserUpdated}
+        />
+      ) : null}
+    </ProfileCard>
+  );
 }

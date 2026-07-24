@@ -1,4 +1,10 @@
-from app.schemas.auth import RegisterRequest, LoginRequest, UserResponse
+from app.schemas.auth import (
+    RegisterRequest,
+    LoginRequest,
+    UserResponse,
+    UpdateEmailRequest,
+    ChangePasswordRequest,
+)
 
 def test_register_request_fields():
     data = {"username": "ash", "email": "ash@example.com", "password": "1234"}
@@ -22,3 +28,13 @@ def test_user_response_fields():
     )
     assert model.model_dump()["elo_conquest"] == 1000
     assert model.trainer_id == "A3F2C91B"
+
+
+def test_update_email_request_fields():
+    model = UpdateEmailRequest(email="new@example.com", current_password="secret")
+    assert model.email == "new@example.com"
+
+
+def test_change_password_request_min_length():
+    model = ChangePasswordRequest(current_password="old", new_password="12345678")
+    assert model.new_password == "12345678"
