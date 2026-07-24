@@ -37,17 +37,30 @@ import {
   getDisplacementLandingTile,
   isDisplacementMoveKind,
 } from "@/utils/displacementMoves";
+import {
+  computeAttackOverlayForMove,
+  formatTurnCountdown,
+  getCurrentMovementRange as getCurrentMovementRangePure,
+  getDirectionalOverlayTiles as getDirectionalOverlayTilesPure,
+  getStatColor as getStatColorPure,
+  getStatusIconSrc as getStatusIconSrcPure,
+  getWeatherIconSrc as getWeatherIconSrcPure,
+  mapReplayLogToChatEntries as mapReplayLogToChatEntriesPure,
+  normalizeGameData as normalizeGameDataPure,
+  parseRangeSpec as parseRangeSpecPure,
+  type ChatEntry,
+} from "./gamePagePure";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
 const TILE_DRAW_SIZE = TILE_SIZE * TILE_SCALE;
 
-function isActivePlacedUnit(unit: { current_hp?: number; is_fainted?: boolean }): boolean {
+export function isActivePlacedUnit(unit: { current_hp?: number; is_fainted?: boolean }): boolean {
   if (unit.is_fainted) return false;
   return (unit.current_hp ?? 0) > 0;
 }
 
-function getBlockedTilesByEnemy(
+export function getBlockedTilesByEnemy(
   placedUnits: any[],
   unitUserId: number,
   unitTypes?: string[] | null
@@ -63,7 +76,7 @@ function getBlockedTilesByEnemy(
   return blocked;
 }
 
-const PLAYER_COLORS: string[] = [
+export const PLAYER_COLORS: string[] = [
   "#0000FF80", // Blue
   "#FF000080", // Red
   "#FFFF0080", // Yellow
@@ -74,7 +87,7 @@ const PLAYER_COLORS: string[] = [
   "#00FFFF80", // Cyan
 ];
 
-function buildPlayerColorMap(players: unknown): Record<number, string> {
+export function buildPlayerColorMap(players: unknown): Record<number, string> {
   if (!Array.isArray(players)) return {};
 
   const sorted = [...players].sort(
@@ -89,13 +102,7 @@ function buildPlayerColorMap(players: unknown): Record<number, string> {
   return colorMap;
 }
 
-export type ChatEntry = {
-  id: string;
-  kind: "chat" | "system";
-  text: string;
-  username?: string;
-  playerId?: number;
-};
+export type { ChatEntry } from "./gamePagePure";
 
 export default function GamePage() {
 
@@ -355,52 +362,6 @@ export default function GamePage() {
     return Array.from(seen).sort((a, b) => a.localeCompare(b));
   }, [availableUnits]);
 
-  function getBaseBattleStatValue(unitState: any, statName: string): number | null {
-    const baseStats = unitState?.unit?.base_stats;
-    if (!baseStats || typeof baseStats !== 'object') return null;
-
-    const level = typeof unitState?.level === 'number' ? unitState.level : 50;
-    if (statName === 'range') {
-      const baseSpeed = baseStats?.speed;
-      if (typeof baseSpeed !== 'number') return null;
-      const baseBattleSpeed = Math.floor((2 * baseSpeed * level) / 100 + 5);
-      return Math.max(0, Math.floor(2 + (baseBattleSpeed / 50)));
-    }
-
-    const baseValue = baseStats?.[statName];
-    if (typeof baseValue !== 'number') return null;
-
-    if (statName === 'hp') {
-      return Math.floor((2 * baseValue * level) / 100) + level + 10;
-    }
-    return Math.floor((2 * baseValue * level) / 100 + 5);
-  }
-
-  function getCurrentMovementRange(unitState: any): number {
-    const explicitRange = unitState?.current_stats?.range;
-    if (typeof explicitRange === 'number') return Math.max(0, Math.floor(explicitRange));
-
-    const currentSpeed = unitState?.current_stats?.speed;
-    if (typeof currentSpeed === 'number') return Math.max(0, Math.floor(2 + (currentSpeed / 50)));
-
-    const baseRange = getBaseBattleStatValue(unitState, 'range');
-    if (typeof baseRange === 'number') return Math.max(0, Math.floor(baseRange));
-
-    return 0;
-  }
-
-  function getStatColor(unitState: any, statName: string): string {
-    const currentValue = unitState?.current_stats?.[statName];
-    if (typeof currentValue !== 'number') return '#ffffff';
-
-    const baseValue = getBaseBattleStatValue(unitState, statName);
-    if (typeof baseValue !== 'number') return '#ffffff';
-
-    if (currentValue > baseValue) return '#22c55e';
-    if (currentValue < baseValue) return '#ef4444';
-    return '#ffffff';
-  }
-
   function getPlayerColor(playerId: number): string {
     return playerColorMap[playerId] ?? "#00000000";
   }
@@ -418,39 +379,56 @@ export default function GamePage() {
     ]);
   }
 
-  function mapReplayLogToChatEntries(replayLog: any): ChatEntry[] {
-    if (!Array.isArray(replayLog)) return [];
-
-    const out: ChatEntry[] = [];
-    for (let i = 0; i < replayLog.length; i++) {
-      const row = replayLog[i];
-      if (!row || typeof row !== "object") continue;
-
-      if (row.event === "chat_message") {
-        out.push({
-          id: `replay-${i}-${String(row.created_at ?? "")}`,
-          kind: "chat",
-          text: String(row.message ?? ""),
-          username: String(row.username ?? "Unknown"),
-          playerId: Number(row.player_id),
-        });
-      } else if (row.event === "system_log") {
-        out.push({
-          id: `replay-${i}-${String(row.created_at ?? "")}`,
-          kind: "system",
-          text: String(row.message ?? ""),
-        });
-      }
-    }
-
-    return out;
-  }
-
   function getOverlayColor(unit: any | null): string {
     if (!unit) return "#00000000";
     if (unit.can_move === false) return "#77777780";
     return getPlayerColor(unit.user_id ?? 0);
   }
+
+
+  function getCurrentMovementRange(unitState: any): number {
+    return getCurrentMovementRangePure(unitState);
+  }
+
+  function getStatColor(unitState: any, statName: string): string {
+    return getStatColorPure(unitState, statName);
+  }
+
+  function mapReplayLogToChatEntries(replayLog: any): ChatEntry[] {
+    return mapReplayLogToChatEntriesPure(replayLog);
+  }
+
+  function getStatusIconSrc(statusEffects: any): string | null {
+    return getStatusIconSrcPure(statusEffects, getAssetBaseUrl());
+  }
+
+  function normalizeGameData(game: any) {
+    return normalizeGameDataPure(game);
+  }
+
+  function getWeatherIconSrc(weatherId: number): string | null {
+    return getWeatherIconSrcPure(weatherId, getAssetBaseUrl());
+  }
+
+  function parseRangeSpec(move: any): { kind: string; offset: number } {
+    return parseRangeSpecPure(move);
+  }
+
+  function getDirectionalOverlayTiles(target: [number, number] | null) {
+    return getDirectionalOverlayTilesPure({
+      target,
+      origin: getActiveOrigin(),
+      activeMove,
+      attackOverlay,
+      mapWidth: mapTilesW,
+      mapHeight: mapTilesH,
+    });
+  }
+
+  function fmt(seconds: number): string {
+    return formatTurnCountdown(seconds);
+  }
+
 
   function getAssetBaseUrl(): string {
     const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
@@ -458,169 +436,6 @@ export default function GamePage() {
       ? assetBase
       : `${window.location.origin}${assetBase.startsWith("/") ? "" : "/"}${assetBase}`;
     return normalizedBase.replace(/\/$/, "");
-  }
-
-  function normalizeStatusName(status: string): string {
-    const normalized = String(status || "").toLowerCase();
-    if (normalized === "badly_poison") return "badly_poisoned";
-    return normalized;
-  }
-
-  function getActiveStatusName(statusEffects: any): string | null {
-    if (!statusEffects) return null;
-
-    if (Array.isArray(statusEffects) && statusEffects.length === 2 && typeof statusEffects[0] === "string") {
-      return normalizeStatusName(statusEffects[0]);
-    }
-
-    if (Array.isArray(statusEffects) && Array.isArray(statusEffects[0]) && typeof statusEffects[0][0] === "string") {
-      return normalizeStatusName(statusEffects[0][0]);
-    }
-
-    if (Array.isArray(statusEffects) && typeof statusEffects[0] === "string") {
-      return normalizeStatusName(statusEffects[0]);
-    }
-
-    if (typeof statusEffects === "object" && typeof statusEffects.status === "string") {
-      return normalizeStatusName(statusEffects.status);
-    }
-
-    return null;
-  }
-
-  function getStatusIconSrc(statusEffects: any): string | null {
-    const status = getActiveStatusName(statusEffects);
-    if (!status) return null;
-
-    const iconByStatus: Record<string, string> = {
-      burn: "status_burn.png",
-      sleep: "status_sleep.png",
-      poison: "status_poisoned.png",
-      badly_poisoned: "status_badly_poisoned.png",
-      frozen: "status_frozen.png",
-      paralysis: "status_paralysis.png",
-    };
-
-    const iconFile = iconByStatus[status];
-    if (!iconFile) return null;
-
-    return `${getAssetBaseUrl()}/misc/status_icons/${iconFile}`;
-  }
-
-  function build2DGrid<T>(height: number, width: number, fill: T): T[][] {
-    return Array.from({ length: Math.max(0, height) }, () =>
-      Array.from({ length: Math.max(0, width) }, () => fill)
-    );
-  }
-
-  function buildHazardGrid(height: number, width: number): [number, number][][][] {
-    return Array.from({ length: Math.max(0, height) }, () =>
-      Array.from({ length: Math.max(0, width) }, () => [] as [number, number][])
-    );
-  }
-
-  function normalizeGameMapState(game: any) {
-    const mapWidth = Number(game?.map?.width ?? 0);
-    const mapHeight = Number(game?.map?.height ?? 0);
-    const raw = game?.map_state ?? {};
-
-    const parseTimedEffectCell = (cell: any): [number, number] => {
-      if (Array.isArray(cell) && cell.length >= 2) {
-        const effectId = Number(cell[0]);
-        const turns = Number(cell[1]);
-        if (!Number.isFinite(effectId) || !Number.isFinite(turns)) return [0, 0];
-        if (effectId <= 0 || turns <= 0) return [0, 0];
-        return [Math.trunc(effectId), Math.trunc(turns)];
-      }
-
-      const legacyId = Number(cell ?? 0);
-      if (!Number.isFinite(legacyId) || legacyId <= 0) return [0, 0];
-      // Legacy backend payloads may send a plain weather/terrain id.
-      return [Math.trunc(legacyId), 0];
-    };
-
-    const normalizeNumberGrid = (value: any) => {
-      if (!Array.isArray(value)) return build2DGrid(mapHeight, mapWidth, 0);
-      return Array.from({ length: mapHeight }, (_, y) => {
-        const row = value[y];
-        return Array.from({ length: mapWidth }, (_, x) => {
-          const n = Number(Array.isArray(row) ? row[x] : 0);
-          return Number.isFinite(n) ? n : 0;
-        });
-      });
-    };
-
-    const normalizeTimedEffectGrid = (value: any) => {
-      if (!Array.isArray(value)) return build2DGrid<[number, number]>(mapHeight, mapWidth, [0, 0]);
-      return Array.from({ length: mapHeight }, (_, y) => {
-        const row = value[y];
-        return Array.from({ length: mapWidth }, (_, x) => {
-          const cell = Array.isArray(row) ? row[x] : 0;
-          return parseTimedEffectCell(cell);
-        });
-      });
-    };
-
-    const normalizeHazardGrid = (value: any) => {
-      if (!Array.isArray(value)) return buildHazardGrid(mapHeight, mapWidth);
-      return Array.from({ length: mapHeight }, (_, y) => {
-        const row = value[y];
-        return Array.from({ length: mapWidth }, (_, x) => {
-          const cell = Array.isArray(row) ? row[x] : [];
-          if (!Array.isArray(cell)) return [] as [number, number][];
-          return cell
-            .filter((entry: any) => Array.isArray(entry) && entry.length >= 2)
-            .map((entry: any) => [Number(entry[0]) || 0, Number(entry[1]) || 0] as [number, number])
-            .filter(([hazardId, turns]) => Number.isFinite(hazardId) && Number.isFinite(turns) && hazardId > 0 && turns > 0);
-        });
-      });
-    };
-
-    const normalizeItemIdGrid = (value: any) => {
-      if (!Array.isArray(value)) return build2DGrid<number | null>(mapHeight, mapWidth, null);
-      return Array.from({ length: mapHeight }, (_, y) => {
-        const row = value[y];
-        return Array.from({ length: mapWidth }, (_, x) => {
-          const v = Array.isArray(row) ? row[x] : null;
-          if (v == null) return null;
-          const id = Number(v);
-          if (!Number.isFinite(id)) return null;
-          if (id === RANDOM_TM_ITEM_ID) return RANDOM_TM_ITEM_ID;
-          return id > 0 ? id : null;
-        });
-      });
-    };
-
-    return {
-      ...raw,
-      weather_tiles: normalizeTimedEffectGrid(raw.weather_tiles),
-      hazard_tiles: normalizeHazardGrid(raw.hazard_tiles),
-      room_effect_tiles: normalizeTimedEffectGrid(raw.room_effect_tiles),
-      terrain_effect_tiles: normalizeTimedEffectGrid(raw.terrain_effect_tiles),
-      field_effect_tiles: normalizeNumberGrid(raw.field_effect_tiles),
-      item_id_tiles: normalizeItemIdGrid(raw.item_id_tiles),
-      objective_tiles: Array.isArray(raw.objective_tiles) ? raw.objective_tiles : [],
-    };
-  }
-
-  function normalizeGameData(game: any) {
-    if (!game || !game.map) return game;
-    return {
-      ...game,
-      map_state: normalizeGameMapState(game),
-    };
-  }
-
-  function getWeatherIconSrc(weatherId: number): string | null {
-    const iconByWeatherId: Record<number, string> = {
-      1: "weather_sun.png",
-      2: "weather_rain.png",
-      3: "weather_sandstorm.png",
-      4: "weather_hail.png",
-    };
-    const iconFile = iconByWeatherId[weatherId];
-    if (!iconFile) return null;
-    return `${getAssetBaseUrl()}/misc/weather_icons/${iconFile}`;
   }
 
   function getWeatherIconImage(weatherId: number): HTMLImageElement | null {
@@ -947,28 +762,6 @@ export default function GamePage() {
     invert: [number, number][];
   }>({ normal: [], invert: [] });
 
-  function dedupeTiles(tiles: [number, number][]): [number, number][] {
-    const seen = new Set<string>();
-    const unique: [number, number][] = [];
-    for (const [x, y] of tiles) {
-      const key = `${x},${y}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      unique.push([x, y]);
-    }
-    return unique;
-  }
-
-  function normalizeAttackOverlay(overlay: {
-    normal: [number, number][];
-    invert: [number, number][];
-  }) {
-    const normal = dedupeTiles(overlay.normal);
-    const normalSet = new Set(normal.map(([x, y]) => `${x},${y}`));
-    const invert = dedupeTiles(overlay.invert).filter(([x, y]) => !normalSet.has(`${x},${y}`));
-    return { normal, invert };
-  }
-
   function inBounds(x:number, y:number) {
     const W = gameData?.map?.width ?? 0;
     const H = gameData?.map?.height ?? 0;
@@ -977,67 +770,18 @@ export default function GamePage() {
 
   function rebuildAttackOverlay(move: any) {
     const origin = getActiveOrigin();
-    let next = { normal: [] as [number, number][], invert: [] as [number, number][] };
-
-    if (origin && move) {
-      const { kind, offset } = parseRangeSpec(move); // you added this earlier
-      if (kind === "self") {
-        next.normal = [origin];
-      } else if (kind === "adjacent") {
-        next.normal = getAdjacentTiles(origin);
-      } else if (kind === "dash_attack" || kind === "jump_attack") {
-        const { step, attack } = getDisplacementAttackTiles(origin);
-        const boundedStep = filterInBoundsTiles(step, mapTilesW, mapTilesH);
-        const boundedAttack = filterInBoundsTiles(attack, mapTilesW, mapTilesH);
-        next.invert = boundedStep;
-        next.normal = boundedAttack;
-      } else if (kind === "blast") {
-        next.normal = getBlastTiles(origin, offset || 1);
-      } else if (kind === "sweep") {
-        next.normal = getSweepTiles(origin, offset || 1);
-      } else if (kind === "ranged") {
-        next.normal = getRangedTiles(origin, offset || 1);
-      } else if (kind === "line") {
-        next.normal = getLineTiles(origin, offset || 1);
-      } else if (kind === "pulse") {
-        next.normal = getPulseTiles(origin, offset || 1);
-      } else if (kind === "bomb") {
-        next.normal = getBombTiles(origin, offset || 1);
-      } else if (kind === "cone") {
-        next.normal = getConeTiles(origin, offset || 1);
-      } else if (kind === "inverted_cone") {
-        next.normal = getInvertedConeTiles(origin, offset || 1);
-      } else if (kind === "x_attack") {
-        next.normal = getXAttackTiles(origin, offset || 1);
-      }
-    }
-    setAttackOverlay(normalizeAttackOverlay(next));
+    setAttackOverlay(
+      computeAttackOverlayForMove(
+        move,
+        origin,
+        mapTilesW,
+        mapTilesH,
+        getDisplacementAttackTiles,
+        filterInBoundsTiles
+      )
+    );
   }
 
-  function parseRangeSpec(move: any): { kind: string; offset: number } {
-    // Prefer range_type if provided; fall back to range, then targeting
-    const raw = String(move?.range_type ?? move?.range ?? move?.targeting ?? "").toLowerCase().trim();
-    // Supports "blast", "blast:1", "dash_attack", "adjacent", "self", etc.
-    const m = raw.match(/^([a-z_]+)(?::(\d+))?$/);
-    const kind = m?.[1] ?? "";
-    const offset = m?.[2] ? parseInt(m[2], 10) : 0; // default 0 unless provided
-    return { kind, offset };
-  }
-
-
-  function getAdjacentTiles([x, y]: [number, number]): [number, number][] {
-    const cand: [number, number][] = [
-      [x, y - 1], // up
-      [x, y + 1], // down
-      [x - 1, y], // left
-      [x + 1, y], // right
-    ];
-    return cand.filter(([cx, cy]) => cx >= 0 && cy >= 0 && cx < mapTilesW && cy < mapTilesH);
-  }
-
-  function getDashAttackTiles([x, y]: [number, number]) {
-    return getDisplacementAttackTiles([x, y]);
-  }
 
   function canUnitLandOnTile(
     unitState: any,
@@ -1088,485 +832,6 @@ export default function GamePage() {
     return attackOverlay.invert;
   }
   
-  function getBlastTiles([x, y]: [number, number], offset: number) {
-    // For up/down: 3 wide (x-1..x+1) by 2 rows, starting 'offset' away
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    // Up (front is negative y)
-    const uy1 = y - offset;
-    const uy2 = y - (offset + 1);
-    for (let dx = -1; dx <= 1; dx++) {
-      pushIfIn(x + dx, uy1);
-      pushIfIn(x + dx, uy2);
-    }
-
-    // Down (positive y)
-    const dy1 = y + offset;
-    const dy2 = y + (offset + 1);
-    for (let dx = -1; dx <= 1; dx++) {
-      pushIfIn(x + dx, dy1);
-      pushIfIn(x + dx, dy2);
-    }
-
-    // Left (negative x)
-    const lx1 = x - offset;
-    const lx2 = x - (offset + 1);
-    for (let dy = -1; dy <= 1; dy++) {
-      pushIfIn(lx1, y + dy);
-      pushIfIn(lx2, y + dy);
-    }
-
-    // Right (positive x)
-    const rx1 = x + offset;
-    const rx2 = x + (offset + 1);
-    for (let dy = -1; dy <= 1; dy++) {
-      pushIfIn(rx1, y + dy);
-      pushIfIn(rx2, y + dy);
-    }
-
-    return tiles;
-  }
-
-  function getInvertedConeTiles([x, y]: [number, number], range: number) {
-    // Inverted cone flips the original cone distances
-    // inverted_cone:1/2 = 2 tiles deep, inverted_cone:3/4 = 3 tiles deep
-    // Even values include middle tiles, odd values exclude middles
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const includeMiddles = range % 2 === 0;
-    const depth = range <= 2 ? 2 : 3;
-    const sweeps = depth === 2
-      ? [{ dist: 2, half: 1 }]
-      : [{ dist: 2, half: 1 }, { dist: 3, half: 2 }];
-
-    const allowOffset = (offset: number, half: number) =>
-      includeMiddles || Math.abs(offset) > (half - 1);
-
-    // UP direction - adjacent tile at distance 1
-    pushIfIn(x, y - 1);
-    for (const { dist, half } of sweeps) {
-      for (let dx = -half; dx <= half; dx++) {
-        if (allowOffset(dx, half)) pushIfIn(x + dx, y - dist);
-      }
-    }
-
-    // DOWN direction - adjacent tile at distance 1
-    pushIfIn(x, y + 1);
-    for (const { dist, half } of sweeps) {
-      for (let dx = -half; dx <= half; dx++) {
-        if (allowOffset(dx, half)) pushIfIn(x + dx, y + dist);
-      }
-    }
-
-    // LEFT direction - adjacent tile at distance 1
-    pushIfIn(x - 1, y);
-    for (const { dist, half } of sweeps) {
-      for (let dy = -half; dy <= half; dy++) {
-        if (allowOffset(dy, half)) pushIfIn(x - dist, y + dy);
-      }
-    }
-
-    // RIGHT direction - adjacent tile at distance 1
-    pushIfIn(x + 1, y);
-    for (const { dist, half } of sweeps) {
-      for (let dy = -half; dy <= half; dy++) {
-        if (allowOffset(dy, half)) pushIfIn(x + dist, y + dy);
-      }
-    }
-
-    return tiles;
-  }
-
-  function getXAttackTiles([x, y]: [number, number], range: number) {
-    // X attack hits one tile in each direction at distance `range`,
-    // plus the diagonals from that attacked tile.
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const attackPoints: [number, number][] = [
-      [x, y - range], // up
-      [x, y + range], // down
-      [x - range, y], // left
-      [x + range, y], // right
-    ];
-
-    for (const [ax, ay] of attackPoints) {
-      if (!inBounds(ax, ay)) continue;
-      pushIfIn(ax, ay);
-      pushIfIn(ax - 1, ay - 1);
-      pushIfIn(ax + 1, ay - 1);
-      pushIfIn(ax - 1, ay + 1);
-      pushIfIn(ax + 1, ay + 1);
-    }
-
-    return tiles;
-  }
-
-  function getSweepTiles([x, y]: [number, number], offset: number) {
-    // Sweep hits 3 tiles perpendicular to each direction at 'offset' distance
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    // Up (sweep left-to-right at offset distance up)
-    const upY = y - offset;
-    for (let dx = -1; dx <= 1; dx++) {
-      pushIfIn(x + dx, upY);
-    }
-
-    // Down (sweep left-to-right at offset distance down)
-    const downY = y + offset;
-    for (let dx = -1; dx <= 1; dx++) {
-      pushIfIn(x + dx, downY);
-    }
-
-    // Left (sweep up-down at offset distance left)
-    const leftX = x - offset;
-    for (let dy = -1; dy <= 1; dy++) {
-      pushIfIn(leftX, y + dy);
-    }
-
-    // Right (sweep up-down at offset distance right)
-    const rightX = x + offset;
-    for (let dy = -1; dy <= 1; dy++) {
-      pushIfIn(rightX, y + dy);
-    }
-
-    return tiles;
-  }
-
-  function getRangedTiles([x, y]: [number, number], range: number) {
-    // Ranged hits a SINGLE tile at the specified distance in each cardinal direction
-    // ranged:1 hits 2 tiles away (4 tiles total), ranged:2 hits 3 tiles away, etc.
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const distance = range + 1;
-
-    // Up (negative y direction) - only at exact distance
-    pushIfIn(x, y - distance);
-
-    // Down (positive y direction) - only at exact distance
-    pushIfIn(x, y + distance);
-
-    // Left (negative x direction) - only at exact distance
-    pushIfIn(x - distance, y);
-
-    // Right (positive x direction) - only at exact distance
-    pushIfIn(x + distance, y);
-
-    return tiles;
-  }
-
-  function getLineTiles([x, y]: [number, number], range: number) {
-    // Line extends straight from the user, hitting MULTIPLE tiles in each direction
-    // line:1 hits 1 tile per direction, line:2 hits 2 tiles, etc.
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    // Up (negative y direction)
-    for (let i = 1; i <= range; i++) {
-      pushIfIn(x, y - i);
-    }
-
-    // Down (positive y direction)
-    for (let i = 1; i <= range; i++) {
-      pushIfIn(x, y + i);
-    }
-
-    // Left (negative x direction)
-    for (let i = 1; i <= range; i++) {
-      pushIfIn(x - i, y);
-    }
-
-    // Right (positive x direction)
-    for (let i = 1; i <= range; i++) {
-      pushIfIn(x + i, y);
-    }
-
-    return tiles;
-  }
-
-  function getPulseTiles([x, y]: [number, number], pulse: number) {
-    // pulse:1 -> cardinal neighbors at radius 1 (no diagonals)
-    // pulse:2 -> radius 1 including diagonals, excluding self
-    // pulse:3 -> radius 1 including diagonals and self
-    // pulse:4/5/6 are the above, extended to radius 2
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const isExtended = pulse >= 4;
-    const radius = isExtended ? 2 : 1;
-    const baseMode = ((pulse - 1) % 3) + 1; // maps 1..6 to 1..3
-
-    for (let dy = -radius; dy <= radius; dy++) {
-      for (let dx = -radius; dx <= radius; dx++) {
-        const tx = x + dx;
-        const ty = y + dy;
-        const manhattan = Math.abs(dx) + Math.abs(dy);
-        const chebyshev = Math.max(Math.abs(dx), Math.abs(dy));
-
-        if (baseMode === 1) {
-          // Cardinal-only pulse (no diagonals), exclude self.
-          if (manhattan >= 1 && manhattan <= radius && (dx === 0 || dy === 0)) {
-            pushIfIn(tx, ty);
-          }
-        } else if (baseMode === 2) {
-          // Full square pulse up to radius, exclude self.
-          if (chebyshev >= 1 && chebyshev <= radius) {
-            pushIfIn(tx, ty);
-          }
-        } else {
-          // Full square pulse up to radius, include self.
-          if (chebyshev <= radius) {
-            pushIfIn(tx, ty);
-          }
-        }
-      }
-    }
-
-    return tiles;
-  }
-
-  function getBombTiles([x, y]: [number, number], range: number) {
-    // Bomb attacks 2 tiles away in each cardinal direction,
-    // and each attack point creates a plus pattern around it
-    // bomb:2 includes the center of each explosion, bomb:1 does not
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const includeCenter = range >= 2;
-    const distance = 2;
-
-    // Attack points at distance 2 in each cardinal direction
-    const attackPoints: [number, number][] = [
-      [x, y - distance],     // up
-      [x, y + distance],     // down
-      [x - distance, y],     // left
-      [x + distance, y],     // right
-    ];
-
-    // For each attack point, create a plus pattern
-    for (const [ax, ay] of attackPoints) {
-      if (!inBounds(ax, ay)) continue;
-
-      // Center of explosion (only if range >= 2)
-      if (includeCenter) {
-        pushIfIn(ax, ay);
-      }
-
-      // Plus pattern around the attack point
-      pushIfIn(ax, ay - 1);  // up
-      pushIfIn(ax, ay + 1);  // down
-      pushIfIn(ax - 1, ay);  // left
-      pushIfIn(ax + 1, ay);  // right
-    }
-
-    return tiles;
-  }
-
-  function getConeTiles([x, y]: [number, number], range: number) {
-    // Cone is the flipped profile of inverted_cone.
-    // cone:1/2 extends 2 tiles, cone:3/4 extends 3 tiles.
-    const tiles: [number, number][] = [];
-
-    const pushIfIn = (tx: number, ty: number) => {
-      if (inBounds(tx, ty)) tiles.push([tx, ty]);
-    };
-
-    const includeMiddles = range % 2 === 0;
-    const depth = range <= 2 ? 2 : 3;
-    const layers = depth === 2
-      ? [{ half: 1 }, { half: 0 }]
-      : [{ half: 2 }, { half: 1 }, { half: 0 }];
-
-    const allowOffset = (offset: number, half: number, layerIndex: number) => {
-      if (layerIndex === 0) return true;
-      return includeMiddles || Math.abs(offset) > (half - 1);
-    };
-
-    // UP direction
-    for (let i = 0; i < layers.length; i++) {
-      const dist = i + 1;
-      const { half } = layers[i];
-      if (half === 0) {
-        pushIfIn(x, y - dist);
-        continue;
-      }
-      for (let dx = -half; dx <= half; dx++) {
-        if (allowOffset(dx, half, i)) {
-          pushIfIn(x + dx, y - dist);
-        }
-      }
-    }
-
-    // DOWN direction
-    for (let i = 0; i < layers.length; i++) {
-      const dist = i + 1;
-      const { half } = layers[i];
-      if (half === 0) {
-        pushIfIn(x, y + dist);
-        continue;
-      }
-      for (let dx = -half; dx <= half; dx++) {
-        if (allowOffset(dx, half, i)) {
-          pushIfIn(x + dx, y + dist);
-        }
-      }
-    }
-
-    // LEFT direction
-    for (let i = 0; i < layers.length; i++) {
-      const dist = i + 1;
-      const { half } = layers[i];
-      if (half === 0) {
-        pushIfIn(x - dist, y);
-        continue;
-      }
-      for (let dy = -half; dy <= half; dy++) {
-        if (allowOffset(dy, half, i)) {
-          pushIfIn(x - dist, y + dy);
-        }
-      }
-    }
-
-    // RIGHT direction
-    for (let i = 0; i < layers.length; i++) {
-      const dist = i + 1;
-      const { half } = layers[i];
-      if (half === 0) {
-        pushIfIn(x + dist, y);
-        continue;
-      }
-      for (let dy = -half; dy <= half; dy++) {
-        if (allowOffset(dy, half, i)) {
-          pushIfIn(x + dist, y + dy);
-        }
-      }
-    }
-
-    return tiles;
-  }
-
-  function getDirectionalOverlayTiles(target: [number, number] | null) {
-    if (!target) return [] as [number, number][];
-    const origin = getActiveOrigin();
-    if (!origin) return [] as [number, number][];
-
-    const [ox, oy] = origin;
-    const [tx, ty] = target;
-    const dx = tx - ox;
-    const dy = ty - oy;
-    
-    // For self-targeting (origin === target), return the target as-is
-    if (dx === 0 && dy === 0) return [target];
-
-    const { kind, offset } = parseRangeSpec(activeMove);
-    const useHorizontal = Math.abs(dx) >= Math.abs(dy);
-    const dir = useHorizontal ? (dx >= 0 ? 1 : -1) : (dy >= 0 ? 1 : -1);
-    const overlayTiles = [...attackOverlay.normal, ...attackOverlay.invert];
-
-    // pulse affects all tiles in its pulse area; do not directional-slice it.
-    if (kind === "pulse") {
-      return overlayTiles;
-    }
-
-    // x_attack should resolve to the selected direction's X cluster, not a cone-style slice.
-    if (kind === "x_attack") {
-      const attackRange = offset > 0 ? offset : 1;
-      const cx = useHorizontal ? ox + dir * attackRange : ox;
-      const cy = useHorizontal ? oy : oy + dir * attackRange;
-      const xTiles: [number, number][] = [
-        [cx, cy],
-        [cx - 1, cy - 1],
-        [cx + 1, cy - 1],
-        [cx - 1, cy + 1],
-        [cx + 1, cy + 1],
-      ];
-      return xTiles.filter(([x, y]) => inBounds(x, y));
-    }
-
-    // bomb should resolve to a single directional diamond cluster.
-    if (kind === "bomb") {
-      const bombRange = offset > 0 ? offset : 1;
-      const distance = 2;
-      const cx = useHorizontal ? ox + dir * distance : ox;
-      const cy = useHorizontal ? oy : oy + dir * distance;
-      const includeCenter = bombRange >= 2;
-
-      return overlayTiles.filter(([x, y]) => {
-        const manhattan = Math.abs(x - cx) + Math.abs(y - cy);
-        if (includeCenter) {
-          return manhattan <= 1;
-        }
-        return manhattan === 1;
-      });
-    }
-
-    // blast should resolve to one directional 3x2 rectangle.
-    if (kind === "blast") {
-      const blastOffset = offset > 0 ? offset : 1;
-      return overlayTiles.filter(([x, y]) => {
-        const rx = x - ox;
-        const ry = y - oy;
-        if (useHorizontal) {
-          const onDepth = rx === dir * blastOffset || rx === dir * (blastOffset + 1);
-          return onDepth && Math.abs(ry) <= 1;
-        }
-        const onDepth = ry === dir * blastOffset || ry === dir * (blastOffset + 1);
-        return onDepth && Math.abs(rx) <= 1;
-      });
-    }
-
-    // Sweep should only include the exact 3-tile band, not any extra diagonal spillover.
-    if (kind === "sweep") {
-      const sweepOffset = offset > 0 ? offset : 1;
-      return overlayTiles.filter(([x, y]) => {
-        const rx = x - ox;
-        const ry = y - oy;
-        if (useHorizontal) {
-          return rx === dir * sweepOffset && Math.abs(ry) <= 1;
-        }
-        return ry === dir * sweepOffset && Math.abs(rx) <= 1;
-      });
-    }
-
-    return overlayTiles.filter(([x, y]) => {
-      const rx = x - ox;
-      const ry = y - oy;
-      if (rx === 0 && ry === 0) return false;
-      if (useHorizontal) {
-        return rx * dir > 0 && Math.abs(rx) + 1 >= Math.abs(ry);
-      }
-      return ry * dir > 0 && Math.abs(ry) + 1 >= Math.abs(rx);
-    });
-  }
-
   function drawTileOutline(ctx: CanvasRenderingContext2D, tiles: [number, number][], lineWidth: number) {
     if (!tiles.length) return;
     const tileSet = new Set(tiles.map(([x, y]) => `${x},${y}`));
@@ -1874,20 +1139,6 @@ export default function GamePage() {
       }
     }
     preMoveStateRef.current = null;
-  }
-
-  function fmt(seconds: number): string {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-    } else {
-      return `${mins}:${secs.toString().padStart(2, "0")}`;
-    }
   }
 
   function getOccupiedTileKeySet(ignoreUnitId?: number): Set<string> {

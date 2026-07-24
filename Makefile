@@ -177,12 +177,33 @@ ensure-venv:
 test: test-backend test-frontend test-infrastructure
 
 test-backend: ensure-venv
-	mkdir -p coverage/backend
+	mkdir -p apps/backend/coverage
 	PYTHONPATH=apps/backend:. $(PYTEST) tests/backend \
 		--cov=app \
 		--cov-report=term-missing \
-		--cov-report=html:coverage/backend \
-		--cov-report=xml:coverage/backend/coverage.xml
+		--cov-report=xml:apps/backend/coverage/coverage.xml \
+		--cov-report=lcov:apps/backend/coverage/lcov.info
+	@$(MAKE) backend-coverage-html
+
+backend-coverage-html:
+	@if [ ! -f apps/backend/coverage/coverage.xml ]; then \
+		echo "Missing apps/backend/coverage/coverage.xml — run make test-backend first"; \
+		exit 1; \
+	fi
+	@if command -v node >/dev/null 2>&1 && [ -d apps/frontend/node_modules/istanbul-reports ]; then \
+		node scripts/cobertura-to-istanbul-html.mjs \
+			apps/backend/coverage/coverage.xml \
+			apps/backend/coverage/lcov-report; \
+	else \
+		echo "Generating Istanbul-style backend coverage HTML via Docker..."; \
+		docker run --rm \
+			-v "$(CURDIR):/repo" \
+			-w /repo \
+			node:20-alpine \
+			node scripts/cobertura-to-istanbul-html.mjs \
+				apps/backend/coverage/coverage.xml \
+				apps/backend/coverage/lcov-report; \
+	fi
 
 test-frontend:
 	@if command -v npm >/dev/null 2>&1; then \
@@ -200,7 +221,7 @@ test-infrastructure: ensure-venv
 	$(PYTEST) tests/infrastructure
 
 coverage: test-backend test-frontend
-	@echo "Backend HTML: coverage/backend/index.html"
-	@echo "Frontend HTML: apps/frontend/coverage/index.html"
+	@echo "Backend HTML: apps/backend/coverage/lcov-report/index.html"
+	@echo "Frontend HTML: apps/frontend/coverage/lcov-report/index.html"
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities ensure-venv test test-backend test-frontend test-infrastructure coverage
+.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities ensure-venv test test-backend test-frontend test-infrastructure coverage backend-coverage-html

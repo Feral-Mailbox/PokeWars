@@ -23,7 +23,8 @@ htmlcov/
 coverage/
 *.cover
 
-# Frontend coverage
+# App coverage reports
+apps/backend/coverage/
 apps/frontend/coverage/
 
 # Vite + React

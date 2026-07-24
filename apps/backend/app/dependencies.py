@@ -15,12 +15,21 @@ def get_db():
     yield from _get_db()
 
 
+def _as_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def clear_expired_ban(user: User, db: Session) -> None:
     if not user.is_banned:
         return
     if user.ban_expires_at is None:
         return
-    if user.ban_expires_at <= datetime.now(timezone.utc):
+    expires_at = _as_utc(user.ban_expires_at)
+    if expires_at is not None and expires_at <= datetime.now(timezone.utc):
         user.is_banned = False
         user.banned_at = None
         user.banned_by = None
@@ -36,7 +45,8 @@ def ban_is_active(user: User) -> bool:
         return False
     if user.ban_expires_at is None:
         return True
-    return user.ban_expires_at > datetime.now(timezone.utc)
+    expires_at = _as_utc(user.ban_expires_at)
+    return expires_at is not None and expires_at > datetime.now(timezone.utc)
 
 
 def ensure_user_not_banned(user: User) -> None:

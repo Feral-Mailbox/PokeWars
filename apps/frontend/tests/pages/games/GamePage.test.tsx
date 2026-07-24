@@ -121,4 +121,110 @@ describe('GamePage', () => {
       }),
     );
   });
+
+  it('renders an in-progress War game shell', async () => {
+    const { secureFetch } = await import('@/utils/secureFetch');
+    vi.mocked(secureFetch).mockImplementation((url: string) => {
+      if (url.includes('/games/') && !url.includes('/units') && !url.includes('/player')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 2,
+              link: 'war-link',
+              game_name: 'War Match',
+              gamemode: 'War',
+              status: 'in_progress',
+              current_turn: 0,
+              player_order: [1, 2],
+              cash_per_turn: 100,
+              map: {
+                width: 2,
+                height: 2,
+                tileset_names: ['a.png'],
+                tile_data: {
+                  base: [
+                    [
+                      [0, 0],
+                      [0, 0],
+                    ],
+                    [
+                      [0, 0],
+                      [0, 0],
+                    ],
+                  ],
+                  overlay: [
+                    [null, null],
+                    [null, null],
+                  ],
+                  spawn_points: [
+                    [1, null],
+                    [null, 2],
+                  ],
+                },
+              },
+              map_state: {
+                objective_tiles: [
+                  [{ kind: 'pokeball', owner: 1, hp: 20, max_hp: 20 }],
+                ],
+              },
+              max_players: 2,
+              players: [
+                { id: 1, player_id: 1, username: 'testuser' },
+                { id: 2, player_id: 2, username: 'rival' },
+              ],
+              host_id: 1,
+            }),
+        } as Response);
+      }
+      if (url.includes('/units')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              {
+                id: 11,
+                game_id: 2,
+                unit_id: 1,
+                user_id: 1,
+                unit: { name: 'Pikachu', asset_folder: '025_pikachu', types: ['Electric'] },
+                current_x: 0,
+                current_y: 0,
+                starting_x: 0,
+                starting_y: 0,
+                current_hp: 30,
+                is_fainted: false,
+                can_move: true,
+                equipped_move_ids: [],
+                move_pp: [],
+              },
+            ]),
+        } as Response);
+      }
+      if (url.includes('/player')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({ cash_remaining: 200, is_ready: true, game_units: [] }),
+        } as Response);
+      }
+      if (url.includes('/me')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 1 }) } as Response);
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response);
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/games/war-link']}>
+        <Routes>
+          <Route path="/games/:gameId" element={<GamePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/War Match/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText(/War Mode:/i)).toBeInTheDocument();
+  });
 });

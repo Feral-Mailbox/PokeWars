@@ -24,12 +24,12 @@ jobs:
         env:
           SESSION_SECRET: ci-test-session-secret-value
         run: |
-          mkdir -p coverage/backend
+          mkdir -p apps/backend/coverage
           PYTHONPATH=apps/backend:. pytest tests/backend \
             --cov=app \
             --cov-report=term-missing \
-            --cov-report=html:coverage/backend \
-            --cov-report=xml:coverage/backend/coverage.xml
+            --cov-report=html:apps/backend/coverage \
+            --cov-report=xml:apps/backend/coverage/coverage.xml
 
       - name: Infrastructure tests
         run: pip install PyYAML && pytest tests/infrastructure
@@ -51,7 +51,7 @@ jobs:
         with:
           name: coverage-reports
           path: |
-            coverage/backend
+            apps/backend/coverage
             apps/frontend/coverage
           if-no-files-found: warn
           retention-days: 14

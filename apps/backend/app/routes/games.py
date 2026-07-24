@@ -203,7 +203,12 @@ def publish_turn_remaining_warning_if_needed(
         return False
 
     warning_seconds = 30 if int(game.turn_seconds or 0) <= 60 else 60
-    remaining_seconds = int((state.turn_deadline - now).total_seconds())
+    deadline = state.turn_deadline
+    if deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    remaining_seconds = int((deadline - now).total_seconds())
     if remaining_seconds > warning_seconds or remaining_seconds <= 0:
         return False
 
@@ -330,7 +335,7 @@ SCREEN_EFFECT_DURATION = 5
 SIDE_SCREEN_STATE_NAMES = frozenset(
     {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}
 )
-VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute"}
+VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute", "drowsy"}
 
 HELD_ITEM_MASK_TYPE_MAP = {
     "hearthflame_mask": "Fire",
@@ -2670,27 +2675,27 @@ def process_move_effects(
         if len(parts) < 2:
             continue  # Invalid format
 
-            # If this effect depends on a held item and the recipient's item is suppressed by Embargo,
-            # skip applying the effect and publish a system log.
-            try:
-                if parts[0] in {"self", "target"} and any("held_item" == p or p == "held_item" for p in parts):
-                    if parts[0] == "self":
-                        if is_item_suppressed(attacker):
+        # If this effect depends on a held item and the recipient's item is suppressed by Embargo,
+        # skip applying the effect and publish a system log.
+        try:
+            if parts[0] in {"self", "target"} and any("held_item" == p or p == "held_item" for p in parts):
+                if parts[0] == "self":
+                    if is_item_suppressed(attacker):
+                        if game and game_state:
+                            publish_system_log_event(game.link, f"{get_unit_display_name(attacker, db)}'s held item is suppressed by Embargo", game_state, db)
+                        continue
+                elif parts[0] == "target":
+                    # If any target is embargoed, skip applying this token for targets
+                    embargoed = False
+                    for t in targets:
+                        if is_item_suppressed(t):
+                            embargoed = True
                             if game and game_state:
-                                publish_system_log_event(game.link, f"{get_unit_display_name(attacker, db)}'s held item is suppressed by Embargo", game_state, db)
-                            continue
-                    elif parts[0] == "target":
-                        # If any target is embargoed, skip applying this token for targets
-                        embargoed = False
-                        for t in targets:
-                            if is_item_suppressed(t):
-                                embargoed = True
-                                if game and game_state:
-                                    publish_system_log_event(game.link, f"{get_unit_display_name(t, db)}'s held item is suppressed by Embargo", game_state, db)
-                        if embargoed:
-                            continue
-            except Exception:
-                pass
+                                publish_system_log_event(game.link, f"{get_unit_display_name(t, db)}'s held item is suppressed by Embargo", game_state, db)
+                    if embargoed:
+                        continue
+        except Exception:
+            pass
 
         # Field weather effect format: weather:sun|rain|sandstorm|hail
         if parts[0] == "weather":
@@ -3858,72 +3863,72 @@ def process_move_effects(
                                     db,
                                 )
 
-            elif effect_type == "destiny_bond":
-                # Format: recipient:destiny_bond[:accuracy]
-                accuracy = 100
-                if len(parts) >= 3:
-                    try:
-                        accuracy = int(parts[2])
-                    except ValueError:
-                        pass
+        elif effect_type == "destiny_bond":
+            # Format: recipient:destiny_bond[:accuracy]
+            accuracy = 100
+            if len(parts) >= 3:
+                try:
+                    accuracy = int(parts[2])
+                except ValueError:
+                    pass
 
-                if random.randint(1, 100) > accuracy:
-                    continue
+            if random.randint(1, 100) > accuracy:
+                continue
 
-                if recipient == "self":
-                    applied = apply_state_effect(attacker, "destiny_bond", db)
+            if recipient == "self":
+                applied = apply_state_effect(attacker, "destiny_bond", db)
+                if applied and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        format_state_log_message(attacker, "destiny_bond", db),
+                        game_state,
+                        db,
+                    )
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) <= 0:
+                        continue
+                    applied = apply_state_effect(target, "destiny_bond", db)
                     if applied and game and game_state:
                         publish_system_log_event(
                             game.link,
-                            format_state_log_message(attacker, "destiny_bond", db),
+                            format_state_log_message(target, "destiny_bond", db),
                             game_state,
                             db,
                         )
-                elif recipient == "target":
-                    for target in targets:
-                        if (target.current_hp or 0) <= 0:
-                            continue
-                        applied = apply_state_effect(target, "destiny_bond", db)
-                        if applied and game and game_state:
-                            publish_system_log_event(
-                                game.link,
-                                format_state_log_message(target, "destiny_bond", db),
-                                game_state,
-                                db,
-                            )
-            elif effect_type == "laser_focus":
-                # Format: recipient:laser_focus[:accuracy]
-                accuracy = 100
-                if len(parts) >= 3:
-                    try:
-                        accuracy = int(parts[2])
-                    except ValueError:
-                        pass
+        elif effect_type == "laser_focus":
+            # Format: recipient:laser_focus[:accuracy]
+            accuracy = 100
+            if len(parts) >= 3:
+                try:
+                    accuracy = int(parts[2])
+                except ValueError:
+                    pass
 
-                if random.randint(1, 100) > accuracy:
-                    continue
+            if random.randint(1, 100) > accuracy:
+                continue
 
-                if recipient == "self":
-                    applied = apply_state_effect(attacker, "laser_focus", db)
+            if recipient == "self":
+                applied = apply_state_effect(attacker, "laser_focus", db)
+                if applied and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        format_state_log_message(attacker, "laser_focus", db),
+                        game_state,
+                        db,
+                    )
+            elif recipient == "target":
+                for target in targets:
+                    if (target.current_hp or 0) <= 0:
+                        continue
+                    applied = apply_state_effect(target, "laser_focus", db)
                     if applied and game and game_state:
                         publish_system_log_event(
                             game.link,
-                            format_state_log_message(attacker, "laser_focus", db),
+                            format_state_log_message(target, "laser_focus", db),
                             game_state,
                             db,
                         )
-                elif recipient == "target":
-                    for target in targets:
-                        if (target.current_hp or 0) <= 0:
-                            continue
-                        applied = apply_state_effect(target, "laser_focus", db)
-                        if applied and game and game_state:
-                            publish_system_log_event(
-                                game.link,
-                                format_state_log_message(target, "laser_focus", db),
-                                game_state,
-                                db,
-                            )
 
         elif effect_type == "heal":
             # Check if this heal has a condition
@@ -4900,6 +4905,11 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
     game_state = db.query(GameState).filter(GameState.game_id == game_id).first()
 
     removed_ids: list[int] = []
+    # Capture board positions before faint_unit_in_place clears coords to (-1, -1).
+    faint_positions = {
+        int(unit.id): (int(unit.current_x), int(unit.current_y))
+        for unit in fainted_units
+    }
     for unit in fainted_units:
         if game:
             publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", game_state, db)
@@ -4914,21 +4924,23 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
 
     if game and is_war_game(game):
         map_state = db.query(GameMapState).filter(GameMapState.game_id == game_id).first()
-        if map_state and restore_objectives_for_units(map_state, fainted_units):
-            db.add(map_state)
+        if map_state:
+            # restore_objectives_for_units expects units still at objective coords;
+            # temporarily reapply pre-faint positions for the restore pass.
             for unit in fainted_units:
-                cell = get_objective_at(
-                    map_state.objective_tiles,
-                    int(unit.current_x),
-                    int(unit.current_y),
-                )
-                if cell:
-                    publish_objective_cell_updated(
-                        game.link,
-                        int(unit.current_x),
-                        int(unit.current_y),
-                        cell,
-                    )
+                x, y = faint_positions.get(int(unit.id), (-1, -1))
+                unit.current_x, unit.current_y = x, y
+            restored = restore_objectives_for_units(map_state, fainted_units)
+            for unit in fainted_units:
+                unit.current_x, unit.current_y = -1, -1
+                db.add(unit)
+            if restored:
+                db.add(map_state)
+                for unit in fainted_units:
+                    x, y = faint_positions.get(int(unit.id), (-1, -1))
+                    cell = get_objective_at(map_state.objective_tiles, x, y)
+                    if cell:
+                        publish_objective_cell_updated(game.link, x, y, cell)
 
     active_counts = get_remaining_unit_counts(game_id, db)
     if game:
@@ -5373,7 +5385,10 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
 
     now = datetime.now(timezone.utc)
     warning_published = publish_turn_remaining_warning_if_needed(game, state, db, now)
-    if now < state.turn_deadline:
+    deadline = state.turn_deadline
+    if deadline is not None and deadline.tzinfo is None:
+        deadline = deadline.replace(tzinfo=timezone.utc)
+    if deadline is not None and now < deadline:
         if warning_published:
             db.commit()
         return False
@@ -7325,8 +7340,18 @@ def execute_move(
         if end_turn_removed_ids:
             removed_ids = list(set(removed_ids + end_turn_removed_ids))
 
-        remaining_units_after_end_turn_damage = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
-        remaining_players_after_end_turn_damage = {unit.user_id for unit in remaining_units_after_end_turn_damage}
+        remaining_units_after_end_turn_damage = (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game.id,
+                GameUnit.is_fainted == False,
+                GameUnit.current_hp > 0,
+            )
+            .all()
+        )
+        remaining_players_after_end_turn_damage = {
+            unit.user_id for unit in remaining_units_after_end_turn_damage
+        }
         if len(remaining_players_after_end_turn_damage) == 1:
             state.status = GameStatus.completed
             state.winner_id = next(iter(remaining_players_after_end_turn_damage))
@@ -7963,7 +7988,11 @@ def get_game_state(
     game = db.query(Game).filter(Game.link == link).first()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
-    state = db.query(GameState).filter_by(game_id=game.id, player_id=user.id).first()
+    # Require membership so arbitrary users cannot inspect private match state.
+    player = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Game state not found")
+    state = db.query(GameState).filter_by(game_id=game.id).first()
     if not state:
         raise HTTPException(status_code=404, detail="Game state not found")
     return state
@@ -7978,7 +8007,10 @@ def update_game_state(
     game = db.query(Game).filter(Game.link == link).first()
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
-    state = db.query(GameState).filter_by(game_id=game.id, player_id=user.id).first()
+    player = db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    if not player:
+        raise HTTPException(status_code=404, detail="Game state not found")
+    state = db.query(GameState).filter_by(game_id=game.id).first()
     if not state:
         raise HTTPException(status_code=404, detail="Game state not found")
 

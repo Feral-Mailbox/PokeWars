@@ -74,9 +74,10 @@ class GameResponse(BaseModel):
 class GameStateSchema(BaseModel):
     id: int
     game_id: int
-    player_id: int
+    current_turn: Optional[int] = None
     status: str
-    game_units: List[dict]
-    cash_remaining: int
+    players: Optional[List[int]] = None
+    winner_id: Optional[int] = None
+    replay_log: Optional[Any] = None
 
     model_config = ConfigDict(from_attributes=True)

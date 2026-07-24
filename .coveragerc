@@ -20,7 +20,7 @@ exclude_lines =
     if __name__ == .__main__.:
 
 [html]
-directory = coverage/backend
+directory = apps/backend/coverage
 
 [xml]
-output = coverage/backend/coverage.xml
+output = apps/backend/coverage/coverage.xml

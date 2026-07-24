@@ -93,8 +93,8 @@ make test
 
 # Run tests with coverage reports
 make coverage
-# Backend HTML  → coverage/backend/index.html
-# Frontend HTML → apps/frontend/coverage/index.html
+# Backend HTML  → apps/backend/coverage/index.html
+# Frontend HTML → apps/frontend/coverage/lcov-report/index.html
 
 ```
 
