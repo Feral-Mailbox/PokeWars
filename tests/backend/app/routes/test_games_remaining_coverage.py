@@ -4481,12 +4481,25 @@ def test_send_chat_message_not_found_not_member_empty_and_too_long(client, db, u
     _make_state(db, game, [other_host.id], status=models.GameStatus.in_progress)
     db.commit()
 
-    resp_not_member = client.post(f"/games/{game.link}/chat", json={"message": "hi"})
-    assert resp_not_member.status_code == 403
-    assert resp_not_member.json()["detail"] == "You are not in this game"
+    resp_spectator = client.post(f"/games/{game.link}/chat", json={"message": "watching intently"})
+    assert resp_spectator.status_code == 200
+    assert resp_spectator.json()["ok"] is True
+    db.refresh(game)
+    state = db.query(models.GameState).filter_by(game_id=game.id).first()
+    spectator_chats = [
+        row
+        for row in (state.replay_log or [])
+        if isinstance(row, dict)
+        and row.get("event") == "chat_message"
+        and row.get("is_spectator") is True
+    ]
+    assert spectator_chats
+    assert spectator_chats[-1]["message"] == "watching intently"
+    assert spectator_chats[-1]["player_id"] == user.id
 
     member_game = _make_game(db, map_obj, [user.id])
     _make_state(db, member_game, [user.id], status=models.GameStatus.in_progress)
+    db.add(models.GamePlayer(game_id=member_game.id, player_id=user.id))
     db.commit()
 
     resp_empty = client.post(f"/games/{member_game.link}/chat", json={"message": "   "})
@@ -4500,6 +4513,17 @@ def test_send_chat_message_not_found_not_member_empty_and_too_long(client, db, u
     resp_ok = client.post(f"/games/{member_game.link}/chat", json={"message": "hello there"})
     assert resp_ok.status_code == 200
     assert resp_ok.json()["ok"] is True
+    db.refresh(member_game)
+    member_state = db.query(models.GameState).filter_by(game_id=member_game.id).first()
+    member_chats = [
+        row
+        for row in (member_state.replay_log or [])
+        if isinstance(row, dict)
+        and row.get("event") == "chat_message"
+        and row.get("message") == "hello there"
+    ]
+    assert member_chats
+    assert member_chats[-1].get("is_spectator") is False
 
 
 # ---------------------------------------------------------------------------

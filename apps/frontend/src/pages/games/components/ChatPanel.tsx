@@ -6,6 +6,7 @@ type ChatEntry = {
   text: string;
   username?: string;
   playerId?: number;
+  isSpectator?: boolean;
 };
 
 type PlayerSidebarSlot =
@@ -35,6 +36,7 @@ type RenderRow =
       username?: string;
       playerId?: number;
       text: string;
+      isSpectator?: boolean;
     }
   | {
       id: string;
@@ -68,6 +70,15 @@ function getPlayerTextColor(playerId: number | undefined, playerColorMap: Record
     return `${fillColor.slice(0, 7)}FF`;
   }
   return fillColor;
+}
+
+function getChatUsernameColor(
+  playerId: number | undefined,
+  playerColorMap: Record<number, string>,
+  isSpectator?: boolean,
+): string {
+  if (isSpectator) return "#9ca3af";
+  return getPlayerTextColor(playerId, playerColorMap);
 }
 
 function escapeRegex(value: string): string {
@@ -212,6 +223,7 @@ function buildRenderRows(chatEntries: ChatEntry[]): RenderRow[] {
         username: entry.username,
         playerId: entry.playerId,
         text: entry.text,
+        isSpectator: entry.isSpectator,
       });
       continue;
     }
@@ -436,12 +448,22 @@ export default function ChatPanel({
                     {entry.kind === "chat" ? (
                       <div className="break-words leading-snug">
                         <span
-                          style={{ color: getPlayerTextColor(entry.playerId, playerColorMap) }}
+                          style={{
+                            color: getChatUsernameColor(
+                              entry.playerId,
+                              playerColorMap,
+                              entry.isSpectator,
+                            ),
+                          }}
                           className="font-semibold mr-2"
                         >
                           {entry.username}
                         </span>
-                        {renderTextWithMentions(entry.text, usernameColorMap, "text-slate-100")}
+                        {renderTextWithMentions(
+                          entry.text,
+                          entry.isSpectator ? {} : usernameColorMap,
+                          entry.isSpectator ? "text-slate-400" : "text-slate-100",
+                        )}
                       </div>
                     ) : (
                       <div className="break-words leading-snug">

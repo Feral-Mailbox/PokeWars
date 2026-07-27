@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import app.db.models as models
 from app.routes.auth import hash_password
@@ -119,3 +119,18 @@ def test_ws_user_is_game_participant(db):
     assert ws_routes._user_is_game_participant(host.id, "ws-link") is True
     assert ws_routes._user_is_game_participant(guest.id, "ws-link") is False
     assert ws_routes._user_is_game_participant(host.id, "missing") is False
+    assert ws_routes._game_exists("ws-link") is True
+    assert ws_routes._game_exists("missing") is False
+
+
+def test_spectator_connection_refcount(monkeypatch):
+    fake = MagicMock()
+    fake.incr.side_effect = [1, 2, 1]
+    fake.decr.side_effect = [1, 0]
+    monkeypatch.setattr(ws_routes, "r", fake)
+
+    assert ws_routes._register_spectator_connection("g1", 7) is True
+    assert ws_routes._register_spectator_connection("g1", 7) is False
+    assert ws_routes._unregister_spectator_connection("g1", 7) is False
+    assert ws_routes._unregister_spectator_connection("g1", 7) is True
+    fake.delete.assert_called()

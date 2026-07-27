@@ -62,10 +62,22 @@ describe("gamePagePure stats/status/chat", () => {
     expect(
       mapReplayLogToChatEntries([
         { event: "chat_message", message: "hi", username: "Ash", player_id: 1, created_at: "t" },
+        {
+          event: "chat_message",
+          message: "wow",
+          username: "Viewer",
+          player_id: 9,
+          is_spectator: true,
+          created_at: "t1",
+        },
         { event: "system_log", message: "Turn 1", created_at: "t2" },
         { event: "other" },
       ])
-    ).toHaveLength(2);
+    ).toEqual([
+      expect.objectContaining({ kind: "chat", username: "Ash", isSpectator: false }),
+      expect.objectContaining({ kind: "chat", username: "Viewer", isSpectator: true }),
+      expect.objectContaining({ kind: "system", text: "Turn 1" }),
+    ]);
 
     expect(getActiveStatusName(null)).toBeNull();
     expect(getActiveStatusName(["burn", 2])).toBe("burn");

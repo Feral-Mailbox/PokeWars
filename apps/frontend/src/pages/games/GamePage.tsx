@@ -2165,6 +2165,7 @@ export default function GamePage() {
                 text: String(payload.message ?? ""),
                 username: String(payload.username ?? "Unknown"),
                 playerId: Number(payload.player_id),
+                isSpectator: Boolean(payload.is_spectator),
               },
             ]);
             return;

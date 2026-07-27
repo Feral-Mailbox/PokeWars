@@ -6,6 +6,7 @@ export type ChatEntry = {
   text: string;
   username?: string;
   playerId?: number;
+  isSpectator?: boolean;
 };
 export function formatTurnCountdown(seconds: number): string {
   const hrs = Math.floor(seconds / 3600);
@@ -79,6 +80,7 @@ export function mapReplayLogToChatEntries(replayLog: any): ChatEntry[] {
         text: String(row.message ?? ""),
         username: String(row.username ?? "Unknown"),
         playerId: Number(row.player_id),
+        isSpectator: Boolean(row.is_spectator),
       });
     } else if (row.event === "system_log") {
       out.push({

@@ -105,4 +105,28 @@ describe("ChatPanel", () => {
     await user.click(screen.getByTitle("Expand sidebar"));
     expect(screen.getByTitle("Collapse")).toBeInTheDocument();
   });
+
+  it("renders spectator chat in gray without player colors", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatPanel
+        {...baseProps}
+        chatEntries={[
+          {
+            id: "spec-1",
+            kind: "chat",
+            text: "nice play Misty",
+            username: "Viewer",
+            playerId: 99,
+            isSpectator: true,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Chat" }));
+    const name = screen.getByText("Viewer");
+    expect(name).toHaveStyle({ color: "#9ca3af" });
+    expect(screen.getByText("nice play Misty")).toHaveClass("text-slate-400");
+  });
 });

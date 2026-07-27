@@ -126,11 +126,6 @@ def test_ws_endpoints_auth_and_global(client, db):
     with client.websocket_connect("/api/ws/global") as ws:
         assert ws is not None
 
-    client.cookies.set("session_user", create_session_token(outsider.id))
-    with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect("/api/ws/game/ws-live-link"):
-            pass
-
     fake_pubsub = MagicMock()
     calls = {"n": 0}
 
@@ -146,11 +141,44 @@ def test_ws_endpoints_auth_and_global(client, db):
     fake_pubsub.get_message.side_effect = _get_message
     fake_redis = MagicMock()
     fake_redis.pubsub.return_value = fake_pubsub
+    fake_redis.incr.return_value = 1
+    fake_redis.decr.return_value = 0
+    fake_redis.expire.return_value = True
+    fake_redis.delete.return_value = 1
 
     client.cookies.set("session_user", create_session_token(user.id))
     with patch("app.routes.ws.r", fake_redis):
         with client.websocket_connect("/api/ws/game/ws-live-link") as ws:
             assert ws.receive_text() == "hello"
+
+    # Authenticated non-participants may spectate.
+    outsider_calls = {"n": 0}
+
+    def _outsider_get_message(*_args, **_kwargs):
+        outsider_calls["n"] += 1
+        if outsider_calls["n"] == 1:
+            return {"type": "message", "data": "spec-hello"}
+        raise WebSocketDisconnect()
+
+    outsider_pubsub = MagicMock()
+    outsider_pubsub.get_message.side_effect = _outsider_get_message
+    outsider_redis = MagicMock()
+    outsider_redis.pubsub.return_value = outsider_pubsub
+    outsider_redis.incr.return_value = 1
+    outsider_redis.decr.return_value = 0
+    outsider_redis.expire.return_value = True
+    outsider_redis.delete.return_value = 1
+
+    client.cookies.set("session_user", create_session_token(outsider.id))
+    with patch("app.routes.ws.r", outsider_redis), patch(
+        "app.routes.ws._announce_spectator_system_log"
+    ) as announce:
+        with client.websocket_connect("/api/ws/game/ws-live-link") as ws:
+            assert ws.receive_text() == "spec-hello"
+        assert announce.call_count >= 1
+        join_messages = [call.args[1] for call in announce.call_args_list]
+        assert any("is now spectating" in msg for msg in join_messages)
+        assert any("stopped spectating" in msg for msg in join_messages)
 
 
 def test_global_ws_accept_failure_and_disconnect(db, monkeypatch):

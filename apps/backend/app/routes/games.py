@@ -166,12 +166,15 @@ def publish_chat_message_event(
     message: str,
     game_state: GameState | None = None,
     db: Session | None = None,
+    *,
+    is_spectator: bool = False,
 ) -> None:
     payload = {
         "event": "chat_message",
         "player_id": int(player_id),
         "username": str(username),
         "message": str(message),
+        "is_spectator": bool(is_spectator),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     append_replay_log_event(game_state, payload)
@@ -5989,8 +5992,15 @@ def send_chat_message(
         raise HTTPException(status_code=404, detail="Game not found")
 
     state = db.query(GameState).filter(GameState.game_id == game.id).first()
-    if not state or user.id not in (state.players or []):
-        raise HTTPException(status_code=403, detail="You are not in this game")
+    if not state:
+        raise HTTPException(status_code=404, detail="Game state not found")
+
+    is_participant = (
+        db.query(GamePlayer)
+        .filter_by(game_id=game.id, player_id=user.id)
+        .first()
+        is not None
+    )
 
     message = str(payload.get("message") or "").strip()
     if not message:
@@ -6006,7 +6016,15 @@ def send_chat_message(
         message=message,
     )
 
-    publish_chat_message_event(game.link, user.id, user.username, censored_message, state, db)
+    publish_chat_message_event(
+        game.link,
+        user.id,
+        user.username,
+        censored_message,
+        state,
+        db,
+        is_spectator=not is_participant,
+    )
     db.commit()
     return {"ok": True}
 
