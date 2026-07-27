@@ -56,6 +56,8 @@ interface ChatPanelProps {
   playerSlots: PlayerSidebarSlot[];
   unitLimit: number;
   currentUserId?: number | null;
+  canInvitePlayers?: boolean;
+  onInvitePlayers?: () => void;
 }
 
 function getPlayerColor(playerId: number, playerColorMap: Record<number, string>): string {
@@ -313,6 +315,8 @@ export default function ChatPanel({
   playerSlots,
   unitLimit,
   currentUserId,
+  canInvitePlayers = false,
+  onInvitePlayers,
 }: ChatPanelProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>("players");
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -391,6 +395,15 @@ export default function ChatPanel({
                       className="rounded border border-dashed border-slate-600 bg-slate-800/30 px-3 py-2"
                     >
                       <div className="font-semibold text-slate-500 italic">Waiting for Player...</div>
+                      {canInvitePlayers && onInvitePlayers ? (
+                        <button
+                          type="button"
+                          onClick={onInvitePlayers}
+                          className="mt-2 rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-500"
+                        >
+                          Invite player
+                        </button>
+                      ) : null}
                     </li>
                   );
                 }

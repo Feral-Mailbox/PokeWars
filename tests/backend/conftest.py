@@ -26,7 +26,14 @@ def _mock_redis(monkeypatch):
     fake.get.return_value = None
     fake.set.return_value = True
     fake.delete.return_value = 1
+    fake.incr.return_value = 1
+    fake.decr.return_value = 0
+    fake.expire.return_value = True
+    pubsub = MagicMock()
+    pubsub.get_message.return_value = None
+    fake.pubsub.return_value = pubsub
     monkeypatch.setattr("app.routes.games.redis_client", fake)
+    monkeypatch.setattr("app.routes.ws.r", fake)
     yield fake
 
 

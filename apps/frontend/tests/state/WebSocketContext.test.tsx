@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { WebSocketProvider, useWebSocket } from '@/state/WebSocketContext';
 import { vi } from 'vitest';
@@ -64,46 +65,64 @@ describe('WebSocketContext', () => {
     });
   });
 
-  it('logs messages received', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  it('parses invitation events and notifies subscribers', async () => {
+    const listener = vi.fn();
+    function TestComponent() {
+      const { lastInvitationEvent, subscribe } = useWebSocket();
+      useEffect(() => subscribe(listener), [subscribe]);
+      return (
+        <div>
+          {lastInvitationEvent
+            ? `Invite:${lastInvitationEvent.invitation.game_name}`
+            : 'No invite'}
+        </div>
+      );
+    }
+
     render(
       <WebSocketProvider>
-        <div />
+        <TestComponent />
       </WebSocketProvider>,
     );
 
-    const message = { data: 'hello' };
     act(() => {
-      mockSocket.onmessage(message);
+      mockSocket.onmessage({
+        data: JSON.stringify({
+          event: 'invitation',
+          action: 'created',
+          invitation: {
+            id: 1,
+            game_id: 2,
+            game_name: 'Lobby',
+            game_link: 'abc',
+            gamemode: 'Conquest',
+            inviter_id: 3,
+            inviter_username: 'host',
+            invitee_id: 1,
+            invitee_username: 'tester',
+            status: 'pending',
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        }),
+      });
     });
 
-    expect(spy).toHaveBeenCalledWith('[WebSocket] Message received:', 'hello');
-    spy.mockRestore();
-  });
-
-  it('logs errors', () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    render(
-      <WebSocketProvider>
-        <div />
-      </WebSocketProvider>,
-    );
-
-    const error = new Event('error');
-    act(() => {
-      mockSocket.onerror(error);
+    await waitFor(() => {
+      expect(screen.getByText('Invite:Lobby')).toBeInTheDocument();
     });
-
-    expect(spy).toHaveBeenCalledWith('[WebSocket] Error', error);
-    spy.mockRestore();
+    expect(listener).toHaveBeenCalled();
   });
 
-  it('closes socket on unmount', () => {
+  it('ignores non-json messages and closes on unmount', () => {
     const { unmount } = render(
       <WebSocketProvider>
         <div />
       </WebSocketProvider>,
     );
+    act(() => {
+      mockSocket.onmessage({ data: 'hello' });
+      mockSocket.onerror(new Event('error'));
+    });
     unmount();
     expect(mockSocket.close).toHaveBeenCalled();
   });

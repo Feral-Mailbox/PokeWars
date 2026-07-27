@@ -35,12 +35,31 @@ def check_and_advance_turns():
     except Exception as e:
         print(f"Error connecting to database in turn check: {e}")
 
+
+def expire_pending_invitations():
+    """Expire timed-out game invitations and announce them in lobby chat."""
+    try:
+        Session = get_sessionmaker()
+        db = Session()
+        try:
+            from app.routes.invitations import expire_due_invitations
+
+            expire_due_invitations(db)
+        except Exception as e:
+            print(f"Error expiring invitations: {e}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error connecting to database in invitation expiry: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown of background scheduler."""
     # Startup
     try:
         scheduler.add_job(check_and_advance_turns, "interval", seconds=5)
+        scheduler.add_job(expire_pending_invitations, "interval", seconds=15)
         scheduler.start()
         print("Background scheduler started")
     except Exception as e:
@@ -69,7 +88,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.routes import auth, games, maps, moves, user, units, ws, moderation, admin, items, abilities
+from app.routes import auth, games, maps, moves, user, units, ws, moderation, admin, items, abilities, invitations
 
 app.include_router(auth.router)
 app.include_router(games.router)
@@ -78,6 +97,7 @@ app.include_router(moves.router)
 app.include_router(items.router)
 app.include_router(abilities.router)
 app.include_router(user.router)
+app.include_router(invitations.router)
 app.include_router(units.router)
 app.include_router(ws.router)
 app.include_router(moderation.router)

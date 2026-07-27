@@ -18,6 +18,7 @@ import WarGame, {
 } from "./modes/WarGame";
 import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
+import InvitePlayerModal from "../../components/InvitePlayerModal";
 import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
@@ -148,6 +149,7 @@ export default function GamePage() {
   const [menuScreenPosition, setMenuScreenPosition] = useState<{ left: number; top: number }>({ left: 24, top: 96 });
   const [chatEntries, setChatEntries] = useState<ChatEntry[]>([]);
   const [chatInput, setChatInput] = useState<string>("");
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const gameLinkRef = useRef<string | undefined>(undefined);
   const myTurnRef = useRef(false);
 
@@ -3240,7 +3242,20 @@ export default function GamePage() {
         playerSlots={sidebarPlayerSlots}
         unitLimit={unitLimit}
         currentUserId={userId}
+        canInvitePlayers={Boolean(isHost && isLobbyPhase && gameData?.status === "open")}
+        onInvitePlayers={() => setInviteModalOpen(true)}
       />
+
+      {gameData?.id ? (
+        <InvitePlayerModal
+          gameId={gameData.id}
+          open={inviteModalOpen}
+          onClose={() => setInviteModalOpen(false)}
+          onInvited={(username) => {
+            setToastMessage(`Invitation sent to ${username}.`);
+          }}
+        />
+      ) : null}
 
       {(() => {
         let panel: any = null;

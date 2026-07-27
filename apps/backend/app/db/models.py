@@ -61,6 +61,13 @@ class StaffActionType(str, enum.Enum):
 class RestrictionType(str, enum.Enum):
     mute = "mute"
 
+class InvitationStatus(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    declined = "declined"
+    cancelled = "cancelled"
+    expired = "expired"
+
 # ======================
 # USER
 # ======================
@@ -106,6 +113,31 @@ class Friend(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     friend_user_id = Column(Integer, ForeignKey("users.id"))
     status = Column(Enum(FriendStatus), default=FriendStatus.pending)
+
+
+# ======================
+# GAME INVITATIONS
+# ======================
+class GameInvitation(Base):
+    __tablename__ = "game_invitations"
+
+    id = Column(Integer, primary_key=True)
+    game_id = Column(Integer, ForeignKey("games.id"), nullable=False, index=True)
+    inviter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    invitee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(
+        Enum(InvitationStatus),
+        default=InvitationStatus.pending,
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    responded_at = Column(DateTime(timezone=True), nullable=True)
+
+    game = relationship("Game")
+    inviter = relationship("User", foreign_keys=[inviter_id])
+    invitee = relationship("User", foreign_keys=[invitee_id])
 
 # ======================
 # GAMES

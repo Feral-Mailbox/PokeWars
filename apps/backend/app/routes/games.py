@@ -5826,6 +5826,47 @@ def create_game(
         timestamp=new_game.timestamp
     )
 
+def seat_user_in_open_game(game: Game, game_state: GameState, user: User, db: Session) -> None:
+    """Seat an authenticated user into an open lobby. Raises HTTPException on failure."""
+    if user.id in (game_state.players or []):
+        raise HTTPException(status_code=400, detail="User already in game")
+
+    if game_state.status != GameStatus.open:
+        raise HTTPException(status_code=400, detail="Game not open")
+
+    if len(game_state.players or []) >= game.max_players:
+        raise HTTPException(status_code=400, detail="Game is full")
+
+    existing_player = (
+        db.query(GamePlayer).filter_by(game_id=game.id, player_id=user.id).first()
+    )
+    if existing_player is None:
+        db.add(
+            GamePlayer(
+                game_id=game.id,
+                player_id=user.id,
+                cash_remaining=game.starting_cash or 0,
+                game_units=[],
+            )
+        )
+
+    players = list(game_state.players or [])
+    players.append(user.id)
+    game_state.players = players
+
+    if is_war_game(game):
+        map_obj = db.query(Map).filter_by(id=game.map_id).first()
+        map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+        if map_obj and map_state:
+            _initialize_war_objective_tiles(game, game_state, map_state, map_obj)
+
+    if len(game_state.players) >= game.max_players:
+        game_state.status = GameStatus.closed
+
+    redis_client.publish(f"game_updates:{game.link}", "player_joined")
+    publish_system_log_event(game.link, f"{user.username} joined the game", game_state, db)
+
+
 @router.post("/join/{game_id}", response_model=GameResponse)
 def join_game(
     game_id: int,
@@ -5840,37 +5881,7 @@ def join_game(
     if not game_state:
         raise HTTPException(status_code=404, detail="Game state not found")
 
-    if user.id in game_state.players:
-        raise HTTPException(status_code=400, detail="User already in game")
-
-    if game_state.status != GameStatus.open:
-        raise HTTPException(status_code=400, detail="Game not open")
-
-    if len(game_state.players) >= game.max_players:
-        raise HTTPException(status_code=400, detail="Game is full")
-
-    game_state.players.append(user.id)
-
-    player_state = GamePlayer(
-        game_id=game.id,
-        player_id=user.id,
-        cash_remaining=game.starting_cash or 0,
-        game_units=[]
-    )
-    db.add(player_state)
-
-    if is_war_game(game):
-        map_obj = db.query(Map).filter_by(id=game.map_id).first()
-        map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
-        if map_obj and map_state:
-            _initialize_war_objective_tiles(game, game_state, map_state, map_obj)
-
-    if len(game_state.players) >= game.max_players:
-        game_state.status = GameStatus.closed
-        redis_client.publish(f"game_updates:{game.link}", "player_joined")
-
-    publish_system_log_event(game.link, f"{user.username} joined the game", game_state, db)
-
+    seat_user_in_open_game(game, game_state, user, db)
     db.commit()
     db.refresh(game)
 

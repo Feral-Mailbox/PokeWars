@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 import redis
@@ -15,6 +16,13 @@ logger = logging.getLogger("ws")
 r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
 SPECTATOR_CONN_TTL_SECONDS = 60 * 60 * 12
+
+
+def publish_user_ws_event(user_id: int, payload: dict) -> None:
+    try:
+        r.publish(f"user_updates:{int(user_id)}", json.dumps(payload))
+    except Exception:
+        logger.exception("Failed to publish user WS event for user %s", user_id)
 
 
 def _resolve_authenticated_user(session_token: str | None) -> User | None:
@@ -174,8 +182,23 @@ async def global_ws(websocket: WebSocket):
         logger.exception("Global WebSocket accept failed")
         return
 
-    try:
+    pubsub = r.pubsub()
+    channel = f"user_updates:{user.id}"
+    pubsub.subscribe(channel)
+
+    async def read_redis_messages():
+        loop = asyncio.get_event_loop()
         while True:
-            await asyncio.sleep(1)
+            message = await loop.run_in_executor(None, pubsub.get_message, True, 1.0)
+            if message and message["type"] == "message":
+                await websocket.send_text(message["data"])
+
+    try:
+        await read_redis_messages()
     except WebSocketDisconnect:
         logger.info("Global WebSocket disconnected for user %s", user.id)
+    finally:
+        try:
+            pubsub.close()
+        except Exception:
+            pass

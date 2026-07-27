@@ -123,8 +123,21 @@ def test_ws_endpoints_auth_and_global(client, db):
     client.cookies.clear()
 
     client.cookies.set("session_user", create_session_token(user.id))
-    with client.websocket_connect("/api/ws/global") as ws:
-        assert ws is not None
+    global_pubsub = MagicMock()
+    global_calls = {"n": 0}
+
+    def _global_get_message(*_args, **_kwargs):
+        global_calls["n"] += 1
+        if global_calls["n"] == 1:
+            return {"type": "message", "data": '{"ok":true}'}
+        raise WebSocketDisconnect()
+
+    global_pubsub.get_message.side_effect = _global_get_message
+    global_redis = MagicMock()
+    global_redis.pubsub.return_value = global_pubsub
+    with patch("app.routes.ws.r", global_redis):
+        with client.websocket_connect("/api/ws/global") as ws:
+            assert ws.receive_text() == '{"ok":true}'
 
     fake_pubsub = MagicMock()
     calls = {"n": 0}
@@ -209,11 +222,32 @@ def test_global_ws_accept_failure_and_disconnect(db, monkeypatch):
         async def _accept():
             return None
 
-        async def _sleep(_seconds):
+        fake_pubsub = MagicMock()
+        calls = {"n": 0}
+
+        def _get_message(*_args, **_kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return {"type": "message", "data": '{"event":"ping"}'}
             raise WebSocketDisconnect()
 
+        fake_pubsub.get_message.side_effect = _get_message
+        fake_redis = MagicMock()
+        fake_redis.pubsub.return_value = fake_pubsub
+        monkeypatch.setattr(ws_routes, "r", fake_redis)
+
         ws2.accept = _accept
-        monkeypatch.setattr(ws_routes.asyncio, "sleep", _sleep)
+        ws2.send_text = MagicMock()
+
+        async def _send_text(data):
+            ws2.send_text(data)
+
+        ws2.send_text = _send_text
+        # Track awaits via AsyncMock
+        from unittest.mock import AsyncMock
+
+        ws2.send_text = AsyncMock()
         await ws_routes.global_ws(ws2)
+        assert ws2.send_text.await_count == 1
 
     asyncio.run(_run())

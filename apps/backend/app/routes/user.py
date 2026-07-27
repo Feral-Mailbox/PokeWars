@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.db.models import User
@@ -11,6 +11,7 @@ from app.schemas.auth import (
     UpdateEmailRequest,
     UserResponse,
 )
+from app.schemas.invitations import PlayerSearchResult
 
 router = APIRouter()
 
@@ -79,6 +80,33 @@ def change_password(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.get("/players/search", response_model=list[PlayerSearchResult])
+def search_players(
+    q: str = Query(..., min_length=1, max_length=64),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = q.strip()
+    if not query:
+        return []
+
+    trainer_q = query.upper()
+    rows = (
+        db.query(User)
+        .filter(
+            User.id != user.id,
+            or_(
+                User.username.ilike(f"%{query}%"),
+                User.trainer_id == trainer_q,
+            ),
+        )
+        .order_by(User.username.asc())
+        .limit(12)
+        .all()
+    )
+    return rows
 
 
 @router.get("/players/{trainer_id}", response_model=PublicPlayerProfile)

@@ -5,6 +5,7 @@ import { secureFetch } from '@/utils/secureFetch';
 import { isStaff } from '../types/user';
 import type { User } from '../types/user';
 import logo from '../assets/logo.svg';
+import InboxDropdown from './InboxDropdown';
 
 const Navbar = () => {
   const { user, setUser, authPrompt, clearAuthPrompt } = useAuth();
@@ -143,6 +144,8 @@ const Navbar = () => {
             'Welcome'
           )}
         </span>
+
+        {user ? <InboxDropdown /> : null}
 
         {/* Games dropdown */}
         <div
