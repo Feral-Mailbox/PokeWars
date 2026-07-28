@@ -3,5 +3,8 @@
   "name": "Snow Cloak",
   "slug": "snow_cloak",
   "description": "Boosts the Pokémon's evasiveness by 25% in snow.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_weather:hail:self:boost_stat_mult:evasion:1.25"
+  ]
 }

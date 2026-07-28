@@ -62,6 +62,7 @@ from app.elo import (
     elo_label_for_gamemode,
     DEFAULT_ELO,
 )
+from app import combat_abilities as combat_abilities
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
@@ -434,7 +435,7 @@ SCREEN_EFFECT_DURATION = 5
 SIDE_SCREEN_STATE_NAMES = frozenset(
     {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}
 )
-VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute", "drowsy"}
+VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute", "drowsy", "disable", "perish", "charge"}
 
 HELD_ITEM_MASK_TYPE_MAP = {
     "hearthflame_mask": "Fire",
@@ -480,6 +481,9 @@ WEATHER_TO_ID = {
     "rain": 2,
     "sandstorm": 3,
     "hail": 4,
+    "harsh_sun": 5,
+    "heavy_rain": 6,
+    "strong_winds": 7,
 }
 
 FIELD_HAZARD_TO_ID = {
@@ -732,7 +736,10 @@ def set_unit_held_item(unit: GameUnit, item: str | None, db: Session) -> None:
 def remove_unit_held_item(unit: GameUnit, db: Session) -> bool:
     if not get_unit_held_item(unit):
         return False
+    if combat_abilities.blocks_item_removal(unit, db):
+        return False
     set_unit_held_item(unit, None, db)
+    combat_abilities.mark_unburden(unit, db)
     return True
 
 
@@ -742,9 +749,27 @@ def consume_unit_held_item(unit: GameUnit, db: Session, *, item_type: str | None
         return False
     if item_type and item_type.lower() not in item.lower():
         return False
-    if is_item_suppressed(unit):
+    if is_item_suppressed(unit, db):
         return False
+    # Unnerve: opposing Unnerve blocks berry consumption
+    is_berry = (item_type and "berry" in item_type.lower()) or "berry" in str(item).lower()
+    if is_berry:
+        if combat_abilities.opponent_unnerve_blocks_berry(unit, db):
+            return False
     set_unit_held_item(unit, None, db)
+    if is_berry:
+        flags = get_unit_flags(unit)
+        flags["consumed_berry"] = str(item)
+        flags["last_consumed_berry"] = str(item)
+        set_unit_flags(unit, flags, db)
+        combat_abilities.process_cheek_pouch(unit, db)
+        combat_abilities.process_cud_chew_on_berry_eat(unit, db)
+    combat_abilities.mark_unburden(unit, db)
+    combat_abilities.process_symbiosis_transfer(
+        unit,
+        db,
+        helpers={"get_unit_held_item": get_unit_held_item, "set_unit_held_item": set_unit_held_item},
+    )
     return True
 
 
@@ -1045,6 +1070,11 @@ def resolve_move_type_for_execution(
             if mapped_type:
                 return mapped_type
 
+    if db is not None:
+        converted = combat_abilities.convert_move_type(attacker, move, db)
+        if converted:
+            return converted.capitalize() if converted.islower() else converted
+
     return move_type
 
 
@@ -1208,7 +1238,12 @@ def move_uses_separate_hit_accuracy(move: Move) -> bool:
     return False
 
 
-def get_move_hit_count(move: Move, *, landed_target_count: int = 1) -> int:
+def get_move_hit_count(
+    move: Move,
+    *,
+    landed_target_count: int = 1,
+    force_max: bool = False,
+) -> int:
     """Resolve how many times a move should hit from its multi_hit effect token."""
     if not move or not isinstance(move.effects, list):
         return 1
@@ -1226,6 +1261,8 @@ def get_move_hit_count(move: Move, *, landed_target_count: int = 1) -> int:
             return len(powers) if powers else 1
 
         if hit_mode == "variable":
+            if force_max:
+                return 5
             roll = random.randint(1, 20)
             if roll <= 7:
                 return 2
@@ -1252,6 +1289,8 @@ def get_move_hit_count(move: Move, *, landed_target_count: int = 1) -> int:
 
         if minimum_hits == maximum_hits:
             return minimum_hits
+        if force_max:
+            return maximum_hits
         return random.randint(minimum_hits, maximum_hits)
 
     return 1
@@ -1469,6 +1508,79 @@ def try_add_hazard_stack(hazard_entries: list[list[int]], hazard_id: int, durati
     return True
 
 
+def place_ability_field_hazard(
+    source: GameUnit,
+    hazard_name: str,
+    side: str,
+    db: Session,
+) -> bool:
+    """Place a field hazard for ability effects (Toxic Debris)."""
+    hazard_id = FIELD_HAZARD_TO_ID.get(str(hazard_name or "").lower())
+    if hazard_id is None:
+        return False
+    game_id = getattr(source, "game_id", None)
+    if not isinstance(game_id, int):
+        return False
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        return False
+    map_state = (
+        db.query(GameMapState)
+        .options(joinedload(GameMapState.map))
+        .filter(GameMapState.game_id == game.id)
+        .first()
+    )
+    if map_state is None:
+        return False
+    map_obj = map_state.map if map_state.map else db.query(Map).filter_by(id=game.map_id).first()
+    if not map_obj:
+        return False
+    height = int(getattr(map_obj, "height", 0) or 0)
+    width = int(getattr(map_obj, "width", 0) or 0)
+    if height <= 0 or width <= 0:
+        return False
+
+    # Normalize hazard grid
+    normalized_hazards: list[list[list[list[int]]]] = []
+    for y in range(height):
+        row = map_state.hazard_tiles[y] if isinstance(map_state.hazard_tiles, list) and y < len(map_state.hazard_tiles) else []
+        normalized_row: list[list[list[int]]] = []
+        for x in range(width):
+            cell = row[x] if isinstance(row, list) and x < len(row) else []
+            normalized_row.append(normalize_hazard_cell(cell))
+        normalized_hazards.append(normalized_row)
+    map_state.hazard_tiles = normalized_hazards
+
+    if str(side or "").lower() in {"opponent_side", "opponents"}:
+        # Place under opposing living units
+        opponents = (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game_id,
+                GameUnit.user_id != getattr(source, "user_id", None),
+                GameUnit.is_fainted.is_(False),
+            )
+            .all()
+        )
+        placed = False
+        for opp in opponents:
+            try:
+                ox, oy = int(opp.current_x), int(opp.current_y)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= oy < height and 0 <= ox < width:
+                if try_add_hazard_stack(
+                    map_state.hazard_tiles[oy][ox],
+                    hazard_id,
+                    FIELD_HAZARD_DEFAULT_DURATION,
+                ):
+                    placed = True
+        if placed:
+            db.add(map_state)
+        return placed
+    return False
+
+
 def clear_hazards_on_tiles(map_state: "GameMapState", affected_tiles: list[tuple[int, int]], db: Session) -> bool:
     if map_state is None or not isinstance(map_state.hazard_tiles, list):
         return False
@@ -1609,14 +1721,28 @@ def weather_condition_matches(weather_id: int, condition: str) -> bool:
     return False
 
 
-def get_weather_move_multiplier(move_type: str | None, attacker_weather_id: int) -> float:
+def get_weather_move_multiplier(
+    move_type: str | None,
+    attacker_weather_id: int,
+    game_id: int | None = None,
+    db: Session | None = None,
+) -> float:
+    if (
+        game_id is not None
+        and db is not None
+        and combat_abilities.weather_is_suppressed(game_id, db)
+    ):
+        attacker_weather_id = 0
     move_type_norm = str(move_type or "").lower()
-    if attacker_weather_id == WEATHER_TO_ID["rain"]:
+    # Primal weathers behave like their base forms for fire/water power
+    rain_like = attacker_weather_id in {WEATHER_TO_ID["rain"], WEATHER_TO_ID["heavy_rain"]}
+    sun_like = attacker_weather_id in {WEATHER_TO_ID["sun"], WEATHER_TO_ID["harsh_sun"]}
+    if rain_like:
         if move_type_norm == "water":
             return 1.5
         if move_type_norm == "fire":
             return 0.5
-    elif attacker_weather_id == WEATHER_TO_ID["sun"]:
+    elif sun_like:
         if move_type_norm == "fire":
             return 1.5
         if move_type_norm == "water":
@@ -1625,6 +1751,8 @@ def get_weather_move_multiplier(move_type: str | None, attacker_weather_id: int)
 
 
 def get_weather_defense_multiplier(target: GameUnit, defense_stat: str, target_weather_id: int, db: Session) -> float:
+    if getattr(target, "game_id", None) and combat_abilities.weather_is_suppressed(int(target.game_id), db):
+        return 1.0
     target_types = get_unit_types(target, db)
 
     # Sandstorm boosts Rock-type special bulk.
@@ -1927,6 +2055,9 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
     if state_name not in VALID_STATE_EFFECTS:
         return False
 
+    if state_name in {"confusion", "flinch", "taunt"} and not combat_abilities.can_apply_state(unit, state_name, db):
+        return False
+
     current_state = normalize_states(unit.states)
     has_active_state = len(current_state) == 2 and int(current_state[1]) > 0
 
@@ -2009,7 +2140,22 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
         unit.states = [state_name, 1]
     elif state_name == "substitute":
         unit.states = [state_name, 9999]
+    elif state_name == "disable":
+        unit.states = [state_name, 4]
+    elif state_name == "perish":
+        unit.states = [state_name, 3]
+    elif state_name == "charge":
+        unit.states = [state_name, 2]
     db.add(unit)
+
+    if state_name == "flinch":
+        try:
+            gs = db.query(GameState).filter(GameState.game_id == unit.game_id).first()
+            turn = int(getattr(gs, "current_turn", 0) or 0) if gs else 0
+            combat_abilities.process_steadfast(unit, db, turn, apply_stat_change)
+        except Exception:
+            pass
+
     return True
 
 
@@ -2019,6 +2165,9 @@ def apply_confusion_self_damage(
     game: Game | None = None,
     game_state: GameState | None = None,
 ) -> int:
+    if combat_abilities.should_ignore_indirect_damage(unit, db):
+        return 0
+
     current_stats = unit.current_stats if isinstance(unit.current_stats, dict) else {}
     max_hp = int(current_stats.get("hp", 0) or 0)
     if max_hp <= 0:
@@ -2053,15 +2202,18 @@ def get_status_duration(status: str) -> int:
 
 
 def get_unit_types(unit: GameUnit, db: Session) -> set[str]:
-    if unit.unit and isinstance(unit.unit.types, list):
-        return {str(unit_type).lower() for unit_type in unit.unit.types}
+    def _species_types(u: GameUnit, d: Session) -> set[str]:
+        if u.unit and isinstance(u.unit.types, list):
+            return {str(unit_type).lower() for unit_type in u.unit.types}
 
-    if unit.unit_id:
-        unit_info = db.query(Unit).filter_by(id=unit.unit_id).first()
-        if unit_info and isinstance(unit_info.types, list):
-            return {str(unit_type).lower() for unit_type in unit_info.types}
+        if u.unit_id:
+            unit_info = d.query(Unit).filter_by(id=u.unit_id).first()
+            if unit_info and isinstance(unit_info.types, list):
+                return {str(unit_type).lower() for unit_type in unit_info.types}
 
-    return set()
+        return set()
+
+    return combat_abilities.get_battle_types(unit, db, _species_types)
 
 
 def is_status_immune_by_type(unit: GameUnit, status: str, db: Session) -> bool:
@@ -2095,16 +2247,29 @@ def is_ability_suppressed(unit: GameUnit) -> bool:
         return False
 
 
-def is_item_suppressed(unit: GameUnit) -> bool:
-    """Return True if the unit currently has Embargo (item use suppressed)."""
+def is_item_suppressed(unit: GameUnit, db: Session | None = None) -> bool:
+    """Return True if Embargo or Klutz suppresses the unit's held item."""
     try:
         s = normalize_states(unit.states)
-        return bool(s and s[0] == 'embargo' and int(s[1]) > 0)
+        if bool(s and s[0] == "embargo" and int(s[1]) > 0):
+            return True
     except Exception:
-        return False
+        pass
+    if db is not None and combat_abilities.is_klutz(unit, db):
+        return True
+    return False
 
 
-def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
+def apply_status_effect(
+    unit: GameUnit,
+    status: str,
+    db: Session,
+    *,
+    source: GameUnit | None = None,
+    game: Game | None = None,
+    game_state: GameState | None = None,
+    _mirroring: bool = False,
+) -> bool:
     status = normalize_status_name(status)
     if status not in VALID_STATUS_EFFECTS:
         return False
@@ -2115,9 +2280,19 @@ def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
         return False
 
     if is_status_immune_by_type(unit, status, db):
+        types = get_unit_types(unit, db)
+        if not (
+            source is not None
+            and combat_abilities.corrosion_bypasses_type_immunity(source, status, types, db)
+        ):
+            return False
+
+    if not combat_abilities.can_apply_status(unit, status, db):
         return False
 
     duration = get_status_duration(status)
+    if status == "sleep":
+        duration = max(1, int(duration * combat_abilities.sleep_duration_multiplier(unit, db)))
     if status == "badly_poisoned":
         unit.status_effects = [status, duration, 1]
     else:
@@ -2125,7 +2300,99 @@ def apply_status_effect(unit: GameUnit, status: str, db: Session) -> bool:
 
     unit.current_stats = compute_effective_stats(unit, db)
     db.add(unit)
+
+    # Synchronize: mirror burn/paralysis/poison onto the attacker that inflicted it.
+    if (
+        not _mirroring
+        and source is not None
+        and source.id != unit.id
+        and combat_abilities.should_mirror_status(unit, status, db)
+    ):
+        mirrored = apply_status_effect(
+            source,
+            status,
+            db,
+            source=None,
+            game=game,
+            game_state=game_state,
+            _mirroring=True,
+        )
+        if mirrored and game and game_state:
+            publish_system_log_event(
+                game.link,
+                f"{get_unit_display_name(unit, db)}'s Synchronize afflicted "
+                f"{get_unit_display_name(source, db)} with {format_status_log_label(status)}!",
+                game_state,
+                db,
+            )
+
+    # Poison Puppeteer: poison also confuses
+    if (
+        not _mirroring
+        and source is not None
+        and status in {"poison", "badly_poisoned"}
+    ):
+        for msg in combat_abilities.process_poison_puppeteer(
+            source,
+            unit,
+            status,
+            db,
+            helpers={"apply_state_effect": apply_state_effect},
+        ):
+            if game and game_state:
+                publish_system_log_event(game.link, msg, game_state, db)
+
     return True
+
+
+def apply_end_of_turn_abilities_for_player(
+    game: Game,
+    state: GameState,
+    player_id: int,
+    db: Session,
+    *,
+    weather_tiles: list | None = None,
+    terrain_tiles: list | None = None,
+) -> list[int]:
+    """Run Gen 3 end-of-turn abilities (Speed Boost, Shed Skin, Rain Dish, Pickup)."""
+    if weather_tiles is None or terrain_tiles is None:
+        map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+        if weather_tiles is None:
+            weather_tiles = (
+                map_state.weather_tiles
+                if map_state and isinstance(map_state.weather_tiles, list)
+                else None
+            )
+        if terrain_tiles is None:
+            terrain_tiles = (
+                map_state.terrain_effect_tiles
+                if map_state and isinstance(getattr(map_state, "terrain_effect_tiles", None), list)
+                else None
+            )
+    units = (
+        db.query(GameUnit)
+        .filter(
+            GameUnit.game_id == game.id,
+            GameUnit.user_id == player_id,
+            GameUnit.is_fainted.is_(False),
+        )
+        .all()
+    )
+    return combat_abilities.process_end_of_turn_abilities(
+        units,
+        db,
+        game=game,
+        game_state=state,
+        weather_tiles=weather_tiles,
+        current_turn=int(state.current_turn or 0),
+        helpers={
+            "apply_stat_change": apply_stat_change,
+            "publish_system_log_event": publish_system_log_event,
+            "get_unit_display_name": get_unit_display_name,
+            "cure_status_effect": lambda u, d: cure_status_effect(u, "all", d),
+            "terrain_tiles": terrain_tiles,
+        },
+    )
 
 
 def cure_status_effect(unit: GameUnit, status_spec: str, db: Session) -> bool:
@@ -2306,6 +2573,9 @@ def get_modified_accuracy_threshold(
     attacker_types: set[str] | None = None,
     target_types: set[str] | None = None,
     target_ability_names: set[str] | None = None,
+    move: Move | None = None,
+    db: Session | None = None,
+    weather_tiles: list | None = None,
 ) -> float | None:
     """
     Compute the hit threshold from move base accuracy and accuracy/evasion stages.
@@ -2321,6 +2591,8 @@ def get_modified_accuracy_threshold(
 
     attacker_accuracy_stage = get_stat_stage(attacker.stat_boosts, "accuracy")
     target_evasion_stage = get_stat_stage(target.stat_boosts, "evasion")
+    if db is not None and combat_abilities.ignore_target_evasion(attacker, db):
+        target_evasion_stage = 0
     stage_multiplier = get_accuracy_stage_multiplier(attacker_accuracy_stage, target_evasion_stage)
 
     modifier = 1.0
@@ -2332,7 +2604,18 @@ def get_modified_accuracy_threshold(
             target_types,
             target_ability_names,
         )
-    return max(0.0, base_accuracy * modifier * stage_multiplier)
+    threshold = max(0.0, base_accuracy * modifier * stage_multiplier)
+    if db is not None:
+        atk_acc = combat_abilities.attacker_accuracy_multiplier(attacker, move, db)
+        def_eva = combat_abilities.defender_evasion_multiplier(
+            target, db, weather_tiles=weather_tiles
+        )
+        if def_eva and def_eva != 0:
+            threshold = threshold * atk_acc / def_eva
+        else:
+            threshold = threshold * atk_acc
+        threshold = threshold * combat_abilities.wonder_skin_accuracy_multiplier(target, move, db)
+    return max(0.0, threshold)
 
 
 def move_lands_on_target(
@@ -2345,12 +2628,16 @@ def move_lands_on_target(
     attacker_types: set[str] | None = None,
     target_types: set[str] | None = None,
     target_ability_names: set[str] | None = None,
+    db: Session | None = None,
 ) -> bool:
     """
     True if move lands on target based on modified accuracy threshold.
     If move has no accuracy (null), it is treated as perfect accuracy.
     """
     if unit_has_glaive_rush(target):
+        return True
+
+    if db is not None and combat_abilities.force_move_never_miss(attacker, target, db):
         return True
 
     threshold = get_modified_accuracy_threshold(
@@ -2361,6 +2648,9 @@ def move_lands_on_target(
         attacker_types=attacker_types,
         target_types=target_types,
         target_ability_names=target_ability_names,
+        move=move,
+        db=db,
+        weather_tiles=weather_tiles,
     )
     if threshold is None:
         return True
@@ -2558,7 +2848,12 @@ def attempt_critical_hit(attacker: GameUnit, additional_stage: int = 0) -> bool:
     roll = random.random()
     return roll < crit_chance
 
-def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
+def compute_effective_stats(
+    unit: GameUnit,
+    db: Session,
+    weather_tiles: list | None = None,
+    terrain_tiles: list | None = None,
+) -> dict:
     """
     Compute the effective stats for a unit, applying stat boost multipliers.
     Returns a dict with all stats including HP, attack, defense, etc.
@@ -2610,13 +2905,34 @@ def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
     if has_tailwind and "speed" in effective_stats:
         effective_stats["speed"] = int(effective_stats["speed"] * 2)
 
+    if weather_tiles is None and getattr(unit, "game_id", None):
+        try:
+            map_state = db.query(GameMapState).filter(GameMapState.game_id == unit.game_id).first()
+            if map_state and isinstance(map_state.weather_tiles, list):
+                weather_tiles = map_state.weather_tiles
+            if terrain_tiles is None and map_state and isinstance(map_state.terrain_effect_tiles, list):
+                terrain_tiles = map_state.terrain_effect_tiles
+        except Exception:
+            weather_tiles = None
+
+    # Ability modifiers that need to run before burn attack half (e.g. Guts ignore flag)
+    # are applied after status; Guts skip is checked via ability token first.
+    ignore_burn = combat_abilities.ability_has_token(unit, db, "ignore_burn_attack_halve")
+    ignore_para = combat_abilities.should_ignore_paralysis_speed(unit, db)
+
     status_effect = normalize_status_effects(unit.status_effects)
     if status_effect:
         status_name = status_effect[0]
-        if status_name == "burn" and "attack" in effective_stats:
+        if status_name == "burn" and "attack" in effective_stats and not ignore_burn:
             effective_stats["attack"] = int(effective_stats["attack"] // 2)
-        elif status_name == "paralysis" and "speed" in effective_stats:
+        elif status_name == "paralysis" and "speed" in effective_stats and not ignore_para:
             effective_stats["speed"] = int(effective_stats["speed"] // 2)
+
+    effective_stats = combat_abilities.modify_effective_stats(
+        unit, effective_stats, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles
+    )
+    effective_stats.pop("_ignore_burn_attack_halve", None)
+    effective_stats.pop("_ignore_paralysis_speed_halve", None)
 
     # Movement range scales with current speed (after boosts/debuffs/status).
     speed_value = effective_stats.get("speed")
@@ -2643,16 +2959,57 @@ def compute_effective_stats(unit: GameUnit, db: Session) -> dict:
     
     return effective_stats
 
-def apply_stat_change(unit: GameUnit, stat: str, magnitude: int, current_turn: int, db: Session):
+def apply_stat_change(
+    unit: GameUnit,
+    stat: str,
+    magnitude: int,
+    current_turn: int,
+    db: Session,
+    *,
+    from_opponent: bool = False,
+    source: GameUnit | None = None,
+    allow_mirror_reflect: bool = True,
+):
     """
     Apply or cancel a stat change to a unit.
     - magnitude: positive for boost, negative for debuff
     - Implements cancellation: opposite effects cancel, prioritizing soonest-expiring
     - Handles partial cancellation when magnitudes differ
     - Each instance expires after 4 turns (including application turn)
+    - Contrary reverses magnitude; Defiant raises Attack when lowered by an opponent
+    - Mirror Armor reflects opponent-caused drops onto ``source``
     """
     stat = normalize_stat_name(stat)
-    
+
+    if combat_abilities.reverse_stat_changes(unit, db) and magnitude != 0:
+        magnitude = -magnitude
+
+    if (
+        magnitude < 0
+        and from_opponent
+        and allow_mirror_reflect
+        and combat_abilities.reflects_stat_drops(unit, db)
+        and source is not None
+        and getattr(source, "id", None) != getattr(unit, "id", None)
+    ):
+        apply_stat_change(
+            source,
+            stat,
+            magnitude,
+            current_turn,
+            db,
+            from_opponent=True,
+            source=unit,
+            allow_mirror_reflect=False,
+        )
+        return
+
+    if magnitude < 0 and combat_abilities.blocks_stat_drop(unit, stat, db, from_opponent=from_opponent):
+        return
+
+    if magnitude != 0 and combat_abilities.double_stat_changes(unit, db):
+        magnitude = int(magnitude * 2)
+
     # Ensure stat_boosts is always in canonical list-of-instances shape
     unit.stat_boosts = normalize_stat_boosts(unit.stat_boosts)
     if stat not in unit.stat_boosts:
@@ -2712,6 +3069,34 @@ def apply_stat_change(unit: GameUnit, stat: str, magnitude: int, current_turn: i
     
     db.add(unit)
 
+    # Defiant / Competitive: when lowered by an opponent, raise configured stats
+    if from_opponent and magnitude < 0:
+        for raise_stat, stages in combat_abilities.parse_stat_lowered_reactions(unit, db):
+            apply_stat_change(unit, raise_stat, stages, current_turn, db, from_opponent=False)
+
+    # Opportunist: living opponents copy positive boosts
+    if magnitude > 0 and not from_opponent:
+        game_id = getattr(unit, "game_id", None)
+        if isinstance(game_id, int):
+            try:
+                opportunists = (
+                    db.query(GameUnit)
+                    .filter(
+                        GameUnit.game_id == game_id,
+                        GameUnit.user_id != getattr(unit, "user_id", None),
+                        GameUnit.is_fainted.is_(False),
+                    )
+                    .all()
+                )
+            except Exception:
+                opportunists = []
+            for opp in opportunists:
+                if combat_abilities.copies_opponent_stat_boosts(opp, db):
+                    apply_stat_change(
+                        opp, stat, magnitude, current_turn, db, from_opponent=False
+                    )
+
+
 def process_move_effects(
     move: Move,
     attacker: GameUnit,
@@ -2734,9 +3119,58 @@ def process_move_effects(
     if not move.effects:
         return
 
+    # Magic Bounce: reflect status moves onto the attacker once
+    move_cat = str(getattr(move, "category", "") or "").lower()
+    try:
+        move_power = int(getattr(move, "power", 0) or 0)
+    except (TypeError, ValueError):
+        move_power = 0
+    is_status_like = move_cat == "status" or (
+        move_power <= 0 and move_cat not in {"physical", "special"}
+    )
+    if is_status_like and targets:
+        bounced = False
+        new_targets: List[GameUnit] = []
+        for t in targets:
+            if (
+                not bounced
+                and t is not None
+                and getattr(t, "user_id", None) != getattr(attacker, "user_id", None)
+                and combat_abilities.reflects_status_moves(t, db)
+            ):
+                new_targets.append(attacker)
+                bounced = True
+                if game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(t, db)} bounced the move back!",
+                        game_state,
+                        db,
+                    )
+            else:
+                new_targets.append(t)
+        targets = new_targets
+
     weather_raise_stat_applied: set[tuple[str, str]] = set()
     terrain_raise_stat_applied: set[tuple[str, str]] = set()
     weather_heal_applied: set[str] = set()
+
+    def effect_chance_passes(accuracy: int, *, target: GameUnit | None = None) -> bool:
+        """Roll secondary-effect chance with Serene Grace / Shield Dust / Sheer Force."""
+        if combat_abilities.removes_secondary_effects(attacker, db):
+            return False
+        if (
+            target is not None
+            and move_deals_direct_damage(move)
+            and combat_abilities.blocks_additional_effects(target, db)
+        ):
+            return False
+        chance = min(100, int(accuracy * combat_abilities.secondary_effect_chance_multiplier(attacker, db)))
+        if chance >= 100:
+            return True
+        if chance <= 0:
+            return False
+        return random.randint(1, 100) <= chance
     
     for effect_str in move.effects:
         raw_token = str(effect_str or "").strip()
@@ -2779,7 +3213,7 @@ def process_move_effects(
         try:
             if parts[0] in {"self", "target"} and any("held_item" == p or p == "held_item" for p in parts):
                 if parts[0] == "self":
-                    if is_item_suppressed(attacker):
+                    if is_item_suppressed(attacker, db):
                         if game and game_state:
                             publish_system_log_event(game.link, f"{get_unit_display_name(attacker, db)}'s held item is suppressed by Embargo", game_state, db)
                         continue
@@ -2787,7 +3221,7 @@ def process_move_effects(
                     # If any target is embargoed, skip applying this token for targets
                     embargoed = False
                     for t in targets:
-                        if is_item_suppressed(t):
+                        if is_item_suppressed(t, db):
                             embargoed = True
                             if game and game_state:
                                 publish_system_log_event(game.link, f"{get_unit_display_name(t, db)}'s held item is suppressed by Embargo", game_state, db)
@@ -3107,6 +3541,27 @@ def process_move_effects(
                     game_state,
                     db,
                 )
+                # Wind Rider on attacker's side
+                try:
+                    side_units = (
+                        db.query(GameUnit)
+                        .filter(
+                            GameUnit.game_id == game_id,
+                            GameUnit.user_id == getattr(attacker, "user_id", None),
+                            GameUnit.is_fainted.is_(False),
+                        )
+                        .all()
+                    )
+                except Exception:
+                    side_units = []
+                for su in side_units:
+                    for wr_msg in combat_abilities.process_wind_rider_on_tailwind(
+                        su,
+                        db,
+                        int(getattr(game_state, "current_turn", 1) or 1),
+                        helpers={"apply_stat_change": apply_stat_change},
+                    ):
+                        publish_system_log_event(game.link, wr_msg, game_state, db)
             continue
 
         if parts[0] == "field" and parts[1].lower() == "gravity":
@@ -3355,7 +3810,7 @@ def process_move_effects(
                     for target in targets_for_effect:
                         for target_stat in target_stats:
                             before_stage = get_stat_stage(target.stat_boosts, target_stat)
-                            apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                            apply_stat_change(target, target_stat, magnitude, current_turn, db, from_opponent=(getattr(attacker, 'user_id', None) != getattr(target, 'user_id', None)), source=attacker)
                             after_stage = get_stat_stage(target.stat_boosts, target_stat)
                             if game and game_state:
                                 outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
@@ -3419,7 +3874,7 @@ def process_move_effects(
                     for target in targets_for_effect:
                         for target_stat in target_stats:
                             before_stage = get_stat_stage(target.stat_boosts, target_stat)
-                            apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                            apply_stat_change(target, target_stat, magnitude, current_turn, db, from_opponent=(getattr(attacker, 'user_id', None) != getattr(target, 'user_id', None)), source=attacker)
                             after_stage = get_stat_stage(target.stat_boosts, target_stat)
                             if game and game_state:
                                 outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
@@ -3449,13 +3904,12 @@ def process_move_effects(
             if stat_name is None or magnitude_val is None:
                 continue
 
-            if random.randint(1, 100) > accuracy:
-                continue
-
             magnitude = magnitude_val if effect_type == "raise_stat" else -magnitude_val
             target_stats = ALL_STAT_EFFECT_KEYS if stat_name == "all" else [stat_name]
 
             if recipient == "self":
+                if not effect_chance_passes(accuracy):
+                    continue
                 for target_stat in target_stats:
                     before_stage = get_stat_stage(attacker.stat_boosts, target_stat)
                     apply_stat_change(attacker, target_stat, magnitude, current_turn, db)
@@ -3470,9 +3924,11 @@ def process_move_effects(
                         )
             elif recipient == "target":
                 for target in targets:
+                    if not effect_chance_passes(accuracy, target=target):
+                        continue
                     for target_stat in target_stats:
                         before_stage = get_stat_stage(target.stat_boosts, target_stat)
-                        apply_stat_change(target, target_stat, magnitude, current_turn, db)
+                        apply_stat_change(target, target_stat, magnitude, current_turn, db, from_opponent=(getattr(attacker, 'user_id', None) != getattr(target, 'user_id', None)), source=attacker)
                         after_stage = get_stat_stage(target.stat_boosts, target_stat)
                         if game and game_state:
                             outcome_phrase = format_stat_change_outcome_phrase(after_stage - before_stage, 1 if magnitude > 0 else -1)
@@ -3578,7 +4034,12 @@ def process_move_effects(
                         if matches_effect_condition(target, condition_type, condition_value, db):
                             # Check for Safeguard on the target
                             target_state = normalize_states(target.states)
-                            if target_state and target_state[0] == "safeguard" and int(target_state[1]) > 0:
+                            if (
+                                target_state
+                                and target_state[0] == "safeguard"
+                                and int(target_state[1]) > 0
+                                and not combat_abilities.ignores_safeguard(attacker, db)
+                            ):
                                 if game and game_state:
                                     publish_system_log_event(
                                         game.link,
@@ -3606,7 +4067,7 @@ def process_move_effects(
                                             db,
                                         )
                             else:
-                                applied = apply_status_effect(target, status_name, db)
+                                applied = apply_status_effect(target, status_name, db, source=attacker, game=game, game_state=game_state)
                                 if applied and game and game_state:
                                     publish_system_log_event(
                                         game.link,
@@ -3627,10 +4088,9 @@ def process_move_effects(
                     except ValueError:
                         pass
 
-                if random.randint(1, 100) > accuracy:
-                    continue
-
                 if recipient == "self":
+                    if not effect_chance_passes(accuracy):
+                        continue
                     # If attacker is immune by type, log immunity message instead of applying
                     if is_status_immune_by_type(attacker, status_name, db):
                         if game and game_state:
@@ -3661,9 +4121,16 @@ def process_move_effects(
                 elif recipient == "target":
                     for target in targets:
                         if (target.current_hp or 0) > 0:
+                            if not effect_chance_passes(accuracy, target=target):
+                                continue
                             # Check for Safeguard on the target
                             target_state = normalize_states(target.states)
-                            if target_state and target_state[0] == "safeguard" and int(target_state[1]) > 0:
+                            if (
+                                target_state
+                                and target_state[0] == "safeguard"
+                                and int(target_state[1]) > 0
+                                and not combat_abilities.ignores_safeguard(attacker, db)
+                            ):
                                 if game and game_state:
                                     publish_system_log_event(
                                         game.link,
@@ -3691,7 +4158,7 @@ def process_move_effects(
                                             db,
                                         )
                             else:
-                                applied = apply_status_effect(target, status_name, db)
+                                applied = apply_status_effect(target, status_name, db, source=attacker, game=game, game_state=game_state)
                                 if applied and game and game_state:
                                     publish_system_log_event(
                                         game.link,
@@ -3758,10 +4225,9 @@ def process_move_effects(
                 except ValueError:
                     pass
 
-            if random.randint(1, 100) > accuracy:
-                continue
-
             if recipient == "self":
+                if not effect_chance_passes(accuracy):
+                    continue
                 if condition_type and not matches_effect_condition(attacker, condition_type, condition_value, db):
                     continue
                 applied = apply_state_effect(attacker, state_name, db)
@@ -3776,6 +4242,8 @@ def process_move_effects(
                 normalized_state_name = str(state_name).lower()
 
                 if normalized_state_name in SIDE_SCREEN_STATE_NAMES:
+                    if not effect_chance_passes(accuracy):
+                        continue
                     attacker_user_id = getattr(attacker, "user_id", None)
                     for target in targets:
                         if (target.current_hp or 0) <= 0:
@@ -3796,6 +4264,8 @@ def process_move_effects(
                 for target in targets:
                     if (target.current_hp or 0) <= 0:
                         continue
+                    if not effect_chance_passes(accuracy, target=target):
+                        continue
 
                     if condition_type and not matches_effect_condition(target, condition_type, condition_value, db):
                         continue
@@ -3803,7 +4273,12 @@ def process_move_effects(
                     # Prevent confusion from being applied to Safeguard-protected targets
                     if normalized_state_name == "confusion":
                         target_state = normalize_states(target.states)
-                        if target_state and target_state[0] == "safeguard" and int(target_state[1]) > 0:
+                        if (
+                            target_state
+                            and target_state[0] == "safeguard"
+                            and int(target_state[1]) > 0
+                            and not combat_abilities.ignores_safeguard(attacker, db)
+                        ):
                             if game and game_state:
                                 publish_system_log_event(
                                     game.link,
@@ -4259,9 +4734,16 @@ def process_move_effects(
                     db.add(attacker)
             elif recipient == "target":
                 for target in targets:
-                    if (target.current_hp or 0) > 0:
-                        target.current_hp = 0
-                        db.add(target)
+                    if (target.current_hp or 0) <= 0:
+                        continue
+                    if combat_abilities.blocks_ohko(target, db):
+                        continue
+                    max_hp = int((target.current_stats or {}).get("hp", 0) or 0)
+                    was_full = max_hp > 0 and int(target.current_hp or 0) >= max_hp
+                    if was_full and combat_abilities.ability_has_token(target, db, "endure_ohko_at_full_hp", "sturdy"):
+                        continue
+                    target.current_hp = 0
+                    db.add(target)
 
 
 def apply_damage_based_move_effects(
@@ -4292,17 +4774,34 @@ def apply_damage_based_move_effects(
 
     fainted_unit_ids: set[int] = set()
 
-    def apply_to_unit(unit: GameUnit, effect_type: str, amount: int):
+    def apply_to_unit(unit: GameUnit, effect_type: str, amount: int, *, drain_from: GameUnit | None = None):
         if amount <= 0 or (unit.current_hp or 0) <= 0:
             return
 
         if effect_type == "drain":
+            if drain_from is not None or unit is attacker:
+                # Liquid Ooze / normal drain for the attacker healing from damage
+                combat_abilities.process_drain(unit, drain_from, amount, db)
+                if (unit.current_hp or 0) <= 0:
+                    fainted_unit_ids.add(unit.id)
+                    if game and game_state and (faint_logged_ids is None or unit.id not in faint_logged_ids):
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(unit, db)} fainted!",
+                            game_state,
+                            db,
+                        )
+                        if faint_logged_ids is not None:
+                            faint_logged_ids.add(unit.id)
+                return
             max_hp = (unit.current_stats or {}).get("hp", unit.current_hp or 0)
             if max_hp <= 0:
                 return
             unit.current_hp = min(max_hp, (unit.current_hp or 0) + amount)
             db.add(unit)
         elif effect_type == "recoil":
+            if unit is attacker and not combat_abilities.process_recoil_allowed(attacker, db):
+                return
             damage_taken = min(amount, int(unit.current_hp or 0))
             unit.current_hp = max(0, (unit.current_hp or 0) - amount)
             if damage_taken > 0 and game and game_state:
@@ -4344,13 +4843,20 @@ def apply_damage_based_move_effects(
             except ValueError:
                 continue
 
-            effect_amount = total_damage_dealt // denominator
-            if effect_amount <= 0:
-                continue
-
             if recipient == "self":
-                apply_to_unit(attacker, effect_type, effect_amount)
+                # Per-target drain so Liquid Ooze can invert healing per opponent.
+                for result in damage_results:
+                    dmg = max(0, int(result.get("damage", 0) or 0))
+                    effect_amount = dmg // denominator
+                    if effect_amount <= 0:
+                        continue
+                    tid = result.get("id")
+                    target = next((t for t in targets if t.id == tid), None)
+                    apply_to_unit(attacker, effect_type, effect_amount, drain_from=target)
             elif recipient == "target":
+                effect_amount = total_damage_dealt // denominator
+                if effect_amount <= 0:
+                    continue
                 for target in targets:
                     apply_to_unit(target, effect_type, effect_amount)
             continue
@@ -4522,7 +5028,8 @@ def decrement_and_expire_status_effects(
                 modified_unit_ids.append(unit.id)
             else:
                 if status_name == "sleep":
-                    unit.can_move = False
+                    if not combat_abilities.can_act_while_asleep(unit, db):
+                        unit.can_move = False
                 elif status_name == "frozen":
                     unit.can_move = False
                 elif status_name == "paralysis":
@@ -4658,23 +5165,38 @@ def apply_end_of_turn_status_damage(user_id: int, game_id: int, db: Session) -> 
         if status_effect:
             status_name = status_effect[0]
 
-            if status_name in {"burn", "poison"}:
-                damage = max(1, max_hp // 8) if max_hp > 0 else 0
-                hp_after_effects = max(0, hp_after_effects - damage)
-                modified = modified or damage > 0
-                if damage > 0 and game:
-                    unit_name = get_unit_display_name(unit, db)
-                    publish_system_log_event(game.link, f"{unit_name} took {damage} damage from {status_name}", game_state, db)
+            if combat_abilities.should_ignore_indirect_damage(unit, db):
+                # Magic Guard: skip all status residual damage
+                pass
+            elif status_name in {"burn", "poison"}:
+                if status_name == "poison" and combat_abilities.should_ignore_poison_damage(unit, db):
+                    pass
+                else:
+                    damage = max(1, max_hp // 8) if max_hp > 0 else 0
+                    if status_name == "burn" and combat_abilities.should_halve_burn_damage(unit, db):
+                        damage = max(1, damage // 2) if damage > 0 else 0
+                    hp_after_effects = max(0, hp_after_effects - damage)
+                    modified = modified or damage > 0
+                    if damage > 0 and game:
+                        unit_name = get_unit_display_name(unit, db)
+                        publish_system_log_event(game.link, f"{unit_name} took {damage} damage from {status_name}", game_state, db)
             elif status_name == "badly_poisoned":
-                bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
-                bad_poison_turn = max(1, bad_poison_turn)
-                damage = max(1, (max_hp * bad_poison_turn) // 16) if max_hp > 0 else 0
-                hp_after_effects = max(0, hp_after_effects - damage)
-                unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
-                modified = True
-                if damage > 0 and game:
-                    unit_name = get_unit_display_name(unit, db)
-                    publish_system_log_event(game.link, f"{unit_name} took {damage} from badly poisoned", game_state, db)
+                if combat_abilities.should_ignore_poison_damage(unit, db):
+                    # Still tick the badly poisoned counter for when Poison Heal ends
+                    bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
+                    bad_poison_turn = max(1, bad_poison_turn)
+                    unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
+                    modified = True
+                else:
+                    bad_poison_turn = int(status_effect[2]) if len(status_effect) >= 3 else 1
+                    bad_poison_turn = max(1, bad_poison_turn)
+                    damage = max(1, (max_hp * bad_poison_turn) // 16) if max_hp > 0 else 0
+                    hp_after_effects = max(0, hp_after_effects - damage)
+                    unit.status_effects = [status_name, int(status_effect[1]), bad_poison_turn + 1]
+                    modified = True
+                    if damage > 0 and game:
+                        unit_name = get_unit_display_name(unit, db)
+                        publish_system_log_event(game.link, f"{unit_name} took {damage} from badly poisoned", game_state, db)
 
         if hp_after_effects != current_hp:
             unit.current_hp = hp_after_effects
@@ -4700,17 +5222,21 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
     units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
     modified_unit_ids = []
 
+    weather_suppressed = combat_abilities.weather_is_suppressed(game_id, db)
+
     for unit in units:
         max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
         current_hp = int(unit.current_hp or 0)
         if current_hp <= 0:
             continue
 
-        weather_id = get_unit_weather_id(unit, weather_tiles)
+        weather_id = 0 if weather_suppressed else get_unit_weather_id(unit, weather_tiles)
         unit_types = get_unit_types(unit, db)
         damage = 0
 
-        if weather_id == WEATHER_TO_ID["sandstorm"] and not unit_types.intersection({"rock", "ground", "steel"}):
+        if combat_abilities.should_ignore_weather_damage(unit, db):
+            damage = 0
+        elif weather_id == WEATHER_TO_ID["sandstorm"] and not unit_types.intersection({"rock", "ground", "steel"}):
             damage = max(1, max_hp // 16) if max_hp > 0 else 0
             if damage > 0 and game:
                 unit_name = get_unit_display_name(unit, db)
@@ -4913,6 +5439,23 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
 
         unit_types = get_unit_types(unit, db)
         is_flying = "flying" in unit_types
+        magic_guard = combat_abilities.should_ignore_indirect_damage(unit, db)
+        immune_spikes = (
+            is_flying
+            or magic_guard
+            or combat_abilities.ability_has_token(unit, db, "immune_hazard:spikes")
+            or combat_abilities.ability_has_token(unit, db, "immune:ground")
+        )
+        immune_toxic_spikes = (
+            is_flying
+            or combat_abilities.ability_has_token(unit, db, "immune_hazard:toxic_spikes")
+            or combat_abilities.ability_has_token(unit, db, "immune:ground")
+        )
+        immune_sticky_web = (
+            is_flying
+            or combat_abilities.ability_has_token(unit, db, "immune_hazard:sticky_web")
+            or combat_abilities.ability_has_token(unit, db, "immune:ground")
+        )
 
         spikes_layers = sum(1 for hazard_id, _ in entries if int(hazard_id) == 1)
         toxic_spikes_layers = sum(1 for hazard_id, _ in entries if int(hazard_id) == 2)
@@ -4922,7 +5465,7 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
         hp_after_effects = current_hp
         modified = False
 
-        if spikes_layers > 0 and not is_flying and max_hp > 0:
+        if spikes_layers > 0 and not immune_spikes and max_hp > 0:
             if spikes_layers >= 3:
                 damage = max(1, max_hp // 4)
             elif spikes_layers == 2:
@@ -4935,7 +5478,7 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
                 unit_name = get_unit_display_name(unit, db)
                 publish_system_log_event(game.link, f"{unit_name} took {damage} damage from spikes", game_state, db)
 
-        if has_stealth_rock and max_hp > 0:
+        if has_stealth_rock and max_hp > 0 and not magic_guard:
             type_multiplier = get_type_multiplier("rock", list(unit_types))
             if type_multiplier > 0:
                 rock_damage = max(1, int((max_hp * type_multiplier) // 8))
@@ -4945,7 +5488,7 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
                     unit_name = get_unit_display_name(unit, db)
                     publish_system_log_event(game.link, f"{unit_name} took {rock_damage} damage from floating rocks", game_state, db)
 
-        if toxic_spikes_layers > 0 and not is_flying:
+        if toxic_spikes_layers > 0 and not immune_toxic_spikes:
             status_to_apply = "badly_poisoned" if toxic_spikes_layers >= 2 else "poison"
             applied = apply_status_effect(unit, status_to_apply, db)
             if applied:
@@ -4969,7 +5512,7 @@ def apply_end_of_round_entry_hazard_effects(game_id: int, current_turn: int, db:
                             db,
                         )
 
-        if has_sticky_web:
+        if has_sticky_web and not immune_sticky_web:
             apply_stat_change(unit, "speed", -1, current_turn, db)
             modified = True
 
@@ -5009,6 +5552,37 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
         int(unit.id): (int(unit.current_x), int(unit.current_y))
         for unit in fainted_units
     }
+
+    # Soul-Heart / Receiver react to faints before units leave play
+    living_before = (
+        db.query(GameUnit)
+        .filter(GameUnit.game_id == game_id, GameUnit.is_fainted.is_(False), GameUnit.current_hp > 0)
+        .all()
+    )
+    for fainted in fainted_units:
+        if game and game_state:
+            for msg in combat_abilities.process_any_faint(
+                fainted,
+                living_before,
+                db,
+                int(getattr(game_state, "current_turn", 0) or 0),
+                helpers={"apply_stat_change": apply_stat_change},
+            ):
+                publish_system_log_event(game.link, msg, game_state, db)
+        allies = [
+            u
+            for u in living_before
+            if getattr(u, "user_id", None) == getattr(fainted, "user_id", None)
+        ]
+        for msg in combat_abilities.process_receiver_on_ally_faint(
+            fainted,
+            allies,
+            db,
+            helpers={"set_unit_ability_id": set_unit_ability_id},
+        ):
+            if game and game_state:
+                publish_system_log_event(game.link, msg, game_state, db)
+
     for unit in fainted_units:
         if game:
             publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", game_state, db)
@@ -5189,6 +5763,9 @@ def advance_turn_if_player_has_no_actions(
         unit.starting_y = unit.current_y
 
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    end_turn_modified_unit_ids.update(
+        apply_end_of_turn_abilities_for_player(game, state, current_player_id, db)
+    )
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
@@ -5504,6 +6081,9 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     # Resolve end-of-turn status damage for the current player before advancing.
     current_player_id = state.players[state.current_turn % len(state.players)]
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    end_turn_modified_unit_ids.update(
+        apply_end_of_turn_abilities_for_player(game, state, current_player_id, db)
+    )
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
@@ -5521,6 +6101,10 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     ).all()
     for unit in current_player_units:
         unit.can_move = True
+        combat_abilities.update_hp_threshold_formes(unit, db)
+
+    # Stakeout: clear opposing just_switched_in flags at end of this player's turn
+    combat_abilities.clear_just_switched_in_for_opponents(game.id, current_player_id, db)
 
     playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
     if completed_now:
@@ -6390,6 +6974,66 @@ def place_unit(
     
     db.add(new_unit)
 
+    # Switch-in abilities (Intimidate, weather setters, Trace, Forecast)
+    if map_state is None:
+        map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+    combat_abilities.process_switch_in(
+        new_unit,
+        db,
+        game=game,
+        game_state=state,
+        map_state=map_state,
+        current_turn=int(getattr(state, "current_turn", 0) or 0) if state else 0,
+        helpers={
+            "apply_stat_change": apply_stat_change,
+            "publish_system_log_event": publish_system_log_event,
+            "get_unit_display_name": get_unit_display_name,
+            "set_unit_ability_id": set_unit_ability_id,
+            "WEATHER_TO_ID": WEATHER_TO_ID,
+            "TERRAIN_TO_ID": TERRAIN_TO_ID,
+            "get_unit_types": get_unit_types,
+            "get_type_multiplier": get_type_multiplier,
+            "get_unit_held_item": get_unit_held_item,
+            "resolve_item": resolve_item_record,
+        },
+    )
+    # Refresh stats after Intimidate / weather-tied modifiers / Slow Start
+    new_unit.current_stats = compute_effective_stats(new_unit, db)
+    db.add(new_unit)
+    try:
+        opponents = (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game.id,
+                GameUnit.user_id != user.id,
+                GameUnit.is_fainted.is_(False),
+            )
+            .all()
+        )
+    except Exception:
+        opponents = []
+    for opp in opponents:
+        opp.current_stats = compute_effective_stats(opp, db)
+        db.add(opp)
+    # Optional Forecast / Mimicry / Ice Face update for all units after weather/terrain setters
+    if map_state is not None:
+        try:
+            all_live = (
+                db.query(GameUnit)
+                .filter(GameUnit.game_id == game.id, GameUnit.is_fainted.is_(False))
+                .all()
+            )
+        except Exception:
+            all_live = []
+        for live in all_live:
+            if isinstance(map_state.weather_tiles, list):
+                wid = get_unit_weather_id(live, map_state.weather_tiles)
+                combat_abilities.update_forecast_types(live, wid, db)
+                combat_abilities.restore_ice_face_on_hail(live, wid, db)
+            if isinstance(getattr(map_state, "terrain_effect_tiles", None), list):
+                tid = get_unit_terrain_id(live, map_state.terrain_effect_tiles)
+                combat_abilities.update_mimicry_types(live, tid, db)
+
     # Step 2: Update player state
     player_state.cash_remaining -= unit_info.cost
     player_state.game_units.append(new_unit.id)
@@ -6679,6 +7323,43 @@ def end_turn(
 
     # Resolve end-of-turn status damage for the current player before advancing.
     end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+    eot_map_state = db.query(GameMapState).filter(GameMapState.game_id == game.id).first()
+    eot_weather_tiles = (
+        eot_map_state.weather_tiles
+        if eot_map_state and isinstance(eot_map_state.weather_tiles, list)
+        else None
+    )
+    eot_terrain_tiles = (
+        eot_map_state.terrain_effect_tiles
+        if eot_map_state and isinstance(getattr(eot_map_state, "terrain_effect_tiles", None), list)
+        else None
+    )
+    eot_units = (
+        db.query(GameUnit)
+        .filter(
+            GameUnit.game_id == game.id,
+            GameUnit.user_id == current_player_id,
+            GameUnit.is_fainted.is_(False),
+        )
+        .all()
+    )
+    end_turn_modified_unit_ids.update(
+        combat_abilities.process_end_of_turn_abilities(
+            eot_units,
+            db,
+            game=game,
+            game_state=state,
+            weather_tiles=eot_weather_tiles,
+            current_turn=int(state.current_turn or 0),
+            helpers={
+                "apply_stat_change": apply_stat_change,
+                "publish_system_log_event": publish_system_log_event,
+                "get_unit_display_name": get_unit_display_name,
+                "cure_status_effect": lambda u, d: cure_status_effect(u, "all", d),
+                "terrain_tiles": eot_terrain_tiles,
+            },
+        )
+    )
     should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
     if should_apply_round_weather:
         end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
@@ -6696,6 +7377,10 @@ def end_turn(
     ).all()
     for unit in current_player_units:
         unit.can_move = True
+        combat_abilities.update_hp_threshold_formes(unit, db)
+
+    # Stakeout: clear opposing just_switched_in flags at end of this player's turn
+    combat_abilities.clear_just_switched_in_for_opponents(game.id, current_player_id, db)
 
     playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
     if completed_now:
@@ -6802,6 +7487,22 @@ def execute_move(
     if not gu.can_move:
         raise HTTPException(status_code=400, detail="Unit is locked")
 
+    if combat_abilities.should_skip_turn_due_to_truant(gu, db):
+        loaf_msg = f"{get_unit_display_name(gu, db)} is loafing around!"
+        publish_system_log_event(game.link, loaf_msg, state, db)
+        gu.can_move = False
+        db.add(gu)
+        db.commit()
+        return {
+            "detail": "Move failed",
+            "message": loaf_msg,
+            "missed_target_ids": [],
+            "damage_results": [],
+            "removed_ids": [],
+            "turn_advanced": False,
+            "game_completed": False,
+        }
+
     # Enforce Encore: if unit is encored, it can only use the stored move id
     try:
         raw_state = gu.states if isinstance(gu.states, list) else []
@@ -6819,10 +7520,43 @@ def execute_move(
     except Exception:
         pass
 
+    # Gorilla Tactics: lock to first selected move
+    locked_move_id = combat_abilities.enforce_gorilla_tactics_lock(gu, move_id, db)
+    if locked_move_id is not None and locked_move_id != move_id:
+        mv = db.query(Move).filter(Move.id == locked_move_id).first()
+        mv_name = mv.name if mv else "its locked move"
+        raise HTTPException(status_code=400, detail=f"Gorilla Tactics prevents that move; must use {mv_name}")
+
     # Load move early so we can enforce torment (requires move.name)
     move = db.query(Move).filter(Move.id == move_id).first()
     if not move:
         raise HTTPException(status_code=404, detail="Move not found")
+
+    # Disable: blocked from using the disabled move
+    try:
+        gu_disable = normalize_states(gu.states)
+        if gu_disable and gu_disable[0] == "disable" and int(gu_disable[1]) > 0:
+            disabled_id = get_unit_flags(gu).get("disabled_move_id")
+            if disabled_id is not None and int(disabled_id) == int(move_id):
+                raise HTTPException(status_code=400, detail="That move is disabled!")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+
+    if combat_abilities.move_is_explosion_like(move) and combat_abilities.blocks_explosion(game.id, db):
+        damp_msg = "A damp Pokémon prevented the explosion!"
+        publish_system_log_event(game.link, damp_msg, state, db)
+        db.commit()
+        return {
+            "detail": "Move failed",
+            "message": damp_msg,
+            "missed_target_ids": [],
+            "damage_results": [],
+            "removed_ids": [],
+            "turn_advanced": False,
+            "game_completed": False,
+        }
 
     # Enforce Taunt and Torment: prevent using status moves while taunted,
     # and prevent using the same move twice in a row while tormented.
@@ -7008,6 +7742,26 @@ def execute_move(
             if last_attacker is not None and int(last_attacker.current_hp or 0) > 0:
                 targets = [last_attacker]
 
+    # Lightning Rod etc. may redirect Electric moves before accuracy / validation.
+    try:
+        redirect_pool = db.query(GameUnit).filter(GameUnit.game_id == game.id).all()
+    except Exception:
+        redirect_pool = []
+    if not is_field_targeting:
+        targets = combat_abilities.redirect_targets_for_move(move, gu, targets, redirect_pool, db)
+
+    # Pressure: extra PP cost against Pressure targets (after the base 1 PP spend).
+    if not is_field_targeting and targets:
+        extra_pp = combat_abilities.extra_pp_cost_against(targets, db)
+        if extra_pp > 0:
+            available = int(gu.move_pp[move_index] or 0)
+            if available > 0:
+                spent = min(extra_pp, available)
+                new_pp_list = gu.move_pp.copy()
+                new_pp_list[move_index] = max(0, available - spent)
+                gu.move_pp = new_pp_list
+                db.add(gu)
+
     move_failure = validate_move_execution(move, gu, targets, terrain_tiles, db)
     if move_failure:
         publish_system_log_event(game.link, move_failure, state, db)
@@ -7023,6 +7777,18 @@ def execute_move(
         }
 
     has_target_fixed_damage = move_has_target_fixed_damage_effect(move)
+
+    # Protean / Stance Change / Gulp Missile fire on move use (before damage or status resolution)
+    pre_move_type = resolve_move_type_for_execution(move, gu, terrain_tiles, db)
+    combat_abilities.process_protean(gu, str(pre_move_type).lower(), db)
+    combat_abilities.process_stance_change(gu, move, db)
+    if combat_abilities.maybe_catch_gulp_prey(gu, move, db):
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(gu, db)} caught prey with Gulp Missile!",
+            state,
+            db,
+        )
 
     # Build a mapping of player sides to any active screen states (reflect/light_screen)
     side_screen_states: dict[int, set[str]] = {}
@@ -7046,6 +7812,18 @@ def execute_move(
             except Exception:
                 t_state = []
 
+            if combat_abilities.blocks_sound_move(target, db) and bool(getattr(move, "sound_based", False)):
+                missed_target_ids.append(target.id)
+                continue
+
+            if combat_abilities.should_block_move_against(target, move, db) in {"good_as_gold", "wind_rider"}:
+                missed_target_ids.append(target.id)
+                continue
+
+            if combat_abilities.blocks_ball_bomb_move(target, move, db):
+                missed_target_ids.append(target.id)
+                continue
+
             tele_active = bool(t_state and t_state[0] == "telekinesis" and int(t_state[1]) > 0)
 
             # Telekinesis: Ground-type moves cannot hit the affected unit
@@ -7067,10 +7845,37 @@ def execute_move(
                 attacker_types=attacker_types,
                 target_types=get_unit_types(target, db),
                 target_ability_names=get_unit_ability_names(target, db),
+                db=db,
             ):
                 landed_targets.append(target)
             else:
                 missed_target_ids.append(target.id)
+
+    # Telepathy: immune to ally attacks
+    landed_targets = [
+        t
+        for t in landed_targets
+        if not (
+            getattr(t, "user_id", None) == getattr(gu, "user_id", None)
+            and combat_abilities.immune_to_ally_attacks(t, db)
+        )
+    ]
+
+    # Overcoat: powder moves fail against the defender
+    if landed_targets:
+        filtered = []
+        for t in landed_targets:
+            if combat_abilities.blocks_powder_move(t, move, db):
+                missed_target_ids.append(t.id)
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(t, db)} is unaffected by powder moves!",
+                    state,
+                    db,
+                )
+            else:
+                filtered.append(t)
+        landed_targets = filtered
 
     if missed_target_ids:
         missed_targets = [target for target in targets if target.id in missed_target_ids]
@@ -7083,7 +7888,14 @@ def execute_move(
             )
 
     targets_multiplier = 0.75 if len(landed_targets) >= 2 else 1
-    hit_count = get_move_hit_count(move, landed_target_count=max(1, len(landed_targets)))
+    hit_count = get_move_hit_count(
+        move,
+        landed_target_count=max(1, len(landed_targets)),
+        force_max=combat_abilities.force_max_multi_hit(gu, db),
+    )
+    parental_hits = combat_abilities.parental_bond_hit_count(gu, move, db)
+    if parental_hits:
+        hit_count = parental_hits
     scaling_hit_powers = get_scaling_hit_powers(move)
     separate_hit_accuracy = move_uses_separate_hit_accuracy(move)
     damage_results = []
@@ -7127,19 +7939,29 @@ def execute_move(
         attack_stat = "sp_attack" if is_special else "attack"
         defense_stat = "sp_defense" if is_special else "defense"
         move_crit_stage_bonus = 1 if move_has_high_crit_ratio(move) else 0
+        move_crit_stage_bonus += combat_abilities.crit_stage_bonus(gu, db)
         base_power = (move.power or 0) + resolve_power_add(move, gu)
-        attacker_types = gu.unit.types or []
-        stab = 1.5 if effective_move_type in attacker_types else 1
+        attacker_types = list(get_unit_types(gu, db))
+        stab = combat_abilities.get_stab_multiplier(gu, str(effective_move_type).lower(), attacker_types, db)
+        crit_mult = combat_abilities.crit_damage_multiplier(gu, db)
         attacker_weather_id = get_unit_weather_id(gu, weather_tiles)
+        if combat_abilities.weather_is_suppressed(game.id, db):
+            attacker_weather_id = 0
         weather_move_multiplier = resolve_weather_move_multiplier_for_move(move, effective_move_type, attacker_weather_id)
         ignore_target_stats = move_ignores_target_stat_changes(move)
         ignore_fairy = move_ignores_fairy_immunity(move)
+        mold_breaker = combat_abilities.should_ignore_target_ability(gu, db)
+        if combat_abilities.status_moves_ignore_target_ability(gu, move, db):
+            mold_breaker = True
+
+        gu.current_stats = compute_effective_stats(gu, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+        db.add(gu)
 
         for target in landed_targets:
             total_damage = 0
             critical_hit_landed = False
             target_is_special = is_special
-            target_makes_contact = bool(move.makes_contact)
+            target_makes_contact = combat_abilities.move_makes_contact(gu, move, db)
             if move_uses_best_offense(move):
                 target_is_special, target_makes_contact = resolve_shell_side_arm_mode(
                     move,
@@ -7151,8 +7973,70 @@ def execute_move(
                     db=db,
                     targets_multiplier=targets_multiplier,
                 )
+                # Long Reach still strips contact after Shell Side Arm resolution
+                if combat_abilities.ability_has_token(gu, db, "remove_contact_flag", "long_reach"):
+                    target_makes_contact = False
                 attack_stat = "sp_attack" if target_is_special else "attack"
                 defense_stat = "sp_defense" if target_is_special else "defense"
+
+            target_guaranteed_crit = guaranteed_crit or combat_abilities.guaranteed_crit_vs(
+                gu, target, db
+            )
+            before_hp = int(target.current_hp or 0)
+
+            if not mold_breaker and combat_abilities.blocks_sound_move(target, db) and bool(getattr(move, "sound_based", False)):
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                continue
+
+            if not mold_breaker and combat_abilities.should_block_move_against(target, move, db) in {"good_as_gold", "wind_rider"}:
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(target, db)} is protected by its Ability!",
+                    state,
+                    db,
+                )
+                continue
+
+            if not mold_breaker and combat_abilities.blocks_ball_bomb_move(target, move, db):
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(target, db)} is protected by Bulletproof!",
+                    state,
+                    db,
+                )
+                continue
+
+            if combat_abilities.move_type_nullified_by_weather(str(effective_move_type).lower(), attacker_weather_id):
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                publish_system_log_event(
+                    game.link,
+                    f"The {effective_move_type}-type attack fizzled out!",
+                    state,
+                    db,
+                )
+                continue
+
+            absorb = None if mold_breaker else combat_abilities.handle_type_absorb(target, effective_move_type, db)
+            if absorb and absorb.get("absorbed"):
+                raise_stat = absorb.get("raise_stat")
+                if raise_stat:
+                    try:
+                        stat_name, stages = raise_stat
+                        apply_stat_change(target, stat_name, int(stages), state.current_turn, db)
+                    except Exception:
+                        pass
+                msg = absorb.get("message") or ""
+                if msg:
+                    publish_system_log_event(game.link, msg, state, db)
+                target.current_stats = compute_effective_stats(target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+                db.add(target)
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                continue
+
+            target.current_stats = compute_effective_stats(target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+            db.add(target)
 
             power_multiplier = resolve_power_multiplier(
                 move,
@@ -7162,6 +8046,28 @@ def execute_move(
                 field_effect_tiles,
                 db,
                 weather_tiles=weather_tiles,
+            )
+            ability_power_mult = combat_abilities.attacker_power_multiplier(
+                gu,
+                move,
+                db,
+                weather_tiles=weather_tiles,
+                target=target,
+                is_last_move=(
+                    db.query(GameUnit)
+                    .filter(
+                        GameUnit.game_id == game.id,
+                        GameUnit.user_id == gu.user_id,
+                        GameUnit.can_move.is_(True),
+                        GameUnit.is_fainted.is_(False),
+                        GameUnit.id != gu.id,
+                    )
+                    .count()
+                    == 0
+                ),
+            )
+            ability_power_mult *= combat_abilities.field_move_type_power_multiplier(
+                game.id, str(effective_move_type).lower(), db
             )
             hit_powers = scaling_hit_powers or [base_power]
             hits_to_apply = len(hit_powers) if scaling_hit_powers else max(1, int(hit_count or 1))
@@ -7183,16 +8089,24 @@ def execute_move(
                         target,
                         special_tiles=special_tiles,
                         weather_tiles=weather_tiles,
-                        attacker_types=attacker_types,
+                        attacker_types=set(attacker_types),
                         target_types=get_unit_types(target, db),
                         target_ability_names=get_unit_ability_names(target, db),
+                        db=db,
                     ):
                         break
 
-                power = int((hit_powers[hit_index] if hit_index < len(hit_powers) else base_power) * power_multiplier)
+                power = int(
+                    (hit_powers[hit_index] if hit_index < len(hit_powers) else base_power)
+                    * power_multiplier
+                    * ability_power_mult
+                    * (combat_abilities.parental_bond_hit_power_mult(hit_index) if parental_hits else 1.0)
+                )
                 power = max(1, power)
                 attack = (gu.current_stats or {}).get(attack_stat, 0) or 0
-                if ignore_target_stats:
+                if combat_abilities.ignores_attacker_stat_boosts_when_defending(target, db):
+                    attack = get_unboosted_battle_stat(gu, attack_stat, db)
+                if ignore_target_stats or combat_abilities.ignores_target_stat_boosts_when_attacking(gu, db):
                     defense = get_unboosted_battle_stat(target, defense_stat, db)
                 else:
                     defense = (target.current_stats or {}).get(defense_stat, 1) or 1
@@ -7226,6 +8140,8 @@ def execute_move(
                 if target_state_tmp and target_state_tmp[0] == "power_trick" and int(target_state_tmp[1]) > 0:
                     defense = (target.current_stats or {}).get(attack_stat, defense)
                 target_weather_id = get_unit_weather_id(target, weather_tiles)
+                if combat_abilities.weather_is_suppressed(game.id, db):
+                    target_weather_id = 0
                 weather_defense_multiplier = get_weather_defense_multiplier(target, defense_stat, target_weather_id, db)
                 grass_defense_multiplier = get_tile_defense_multiplier(
                     special_tiles,
@@ -7239,7 +8155,7 @@ def execute_move(
                 random_factor = random.randint(85, 100) / 100
                 # Apply Laser Focus: force first hit to be a critical and consume the state
                 if laser_focus_active and first_hit:
-                    critical = 1.5
+                    critical = crit_mult
                     critical_hit_landed = True
                     # consume laser_focus so subsequent hits are not critical
                     try:
@@ -7248,20 +8164,42 @@ def execute_move(
                     except Exception:
                         pass
                     laser_focus_active = False
-                elif guaranteed_crit:
-                    critical = 1.5
+                elif target_guaranteed_crit:
+                    critical = crit_mult
                     critical_hit_landed = True
                 else:
-                    critical = 1.5 if can_critical_hit and attempt_critical_hit(gu, move_crit_stage_bonus) else 1
+                    critical = crit_mult if can_critical_hit and attempt_critical_hit(gu, move_crit_stage_bonus) else 1
                     if critical > 1:
                         critical_hit_landed = True
+                if not mold_breaker and combat_abilities.blocks_critical_hit(target, db):
+                    critical = 1
+                    critical_hit_landed = False
                 # Pass the target unit so state effects like Foresight/Mind Reader
                 # can bypass type immunities when appropriate.
+                defender_types_for_mult = list(get_unit_types(target, db))
+                if combat_abilities.scrappy_allows_hit(gu, str(effective_move_type).lower(), defender_types_for_mult, db):
+                    defender_types_for_mult = [t for t in defender_types_for_mult if str(t).lower() != "ghost"]
                 type_multiplier = get_type_multiplier(
                     effective_move_type,
-                    (getattr(target.unit, "types", None) or [], target, db),
+                    (defender_types_for_mult, target, db),
                     ignore_fairy_immunity=ignore_fairy,
                 )
+                if not mold_breaker:
+                    type_multiplier = combat_abilities.modify_type_multiplier(
+                        target, effective_move_type, type_multiplier, db
+                    )
+                type_multiplier = combat_abilities.apply_strong_winds_type_modifier(
+                    target,
+                    type_multiplier,
+                    attacker_weather_id,
+                    db,
+                    get_types=get_unit_types,
+                )
+                type_multiplier = combat_abilities.tinted_lens_multiplier(gu, type_multiplier, db)
+                if not mold_breaker:
+                    type_multiplier = combat_abilities.tera_shell_type_multiplier(
+                        target, type_multiplier, db, damaging=True
+                    )
                 # Tar Shot: doubles effectiveness of Fire-type moves against affected target
                 try:
                     target_state_tmp = normalize_states(target.states)
@@ -7269,25 +8207,61 @@ def execute_move(
                     target_state_tmp = []
                 if target_state_tmp and target_state_tmp[0] == "tar_shot" and int(target_state_tmp[1]) > 0 and str((move.type or "")).lower() == "fire":
                     type_multiplier = type_multiplier * 2
+                neuroforce_mult = combat_abilities.neuroforce_power_multiplier(gu, type_multiplier, db)
+                charge_mult = combat_abilities.electric_move_charge_multiplier(
+                    gu, str(effective_move_type).lower(), db
+                )
                 base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
-                damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier)
+                damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier * neuroforce_mult * charge_mult)
+                if not mold_breaker:
+                    damage = int(
+                        damage
+                        * combat_abilities.defender_damage_multiplier(
+                            target,
+                            move,
+                            effective_move_type,
+                            type_multiplier,
+                            db,
+                            makes_contact=target_makes_contact,
+                        )
+                    )
                 if unit_has_glaive_rush(target):
                     damage *= 2
                 # Apply side-wide screen reductions: Reflect halves physical damage,
                 # Light Screen halves special damage for affected player's side.
-                try:
-                    states_on_side = side_screen_states.get(target.user_id, set())
-                except Exception:
-                    states_on_side = set()
+                # Infiltrator ignores screens.
+                if not combat_abilities.ignores_screens(gu, db):
+                    try:
+                        states_on_side = side_screen_states.get(target.user_id, set())
+                    except Exception:
+                        states_on_side = set()
 
-                # Aurora Veil provides both effects; check it first
-                if "aurora_veil" in states_on_side:
-                    damage = max(0, int(damage // 2))
-                else:
-                    if "reflect" in states_on_side and not target_is_special:
+                    # Aurora Veil provides both effects; check it first
+                    if "aurora_veil" in states_on_side:
                         damage = max(0, int(damage // 2))
-                    if "light_screen" in states_on_side and target_is_special:
-                        damage = max(0, int(damage // 2))
+                    else:
+                        if "reflect" in states_on_side and not target_is_special:
+                            damage = max(0, int(damage // 2))
+                        if "light_screen" in states_on_side and target_is_special:
+                            damage = max(0, int(damage // 2))
+
+                was_full = False
+                max_hp = int((target.current_stats or {}).get("hp", 0) or 0)
+                if max_hp > 0 and int(target.current_hp or 0) >= max_hp:
+                    was_full = True
+                if not mold_breaker:
+                    damage = combat_abilities.apply_sturdy(
+                        target, damage, was_full, move_is_instant_ko(move), db
+                    )
+                    if damage > 0:
+                        damage, disguise_msgs = combat_abilities.apply_disguise(target, damage, db)
+                        for disguise_msg in disguise_msgs:
+                            publish_system_log_event(game.link, disguise_msg, state, db)
+                        damage, ice_msgs = combat_abilities.apply_ice_face(
+                            target, damage, is_physical=not target_is_special, db=db
+                        )
+                        for ice_msg in ice_msgs:
+                            publish_system_log_event(game.link, ice_msg, state, db)
 
                 target.current_hp = max(0, (target.current_hp or 0) - damage)
                 total_damage += damage
@@ -7298,7 +8272,30 @@ def execute_move(
                 clear_terrain_at_position(map_state, int(target.current_x), int(target.current_y), db)
 
             db.add(target)
+            combat_abilities.clear_just_switched_in(target, db)
+            combat_abilities.update_hp_threshold_formes(target, db)
             if target.current_hp <= 0:
+                # Innards Out: damage attacker by HP lost on the KO hit
+                hp_lost = max(0, before_hp - max(0, int(target.current_hp or 0)))
+                if before_hp > 0:
+                    hp_lost = before_hp  # fainted: full pre-faint HP lost to this attack sequence
+                for innards_msg in combat_abilities.process_innards_out(
+                    target, gu, hp_lost=hp_lost, db=db
+                ):
+                    publish_system_log_event(game.link, innards_msg, state, db)
+                # Aftermath on contact KO
+                for aftermath_msg in combat_abilities.process_aftermath(
+                    target, gu, makes_contact=target_makes_contact, db=db
+                ):
+                    publish_system_log_event(game.link, aftermath_msg, state, db)
+                for moxie_msg in combat_abilities.process_on_ko(
+                    gu,
+                    target,
+                    db,
+                    state.current_turn,
+                    helpers={"apply_stat_change": apply_stat_change},
+                ):
+                    publish_system_log_event(game.link, moxie_msg, state, db)
                 # Check if the fainted target had Destiny Bond active
                 s = normalize_states(target.states)
                 if s and s[0] == "destiny_bond" and int(s[1]) > 0:
@@ -7319,9 +8316,116 @@ def execute_move(
                     state,
                     db,
                 )
+                combat_abilities.clear_illusion_on_damage(target, total_damage, db)
+                if critical_hit_landed:
+                    for ap_msg in combat_abilities.process_anger_point(
+                        target,
+                        was_crit=True,
+                        db=db,
+                        current_turn=state.current_turn,
+                        apply_stat_change=apply_stat_change,
+                    ):
+                        publish_system_log_event(game.link, ap_msg, state, db)
                 if target.current_hp <= 0 and target.id not in faint_logged_ids:
                     publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} fainted!", state, db)
                     faint_logged_ids.add(target.id)
+
+                if not mold_breaker:
+                    for contact_msg in combat_abilities.process_contact_abilities(
+                        gu,
+                        target,
+                        makes_contact=target_makes_contact,
+                        damage=total_damage,
+                        db=db,
+                        game=game,
+                        game_state=state,
+                        helpers={
+                            "apply_status_effect": apply_status_effect,
+                            "apply_stat_change": apply_stat_change,
+                            "apply_state_effect": apply_state_effect,
+                            "current_turn": state.current_turn,
+                            "get_unit_held_item": get_unit_held_item,
+                            "set_unit_held_item": set_unit_held_item,
+                        },
+                    ):
+                        publish_system_log_event(game.link, contact_msg, state, db)
+                    for magician_msg in combat_abilities.process_magician_steal(
+                        gu,
+                        target,
+                        total_damage,
+                        db,
+                        helpers={
+                            "get_unit_held_item": get_unit_held_item,
+                            "set_unit_held_item": set_unit_held_item,
+                        },
+                    ):
+                        publish_system_log_event(game.link, magician_msg, state, db)
+                    for atk_contact_msg in combat_abilities.process_attacker_contact_on_hit(
+                        gu,
+                        target,
+                        makes_contact=target_makes_contact,
+                        damage=total_damage,
+                        db=db,
+                        game=game,
+                        game_state=state,
+                        helpers={"apply_status_effect": apply_status_effect},
+                    ):
+                        publish_system_log_event(game.link, atk_contact_msg, state, db)
+                    for hit_msg in combat_abilities.process_defender_hit_reactions(
+                        gu,
+                        target,
+                        move,
+                        damage=total_damage,
+                        move_type=str(effective_move_type).lower(),
+                        is_physical=not target_is_special,
+                        was_crit=critical_hit_landed,
+                        db=db,
+                        current_turn=state.current_turn,
+                        helpers={
+                            "apply_stat_change": apply_stat_change,
+                            "apply_state_effect": apply_state_effect,
+                            "apply_status_effect": apply_status_effect,
+                            "map_state": map_state,
+                            "set_weather_on_map": combat_abilities.set_weather_on_map,
+                            "place_field_hazard": place_ability_field_hazard,
+                        },
+                        before_hp=before_hp,
+                    ):
+                        publish_system_log_event(game.link, hit_msg, state, db)
+                    for toxic_msg in combat_abilities.process_toxic_chain(
+                        gu,
+                        target,
+                        damage=total_damage,
+                        db=db,
+                        helpers={"apply_status_effect": apply_status_effect},
+                    ):
+                        publish_system_log_event(game.link, toxic_msg, state, db)
+                    for gulp_msg in combat_abilities.process_gulp_missile_spit(
+                        target, gu, total_damage, db
+                    ):
+                        publish_system_log_event(game.link, gulp_msg, state, db)
+                    for ee_msg in combat_abilities.process_emergency_exit_or_wimp_out(
+                        target, before_hp=before_hp, db=db
+                    ):
+                        publish_system_log_event(game.link, ee_msg, state, db)
+                if combat_abilities.process_stench_flinch(gu, target, total_damage, db):
+                    for sf_msg in combat_abilities.process_steadfast(
+                        target, db, state.current_turn, apply_stat_change
+                    ):
+                        publish_system_log_event(game.link, sf_msg, state, db)
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)} flinched!",
+                        state,
+                        db,
+                    )
+                if not mold_breaker and combat_abilities.process_color_change(target, effective_move_type, db):
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)}'s Color Change made it {effective_move_type}-type!",
+                        state,
+                        db,
+                    )
 
     # Process move effects (stat changes, status conditions, etc.)
     # Use targets list for target effects, even if empty
@@ -7338,6 +8442,26 @@ def execute_move(
         game=game,
         game_state=state,
     )
+
+    # Dancer: copy dance raise_stat effects onto living Dancer units (best-effort)
+    if combat_abilities.is_dance_move(move):
+        try:
+            all_live = (
+                db.query(GameUnit)
+                .filter(GameUnit.game_id == game.id, GameUnit.is_fainted.is_(False))
+                .all()
+            )
+        except Exception:
+            all_live = []
+        for dancer_msg in combat_abilities.process_dancer_copy(
+            move,
+            gu,
+            all_live,
+            db,
+            state.current_turn,
+            helpers={"apply_stat_change": apply_stat_change},
+        ):
+            publish_system_log_event(game.link, dancer_msg, state, db)
 
     # Capture any KOs caused by non-damage effects (e.g., instant_ko).
     post_effect_units = [gu] + targets
@@ -7458,6 +8582,32 @@ def execute_move(
 
         # Resolve end-of-turn status damage for the current player before advancing.
         end_turn_modified_unit_ids = set(apply_end_of_turn_status_damage(current_player_id, game.id, db))
+        eot_units = (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game.id,
+                GameUnit.user_id == current_player_id,
+                GameUnit.is_fainted.is_(False),
+            )
+            .all()
+        )
+        end_turn_modified_unit_ids.update(
+            combat_abilities.process_end_of_turn_abilities(
+                eot_units,
+                db,
+                game=game,
+                game_state=state,
+                weather_tiles=weather_tiles,
+                current_turn=int(state.current_turn or 0),
+                helpers={
+                    "apply_stat_change": apply_stat_change,
+                    "publish_system_log_event": publish_system_log_event,
+                    "get_unit_display_name": get_unit_display_name,
+                    "cure_status_effect": lambda u, d: cure_status_effect(u, "all", d),
+                    "terrain_tiles": terrain_tiles,
+                },
+            )
+        )
         should_apply_round_weather = ((state.current_turn + 1) % len(state.players)) == 0
         if should_apply_round_weather:
             end_turn_modified_unit_ids.update(apply_end_of_round_weather_damage(game.id, db))
@@ -8029,6 +9179,18 @@ def move_unit(
         raise
     except Exception:
         pass
+
+    # Arena Trap / Shadow Tag / Magnet Pull: cannot flee while adjacent to a trapper
+    # (moving to a different tile). Staying put / moving onto the trapper's tile is fine
+    # only if still adjacent wouldn't apply — any tile change counts as fleeing.
+    if (int(gu.current_x), int(gu.current_y)) != (x, y):
+        if combat_abilities.is_trapped_by_adjacent_opponent(
+            gu, db, get_types=get_unit_types
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="This unit cannot flee due to an opposing Ability",
+            )
 
     map_obj = db.query(Map).filter_by(id=game.map_id).first()
     if x < 0 or y < 0 or x >= map_obj.width or y >= map_obj.height:

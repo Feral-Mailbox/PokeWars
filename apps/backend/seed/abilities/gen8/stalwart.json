@@ -3,5 +3,8 @@
   "name": "Stalwart",
   "slug": "stalwart",
   "description": "The Pokémon ignores the effects of Abilities and moves that draw in moves.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "ignore_redirect"
+  ]
 }

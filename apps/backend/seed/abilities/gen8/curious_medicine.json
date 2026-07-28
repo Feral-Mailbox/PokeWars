@@ -3,5 +3,8 @@
   "name": "Curious Medicine",
   "slug": "curious_medicine",
   "description": "When the Pokémon enters a battle, it removes all stat changes from its allies.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_switch_in:allies:clear_stat_changes"
+  ]
 }

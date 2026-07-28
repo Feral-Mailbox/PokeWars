@@ -6,6 +6,7 @@ import { isStaff } from '../types/user';
 import type { User } from '../types/user';
 import logo from '../assets/logo.svg';
 import InboxDropdown from './InboxDropdown';
+import AnnouncementsDropdown from './AnnouncementsDropdown';
 
 const Navbar = () => {
   const { user, setUser, authPrompt, clearAuthPrompt } = useAuth();
@@ -146,6 +147,7 @@ const Navbar = () => {
         </span>
 
         {user ? <InboxDropdown /> : null}
+        {user ? <AnnouncementsDropdown /> : null}
 
         {/* Games dropdown */}
         <div

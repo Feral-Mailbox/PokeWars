@@ -3,5 +3,8 @@
   "name": "Pure Power",
   "slug": "pure_power",
   "description": "Doubles the power of the Pokémon's physical moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_move_category:physical:self:boost_power:2"
+  ]
 }

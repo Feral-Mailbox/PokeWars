@@ -3,5 +3,8 @@
   "name": "Hydration",
   "slug": "hydration",
   "description": "Cures the Pokémon's status conditions at the end of every turn in rain.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_weather:rain:on_turn_end:self:cure_status"
+  ]
 }

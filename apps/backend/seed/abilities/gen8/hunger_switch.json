@@ -3,5 +3,8 @@
   "name": "Hunger Switch",
   "slug": "hunger_switch",
   "description": "The Pokémon changes its form, alternating between its Full Belly Mode and Hangry Mode at the end of every turn.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_turn_end:toggle_forme:full_belly_hangry"
+  ]
 }

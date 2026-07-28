@@ -3,5 +3,8 @@
   "name": "Liquid Ooze",
   "slug": "liquid_ooze",
   "description": "The strong stench of the Pokémon's oozed liquid damages attackers that use HP-draining moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_drained:attacker:damage_instead_of_heal"
+  ]
 }

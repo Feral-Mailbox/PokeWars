@@ -3,5 +3,10 @@
   "name": "Infiltrator",
   "slug": "infiltrator",
   "description": "When using its moves, the Pokémon ignores the effects of targets' Light Screen, Reflect, Aurora Veil, Safeguard, and substitutes.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "ignore_screens",
+    "ignore_safeguard",
+    "ignore_substitute"
+  ]
 }

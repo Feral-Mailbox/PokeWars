@@ -3,5 +3,9 @@
   "name": "Immunity",
   "slug": "immunity",
   "description": "The Pokémon cannot be poisoned or badly poisoned.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_status:poison",
+    "immune_status:badly_poison"
+  ]
 }

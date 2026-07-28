@@ -3,5 +3,8 @@
   "name": "Wonder Guard",
   "slug": "wonder_guard",
   "description": "Its mysterious power only lets supereffective moves hit the Pokémon.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "only_super_effective_hits"
+  ]
 }

@@ -3,5 +3,10 @@
   "name": "Sand Force",
   "slug": "sand_force",
   "description": "Boosts the power of the Pokémon's Rock-, Ground-, and Steel-type moves by 30% in a sandstorm.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_weather:sandstorm:on_move_type:rock:self:boost_power:1.3",
+    "on_weather:sandstorm:on_move_type:ground:self:boost_power:1.3",
+    "on_weather:sandstorm:on_move_type:steel:self:boost_power:1.3"
+  ]
 }

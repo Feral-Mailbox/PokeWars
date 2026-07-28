@@ -3,5 +3,9 @@
   "name": "Flower Veil",
   "slug": "flower_veil",
   "description": "Grass-type allies are immune to status conditions and cannot have their stats lowered.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "grass_allies:immune_status:all",
+    "grass_allies:immune_stat_drop"
+  ]
 }

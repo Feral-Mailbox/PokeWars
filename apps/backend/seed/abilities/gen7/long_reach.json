@@ -3,5 +3,8 @@
   "name": "Long Reach",
   "slug": "long_reach",
   "description": "None of the moves used by the Pokémon are considered contact moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "remove_contact_flag"
+  ]
 }

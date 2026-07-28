@@ -3,5 +3,8 @@
   "name": "Stakeout",
   "slug": "stakeout",
   "description": "Doubles the damage dealt to a target that has just switched into battle.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_target_switched_in:self:boost_power:2"
+  ]
 }

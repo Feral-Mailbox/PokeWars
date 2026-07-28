@@ -3,5 +3,8 @@
   "name": "Zero to Hero",
   "slug": "zero_to_hero",
   "description": "The Pokémon changes into its Hero Form when it switches out of battle.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_out:change_forme:hero"
+  ]
 }

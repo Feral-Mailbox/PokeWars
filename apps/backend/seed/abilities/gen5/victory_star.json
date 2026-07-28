@@ -3,5 +3,9 @@
   "name": "Victory Star",
   "slug": "victory_star",
   "description": "Boosts the accuracy of the Pokémon and its allies.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "self:boost_accuracy:1.1",
+    "allies:boost_accuracy:1.1"
+  ]
 }

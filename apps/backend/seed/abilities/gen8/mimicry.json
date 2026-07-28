@@ -3,5 +3,8 @@
   "name": "Mimicry",
   "slug": "mimicry",
   "description": "The Pokémon's type changes depending on the terrain.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_terrain:change_type:terrain"
+  ]
 }

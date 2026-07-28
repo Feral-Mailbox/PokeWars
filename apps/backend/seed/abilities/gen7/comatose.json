@@ -3,5 +3,10 @@
   "name": "Comatose",
   "slug": "comatose",
   "description": "The Pokémon is always drowsing and will never wake up. It can attack while in its sleeping state.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "permanent_status:sleep",
+    "can_act_while_asleep",
+    "immune_status:all_other"
+  ]
 }

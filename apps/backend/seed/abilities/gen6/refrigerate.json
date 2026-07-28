@@ -3,5 +3,9 @@
   "name": "Refrigerate",
   "slug": "refrigerate",
   "description": "The Pokémon's Normal-type moves become Ice-type moves and their power is boosted by 20%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "convert_move_type:normal:to:ice",
+    "on_converted_type:self:boost_power:1.2"
+  ]
 }

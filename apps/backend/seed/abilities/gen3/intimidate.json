@@ -3,5 +3,8 @@
   "name": "Intimidate",
   "slug": "intimidate",
   "description": "When the Pokémon enters a battle, it lowers the Attack stats of opponents by 1 stage.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_switch_in:opponents:lower_stat:attack:1"
+  ]
 }

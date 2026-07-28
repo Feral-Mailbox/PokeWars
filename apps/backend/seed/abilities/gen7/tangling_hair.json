@@ -3,5 +3,8 @@
   "name": "Tangling Hair",
   "slug": "tangling_hair",
   "description": "Contact with the Pokémon lowers the attacker's Speed stat.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_contact:attacker:lower_stat:speed:1"
+  ]
 }

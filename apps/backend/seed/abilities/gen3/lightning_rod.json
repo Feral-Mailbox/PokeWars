@@ -3,5 +3,10 @@
   "name": "Lightning Rod",
   "slug": "lightning_rod",
   "description": "The Pokémon draws in all Electric-type moves. These moves do not work on the Pokémon. Instead, they boost its Sp. Atk stat by 1 stage.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "redirect:electric",
+    "immune:electric",
+    "on_hit:electric:self:raise_stat:special_attack:1"
+  ]
 }

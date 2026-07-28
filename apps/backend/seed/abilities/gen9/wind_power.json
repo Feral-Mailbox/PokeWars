@@ -3,5 +3,8 @@
   "name": "Wind Power",
   "slug": "wind_power",
   "description": "The Pokémon becomes charged when it is hit by a wind move, boosting the power of the next Electric-type move the Pokémon uses.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_hit_category:wind:self:apply_state:charge"
+  ]
 }

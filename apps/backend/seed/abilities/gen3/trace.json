@@ -3,5 +3,8 @@
   "name": "Trace",
   "slug": "trace",
   "description": "When the Pokémon enters a battle, it changes its Ability to match that of an opponent.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_switch_in:self:copy_ability:opponent"
+  ]
 }

@@ -77,6 +77,9 @@ export default function AdminPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
 
   const loadQueue = useCallback(async () => {
     const res = await secureFetch("/api/moderation/queue");
@@ -155,6 +158,32 @@ export default function AdminPage() {
     setStatusMessage("Action completed.");
   };
 
+  const publishAnnouncement = async () => {
+    setAnnouncementBusy(true);
+    setStatusMessage(null);
+    try {
+      const res = await secureFetch("/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: announcementTitle.trim(),
+          message: announcementMessage.trim(),
+        }),
+      });
+      if (!res.ok) {
+        setStatusMessage(await readError(res));
+        return;
+      }
+      setAnnouncementTitle("");
+      setAnnouncementMessage("");
+      setStatusMessage("Announcement published to all players.");
+    } catch {
+      setStatusMessage("Could not publish announcement.");
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
   if (!authLoading && (!user || !isStaff(user) || forbidden)) {
     return <NotFound />;
   }
@@ -181,6 +210,49 @@ export default function AdminPage() {
           {statusMessage}
         </div>
       )}
+
+      {isAdmin(user) ? (
+        <section className="mb-6 rounded-lg border border-slate-700 bg-slate-900/80 p-4">
+          <h2 className="text-lg font-semibold mb-1">Player broadcast</h2>
+          <p className="mb-3 text-sm text-slate-400">
+            Post an update or event notice to every player. Only admins can publish.
+          </p>
+          <div className="grid gap-3">
+            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Title
+              <input
+                className="mt-1 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white"
+                value={announcementTitle}
+                onChange={(e) => setAnnouncementTitle(e.target.value)}
+                maxLength={120}
+                placeholder="Patch notes, weekend event, etc."
+              />
+            </label>
+            <label className="block text-xs font-medium uppercase tracking-wide text-slate-400">
+              Message
+              <textarea
+                className="mt-1 min-h-28 w-full rounded border border-slate-600 bg-slate-950 px-3 py-2 text-sm text-white"
+                value={announcementMessage}
+                onChange={(e) => setAnnouncementMessage(e.target.value)}
+                maxLength={4000}
+                placeholder="Full announcement text"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={
+                announcementBusy ||
+                !announcementTitle.trim() ||
+                !announcementMessage.trim()
+              }
+              onClick={() => void publishAnnouncement()}
+              className="w-fit rounded bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {announcementBusy ? "Publishing…" : "Publish announcement"}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="rounded-lg border border-slate-700 bg-slate-900/80 p-4">

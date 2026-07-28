@@ -3,5 +3,8 @@
   "name": "Analytic",
   "slug": "analytic",
   "description": "Boosts the power of the Pokémon's moves by 30% when the Pokémon is the last to move that turn.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_move_last:self:boost_power:1.3"
+  ]
 }

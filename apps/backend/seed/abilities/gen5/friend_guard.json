@@ -3,5 +3,8 @@
   "name": "Friend Guard",
   "slug": "friend_guard",
   "description": "Reduces the damage allies take by 25%.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "allies:resist_damage:0.75"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Super Luck",
   "slug": "super_luck",
   "description": "The Pokémon has a 1-stage Critical-Hit Ratio Boost.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "self:raise_stat:crit:1"
+  ]
 }

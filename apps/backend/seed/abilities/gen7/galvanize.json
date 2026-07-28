@@ -3,5 +3,9 @@
   "name": "Galvanize",
   "slug": "galvanize",
   "description": "Normal-type moves become Electric-type moves. The power of those moves is boosted a little.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "convert_move_type:normal:to:electric",
+    "on_converted_type:self:boost_power:1.2"
+  ]
 }

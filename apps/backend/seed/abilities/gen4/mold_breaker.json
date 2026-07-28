@@ -3,5 +3,8 @@
   "name": "Mold Breaker",
   "slug": "mold_breaker",
   "description": "The Pokémon's moves are unaffected by the Ability of the target (with certain exceptions).",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "ignore_target_ability"
+  ]
 }

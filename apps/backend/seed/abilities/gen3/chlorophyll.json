@@ -3,5 +3,8 @@
   "name": "Chlorophyll",
   "slug": "chlorophyll",
   "description": "Doubles the Pokémon's Speed stat in harsh sunlight.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_weather:sun:self:boost_stat_mult:speed:2"
+  ]
 }

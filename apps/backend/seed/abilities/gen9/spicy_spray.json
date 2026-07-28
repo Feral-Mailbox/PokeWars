@@ -3,5 +3,8 @@
   "name": "Spicy Spray",
   "slug": "spicy_spray",
   "description": "When the Pokémon takes damage from a move, it burns the attacker.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_damage_taken:attacker:status:burn"
+  ]
 }

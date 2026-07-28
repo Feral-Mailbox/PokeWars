@@ -3,5 +3,9 @@
   "name": "Gulp Missile",
   "slug": "gulp_missile",
   "description": "When the Pokémon uses Surf or Dive, it will come back with prey. When it takes damage, it will spit out the prey to attack.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_surf_or_dive:catch_prey",
+    "on_damage_taken:spit_prey"
+  ]
 }

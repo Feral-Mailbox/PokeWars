@@ -3,5 +3,11 @@
   "name": "Levitate",
   "slug": "levitate",
   "description": "The Pokémon floats off the ground, making it immune to Ground-type moves, as well as the Spikes, Toxic Spikes, and Sticky Web statuses.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune:ground",
+    "immune_hazard:spikes",
+    "immune_hazard:toxic_spikes",
+    "immune_hazard:sticky_web"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Steelworker",
   "slug": "steelworker",
   "description": "Powers up Steel-type moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_move_type:steel:self:boost_power:1.5"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Battle Armor",
   "slug": "battle_armor",
   "description": "Attacks landed on the Pokémon will never be critical hits.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_crit"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Hyper Cutter",
   "slug": "hyper_cutter",
   "description": "The Pokémon's Attack stat cannot be lowered by other Pokémon's moves or Abilities.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_stat_drop:attack"
+  ]
 }

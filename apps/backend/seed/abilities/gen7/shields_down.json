@@ -3,5 +3,9 @@
   "name": "Shields Down",
   "slug": "shields_down",
   "description": "When its HP drops to half or less, the Pokémon's shell breaks and it becomes aggressive.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_below:50:change_forme:core",
+    "on_hp_above:50:change_forme:meteor"
+  ]
 }

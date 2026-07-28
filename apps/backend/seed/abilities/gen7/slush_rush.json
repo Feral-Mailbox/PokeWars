@@ -3,5 +3,8 @@
   "name": "Slush Rush",
   "slug": "slush_rush",
   "description": "Doubles the Pokémon's Speed stat in snow.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_weather:hail:self:boost_stat_mult:speed:2"
+  ]
 }

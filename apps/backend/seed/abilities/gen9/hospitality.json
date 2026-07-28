@@ -3,5 +3,8 @@
   "name": "Hospitality",
   "slug": "hospitality",
   "description": "When the Pokémon enters a battle, it restores 1/4 of its ally's max HP.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_in:ally:heal_fraction:4"
+  ]
 }

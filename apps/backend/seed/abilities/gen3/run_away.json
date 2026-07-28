@@ -3,5 +3,8 @@
   "name": "Run Away",
   "slug": "run_away",
   "description": "Enables a sure getaway from wild Pokémon.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "guaranteed_flee"
+  ]
 }

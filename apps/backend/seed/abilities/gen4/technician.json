@@ -3,5 +3,8 @@
   "name": "Technician",
   "slug": "technician",
   "description": "Boosts the power of the Pokémon's moves by 50% if their power is 60 or less.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_move_power_at_most:60:self:boost_power:1.5"
+  ]
 }

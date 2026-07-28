@@ -3,5 +3,8 @@
   "name": "RKS System",
   "slug": "rks_system",
   "description": "Changes the Pokémon's type to match the memory disc it holds.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "change_type:held_memory"
+  ]
 }

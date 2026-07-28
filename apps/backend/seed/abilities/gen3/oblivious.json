@@ -3,5 +3,10 @@
   "name": "Oblivious",
   "slug": "oblivious",
   "description": "The Pokémon cannot gain the Infatuated or Taunted statuses and is unaffected by Intimidate.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_status:infatuation",
+    "immune_status:taunt",
+    "immune_intimidate"
+  ]
 }

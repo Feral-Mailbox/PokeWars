@@ -3,5 +3,9 @@
   "name": "Illuminate",
   "slug": "illuminate",
   "description": "The Pokémon ignores changes to targets' evasiveness and its accuracy cannot be lowered.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "ignore_target_evasion",
+    "immune_stat_drop:accuracy"
+  ]
 }

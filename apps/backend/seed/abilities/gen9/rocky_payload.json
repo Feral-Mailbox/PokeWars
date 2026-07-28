@@ -3,5 +3,8 @@
   "name": "Rocky Payload",
   "slug": "rocky_payload",
   "description": "Powers up Rock-type moves.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_move_type:rock:self:boost_power:1.5"
+  ]
 }

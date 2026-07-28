@@ -3,5 +3,8 @@
   "name": "Color Change",
   "slug": "color_change",
   "description": "The Pokémon's type becomes the type of the move used on it.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_hit:self:change_type:move_type"
+  ]
 }

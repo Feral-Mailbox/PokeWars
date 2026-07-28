@@ -3,5 +3,8 @@
   "name": "Dark Aura",
   "slug": "dark_aura",
   "description": "Powers up the Dark-type moves of all Pokémon on the field.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "field:on_move_type:dark:boost_power:1.33"
+  ]
 }

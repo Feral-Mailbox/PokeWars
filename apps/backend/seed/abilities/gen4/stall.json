@@ -3,5 +3,8 @@
   "name": "Stall",
   "slug": "stall",
   "description": "The Pokémon's moves go last among moves of the same priority.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "force_last_among_priority"
+  ]
 }

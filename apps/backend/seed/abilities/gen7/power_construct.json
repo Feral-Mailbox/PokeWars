@@ -3,5 +3,8 @@
   "name": "Power Construct",
   "slug": "power_construct",
   "description": "Cells gather to aid the Pokémon when its HP drops to half or less, causing it to change into its Complete Forme.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_below:50:change_forme:complete"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Armor Tail",
   "slug": "armor_tail",
   "description": "Opponents are unable to use priority moves against the Pokémon or its allies.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "self_and_allies:immune_category:priority"
+  ]
 }

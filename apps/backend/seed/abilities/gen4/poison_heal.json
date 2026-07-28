@@ -3,5 +3,10 @@
   "name": "Poison Heal",
   "slug": "poison_heal",
   "description": "If poisoned or badly poisoned, the Pokémon has 1/8 of its max HP restored at the end of every turn instead of losing HP.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_status:poison:on_turn_end:self:heal_fraction:8",
+    "on_status:badly_poison:on_turn_end:self:heal_fraction:8",
+    "ignore_poison_damage"
+  ]
 }

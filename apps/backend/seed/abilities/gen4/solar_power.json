@@ -3,5 +3,9 @@
   "name": "Solar Power",
   "slug": "solar_power",
   "description": "In harsh sunlight, the Pokémon's Sp. Atk stat is boosted by 50%, but it loses 1/8 of its max HP at the end of every turn.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_weather:sun:self:boost_stat_mult:special_attack:1.5",
+    "on_weather:sun:on_turn_end:self:damage_fraction:8"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Poison Puppeteer",
   "slug": "poison_puppeteer",
   "description": "Pokémon poisoned by Pecharunt's moves will also become confused.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_poison_dealt:also:apply_state:confusion"
+  ]
 }

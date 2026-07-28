@@ -3,5 +3,8 @@
   "name": "Chilling Neigh",
   "slug": "chilling_neigh",
   "description": "When the Pokémon knocks out a target, it utters a chilling neigh, which boosts its Attack stat.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_ko:self:raise_stat:attack:1"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Liquid Voice",
   "slug": "liquid_voice",
   "description": "The Pokémon's sound-based moves become Water-type moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "convert_move_category:sound:to_type:water"
+  ]
 }

@@ -3,5 +3,9 @@
   "name": "Pixilate",
   "slug": "pixilate",
   "description": "The Pokémon's Normal-type moves become Fairy-type moves and their power is boosted by 20%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "convert_move_type:normal:to:fairy",
+    "on_converted_type:self:boost_power:1.2"
+  ]
 }

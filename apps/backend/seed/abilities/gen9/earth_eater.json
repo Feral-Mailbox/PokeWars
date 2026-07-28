@@ -3,5 +3,9 @@
   "name": "Earth Eater",
   "slug": "earth_eater",
   "description": "Ground-type moves do not work on the Pokémon. Instead, they restore 1/4 of its max HP.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "immune:ground",
+    "on_hit:ground:self:heal_fraction:4"
+  ]
 }

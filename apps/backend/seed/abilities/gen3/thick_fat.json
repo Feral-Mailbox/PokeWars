@@ -3,5 +3,9 @@
   "name": "Thick Fat",
   "slug": "thick_fat",
   "description": "Halves the damage the Pokémon takes from Fire- and Ice-type moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_hit_type:fire:self:resist:0.5",
+    "on_hit_type:ice:self:resist:0.5"
+  ]
 }

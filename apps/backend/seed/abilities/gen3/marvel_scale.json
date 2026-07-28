@@ -3,5 +3,8 @@
   "name": "Marvel Scale",
   "slug": "marvel_scale",
   "description": "When the Pokémon has a status condition, its Defense stat is boosted by 50%.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_status:any:self:boost_stat_mult:defense:1.5"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Electromorphosis",
   "slug": "electromorphosis",
   "description": "When the Pokémon takes damage from a move, it gains the Electric Boost status.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_damage_taken:self:apply_state:charge"
+  ]
 }

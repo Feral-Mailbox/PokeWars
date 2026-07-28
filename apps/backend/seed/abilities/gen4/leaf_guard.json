@@ -3,5 +3,8 @@
   "name": "Leaf Guard",
   "slug": "leaf_guard",
   "description": "The Pokémon is immune to status conditions in harsh sunlight.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_weather:sun:immune_status:all"
+  ]
 }

@@ -3,5 +3,11 @@
   "name": "Flower Gift",
   "slug": "flower_gift",
   "description": "Boosts the Attack and Sp. Def stats of the Pokémon and its allies in harsh sunlight.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_weather:sun:self:boost_stat_mult:attack:1.5",
+    "on_weather:sun:self:boost_stat_mult:special_defense:1.5",
+    "on_weather:sun:allies:boost_stat_mult:attack:1.5",
+    "on_weather:sun:allies:boost_stat_mult:special_defense:1.5"
+  ]
 }

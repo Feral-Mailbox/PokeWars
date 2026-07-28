@@ -3,5 +3,9 @@
   "name": "Normalize",
   "slug": "normalize",
   "description": "All the Pokémon's moves become Normal type. The power of those moves is boosted a little.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "convert_move_type:normal",
+    "on_converted_type:self:boost_power:1.2"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Neuroforce",
   "slug": "neuroforce",
   "description": "Powers up the Pokémon's supereffective attacks even further.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_super_effective_deal:self:boost_power:1.25"
+  ]
 }

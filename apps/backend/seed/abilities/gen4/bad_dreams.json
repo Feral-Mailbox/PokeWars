@@ -3,5 +3,8 @@
   "name": "Bad Dreams",
   "slug": "bad_dreams",
   "description": "Damages opposing Pokémon that are asleep.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_turn_end:opponents:if_asleep:damage_fraction:8"
+  ]
 }

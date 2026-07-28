@@ -3,5 +3,8 @@
   "name": "Wonder Skin",
   "slug": "wonder_skin",
   "description": "Makes status moves more likely to miss the Pokémon.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "self:boost_status_move_evasion"
+  ]
 }

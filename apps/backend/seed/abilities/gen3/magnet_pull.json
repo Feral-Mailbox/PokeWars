@@ -3,5 +3,8 @@
   "name": "Magnet Pull",
   "slug": "magnet_pull",
   "description": "Prevents Steel-type Pokémon from fleeing by pulling them in with magnetism.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "trap_opponents:steel"
+  ]
 }

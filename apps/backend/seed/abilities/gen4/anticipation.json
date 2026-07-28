@@ -3,5 +3,8 @@
   "name": "Anticipation",
   "slug": "anticipation",
   "description": "When the Pokémon enters a battle, it senses whether the opponents know any one-hit KO moves or moves that are super effective against it.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_switch_in:sense:super_effective_or_ohko"
+  ]
 }

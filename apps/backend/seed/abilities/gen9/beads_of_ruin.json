@@ -3,5 +3,8 @@
   "name": "Beads of Ruin",
   "slug": "beads_of_ruin",
   "description": "The power of the Pokémon's ruinous beads lowers the Sp. Def stats of all Pokémon except itself.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "field_others:boost_stat_mult:special_defense:0.75"
+  ]
 }

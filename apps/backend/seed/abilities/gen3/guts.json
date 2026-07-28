@@ -3,5 +3,9 @@
   "name": "Guts",
   "slug": "guts",
   "description": "When the Pokémon has a status condition, its Attack stat is boosted by 50%. Being burned does not halve the damage dealt by the Pokémon's physical moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_status:any:self:boost_stat_mult:attack:1.5",
+    "ignore_burn_attack_halve"
+  ]
 }

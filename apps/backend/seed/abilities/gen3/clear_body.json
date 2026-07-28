@@ -3,5 +3,8 @@
   "name": "Clear Body",
   "slug": "clear_body",
   "description": "The Pokémon's stats cannot be lowered by other Pokémon's moves or Abilities.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_stat_drop"
+  ]
 }

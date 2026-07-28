@@ -3,5 +3,9 @@
   "name": "Parental Bond",
   "slug": "parental_bond",
   "description": "The parent and child attack one after the other. The power of the child's attacks is 1/4 of those of the parent.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "multi_hit:2",
+    "second_hit_power:0.25"
+  ]
 }

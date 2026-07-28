@@ -3,5 +3,10 @@
   "name": "Water Bubble",
   "slug": "water_bubble",
   "description": "Halves the damage the Pokémon takes from Fire-type moves and doubles the power of its Water-type moves. The Pokémon cannot be burned.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hit_type:fire:self:resist:0.5",
+    "on_move_type:water:self:boost_power:2",
+    "immune_status:burn"
+  ]
 }

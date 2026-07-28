@@ -3,5 +3,8 @@
   "name": "Battery",
   "slug": "battery",
   "description": "Powers up ally Pokémon's special moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "allies:on_move_category:special:boost_power:1.3"
+  ]
 }

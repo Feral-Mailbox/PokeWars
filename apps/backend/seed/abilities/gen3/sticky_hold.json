@@ -3,5 +3,8 @@
   "name": "Sticky Hold",
   "slug": "sticky_hold",
   "description": "The Pokémon's held item cannot be stolen or removed by other Pokémon.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_item_removal"
+  ]
 }

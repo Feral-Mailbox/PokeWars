@@ -25,6 +25,13 @@ def publish_user_ws_event(user_id: int, payload: dict) -> None:
         logger.exception("Failed to publish user WS event for user %s", user_id)
 
 
+def publish_announcement_event(payload: dict) -> None:
+    try:
+        r.publish("announcements", json.dumps(payload))
+    except Exception:
+        logger.exception("Failed to publish announcement WS event")
+
+
 def _resolve_authenticated_user(session_token: str | None) -> User | None:
     user_id = decode_session_token(session_token or "")
     if user_id is None:
@@ -183,8 +190,7 @@ async def global_ws(websocket: WebSocket):
         return
 
     pubsub = r.pubsub()
-    channel = f"user_updates:{user.id}"
-    pubsub.subscribe(channel)
+    pubsub.subscribe(f"user_updates:{user.id}", "announcements")
 
     async def read_redis_messages():
         loop = asyncio.get_event_loop()

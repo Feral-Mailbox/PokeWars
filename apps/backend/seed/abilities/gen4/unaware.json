@@ -3,5 +3,9 @@
   "name": "Unaware",
   "slug": "unaware",
   "description": "The Pokémon ignores the target's stat changes when attacking, and ignores the attacker's stat changes when being attacked. It cannot ignore changes to the Speed stat, however.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "ignore_target_stat_changes_when_attacking",
+    "ignore_attacker_stat_changes_when_defending"
+  ]
 }

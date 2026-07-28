@@ -3,5 +3,9 @@
   "name": "Overcoat",
   "slug": "overcoat",
   "description": "The Pokémon takes no damage from sandstorms and is immune to moves and Abilities involving powder.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "immune_weather_damage",
+    "immune_category:powder"
+  ]
 }

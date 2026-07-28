@@ -3,5 +3,8 @@
   "name": "Perish Body",
   "slug": "perish_body",
   "description": "When hit by a move that makes direct contact, the Pokémon and the attacker will faint after three turns unless they switch out of battle.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_contact:both:apply_state:perish:3"
+  ]
 }

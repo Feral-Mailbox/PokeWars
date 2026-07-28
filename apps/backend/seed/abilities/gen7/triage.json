@@ -3,5 +3,8 @@
   "name": "Triage",
   "slug": "triage",
   "description": "Gives priority to the Pokémon's healing moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "priority_healing:3"
+  ]
 }

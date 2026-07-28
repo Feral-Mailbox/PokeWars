@@ -3,5 +3,8 @@
   "name": "Strong Jaw",
   "slug": "strong_jaw",
   "description": "Boosts the power of the Pokémon's biting moves by 50%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_move_flag:bite:self:boost_power:1.5"
+  ]
 }

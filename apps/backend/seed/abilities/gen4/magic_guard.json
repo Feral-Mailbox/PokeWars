@@ -3,5 +3,8 @@
   "name": "Magic Guard",
   "slug": "magic_guard",
   "description": "The Pokémon takes damage only from attacks.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "immune_indirect_damage"
+  ]
 }

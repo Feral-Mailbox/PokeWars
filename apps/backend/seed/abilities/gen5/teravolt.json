@@ -3,5 +3,8 @@
   "name": "Teravolt",
   "slug": "teravolt",
   "description": "The Pokémon's moves are unimpeded by the Ability of the target.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "ignore_target_ability"
+  ]
 }

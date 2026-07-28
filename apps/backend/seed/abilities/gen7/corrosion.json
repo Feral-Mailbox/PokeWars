@@ -3,5 +3,9 @@
   "name": "Corrosion",
   "slug": "corrosion",
   "description": "The Pokémon can poison or badly poison targets even if they're Steel or Poison types.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "can_poison:steel",
+    "can_poison:poison"
+  ]
 }

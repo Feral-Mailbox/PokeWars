@@ -3,5 +3,9 @@
   "name": "Motor Drive",
   "slug": "motor_drive",
   "description": "Electric-type moves do not work on the Pokémon. Instead, they boost its Speed stat by 1 stage.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "immune:electric",
+    "on_hit:electric:self:raise_stat:speed:1"
+  ]
 }

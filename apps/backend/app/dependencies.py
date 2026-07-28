@@ -84,6 +84,16 @@ def require_moderator(user: User = Depends(get_current_user)) -> User:
     return user
 
 
+def require_moderator_only(user: User = Depends(get_current_user)) -> User:
+    """Moderators may act; admins are a higher authority and are excluded."""
+    if user.role != UserRole.moderator:
+        raise HTTPException(
+            status_code=403,
+            detail="Only moderators can perform this action",
+        )
+    return user
+
+
 def require_admin(user: User = Depends(get_current_user)) -> User:
     if user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")

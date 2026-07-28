@@ -3,5 +3,8 @@
   "name": "Telepathy",
   "slug": "telepathy",
   "description": "The Pokémon dodges attacks from its allies.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "immune_ally_attacks"
+  ]
 }

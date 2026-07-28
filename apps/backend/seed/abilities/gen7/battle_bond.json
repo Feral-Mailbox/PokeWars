@@ -3,5 +3,11 @@
   "name": "Battle Bond",
   "slug": "battle_bond",
   "description": "When the Pokémon knocks out a target, its bond with its Trainer is strengthened, and its Attack, Sp. Atk, and Speed stats are boosted.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_ko:self:raise_stat:attack:1",
+    "on_ko:self:raise_stat:special_attack:1",
+    "on_ko:self:raise_stat:speed:1",
+    "on_ko:change_forme:ash"
+  ]
 }

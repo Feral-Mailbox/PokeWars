@@ -3,5 +3,8 @@
   "name": "Berserk",
   "slug": "berserk",
   "description": "Boosts the Pokémon's Sp. Atk stat by 1 stage when an attack causes its HP to drop to 1/2 or less of its max.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_cross_below:50:self:raise_stat:special_attack:1"
+  ]
 }

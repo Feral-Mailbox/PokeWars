@@ -3,5 +3,8 @@
   "name": "Cursed Body",
   "slug": "cursed_body",
   "description": "When the Pokémon takes damage from a move, the attacker has a 30% chance of gaining the Move Disabled status for 4 turns.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_damage_taken:attacker:apply_state:disable:30"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Pressure",
   "slug": "pressure",
   "description": "Causes opponents to expend 1 more PP when using moves against the Pokémon.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_targeted:attacker:extra_pp_cost:1"
+  ]
 }

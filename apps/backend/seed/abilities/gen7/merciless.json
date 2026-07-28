@@ -3,5 +3,9 @@
   "name": "Merciless",
   "slug": "merciless",
   "description": "The Pokémon's attacks become critical hits if the target is poisoned or badly poisoned.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_target_status:poison:guaranteed_crit",
+    "on_target_status:badly_poison:guaranteed_crit"
+  ]
 }

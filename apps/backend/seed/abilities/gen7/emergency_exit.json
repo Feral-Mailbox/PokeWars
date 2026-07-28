@@ -3,5 +3,8 @@
   "name": "Emergency Exit",
   "slug": "emergency_exit",
   "description": "The Pokémon, sensing danger, switches out when its HP drops to half or less.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_below:50:force_switch_out"
+  ]
 }

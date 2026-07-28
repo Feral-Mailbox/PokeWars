@@ -3,5 +3,8 @@
   "name": "Sniper",
   "slug": "sniper",
   "description": "Boosts the power of the Pokémon's critical hits by 125% instead of 50%.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "boost_crit_damage:2.25"
+  ]
 }

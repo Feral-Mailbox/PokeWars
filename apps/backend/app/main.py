@@ -88,7 +88,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.routes import auth, games, maps, moves, user, units, ws, moderation, admin, items, abilities, invitations
+from app.routes import auth, games, maps, moves, user, units, ws, moderation, admin, items, abilities, invitations, announcements
 
 app.include_router(auth.router)
 app.include_router(games.router)
@@ -98,6 +98,7 @@ app.include_router(items.router)
 app.include_router(abilities.router)
 app.include_router(user.router)
 app.include_router(invitations.router)
+app.include_router(announcements.router)
 app.include_router(units.router)
 app.include_router(ws.router)
 app.include_router(moderation.router)

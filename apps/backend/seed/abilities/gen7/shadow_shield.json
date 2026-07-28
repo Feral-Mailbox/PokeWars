@@ -3,5 +3,8 @@
   "name": "Shadow Shield",
   "slug": "shadow_shield",
   "description": "Reduces the amount of damage the Pokémon takes while its HP is full.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_full:self:resist:0.5"
+  ]
 }

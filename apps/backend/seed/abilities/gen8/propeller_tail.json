@@ -3,5 +3,8 @@
   "name": "Propeller Tail",
   "slug": "propeller_tail",
   "description": "Ignores the effects of opposing Pokémon's Abilities and moves that draw in moves.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "ignore_redirect"
+  ]
 }

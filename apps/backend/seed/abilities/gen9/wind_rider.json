@@ -3,5 +3,10 @@
   "name": "Wind Rider",
   "slug": "wind_rider",
   "description": "Boosts the Pokémon's Attack stat if Tailwind takes effect or if the Pokémon is hit by a wind move. The Pokémon also takes no damage from wind moves.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "immune_category:wind",
+    "on_tailwind:self:raise_stat:attack:1",
+    "on_hit_category:wind:self:raise_stat:attack:1"
+  ]
 }

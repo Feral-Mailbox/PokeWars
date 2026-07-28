@@ -3,5 +3,8 @@
   "name": "Gale Wings",
   "slug": "gale_wings",
   "description": "Increases the priority of the Pokémon's Flying-type moves by 1 stage while its HP is full.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_hp_full:on_move_type:flying:priority:1"
+  ]
 }

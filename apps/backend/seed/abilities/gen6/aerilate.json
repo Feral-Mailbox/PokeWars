@@ -3,5 +3,9 @@
   "name": "Aerilate",
   "slug": "aerilate",
   "description": "The Pokémon's Normal-type moves become Flying-type moves and their power is boosted by 20%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "convert_move_type:normal:to:flying",
+    "on_converted_type:self:boost_power:1.2"
+  ]
 }

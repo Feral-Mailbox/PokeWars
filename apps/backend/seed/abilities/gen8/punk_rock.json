@@ -3,5 +3,9 @@
   "name": "Punk Rock",
   "slug": "punk_rock",
   "description": "Boosts the power of sound-based moves. The Pokémon also takes half the damage from these kinds of moves.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_move_category:sound:self:boost_power:1.3",
+    "on_hit_category:sound:self:resist:0.5"
+  ]
 }

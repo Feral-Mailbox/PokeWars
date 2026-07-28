@@ -3,5 +3,9 @@
   "name": "Defeatist",
   "slug": "defeatist",
   "description": "Halves the Pokémon's Attack and Sp. Atk stats when its HP drops to half or less.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_hp_below:50:self:boost_stat_mult:attack:0.5",
+    "on_hp_below:50:self:boost_stat_mult:special_attack:0.5"
+  ]
 }

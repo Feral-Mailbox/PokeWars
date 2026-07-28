@@ -3,5 +3,9 @@
   "name": "Desolate Land",
   "slug": "desolate_land",
   "description": "The Pokémon changes the weather to nullify Water-type attacks.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_switch_in:weather:harsh_sun",
+    "nullify_move_type:water"
+  ]
 }

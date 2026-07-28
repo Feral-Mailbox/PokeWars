@@ -3,5 +3,8 @@
   "name": "Transistor",
   "slug": "transistor",
   "description": "Powers up Electric-type moves.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_move_type:electric:self:boost_power:1.5"
+  ]
 }

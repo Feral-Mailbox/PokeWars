@@ -3,5 +3,10 @@
   "name": "Scrappy",
   "slug": "scrappy",
   "description": "The Pokémon can hit Ghost types with Normal- and Fighting-type moves. It is also unaffected by Intimidate.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "hit_ghost_with:normal",
+    "hit_ghost_with:fighting",
+    "immune_intimidate"
+  ]
 }

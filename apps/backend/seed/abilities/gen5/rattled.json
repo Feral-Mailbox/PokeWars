@@ -3,5 +3,11 @@
   "name": "Rattled",
   "slug": "rattled",
   "description": "The Pokémon gets scared when hit by a Dark-, Ghost-, or Bug-type attack or if intimidated, which boosts its Speed stat.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_hit_type:dark:self:raise_stat:speed:1",
+    "on_hit_type:ghost:self:raise_stat:speed:1",
+    "on_hit_type:bug:self:raise_stat:speed:1",
+    "on_intimidate:self:raise_stat:speed:1"
+  ]
 }

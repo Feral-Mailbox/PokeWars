@@ -3,5 +3,8 @@
   "name": "Speed Boost",
   "slug": "speed_boost",
   "description": "Boosts the Pokémon's Speed stat by 1 stage at the end of every turn.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_turn_end:self:raise_stat:speed:1"
+  ]
 }

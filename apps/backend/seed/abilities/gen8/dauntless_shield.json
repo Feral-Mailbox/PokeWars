@@ -3,5 +3,8 @@
   "name": "Dauntless Shield",
   "slug": "dauntless_shield",
   "description": "Boosts the Pokémon's Defense stat the first time the Pokémon enters a battle.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_switch_in:self:raise_stat:defense:1:once_per_battle"
+  ]
 }

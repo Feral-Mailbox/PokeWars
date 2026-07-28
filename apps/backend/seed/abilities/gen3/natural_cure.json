@@ -3,5 +3,8 @@
   "name": "Natural Cure",
   "slug": "natural_cure",
   "description": "The Pokémon's status conditions are cured when it switches out of battle.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_switch_out:self:cure_status"
+  ]
 }

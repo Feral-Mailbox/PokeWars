@@ -3,5 +3,8 @@
   "name": "Receiver",
   "slug": "receiver",
   "description": "The Pokémon changes its Ability to match that of a defeated ally.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_ally_faint:self:copy_ability:fainted_ally"
+  ]
 }

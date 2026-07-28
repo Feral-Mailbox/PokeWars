@@ -3,5 +3,8 @@
   "name": "Embody Aspect",
   "slug": "embody_aspect_teal_mask",
   "description": "The Pokémon's heart fills with memories, causing the Teal Mask to shine and the Pokémon's Speed stat to be boosted.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_in:self:raise_stat:speed:1"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Early Bird",
   "slug": "early_bird",
   "description": "The Pokémon awakens from sleep twice as fast as other Pokémon.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "self:halve_sleep_duration"
+  ]
 }

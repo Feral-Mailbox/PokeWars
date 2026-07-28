@@ -3,5 +3,8 @@
   "name": "Libero",
   "slug": "libero",
   "description": "Changes the Pokémon's type to the type of the move it's about to use. This works only once each time the Pokémon enters battle.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_move_use:self:change_type:move_type:once_per_switch_in"
+  ]
 }

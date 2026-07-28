@@ -3,5 +3,8 @@
   "name": "Anger Point",
   "slug": "anger_point",
   "description": "Boosts the Pokémon's Attack stat to its sixth stage when the Pokémon takes a critical hit.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_crit_received:self:raise_stat:attack:6"
+  ]
 }

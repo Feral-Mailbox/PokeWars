@@ -3,5 +3,8 @@
   "name": "Aura Break",
   "slug": "aura_break",
   "description": "The effects of \"Aura\" Abilities are reversed to lower the power of affected moves.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "reverse_aura_abilities"
+  ]
 }

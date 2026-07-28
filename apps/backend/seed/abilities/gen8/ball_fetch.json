@@ -3,5 +3,8 @@
   "name": "Ball Fetch",
   "slug": "ball_fetch",
   "description": "If the Pokémon is not holding an item, it will fetch the Poké Ball from the first failed throw of the battle.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_failed_pokeball:self:pickup_pokeball"
+  ]
 }

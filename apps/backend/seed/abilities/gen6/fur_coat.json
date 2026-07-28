@@ -3,5 +3,8 @@
   "name": "Fur Coat",
   "slug": "fur_coat",
   "description": "Halves the damage the Pokémon takes from physical moves.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_move_category:physical:self:resist:0.5"
+  ]
 }

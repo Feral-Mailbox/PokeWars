@@ -16,6 +16,10 @@ export function isStaff(user: User | null | undefined): boolean {
   return user?.role === "moderator" || user?.role === "admin";
 }
 
+export function isModerator(user: User | null | undefined): boolean {
+  return user?.role === "moderator";
+}
+
 export function isAdmin(user: User | null | undefined): boolean {
   return user?.role === "admin";
 }

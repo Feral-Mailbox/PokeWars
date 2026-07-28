@@ -3,5 +3,11 @@
   "name": "Mind's Eye",
   "slug": "minds_eye",
   "description": "The Pokémon ignores changes to opponents' evasiveness, its accuracy can't be lowered, and it can hit Ghost types with Normal- and Fighting-type moves.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "ignore_target_evasion",
+    "immune_stat_drop:accuracy",
+    "hit_ghost_with:normal",
+    "hit_ghost_with:fighting"
+  ]
 }

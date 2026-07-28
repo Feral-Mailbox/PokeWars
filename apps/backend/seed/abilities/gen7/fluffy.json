@@ -3,5 +3,9 @@
   "name": "Fluffy",
   "slug": "fluffy",
   "description": "Halves the damage taken from moves that make direct contact, but doubles that of Fire-type moves.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_move_flag:contact:self:resist:0.5",
+    "on_hit_type:fire:self:resist:2"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Compound Eyes",
   "slug": "compound_eyes",
   "description": "Boosts the accuracy of the Pokémon's moves by 30%.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "self:boost_accuracy:1.3"
+  ]
 }

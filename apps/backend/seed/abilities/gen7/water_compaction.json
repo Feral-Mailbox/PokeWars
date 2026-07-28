@@ -3,5 +3,8 @@
   "name": "Water Compaction",
   "slug": "water_compaction",
   "description": "Boosts the Defense stat sharply when the Pokémon is hit by a Water-type move.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hit_type:water:self:raise_stat:defense:2"
+  ]
 }

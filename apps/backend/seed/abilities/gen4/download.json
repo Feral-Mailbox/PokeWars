@@ -3,5 +3,8 @@
   "name": "Download",
   "slug": "download",
   "description": "The Pokémon compares an opposing Pokémon's Defense and Sp. Def stats before raising its own Attack or Sp. Atk stat — whichever will be more effective.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_switch_in:self:raise_stat:attack_or_special_attack:better_vs_opponent"
+  ]
 }

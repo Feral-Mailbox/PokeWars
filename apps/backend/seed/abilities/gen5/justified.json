@@ -3,5 +3,8 @@
   "name": "Justified",
   "slug": "justified",
   "description": "When the Pokémon takes damage from a Dark-type move, its Attack stat is boosted by 1 stage.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_hit_type:dark:self:raise_stat:attack:1"
+  ]
 }

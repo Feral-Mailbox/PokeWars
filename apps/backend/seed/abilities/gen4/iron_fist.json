@@ -3,5 +3,8 @@
   "name": "Iron Fist",
   "slug": "iron_fist",
   "description": "Boosts the power of the Pokémon's punching moves by 20%.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_move_flag:punch:self:boost_power:1.2"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Multiscale",
   "slug": "multiscale",
   "description": "Halves the damage the Pokémon takes while its HP is full.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_hp_full:self:resist:0.5"
+  ]
 }

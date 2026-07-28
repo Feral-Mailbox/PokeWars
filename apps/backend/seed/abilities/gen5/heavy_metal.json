@@ -3,5 +3,8 @@
   "name": "Heavy Metal",
   "slug": "heavy_metal",
   "description": "Doubles the Pokémon's weight.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "self:boost_weight:2"
+  ]
 }

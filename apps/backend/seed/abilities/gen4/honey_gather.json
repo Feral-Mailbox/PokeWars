@@ -3,5 +3,8 @@
   "name": "Honey Gather",
   "slug": "honey_gather",
   "description": "The Pokémon may gather Honey after a battle.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "after_battle:gather_honey"
+  ]
 }

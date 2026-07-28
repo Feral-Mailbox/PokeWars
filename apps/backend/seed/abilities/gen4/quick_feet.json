@@ -3,5 +3,9 @@
   "name": "Quick Feet",
   "slug": "quick_feet",
   "description": "When the Pokémon has a status condition, its Speed stat is boosted by 50%. Being paralyzed does not lower the Pokémon's Speed stat.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_status:any:self:boost_stat_mult:speed:1.5",
+    "ignore_paralysis_speed_halve"
+  ]
 }

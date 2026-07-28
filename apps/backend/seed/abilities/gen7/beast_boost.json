@@ -3,5 +3,8 @@
   "name": "Beast Boost",
   "slug": "beast_boost",
   "description": "Boosts the Pokémon's most proficient stat every time it knocks out a target.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_ko:self:raise_stat:highest:1"
+  ]
 }

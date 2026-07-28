@@ -3,5 +3,8 @@
   "name": "Flare Boost",
   "slug": "flare_boost",
   "description": "Powers up special moves when the Pokémon is burned.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_status:burn:on_move_category:special:self:boost_power:1.5"
+  ]
 }

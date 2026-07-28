@@ -3,5 +3,8 @@
   "name": "Damp",
   "slug": "damp",
   "description": "All Pokémon become unable to use explosive moves. Explosive Abilities also fail to trigger.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "suppress_field:explosion"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Toxic Chain",
   "slug": "toxic_chain",
   "description": "The power of the Pokémon's toxic chain may badly poison any target the Pokémon hits with a move.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_damage_dealt:target:status:badly_poison:30"
+  ]
 }

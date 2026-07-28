@@ -3,5 +3,8 @@
   "name": "Sweet Veil",
   "slug": "sweet_veil",
   "description": "The Pokémon and its allies cannot become drowsy or be put to sleep.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "self_and_allies:immune_status:sleep"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Stamina",
   "slug": "stamina",
   "description": "When the Pokémon takes damage from a move, its Defense stat is boosted by 1 stage.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_damage_taken:self:raise_stat:defense:1"
+  ]
 }

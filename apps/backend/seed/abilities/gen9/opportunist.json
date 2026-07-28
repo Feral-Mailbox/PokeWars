@@ -3,5 +3,8 @@
   "name": "Opportunist",
   "slug": "opportunist",
   "description": "When an opponent's stats are boosted, the Pokémon boosts its own stats in the exact same way.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_opponent_stat_boost:copy_stat_boosts"
+  ]
 }

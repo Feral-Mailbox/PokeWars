@@ -3,5 +3,8 @@
   "name": "Prism Armor",
   "slug": "prism_armor",
   "description": "Reduces the power of supereffective attacks that hit the Pokémon.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_super_effective:self:resist:0.75"
+  ]
 }

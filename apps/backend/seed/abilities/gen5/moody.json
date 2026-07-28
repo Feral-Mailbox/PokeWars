@@ -3,5 +3,9 @@
   "name": "Moody",
   "slug": "moody",
   "description": "At the end of every turn, one of the Pokémon's stats will be boosted by 2 stages, but another will be lowered by 1 stage.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_turn_end:self:raise_random_stat:2",
+    "on_turn_end:self:lower_other_random_stat:1"
+  ]
 }

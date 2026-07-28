@@ -3,5 +3,8 @@
   "name": "Soul-Heart",
   "slug": "soul_heart",
   "description": "Boosts the Pokémon's Sp. Atk stat every time another Pokémon faints.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_any_faint:self:raise_stat:special_attack:1"
+  ]
 }

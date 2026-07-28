@@ -3,5 +3,8 @@
   "name": "Steadfast",
   "slug": "steadfast",
   "description": "When the Pokémon flinches, its Speed stat is boosted by 1 stage.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_flinch:self:raise_stat:speed:1"
+  ]
 }

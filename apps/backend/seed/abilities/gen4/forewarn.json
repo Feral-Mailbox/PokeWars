@@ -3,5 +3,8 @@
   "name": "Forewarn",
   "slug": "forewarn",
   "description": "When it enters a battle, the Pokémon can tell one of the moves an opposing Pokémon has.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_switch_in:reveal:strongest_opponent_move"
+  ]
 }

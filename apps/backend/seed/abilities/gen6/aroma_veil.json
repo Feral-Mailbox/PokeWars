@@ -3,5 +3,8 @@
   "name": "Aroma Veil",
   "slug": "aroma_veil",
   "description": "The Pokémon and its allies cannot gain the Infatuated, Taunted, Unable to Repeat, Move Disabled, Healing Prevented, or Encore statuses.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "self_and_allies:immune_status:infatuation,taunt,encore,disable,torment,heal_block"
+  ]
 }

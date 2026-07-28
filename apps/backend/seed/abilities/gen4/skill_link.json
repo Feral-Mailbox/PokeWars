@@ -3,5 +3,8 @@
   "name": "Skill Link",
   "slug": "skill_link",
   "description": "The Pokémon's multistrike moves always hit the maximum number of times.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "multi_hit:always_max"
+  ]
 }

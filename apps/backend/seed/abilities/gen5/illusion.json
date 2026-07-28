@@ -3,5 +3,8 @@
   "name": "Illusion",
   "slug": "illusion",
   "description": "The Pokémon enters battle disguised as the last Pokémon in its party. It reverts to its usual appearance when it takes damage from a move.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_switch_in:disguise_as:last_party_member"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Power of Alchemy",
   "slug": "power_of_alchemy",
   "description": "The Pokémon copies the Ability of a defeated ally.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_ally_faint:self:copy_ability:fainted_ally"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Air Lock",
   "slug": "air_lock",
   "description": "Eliminates the effects of weather.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "suppress_weather"
+  ]
 }

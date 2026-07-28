@@ -3,5 +3,8 @@
   "name": "Truant",
   "slug": "truant",
   "description": "Each time the Pokémon uses a move, it spends the next turn loafing around.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "alternate_turn:loaf"
+  ]
 }

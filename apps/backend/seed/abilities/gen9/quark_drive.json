@@ -3,5 +3,9 @@
   "name": "Quark Drive",
   "slug": "quark_drive",
   "description": "Boosts the Pokémon's most proficient stat on Electric Terrain or if the Pokémon is holding Booster Energy.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_terrain:electric:boost_highest_stat:1.3",
+    "on_held_item:booster_energy:boost_highest_stat:1.3"
+  ]
 }

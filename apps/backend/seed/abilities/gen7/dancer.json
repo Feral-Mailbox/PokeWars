@@ -3,5 +3,8 @@
   "name": "Dancer",
   "slug": "dancer",
   "description": "Whenever a dance move is used in battle, the Pokémon will copy the user to immediately perform that dance move itself.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_dance_move_used:copy_immediately"
+  ]
 }

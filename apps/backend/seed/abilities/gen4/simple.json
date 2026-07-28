@@ -3,5 +3,8 @@
   "name": "Simple",
   "slug": "simple",
   "description": "Doubles the Pokémon's stat changes.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "double_stat_changes"
+  ]
 }

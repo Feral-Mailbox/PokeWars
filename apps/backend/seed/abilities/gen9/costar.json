@@ -3,5 +3,8 @@
   "name": "Costar",
   "slug": "costar",
   "description": "When the Pokémon enters a battle, it copies an ally's stat changes.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_in:self:copy_stat_changes:ally"
+  ]
 }

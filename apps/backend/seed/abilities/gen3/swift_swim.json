@@ -3,5 +3,8 @@
   "name": "Swift Swim",
   "slug": "swift_swim",
   "description": "Doubles the Pokémon's Speed stat in rain.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_weather:rain:self:boost_stat_mult:speed:2"
+  ]
 }

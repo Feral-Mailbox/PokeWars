@@ -3,5 +3,8 @@
   "name": "Rock Head",
   "slug": "rock_head",
   "description": "The Pokémon will not lose HP due to recoil damage from its moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_recoil"
+  ]
 }

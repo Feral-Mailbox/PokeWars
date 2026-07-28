@@ -3,5 +3,8 @@
   "name": "Mega Launcher",
   "slug": "mega_launcher",
   "description": "Boosts the power of the Pokémon's pulse moves by 50%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_move_flag:pulse:self:boost_power:1.5"
+  ]
 }

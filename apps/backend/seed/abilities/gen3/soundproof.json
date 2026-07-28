@@ -3,5 +3,8 @@
   "name": "Soundproof",
   "slug": "soundproof",
   "description": "The Pokémon is immune to sound-based moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_category:sound"
+  ]
 }

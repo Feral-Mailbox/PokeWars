@@ -139,6 +139,39 @@ class GameInvitation(Base):
     inviter = relationship("User", foreign_keys=[inviter_id])
     invitee = relationship("User", foreign_keys=[invitee_id])
 
+
+# ======================
+# STAFF ANNOUNCEMENTS
+# ======================
+class StaffAnnouncement(Base):
+    __tablename__ = "staff_announcements"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(120), nullable=False)
+    message = Column(String(4000), nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    author = relationship("User", foreign_keys=[author_id])
+
+
+class StaffAnnouncementStar(Base):
+    __tablename__ = "staff_announcement_stars"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    announcement_id = Column(Integer, ForeignKey("staff_announcements.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class StaffAnnouncementDismissal(Base):
+    __tablename__ = "staff_announcement_dismissals"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    announcement_id = Column(Integer, ForeignKey("staff_announcements.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
 # ======================
 # GAMES
 # ======================

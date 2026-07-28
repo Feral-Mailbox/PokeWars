@@ -3,5 +3,8 @@
   "name": "Wandering Spirit",
   "slug": "wandering_spirit",
   "description": "When the Pokémon is hit by a contact move, it swaps Abilities with the attacker.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_contact:swap_abilities"
+  ]
 }

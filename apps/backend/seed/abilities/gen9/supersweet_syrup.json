@@ -3,5 +3,8 @@
   "name": "Supersweet Syrup",
   "slug": "supersweet_syrup",
   "description": "When the Pokémon enters a battle, opponents' evasiveness is lowered by 1 stage. This Ability is triggered only once per battle.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_in:opponents:lower_stat:evasion:1:once_per_battle"
+  ]
 }

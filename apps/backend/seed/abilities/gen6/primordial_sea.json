@@ -3,5 +3,9 @@
   "name": "Primordial Sea",
   "slug": "primordial_sea",
   "description": "The Pokémon changes the weather to nullify Fire-type attacks.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_switch_in:weather:heavy_rain",
+    "nullify_move_type:fire"
+  ]
 }

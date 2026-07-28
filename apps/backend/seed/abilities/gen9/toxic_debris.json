@@ -3,5 +3,8 @@
   "name": "Toxic Debris",
   "slug": "toxic_debris",
   "description": "When the Pokémon takes damage from a physical move, it gives the opponent's side the Toxic Spikes status.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_hit_category:physical:field_hazard:toxic_spikes:opponent_side"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Shed Skin",
   "slug": "shed_skin",
   "description": "The Pokémon has a 30% chance of curing its own status conditions at the end of every turn.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_turn_end:self:cure_status:30"
+  ]
 }

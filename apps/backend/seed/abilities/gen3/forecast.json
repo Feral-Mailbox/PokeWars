@@ -3,5 +3,8 @@
   "name": "Forecast",
   "slug": "forecast",
   "description": "The Pokémon transforms with the weather to change its type to Water, Fire, or Ice.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_weather:change_type:water_fire_ice"
+  ]
 }

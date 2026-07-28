@@ -3,5 +3,9 @@
   "name": "Harvest",
   "slug": "harvest",
   "description": "If the Pokémon has used a Berry, it has a 50% chance of creating another one at the end of every turn. In harsh sunlight, the Pokémon will definitely create a Berry.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_turn_end:self:recycle_berry:50",
+    "on_weather:sun:on_turn_end:self:recycle_berry:100"
+  ]
 }

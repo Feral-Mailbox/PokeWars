@@ -3,5 +3,9 @@
   "name": "Heatproof",
   "slug": "heatproof",
   "description": "Halves the damage the Pokémon takes from Fire-type moves and from being burned.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_hit_type:fire:self:resist:0.5",
+    "halve_burn_damage"
+  ]
 }

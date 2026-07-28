@@ -3,5 +3,8 @@
   "name": "Arena Trap",
   "slug": "arena_trap",
   "description": "Prevents opposing Pokémon from fleeing from battle.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "trap_opponents:grounded"
+  ]
 }

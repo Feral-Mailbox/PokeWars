@@ -3,5 +3,8 @@
   "name": "Aftermath",
   "slug": "aftermath",
   "description": "Attackers that knock out the Pokémon with a contact move take damage equal to 1/4 of their max HP.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_faint_from_contact:attacker:damage_fraction:4"
+  ]
 }

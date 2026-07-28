@@ -3,5 +3,8 @@
   "name": "Serene Grace",
   "slug": "serene_grace",
   "description": "Raises the likelihood of additional effects occurring when the Pokémon uses its moves.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "self:boost_secondary_effect_chance:2"
+  ]
 }

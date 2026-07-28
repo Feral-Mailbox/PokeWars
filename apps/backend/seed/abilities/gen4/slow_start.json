@@ -3,5 +3,8 @@
   "name": "Slow Start",
   "slug": "slow_start",
   "description": "For five turns, the Pokémon's Attack and Speed stats are halved.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_switch_in:self:apply_state:slow_start:5"
+  ]
 }

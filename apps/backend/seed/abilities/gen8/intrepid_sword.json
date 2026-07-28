@@ -3,5 +3,8 @@
   "name": "Intrepid Sword",
   "slug": "intrepid_sword",
   "description": "Boosts the Pokémon's Attack stat the first time the Pokémon enters a battle.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_switch_in:self:raise_stat:attack:1:once_per_battle"
+  ]
 }

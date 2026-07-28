@@ -3,5 +3,8 @@
   "name": "Unnerve",
   "slug": "unnerve",
   "description": "Makes opponents unable to eat Berries.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "prevent_opponent_berry_eat"
+  ]
 }

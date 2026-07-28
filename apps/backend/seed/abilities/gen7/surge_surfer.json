@@ -3,5 +3,8 @@
   "name": "Surge Surfer",
   "slug": "surge_surfer",
   "description": "Doubles the Pokémon's Speed stat on Electric Terrain.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_terrain:electric:self:boost_stat_mult:speed:2"
+  ]
 }

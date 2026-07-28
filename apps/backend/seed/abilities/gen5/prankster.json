@@ -3,5 +3,8 @@
   "name": "Prankster",
   "slug": "prankster",
   "description": "Increases the priority of the Pokémon's status moves by 1 stage.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "priority_status:1"
+  ]
 }

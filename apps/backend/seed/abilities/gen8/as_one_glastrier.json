@@ -3,5 +3,9 @@
   "name": "As One",
   "slug": "as_one_glastrier",
   "description": "This Ability combines the effects of both Calyrex's Unnerve Ability and Glastrier's Chilling Neigh Ability.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "prevent_opponent_berry_eat",
+    "on_ko:self:raise_stat:attack:1"
+  ]
 }

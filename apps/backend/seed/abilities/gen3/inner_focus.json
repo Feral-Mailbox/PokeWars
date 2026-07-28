@@ -3,5 +3,9 @@
   "name": "Inner Focus",
   "slug": "inner_focus",
   "description": "The Pokémon never flinches when attacked and is unaffected by Intimidate.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_flinch",
+    "immune_intimidate"
+  ]
 }

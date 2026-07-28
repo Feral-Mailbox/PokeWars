@@ -3,5 +3,8 @@
   "name": "Sharpness",
   "slug": "sharpness",
   "description": "Boosts the power of the Pokémon's slicing moves by 50%.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_move_flag:slicing:self:boost_power:1.5"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Adaptability",
   "slug": "adaptability",
   "description": "Boosts the power of moves of the same type as the Pokémon by 100% instead of 50%.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "boost_stab:2"
+  ]
 }

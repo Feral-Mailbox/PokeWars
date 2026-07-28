@@ -3,5 +3,12 @@
   "name": "Eelevate",
   "slug": "eelevate",
   "description": "The Pokémon floats off the ground, making it immune to Ground-type moves, as well as the Spikes, Toxic Spikes, and Sticky Web statuses. When the Pokémon knocks out a target with an attack, its highest stat is boosted by 1 stage.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "immune:ground",
+    "immune_hazard:spikes",
+    "immune_hazard:toxic_spikes",
+    "immune_hazard:sticky_web",
+    "on_ko:self:raise_stat:highest:1"
+  ]
 }

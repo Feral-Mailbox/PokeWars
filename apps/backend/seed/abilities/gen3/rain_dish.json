@@ -3,5 +3,8 @@
   "name": "Rain Dish",
   "slug": "rain_dish",
   "description": "The Pokémon has 1/16 of its max HP restored at the end of every turn in rain.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_weather:rain:on_turn_end:self:heal_fraction:16"
+  ]
 }

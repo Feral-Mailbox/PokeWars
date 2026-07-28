@@ -3,5 +3,8 @@
   "name": "Dazzling",
   "slug": "dazzling",
   "description": "The Pokémon dazzles its opponents, making them unable to use priority moves against the Pokémon or its allies.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "self_and_allies:immune_category:priority"
+  ]
 }

@@ -3,5 +3,9 @@
   "name": "Guard Dog",
   "slug": "guard_dog",
   "description": "Boosts the Pokémon's Attack stat if intimidated. Moves and items that would force the Pokémon to switch out also fail to work.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_intimidate:self:raise_stat:attack:1",
+    "immune_forced_switch"
+  ]
 }

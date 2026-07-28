@@ -3,5 +3,8 @@
   "name": "Magma Armor",
   "slug": "magma_armor",
   "description": "The Pokémon cannot be frozen.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_status:freeze"
+  ]
 }

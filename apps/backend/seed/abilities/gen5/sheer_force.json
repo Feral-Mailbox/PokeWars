@@ -3,5 +3,9 @@
   "name": "Sheer Force",
   "slug": "sheer_force",
   "description": "The Pokémon's moves lose their additional effects, but the power of those moves will be boosted by 30%.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "remove_secondary_effects",
+    "on_moves_with_secondary:self:boost_power:1.3"
+  ]
 }

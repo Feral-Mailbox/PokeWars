@@ -3,5 +3,8 @@
   "name": "Snow Warning",
   "slug": "snow_warning",
   "description": "Summons snow for 5 turns when the Pokémon enters a battle.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_switch_in:weather:hail"
+  ]
 }

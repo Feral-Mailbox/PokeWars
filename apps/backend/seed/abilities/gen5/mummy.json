@@ -3,5 +3,8 @@
   "name": "Mummy",
   "slug": "mummy",
   "description": "When the Pokémon is hit by a contact move, the attacker has its Ability changed to Mummy.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_contact:attacker:set_ability:mummy"
+  ]
 }

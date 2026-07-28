@@ -3,5 +3,8 @@
   "name": "Multitype",
   "slug": "multitype",
   "description": "Changes the Pokémon's type to match the plate it holds.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "change_type:held_plate"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Shield Dust",
   "slug": "shield_dust",
   "description": "The Pokémon is immune to additional effects from attacks.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_additional_effects"
+  ]
 }

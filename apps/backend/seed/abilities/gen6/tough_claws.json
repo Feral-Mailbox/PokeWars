@@ -3,5 +3,8 @@
   "name": "Tough Claws",
   "slug": "tough_claws",
   "description": "Boosts the power of the Pokémon's contact moves by 30%.",
-  "generation": 6
+  "generation": 6,
+  "effect": [
+    "on_move_flag:contact:self:boost_power:1.3"
+  ]
 }

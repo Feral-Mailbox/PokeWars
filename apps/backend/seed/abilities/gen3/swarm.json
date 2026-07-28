@@ -3,5 +3,8 @@
   "name": "Swarm",
   "slug": "swarm",
   "description": "Boosts the power of the Pokémon's Bug-type moves by 50% when its HP drops to 1/3 or less of its max.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_hp_below:33:on_move_type:bug:self:boost_power:1.5"
+  ]
 }

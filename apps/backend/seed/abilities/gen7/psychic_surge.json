@@ -3,5 +3,8 @@
   "name": "Psychic Surge",
   "slug": "psychic_surge",
   "description": "Turns the ground into Psychic Terrain when the Pokémon enters a battle.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_switch_in:terrain:psychic"
+  ]
 }

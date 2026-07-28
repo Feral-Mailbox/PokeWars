@@ -3,5 +3,8 @@
   "name": "Effect Spore",
   "slug": "effect_spore",
   "description": "Contact with the Pokémon may inflict poison, sleep, or paralysis on the attacker.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "on_contact:attacker:status:poison_or_sleep_or_paralysis:30"
+  ]
 }

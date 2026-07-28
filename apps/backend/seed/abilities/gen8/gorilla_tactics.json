@@ -3,5 +3,9 @@
   "name": "Gorilla Tactics",
   "slug": "gorilla_tactics",
   "description": "Boosts the Pokémon's Attack stat, but only allows the use of the first selected move.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "self:boost_stat_mult:attack:1.5",
+    "lock_move:first_selected"
+  ]
 }

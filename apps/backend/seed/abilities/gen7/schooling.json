@@ -3,5 +3,9 @@
   "name": "Schooling",
   "slug": "schooling",
   "description": "When it has a lot of HP, the Pokémon forms a powerful school. It stops schooling when its HP is low.",
-  "generation": 7
+  "generation": 7,
+  "effect": [
+    "on_hp_above:25:change_forme:school",
+    "on_hp_below:25:change_forme:solo"
+  ]
 }

@@ -3,5 +3,8 @@
   "name": "Dragon's Maw",
   "slug": "dragons_maw",
   "description": "Powers up Dragon-type moves.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_move_type:dragon:self:boost_power:1.5"
+  ]
 }

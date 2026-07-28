@@ -3,5 +3,8 @@
   "name": "Klutz",
   "slug": "klutz",
   "description": "Items do not work when held by the Pokémon.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "suppress_held_item"
+  ]
 }

@@ -3,5 +3,9 @@
   "name": "Reckless",
   "slug": "reckless",
   "description": "Boosts the power of the Pokémon's moves by 20% if they have recoil or crash damage.",
-  "generation": 4
+  "generation": 4,
+  "effect": [
+    "on_move_flag:recoil:self:boost_power:1.2",
+    "on_move_flag:crash:self:boost_power:1.2"
+  ]
 }

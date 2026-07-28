@@ -3,5 +3,8 @@
   "name": "Embody Aspect",
   "slug": "embody_aspect_wellspring_mask",
   "description": "The Pokémon's heart fills with memories, causing the Wellspring Mask to shine and the Pokémon's Sp. Def stat to be boosted.",
-  "generation": 9
+  "generation": 9,
+  "effect": [
+    "on_switch_in:self:raise_stat:special_defense:1"
+  ]
 }

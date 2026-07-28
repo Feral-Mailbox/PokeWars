@@ -3,5 +3,8 @@
   "name": "Shadow Tag",
   "slug": "shadow_tag",
   "description": "Opponents cannot be switched out of battle.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "trap_opponents"
+  ]
 }

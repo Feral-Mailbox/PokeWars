@@ -3,5 +3,9 @@
   "name": "Toxic Boost",
   "slug": "toxic_boost",
   "description": "Powers up physical moves when the Pokémon is poisoned.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "on_status:poison:on_move_category:physical:self:boost_power:1.5",
+    "on_status:badly_poison:on_move_category:physical:self:boost_power:1.5"
+  ]
 }

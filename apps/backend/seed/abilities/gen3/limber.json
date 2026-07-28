@@ -3,5 +3,8 @@
   "name": "Limber",
   "slug": "limber",
   "description": "The Pokémon cannot be paralyzed.",
-  "generation": 3
+  "generation": 3,
+  "effect": [
+    "immune_status:paralysis"
+  ]
 }

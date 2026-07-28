@@ -3,5 +3,9 @@
   "name": "Sap Sipper",
   "slug": "sap_sipper",
   "description": "Grass-type moves do not work on the Pokémon. Instead, they boost its Attack stat by 1 stage.",
-  "generation": 5
+  "generation": 5,
+  "effect": [
+    "immune:grass",
+    "on_hit:grass:self:raise_stat:attack:1"
+  ]
 }

@@ -3,5 +3,9 @@
   "name": "Steam Engine",
   "slug": "steam_engine",
   "description": "Boosts the Speed stat drastically when the Pokémon is hit by a Fire- or Water-type move.",
-  "generation": 8
+  "generation": 8,
+  "effect": [
+    "on_hit_type:fire:self:raise_stat:speed:6",
+    "on_hit_type:water:self:raise_stat:speed:6"
+  ]
 }
