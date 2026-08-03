@@ -17,6 +17,6 @@
     "self:raise_stat:attack:1:condition:not:ghost",
     "self:raise_stat:defense:1:condition:not:ghost",
     "self:lower_stat:speed:1:condition:not:ghost",
-    "target:apply_state:curse:condition:ghost"
+    "target:apply_state:condition:ghost:cursed"
   ]
 }

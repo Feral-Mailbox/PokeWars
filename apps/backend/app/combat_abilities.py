@@ -960,6 +960,65 @@ def _unit_display_name(unit: GameUnit) -> str:
     return f"Unit {getattr(unit, 'id', '?')}"
 
 
+_STAT_DISPLAY_NAMES: dict[str, str] = {
+    "attack": "Attack",
+    "defense": "Defense",
+    "sp_attack": "Sp. Atk",
+    "sp_defense": "Sp. Def",
+    "speed": "Speed",
+    "accuracy": "accuracy",
+    "evasion": "evasiveness",
+}
+
+
+def _stat_display_name(stat: str) -> str:
+    return _STAT_DISPLAY_NAMES.get(stat, str(stat or "").replace("_", " "))
+
+
+def append_ability_trigger_message(
+    messages: list[str] | None,
+    unit: GameUnit,
+    db: Session,
+    verb_phrase: str,
+    *,
+    unit_name: str | None = None,
+) -> None:
+    """Append ``{unit}'s {Ability} {verb_phrase}!`` when a message list is provided."""
+    if messages is None:
+        return
+    ability = get_active_ability(unit, db)
+    if ability is None:
+        return
+    name = unit_name or _unit_display_name(unit)
+    ability_name = getattr(ability, "name", None) or "Ability"
+    messages.append(f"{name}'s {ability_name} {verb_phrase}!")
+
+
+def ability_protect_message(
+    defender: GameUnit,
+    move: Any,
+    db: Session,
+    *,
+    unit_name: str | None = None,
+) -> str | None:
+    """Chat line when an ability fully blocks a move, or None if it does not."""
+    reason = should_block_move_against(defender, move, db)
+    if reason is None:
+        if blocks_powder_move(defender, move, db):
+            reason = "overcoat"
+        else:
+            return None
+    name = unit_name or _unit_display_name(defender)
+    if reason == "damp":
+        return "Damp prevented the move!"
+    ability = get_active_ability(defender, db)
+    if ability and getattr(ability, "name", None):
+        ability_name = str(ability.name)
+    else:
+        ability_name = str(reason).replace("_", " ").title()
+    return f"{name} is protected by {ability_name}!"
+
+
 def _get_unit_gender(unit: GameUnit) -> str | None:
     flags = _unit_flags(unit)
     if flags.get("gender") is not None:
@@ -1629,6 +1688,8 @@ def attacker_power_multiplier(
     target: GameUnit | None = None,
     is_last_move: bool | None = None,
     type_multiplier: float | None = None,
+    trigger_messages: list[str] | None = None,
+    unit_name: str | None = None,
 ) -> float:
     """Ability-based attack power multiplier (default 1.0).
 
@@ -1636,6 +1697,9 @@ def attacker_power_multiplier(
     boost, Technician, Iron Fist, Reckless, Rivalry, Normalize, Sand Force,
     Flare/Toxic Boost, Sheer Force, Analytic, Steelworker, Water Bubble,
     Neuroforce, Battery, Stakeout.
+
+    When ``trigger_messages`` is provided and this unit's ability changes power,
+    a chat line is appended.
     """
     effects = get_ability_effects(attacker, db)
 
@@ -1929,6 +1993,8 @@ def attacker_power_multiplier(
     if has_flash_fire_boost(attacker) and move_type == "fire":
         mult *= 1.5
 
+    own_mult = mult
+
     # Battery / Power Spot / Steely Spirit from allies
     if isinstance(game_id, int):
         user_id = getattr(attacker, "user_id", None)
@@ -1990,6 +2056,23 @@ def attacker_power_multiplier(
                             except (TypeError, ValueError):
                                 pass
 
+    if own_mult > 1.0:
+        append_ability_trigger_message(
+            trigger_messages,
+            attacker,
+            db,
+            "boosted the attack",
+            unit_name=unit_name,
+        )
+    elif own_mult < 1.0:
+        append_ability_trigger_message(
+            trigger_messages,
+            attacker,
+            db,
+            "cut the attack's power",
+            unit_name=unit_name,
+        )
+
     return mult
 
 
@@ -2001,6 +2084,8 @@ def defender_damage_multiplier(
     db: Session,
     *,
     makes_contact: bool | None = None,
+    trigger_messages: list[str] | None = None,
+    unit_name: str | None = None,
 ) -> float:
     """Defender-side damage multiplier after type calc (Thick Fat, Wonder Guard, Filter, Multiscale, Friend Guard, Fluffy)."""
     effects = get_ability_effects(defender, db)
@@ -2120,6 +2205,8 @@ def defender_damage_multiplier(
                 return 0.0
             continue
 
+    own_mult = mult
+
     # Friend Guard: living ally with allies:resist_damage:0.75
     game_id = getattr(defender, "game_id", None)
     user_id = getattr(defender, "user_id", None)
@@ -2145,6 +2232,31 @@ def defender_damage_multiplier(
                         mult *= float(parts[2])
                     except (TypeError, ValueError):
                         pass
+
+    if own_mult == 0.0:
+        append_ability_trigger_message(
+            trigger_messages,
+            defender,
+            db,
+            "made it immune",
+            unit_name=unit_name,
+        )
+    elif own_mult < 1.0:
+        append_ability_trigger_message(
+            trigger_messages,
+            defender,
+            db,
+            "weakened the attack",
+            unit_name=unit_name,
+        )
+    elif own_mult > 1.0:
+        append_ability_trigger_message(
+            trigger_messages,
+            defender,
+            db,
+            "strengthened the attack",
+            unit_name=unit_name,
+        )
 
     return mult
 
@@ -3410,6 +3522,8 @@ def modify_effective_stats(
     weather_tiles: list | None = None,
     terrain_tiles: list | None = None,
     ally_units: list[GameUnit] | None = None,
+    trigger_messages: list[str] | None = None,
+    unit_name: str | None = None,
 ) -> dict:
     """Return a copy of ``stats`` with ability modifiers applied.
 
@@ -3417,6 +3531,9 @@ def modify_effective_stats(
     Marvel Scale defense, Plus/Minus SpA, Flower Gift, Slow Start, Unburden,
     Quick Feet ignore-paralysis, Grass Pelt. Huge/Pure Power are intended for
     ``attacker_power_multiplier`` at damage time, not here.
+
+    Conditional env/status stat boosts append a one-shot chat line to
+    ``trigger_messages`` when they first become active.
     """
     result = dict(stats or {})
     effects = get_ability_effects(unit, db)
@@ -3474,8 +3591,10 @@ def modify_effective_stats(
             and parts[2] == "self"
             and parts[3] == "boost_stat_mult"
         ):
+            stat = _normalize_stat_name(parts[4])
+            flag_key = f"announced_stat_boost:weather:{parts[1]}:{stat}"
+            flags = _unit_flags(unit)
             if weather_id_matches(weather_id, parts[1]):
-                stat = _normalize_stat_name(parts[4])
                 try:
                     boost = float(parts[5])
                 except (TypeError, ValueError):
@@ -3485,6 +3604,19 @@ def modify_effective_stats(
                         result[stat] = int(float(result[stat]) * boost)
                     except (TypeError, ValueError):
                         pass
+                    if trigger_messages is not None and not flags.get(flag_key):
+                        append_ability_trigger_message(
+                            trigger_messages,
+                            unit,
+                            db,
+                            f"raised its {_stat_display_name(stat)}",
+                            unit_name=unit_name,
+                        )
+                        flags[flag_key] = True
+                        _set_unit_flags(unit, flags, db)
+            elif flag_key in flags:
+                flags.pop(flag_key, None)
+                _set_unit_flags(unit, flags, db)
             continue
 
         # on_terrain:grassy:self:boost_stat_mult:defense:1.5 (Grass Pelt)
@@ -3495,8 +3627,10 @@ def modify_effective_stats(
             and parts[3] == "boost_stat_mult"
         ):
             expected_terrain = TERRAIN_TO_ID.get(parts[1])
+            stat = _normalize_stat_name(parts[4])
+            flag_key = f"announced_stat_boost:terrain:{parts[1]}:{stat}"
+            flags = _unit_flags(unit)
             if expected_terrain is not None and terrain_id == expected_terrain:
-                stat = _normalize_stat_name(parts[4])
                 try:
                     boost = float(parts[5])
                 except (TypeError, ValueError):
@@ -3506,6 +3640,19 @@ def modify_effective_stats(
                         result[stat] = int(float(result[stat]) * boost)
                     except (TypeError, ValueError):
                         pass
+                    if trigger_messages is not None and not flags.get(flag_key):
+                        append_ability_trigger_message(
+                            trigger_messages,
+                            unit,
+                            db,
+                            f"raised its {_stat_display_name(stat)}",
+                            unit_name=unit_name,
+                        )
+                        flags[flag_key] = True
+                        _set_unit_flags(unit, flags, db)
+            elif flag_key in flags:
+                flags.pop(flag_key, None)
+                _set_unit_flags(unit, flags, db)
             continue
 
         # on_status:any:self:boost_stat_mult:attack:1.5
@@ -3516,15 +3663,22 @@ def modify_effective_stats(
             and parts[3] == "boost_stat_mult"
         ):
             status_cond = parts[1]
-            if status_cond == "any" and not has_status:
-                continue
-            if status_cond == "confusion":
+            active = False
+            if status_cond == "any":
+                active = has_status
+            elif status_cond == "confusion":
                 states = _normalize_states(getattr(unit, "states", None))
-                if not (states and str(states[0]).lower() == "confusion" and int(states[1]) > 0):
-                    continue
-            elif status_cond != "any" and _active_status(unit) != _normalize_status_name(status_cond):
-                continue
+                active = bool(states and str(states[0]).lower() == "confusion" and int(states[1]) > 0)
+            else:
+                active = _active_status(unit) == _normalize_status_name(status_cond)
             stat = _normalize_stat_name(parts[4])
+            flag_key = f"announced_stat_boost:status:{status_cond}:{stat}"
+            flags = _unit_flags(unit)
+            if not active:
+                if flag_key in flags:
+                    flags.pop(flag_key, None)
+                    _set_unit_flags(unit, flags, db)
+                continue
             try:
                 boost = float(parts[5])
             except (TypeError, ValueError):
@@ -3534,6 +3688,17 @@ def modify_effective_stats(
                     result[stat] = int(float(result[stat]) * boost)
                 except (TypeError, ValueError):
                     pass
+                if trigger_messages is not None and not flags.get(flag_key):
+                    verb = "raised" if boost >= 1.0 else "cut"
+                    append_ability_trigger_message(
+                        trigger_messages,
+                        unit,
+                        db,
+                        f"{verb} its {_stat_display_name(stat)}",
+                        unit_name=unit_name,
+                    )
+                    flags[flag_key] = True
+                    _set_unit_flags(unit, flags, db)
             continue
 
         # on_hp_below:50:self:boost_stat_mult:attack|spa:0.5 (Defeatist)

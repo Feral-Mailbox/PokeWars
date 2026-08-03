@@ -435,7 +435,47 @@ SCREEN_EFFECT_DURATION = 5
 SIDE_SCREEN_STATE_NAMES = frozenset(
     {"reflect", "light_screen", "aurora_veil", "safeguard", "tailwind"}
 )
-VALID_STATE_EFFECTS = {"confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind", "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed", "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot", "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush", "substitute", "drowsy", "disable", "perish", "charge"}
+VALID_STATE_EFFECTS = {
+    "confusion", "flinch", "reflect", "light_screen", "aurora_veil", "safeguard", "tailwind",
+    "aqua_ring", "destiny_bond", "ingrain", "laser_focus", "encore", "heal_block", "cursed",
+    "nightmare", "immobilized", "salt_cure", "taunt", "torment", "telekinesis", "tar_shot",
+    "gastro_acid", "foresight", "mind_reader", "power_trick", "embargo", "glaive_rush",
+    "substitute", "drowsy", "disable", "perish", "charge",
+    # Newly wired volatiles
+    "protect", "recharge", "leech_seed", "trap", "infatuation",
+    "underground", "airborne", "underwater", "shadow", "solar_beam", "charging",
+}
+
+# Seed / alias tokens → canonical state names used in combat.
+STATE_NAME_ALIASES = {
+    "curse": "cursed",
+    "disabled": "disable",
+    "perish_song": "perish",
+    "bound": "trap",
+    "partially_trapped": "trap",
+    "attract": "infatuation",
+    "infatuated": "infatuation",
+    "submerged": "underwater",
+    "protecting": "protect",
+    "detect": "protect",
+}
+
+SEMI_INVULNERABLE_STATES = frozenset({
+    "underground", "airborne", "underwater", "shadow",
+})
+CHARGE_STATES = frozenset({
+    "underground", "airborne", "underwater", "shadow", "solar_beam", "charging",
+})
+# Moves that can hit a given semi-invulnerable state (by move name slug).
+SEMI_INVULN_HITTERS: dict[str, frozenset[str]] = {
+    "underground": frozenset({"earthquake", "magnitude", "fissure", "bulldoze"}),
+    "airborne": frozenset({
+        "gust", "thunder", "twister", "whirlwind", "sky_uppercut", "hurricane",
+        "smack_down", "thousand_arrows", "swift",
+    }),
+    "underwater": frozenset({"surf", "whirlpool"}),
+    "shadow": frozenset(),
+}
 
 HELD_ITEM_MASK_TYPE_MAP = {
     "hearthflame_mask": "Fire",
@@ -849,6 +889,75 @@ def increment_allies_defeated_since_turn(fainted_unit: GameUnit, db: Session) ->
 def unit_has_glaive_rush(unit: GameUnit) -> bool:
     state = normalize_states(unit.states)
     return bool(state and str(state[0]).lower() == "glaive_rush" and int(state[1]) > 0)
+
+
+def unit_is_protected(unit: GameUnit) -> bool:
+    state = normalize_states(unit.states)
+    return bool(state and state[0] == "protect" and int(state[1]) > 0)
+
+
+def unit_semi_invulnerable_state(unit: GameUnit) -> str | None:
+    state = normalize_states(unit.states)
+    if state and state[0] in SEMI_INVULNERABLE_STATES and int(state[1]) > 0:
+        return str(state[0])
+    return None
+
+
+def move_hits_semi_invulnerable(move, semi_state: str) -> bool:
+    hitters = SEMI_INVULN_HITTERS.get(semi_state, frozenset())
+    return move_slug_name(move) in hitters
+
+
+def absorb_damage_with_substitute(
+    target: GameUnit,
+    damage: int,
+    attacker: GameUnit,
+    db: Session,
+    *,
+    game: Game | None = None,
+    game_state: GameState | None = None,
+) -> int:
+    """Route damage into Substitute HP when present. Returns HP damage to the real unit."""
+    if damage <= 0:
+        return 0
+    state = normalize_states(target.states)
+    if not (state and state[0] == "substitute" and int(state[1]) > 0):
+        return damage
+    if combat_abilities.ignores_substitute(attacker, db):
+        return damage
+    flags = get_unit_flags(target)
+    try:
+        sub_hp = int(flags.get("substitute_hp") or 0)
+    except (TypeError, ValueError):
+        sub_hp = 0
+    if sub_hp <= 0:
+        max_hp = int((target.current_stats or {}).get("hp", 0) or 0)
+        sub_hp = max(1, max_hp // 4) if max_hp > 0 else damage
+    absorbed = min(damage, sub_hp)
+    sub_hp -= absorbed
+    if game and game_state:
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(target, db)}'s substitute took the hit!",
+            game_state,
+            db,
+        )
+    if sub_hp <= 0:
+        flags.pop("substitute_hp", None)
+        set_unit_flags(target, flags, db)
+        target.states = []
+        db.add(target)
+        if game and game_state:
+            publish_system_log_event(
+                game.link,
+                f"{get_unit_display_name(target, db)}'s substitute faded!",
+                game_state,
+                db,
+            )
+    else:
+        flags["substitute_hp"] = sub_hp
+        set_unit_flags(target, flags, db)
+    return 0
 
 
 def move_has_revive_effect(move: Move) -> bool:
@@ -2028,16 +2137,56 @@ def normalize_states(raw: list | str | None) -> list:
 
     if isinstance(raw, str):
         state = raw.strip().lower()
+        state = STATE_NAME_ALIASES.get(state, state)
         return [state, 1] if state else []
 
     if isinstance(raw, list) and len(raw) >= 2:
         state = str(raw[0]).strip().lower()
+        state = STATE_NAME_ALIASES.get(state, state)
         turns_remaining = raw[1]
         if not state or not isinstance(turns_remaining, (int, float)):
             return []
-        return [state, int(turns_remaining)]
+        out = [state, int(turns_remaining)]
+        # Preserve metadata (Encore move id, Leech Seed source, etc.)
+        if len(raw) >= 3:
+            out.append(raw[2])
+        return out
 
     return []
+
+
+def canonical_state_name(state_name: str) -> str:
+    key = str(state_name or "").strip().lower()
+    return STATE_NAME_ALIASES.get(key, key)
+
+
+def move_slug_name(move) -> str:
+    return str(getattr(move, "name", "") or "").lower().replace(" ", "_").replace("-", "_")
+
+
+def move_has_delayed_hit(move) -> bool:
+    for effect in getattr(move, "effects", None) or []:
+        parts = str(effect or "").strip().lower().split(":")
+        if parts and parts[0] == "delayed_hit":
+            return True
+    return False
+
+
+def move_charge_state(move) -> str | None:
+    """Return the charge / semi-invuln state a move applies on its first turn, if any."""
+    for effect in getattr(move, "effects", None) or []:
+        parts = str(effect or "").strip().lower().split(":")
+        if (
+            len(parts) >= 3
+            and parts[0] == "self"
+            and parts[1] in {"apply_state", "state"}
+        ):
+            name = canonical_state_name(parts[2])
+            if name in CHARGE_STATES:
+                return name
+    if move_has_delayed_hit(move):
+        return "charging"
+    return None
 
 
 def unit_has_active_named_state(unit: GameUnit, state_name: str) -> bool:
@@ -2051,15 +2200,15 @@ def unit_has_active_named_state(unit: GameUnit, state_name: str) -> bool:
 
 
 def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
-    state_name = str(state_name or "").strip().lower()
+    state_name = canonical_state_name(state_name)
     if state_name not in VALID_STATE_EFFECTS:
         return False
 
-    if state_name in {"confusion", "flinch", "taunt"} and not combat_abilities.can_apply_state(unit, state_name, db):
+    if state_name in {"confusion", "flinch", "taunt", "infatuation"} and not combat_abilities.can_apply_state(unit, state_name, db):
         return False
 
     current_state = normalize_states(unit.states)
-    has_active_state = len(current_state) == 2 and int(current_state[1]) > 0
+    has_active_state = len(current_state) >= 2 and int(current_state[1]) > 0
 
     # Special-case Power Trick: if applying while already present, remove it (toggle)
     try:
@@ -2126,9 +2275,6 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
         except Exception:
             duration = 2
         unit.states = [state_name, duration]
-    elif state_name == "torment":
-        # Torment prevents the unit from using the same move twice in a row
-        unit.states = [state_name, SCREEN_EFFECT_DURATION]
     elif state_name == "destiny_bond":
         # Destiny Bond lasts until the unit can move again (tracked as 1 turn)
         unit.states = [state_name, 1]
@@ -2139,6 +2285,14 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
     elif state_name == "glaive_rush":
         unit.states = [state_name, 1]
     elif state_name == "substitute":
+        max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+        cost = max(1, max_hp // 4) if max_hp > 0 else 0
+        if cost <= 0 or int(unit.current_hp or 0) <= cost:
+            return False
+        unit.current_hp = int(unit.current_hp or 0) - cost
+        flags = get_unit_flags(unit)
+        flags["substitute_hp"] = cost
+        set_unit_flags(unit, flags, db)
         unit.states = [state_name, 9999]
     elif state_name == "disable":
         unit.states = [state_name, 4]
@@ -2146,6 +2300,24 @@ def apply_state_effect(unit: GameUnit, state_name: str, db: Session) -> bool:
         unit.states = [state_name, 3]
     elif state_name == "charge":
         unit.states = [state_name, 2]
+    elif state_name == "protect":
+        unit.states = [state_name, 1]
+    elif state_name == "recharge":
+        unit.states = [state_name, 1]
+    elif state_name == "leech_seed":
+        unit.states = [state_name, SCREEN_EFFECT_DURATION]
+    elif state_name == "trap":
+        unit.states = [state_name, random.randint(4, 5)]
+    elif state_name == "infatuation":
+        unit.states = [state_name, SCREEN_EFFECT_DURATION]
+    elif state_name in CHARGE_STATES:
+        unit.states = [state_name, 2]
+    elif state_name in {"foresight", "mind_reader"}:
+        unit.states = [state_name, SCREEN_EFFECT_DURATION]
+    elif state_name == "power_trick":
+        unit.states = [state_name, 9999]
+    else:
+        unit.states = [state_name, 1]
     db.add(unit)
 
     if state_name == "flinch":
@@ -2853,6 +3025,9 @@ def compute_effective_stats(
     db: Session,
     weather_tiles: list | None = None,
     terrain_tiles: list | None = None,
+    *,
+    game: Game | None = None,
+    game_state: GameState | None = None,
 ) -> dict:
     """
     Compute the effective stats for a unit, applying stat boost multipliers.
@@ -2928,9 +3103,20 @@ def compute_effective_stats(
         elif status_name == "paralysis" and "speed" in effective_stats and not ignore_para:
             effective_stats["speed"] = int(effective_stats["speed"] // 2)
 
+    ability_msgs: list[str] = []
+    display_name = get_unit_display_name(unit, db) if game is not None else None
     effective_stats = combat_abilities.modify_effective_stats(
-        unit, effective_stats, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles
+        unit,
+        effective_stats,
+        db,
+        weather_tiles=weather_tiles,
+        terrain_tiles=terrain_tiles,
+        trigger_messages=ability_msgs if game is not None else None,
+        unit_name=display_name,
     )
+    if game is not None:
+        for msg in ability_msgs:
+            publish_system_log_event(game.link, msg, game_state, db)
     effective_stats.pop("_ignore_burn_attack_halve", None)
     effective_stats.pop("_ignore_paralysis_speed_halve", None)
 
@@ -3299,6 +3485,27 @@ def process_move_effects(
             for tx, ty in affected_tiles:
                 map_state.weather_tiles[ty][tx] = weather_id
             db.add(map_state)
+            # Announce weather-based ability passives for units now standing in this weather.
+            if game and game_state and affected_tiles:
+                tile_set = {(int(tx), int(ty)) for tx, ty in affected_tiles}
+                units_here = (
+                    db.query(GameUnit)
+                    .filter(GameUnit.game_id == game.id, GameUnit.is_fainted.is_(False))
+                    .all()
+                )
+                for u in units_here:
+                    pos = (int(getattr(u, "current_x", -1) or -1), int(getattr(u, "current_y", -1) or -1))
+                    if pos not in tile_set:
+                        continue
+                    u.current_stats = compute_effective_stats(
+                        u,
+                        db,
+                        weather_tiles=map_state.weather_tiles,
+                        terrain_tiles=getattr(map_state, "terrain_effect_tiles", None),
+                        game=game,
+                        game_state=game_state,
+                    )
+                    db.add(u)
             continue
 
         # Field terrain effect format: terrain:electric|psychic|grassy|misty
@@ -3370,6 +3577,26 @@ def process_move_effects(
             for tx, ty in affected_tiles:
                 map_state.terrain_effect_tiles[ty][tx] = [terrain_id, TERRAIN_DEFAULT_DURATION]
             db.add(map_state)
+            if game and game_state and affected_tiles:
+                tile_set = {(int(tx), int(ty)) for tx, ty in affected_tiles}
+                units_here = (
+                    db.query(GameUnit)
+                    .filter(GameUnit.game_id == game.id, GameUnit.is_fainted.is_(False))
+                    .all()
+                )
+                for u in units_here:
+                    pos = (int(getattr(u, "current_x", -1) or -1), int(getattr(u, "current_y", -1) or -1))
+                    if pos not in tile_set:
+                        continue
+                    u.current_stats = compute_effective_stats(
+                        u,
+                        db,
+                        weather_tiles=getattr(map_state, "weather_tiles", None),
+                        terrain_tiles=map_state.terrain_effect_tiles,
+                        game=game,
+                        game_state=game_state,
+                    )
+                    db.add(u)
             continue
 
         # Field hazard effect format: field_hazard:spikes|toxic_spikes|stealth_rock|sticky_web
@@ -3688,6 +3915,63 @@ def process_move_effects(
         
         recipient = parts[0]  # "self" or "target"
         effect_type = parts[1]  # "raise_stat", "lower_stat", etc.
+
+        # Protect / Detect
+        if effect_type == "protect":
+            if recipient != "self":
+                continue
+            applied = apply_state_effect(attacker, "protect", db)
+            if applied and game and game_state:
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(attacker, db)} protected itself!",
+                    game_state,
+                    db,
+                )
+            continue
+
+        # Attract / Magical Torque: target:infatuation
+        if effect_type in {"infatuation", "attract"}:
+            if recipient != "target":
+                continue
+            for target in targets:
+                if (target.current_hp or 0) <= 0:
+                    continue
+                applied = apply_state_effect(target, "infatuation", db)
+                if applied:
+                    flags = get_unit_flags(target)
+                    flags["infatuated_with"] = int(attacker.id)
+                    set_unit_flags(target, flags, db)
+                    if game and game_state:
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(target, db)} fell in love!",
+                            game_state,
+                            db,
+                        )
+            continue
+
+        # Perish Song: target:perish_song
+        if effect_type == "perish_song":
+            recipients = [attacker] if recipient == "self" else list(targets)
+            if recipient == "target":
+                # Classic Perish Song hits everyone in range including user when seeded as target
+                recipients = list(targets)
+            for unit in recipients:
+                if (unit.current_hp or 0) <= 0:
+                    continue
+                applied = apply_state_effect(unit, "perish", db)
+                if applied and game and game_state:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(unit, db)} heard the Perish Song!",
+                        game_state,
+                        db,
+                    )
+            continue
+
+        # Leech Seed: store the seeder id as metadata when applying
+        # (handled below via apply_state; metadata attached after apply)
 
         if effect_type in ["raise_stat", "lower_stat"]:
             stat_name = None
@@ -4210,10 +4494,21 @@ def process_move_effects(
             condition_type = None
             condition_value = None
 
+            # Support both:
+            #   target:apply_state:condition:ghost:cursed
+            #   target:apply_state:curse:condition:ghost  (legacy Curse seed)
             if state_name == "condition" and len(parts) >= 6:
                 condition_type = parts[3]
                 condition_value = parts[4]
                 state_name = parts[5]
+                if len(parts) >= 7:
+                    try:
+                        accuracy = int(parts[6])
+                    except ValueError:
+                        pass
+            elif len(parts) >= 5 and parts[3] == "condition":
+                condition_type = parts[4]
+                condition_value = parts[5] if len(parts) >= 6 else None
                 if len(parts) >= 7:
                     try:
                         accuracy = int(parts[6])
@@ -4224,6 +4519,8 @@ def process_move_effects(
                     accuracy = int(parts[3])
                 except ValueError:
                     pass
+
+            state_name = canonical_state_name(state_name)
 
             if recipient == "self":
                 if not effect_chance_passes(accuracy):
@@ -4239,7 +4536,7 @@ def process_move_effects(
                         db,
                     )
             elif recipient == "target":
-                normalized_state_name = str(state_name).lower()
+                normalized_state_name = canonical_state_name(state_name)
 
                 if normalized_state_name in SIDE_SCREEN_STATE_NAMES:
                     if not effect_chance_passes(accuracy):
@@ -4289,7 +4586,7 @@ def process_move_effects(
                             continue
 
                     # Special handling for Encore: lock target into its last used move for 2-6 turns
-                    if str(state_name).lower() == "encore":
+                    if str(normalized_state_name).lower() == "encore":
                         # Determine the target's last used move by scanning the replay log
                         last_move_id = None
                         last_move_name = None
@@ -4311,7 +4608,7 @@ def process_move_effects(
                                 duration = random.randint(2, 6)
                                 # Preserve existing state prevention logic
                                 current_state = normalize_states(target.states)
-                                has_active_state = len(current_state) == 2 and int(current_state[1]) > 0
+                                has_active_state = len(current_state) >= 2 and int(current_state[1]) > 0
                                 if not has_active_state:
                                     # Store the move id as a third element so we can enforce it on execute
                                     target.states = ["encore", duration, int(mv.id)]
@@ -4335,14 +4632,47 @@ def process_move_effects(
                             )
                         continue
 
-                    applied = apply_state_effect(target, state_name, db)
-                    if applied and game and game_state:
-                        publish_system_log_event(
-                            game.link,
-                            format_state_log_message(target, state_name, db),
-                            game_state,
-                            db,
-                        )
+                    if normalized_state_name == "leech_seed" and "grass" in get_unit_types(target, db):
+                        if game and game_state:
+                            publish_system_log_event(
+                                game.link,
+                                f"{get_unit_display_name(target, db)} wasn't affected",
+                                game_state,
+                                db,
+                            )
+                        continue
+
+                    applied = apply_state_effect(target, normalized_state_name, db)
+                    if applied:
+                        if normalized_state_name == "leech_seed":
+                            raw = list(target.states) if isinstance(target.states, list) else ["leech_seed", SCREEN_EFFECT_DURATION]
+                            if len(raw) >= 2:
+                                target.states = [raw[0], int(raw[1]), int(attacker.id)]
+                                db.add(target)
+                        if normalized_state_name == "disable":
+                            disabled_id = None
+                            if game_state and isinstance(game_state.replay_log, list):
+                                prefix = f"{get_unit_display_name(target, db)} used "
+                                for entry in reversed(game_state.replay_log or []):
+                                    if not isinstance(entry, dict) or entry.get("event") != "system_log":
+                                        continue
+                                    msg = str(entry.get("message") or "")
+                                    if msg.startswith(prefix):
+                                        mv = db.query(Move).filter(Move.name == msg[len(prefix):]).first()
+                                        if mv:
+                                            disabled_id = int(mv.id)
+                                        break
+                            if disabled_id is not None:
+                                flags = get_unit_flags(target)
+                                flags["disabled_move_id"] = disabled_id
+                                set_unit_flags(target, flags, db)
+                        if game and game_state:
+                            publish_system_log_event(
+                                game.link,
+                                format_state_log_message(target, normalized_state_name, db),
+                                game_state,
+                                db,
+                            )
 
         elif effect_type == "copy_ability":
             if len(parts) < 3:
@@ -5089,6 +5419,14 @@ def decrement_and_expire_status_effects(
                 unit.can_move = False
             elif state_name == "ingrain":
                 unit.can_move = False
+            elif state_name == "trap":
+                # Bound: can use moves but cannot leave the tile (enforced on move endpoint)
+                pass
+            elif state_name == "recharge":
+                unit.can_move = False
+            elif state_name in SEMI_INVULNERABLE_STATES | {"solar_beam", "charging"}:
+                # Still charging / semi-invulnerable — must finish the move next action
+                pass
 
         db.add(unit)
         modified_unit_ids.append(unit.id)
@@ -5300,6 +5638,56 @@ def apply_end_of_round_weather_damage(game_id: int, db: Session) -> list[int]:
             if game and game_state:
                 unit_name = get_unit_display_name(unit, db)
                 publish_system_log_event(game.link, f"{unit_name} took {damage} damage from Curse", game_state, db)
+        elif state_effect[0] == "trap":
+            max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+            if max_hp <= 0:
+                continue
+            damage = max(1, max_hp // 8)
+            before_hp = int(unit.current_hp or 0)
+            if before_hp <= 0:
+                continue
+            unit.current_hp = max(0, before_hp - damage)
+            db.add(unit)
+            modified_unit_ids.append(unit.id)
+            if game and game_state:
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(unit, db)} is hurt by being trapped!",
+                    game_state,
+                    db,
+                )
+        elif state_effect[0] == "leech_seed":
+            max_hp = int((unit.current_stats or {}).get("hp", 0) or 0)
+            if max_hp <= 0:
+                continue
+            damage = max(1, max_hp // 8)
+            before_hp = int(unit.current_hp or 0)
+            if before_hp <= 0:
+                continue
+            unit.current_hp = max(0, before_hp - damage)
+            db.add(unit)
+            modified_unit_ids.append(unit.id)
+            seeder = None
+            raw = unit.states if isinstance(unit.states, list) else []
+            if len(raw) >= 3:
+                try:
+                    seeder = db.query(GameUnit).filter(GameUnit.id == int(raw[2])).first()
+                except Exception:
+                    seeder = None
+            if seeder is not None and int(seeder.current_hp or 0) > 0:
+                s_check = normalize_states(seeder.states)
+                if not (s_check and s_check[0] == "heal_block" and int(s_check[1]) > 0):
+                    smax = int((seeder.current_stats or {}).get("hp", 0) or 0)
+                    seeder.current_hp = min(smax, int(seeder.current_hp or 0) + damage)
+                    db.add(seeder)
+                    modified_unit_ids.append(seeder.id)
+            if game and game_state:
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(unit, db)}'s health was sapped by Leech Seed!",
+                    game_state,
+                    db,
+                )
         elif state_effect[0] == "nightmare":
             # Nightmare deals damage only if the unit is asleep
             status = normalize_status_effects(unit.status_effects)
@@ -6998,7 +7386,24 @@ def place_unit(
         },
     )
     # Refresh stats after Intimidate / weather-tied modifiers / Slow Start
-    new_unit.current_stats = compute_effective_stats(new_unit, db)
+    weather_tiles = (
+        map_state.weather_tiles
+        if map_state and isinstance(getattr(map_state, "weather_tiles", None), list)
+        else None
+    )
+    terrain_tiles = (
+        map_state.terrain_effect_tiles
+        if map_state and isinstance(getattr(map_state, "terrain_effect_tiles", None), list)
+        else None
+    )
+    new_unit.current_stats = compute_effective_stats(
+        new_unit,
+        db,
+        weather_tiles=weather_tiles,
+        terrain_tiles=terrain_tiles,
+        game=game,
+        game_state=state,
+    )
     db.add(new_unit)
     try:
         opponents = (
@@ -7013,7 +7418,14 @@ def place_unit(
     except Exception:
         opponents = []
     for opp in opponents:
-        opp.current_stats = compute_effective_stats(opp, db)
+        opp.current_stats = compute_effective_stats(
+            opp,
+            db,
+            weather_tiles=weather_tiles,
+            terrain_tiles=terrain_tiles,
+            game=game,
+            game_state=state,
+        )
         db.add(opp)
     # Optional Forecast / Mimicry / Ice Face update for all units after weather/terrain setters
     if map_state is not None:
@@ -7487,6 +7899,42 @@ def execute_move(
     if not gu.can_move:
         raise HTTPException(status_code=400, detail="Unit is locked")
 
+    # Recharge: must skip this action
+    gu_state_early = normalize_states(gu.states)
+    if gu_state_early and gu_state_early[0] == "recharge" and int(gu_state_early[1]) > 0:
+        msg = f"{get_unit_display_name(gu, db)} must recharge!"
+        publish_system_log_event(game.link, msg, state, db)
+        gu.can_move = False
+        db.add(gu)
+        db.commit()
+        return {
+            "detail": "Move failed",
+            "message": msg,
+            "missed_target_ids": [],
+            "damage_results": [],
+            "removed_ids": [],
+            "turn_advanced": False,
+            "game_completed": False,
+        }
+
+    # Infatuation: 50% chance to be immobilized by love
+    if gu_state_early and gu_state_early[0] == "infatuation" and int(gu_state_early[1]) > 0:
+        if random.randint(1, 100) <= 50:
+            msg = f"{get_unit_display_name(gu, db)} is immobilized by love!"
+            publish_system_log_event(game.link, msg, state, db)
+            gu.can_move = False
+            db.add(gu)
+            db.commit()
+            return {
+                "detail": "Move failed",
+                "message": msg,
+                "missed_target_ids": [],
+                "damage_results": [],
+                "removed_ids": [],
+                "turn_advanced": False,
+                "game_completed": False,
+            }
+
     if combat_abilities.should_skip_turn_due_to_truant(gu, db):
         loaf_msg = f"{get_unit_display_name(gu, db)} is loafing around!"
         publish_system_log_event(game.link, loaf_msg, state, db)
@@ -7804,6 +8252,7 @@ def execute_move(
 
     landed_targets = targets
     missed_target_ids: List[int] = []
+    ability_block_announced: set[int] = set()
     if not is_field_targeting and targets and move.accuracy is not None and not has_target_fixed_damage:
         landed_targets = []
         for target in targets:
@@ -7812,16 +8261,46 @@ def execute_move(
             except Exception:
                 t_state = []
 
-            if combat_abilities.blocks_sound_move(target, db) and combat_abilities._move_is_sound(move):
+            block_msg = combat_abilities.ability_protect_message(
+                target,
+                move,
+                db,
+                unit_name=get_unit_display_name(target, db),
+            )
+            if block_msg:
                 missed_target_ids.append(target.id)
+                ability_block_announced.add(target.id)
+                publish_system_log_event(game.link, block_msg, state, db)
                 continue
 
-            if combat_abilities.should_block_move_against(target, move, db) in {"good_as_gold", "wind_rider"}:
-                missed_target_ids.append(target.id)
-                continue
+            # Protect / Detect
+            if unit_is_protected(target) and bool(getattr(move, "affected_by_protect", True)):
+                bypass = (
+                    combat_abilities.contact_bypasses_protect(gu, db)
+                    and combat_abilities.move_makes_contact(gu, move, db)
+                )
+                if not bypass:
+                    missed_target_ids.append(target.id)
+                    ability_block_announced.add(target.id)
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)} protected itself!",
+                        state,
+                        db,
+                    )
+                    continue
 
-            if combat_abilities.blocks_ball_bomb_move(target, move, db):
+            # Semi-invulnerable (Dig / Fly / Dive / Shadow Force)
+            semi = unit_semi_invulnerable_state(target)
+            if semi and not move_hits_semi_invulnerable(move, semi):
                 missed_target_ids.append(target.id)
+                ability_block_announced.add(target.id)
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(target, db)} avoided the attack!",
+                    state,
+                    db,
+                )
                 continue
 
             tele_active = bool(t_state and t_state[0] == "telekinesis" and int(t_state[1]) > 0)
@@ -7852,14 +8331,26 @@ def execute_move(
                 missed_target_ids.append(target.id)
 
     # Telepathy: immune to ally attacks
-    landed_targets = [
-        t
-        for t in landed_targets
-        if not (
-            getattr(t, "user_id", None) == getattr(gu, "user_id", None)
-            and combat_abilities.immune_to_ally_attacks(t, db)
-        )
-    ]
+    if landed_targets:
+        filtered_telepathy = []
+        for t in landed_targets:
+            if (
+                getattr(t, "user_id", None) == getattr(gu, "user_id", None)
+                and combat_abilities.immune_to_ally_attacks(t, db)
+            ):
+                ability = combat_abilities.get_active_ability(t, db)
+                ability_name = getattr(ability, "name", None) or "Telepathy"
+                publish_system_log_event(
+                    game.link,
+                    f"{get_unit_display_name(t, db)} is protected by {ability_name}!",
+                    state,
+                    db,
+                )
+                ability_block_announced.add(t.id)
+                missed_target_ids.append(t.id)
+            else:
+                filtered_telepathy.append(t)
+        landed_targets = filtered_telepathy
 
     # Overcoat: powder moves fail against the defender
     if landed_targets:
@@ -7867,12 +8358,20 @@ def execute_move(
         for t in landed_targets:
             if combat_abilities.blocks_powder_move(t, move, db):
                 missed_target_ids.append(t.id)
-                publish_system_log_event(
-                    game.link,
-                    f"{get_unit_display_name(t, db)} is unaffected by powder moves!",
-                    state,
-                    db,
-                )
+                if t.id not in ability_block_announced:
+                    block_msg = combat_abilities.ability_protect_message(
+                        t,
+                        move,
+                        db,
+                        unit_name=get_unit_display_name(t, db),
+                    )
+                    publish_system_log_event(
+                        game.link,
+                        block_msg or f"{get_unit_display_name(t, db)} is unaffected by powder moves!",
+                        state,
+                        db,
+                    )
+                    ability_block_announced.add(t.id)
             else:
                 filtered.append(t)
         landed_targets = filtered
@@ -7880,6 +8379,8 @@ def execute_move(
     if missed_target_ids:
         missed_targets = [target for target in targets if target.id in missed_target_ids]
         for missed_target in missed_targets:
+            if missed_target.id in ability_block_announced:
+                continue
             publish_system_log_event(
                 game.link,
                 f"{get_unit_display_name(missed_target, db)} dodged the attack",
@@ -7901,6 +8402,62 @@ def execute_move(
     damage_results = []
     removed_ids: List[int] = []
     faint_logged_ids: set[int] = set()
+
+    # Two-turn / charging moves (Dig, Fly, Solar Beam, etc.)
+    charge_state = move_charge_state(move)
+    flags_charge = get_unit_flags(gu)
+    pending_charge_id = flags_charge.get("charging_move_id")
+    completing_charge = (
+        pending_charge_id is not None
+        and int(pending_charge_id) == int(move_id)
+        and gu_state_early
+        and gu_state_early[0] in CHARGE_STATES
+    )
+    # Solar Beam skips charge in sun
+    skip_charge = False
+    if charge_state == "solar_beam":
+        wid = get_unit_weather_id(gu, weather_tiles)
+        if wid in {WEATHER_TO_ID["sun"], WEATHER_TO_ID.get("harsh_sun", -1)}:
+            skip_charge = True
+
+    if charge_state and not completing_charge and not skip_charge:
+        applied = apply_state_effect(gu, charge_state, db)
+        flags_charge["charging_move_id"] = int(move_id)
+        set_unit_flags(gu, flags_charge, db)
+        labels = {
+            "underground": "dug underground",
+            "airborne": "flew up high",
+            "underwater": "hid underwater",
+            "shadow": "vanished into the shadows",
+            "solar_beam": "is absorbing light",
+            "charging": "is charging up",
+        }
+        publish_system_log_event(
+            game.link,
+            f"{get_unit_display_name(gu, db)} {labels.get(charge_state, 'is preparing')}!",
+            state,
+            db,
+        )
+        gu.can_move = False
+        db.add(gu)
+        db.commit()
+        return {
+            "detail": "Move charged",
+            "message": f"{get_unit_display_name(gu, db)} is preparing!",
+            "missed_target_ids": [],
+            "damage_results": [],
+            "removed_ids": [],
+            "turn_advanced": False,
+            "game_completed": False,
+            "applied_charge": applied,
+        }
+
+    if completing_charge:
+        # Clear charge state and proceed with the damaging strike
+        gu.states = []
+        flags_charge.pop("charging_move_id", None)
+        set_unit_flags(gu, flags_charge, db)
+        db.add(gu)
 
     if landed_targets and has_target_fixed_damage:
         damage_results = apply_fixed_damage_move_effects(move, gu, landed_targets, db, hit_count=hit_count)
@@ -7954,8 +8511,24 @@ def execute_move(
         if combat_abilities.status_moves_ignore_target_ability(gu, move, db):
             mold_breaker = True
 
-        gu.current_stats = compute_effective_stats(gu, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+        gu.current_stats = compute_effective_stats(
+            gu, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles, game=game, game_state=state
+        )
         db.add(gu)
+
+        attacker_power_announced = False
+        is_last_move = (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game.id,
+                GameUnit.user_id == gu.user_id,
+                GameUnit.can_move.is_(True),
+                GameUnit.is_fainted.is_(False),
+                GameUnit.id != gu.id,
+            )
+            .count()
+            == 0
+        )
 
         for target in landed_targets:
             total_damage = 0
@@ -7984,28 +8557,48 @@ def execute_move(
             )
             before_hp = int(target.current_hp or 0)
 
-            if not mold_breaker and combat_abilities.blocks_sound_move(target, db) and combat_abilities._move_is_sound(move):
-                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
-                continue
-
-            if not mold_breaker and combat_abilities.should_block_move_against(target, move, db) in {"good_as_gold", "wind_rider"}:
-                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
-                publish_system_log_event(
-                    game.link,
-                    f"{get_unit_display_name(target, db)} is protected by its Ability!",
-                    state,
+            if not mold_breaker:
+                block_msg = combat_abilities.ability_protect_message(
+                    target,
+                    move,
                     db,
+                    unit_name=get_unit_display_name(target, db),
                 )
-                continue
+                if block_msg:
+                    damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                    if target.id not in ability_block_announced:
+                        publish_system_log_event(game.link, block_msg, state, db)
+                        ability_block_announced.add(target.id)
+                    continue
 
-            if not mold_breaker and combat_abilities.blocks_ball_bomb_move(target, move, db):
-                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
-                publish_system_log_event(
-                    game.link,
-                    f"{get_unit_display_name(target, db)} is protected by Bulletproof!",
-                    state,
-                    db,
+            if unit_is_protected(target) and bool(getattr(move, "affected_by_protect", True)):
+                bypass = (
+                    combat_abilities.contact_bypasses_protect(gu, db)
+                    and combat_abilities.move_makes_contact(gu, move, db)
                 )
+                if not bypass:
+                    damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                    if target.id not in ability_block_announced:
+                        publish_system_log_event(
+                            game.link,
+                            f"{get_unit_display_name(target, db)} protected itself!",
+                            state,
+                            db,
+                        )
+                        ability_block_announced.add(target.id)
+                    continue
+
+            semi = unit_semi_invulnerable_state(target)
+            if semi and not move_hits_semi_invulnerable(move, semi):
+                damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
+                if target.id not in ability_block_announced:
+                    publish_system_log_event(
+                        game.link,
+                        f"{get_unit_display_name(target, db)} avoided the attack!",
+                        state,
+                        db,
+                    )
+                    ability_block_announced.add(target.id)
                 continue
 
             if combat_abilities.move_type_nullified_by_weather(str(effective_move_type).lower(), attacker_weather_id):
@@ -8030,12 +8623,16 @@ def execute_move(
                 msg = absorb.get("message") or ""
                 if msg:
                     publish_system_log_event(game.link, msg, state, db)
-                target.current_stats = compute_effective_stats(target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+                target.current_stats = compute_effective_stats(
+                    target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles, game=game, game_state=state
+                )
                 db.add(target)
                 damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
                 continue
 
-            target.current_stats = compute_effective_stats(target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles)
+            target.current_stats = compute_effective_stats(
+                target, db, weather_tiles=weather_tiles, terrain_tiles=terrain_tiles, game=game, game_state=state
+            )
             db.add(target)
 
             power_multiplier = resolve_power_multiplier(
@@ -8047,25 +8644,21 @@ def execute_move(
                 db,
                 weather_tiles=weather_tiles,
             )
+            power_msgs: list[str] = []
             ability_power_mult = combat_abilities.attacker_power_multiplier(
                 gu,
                 move,
                 db,
                 weather_tiles=weather_tiles,
                 target=target,
-                is_last_move=(
-                    db.query(GameUnit)
-                    .filter(
-                        GameUnit.game_id == game.id,
-                        GameUnit.user_id == gu.user_id,
-                        GameUnit.can_move.is_(True),
-                        GameUnit.is_fainted.is_(False),
-                        GameUnit.id != gu.id,
-                    )
-                    .count()
-                    == 0
-                ),
+                is_last_move=is_last_move,
+                trigger_messages=None if attacker_power_announced else power_msgs,
+                unit_name=get_unit_display_name(gu, db),
             )
+            if power_msgs:
+                attacker_power_announced = True
+                for msg in power_msgs:
+                    publish_system_log_event(game.link, msg, state, db)
             ability_power_mult *= combat_abilities.field_move_type_power_multiplier(
                 game.id, str(effective_move_type).lower(), db
             )
@@ -8214,17 +8807,20 @@ def execute_move(
                 base = (((2 * gu.level) / 5 + 2) * power * (attack / safe_defense)) / 50 + 2
                 damage = int(base * targets_multiplier * random_factor * stab * critical * type_multiplier * weather_move_multiplier * neuroforce_mult * charge_mult)
                 if not mold_breaker:
-                    damage = int(
-                        damage
-                        * combat_abilities.defender_damage_multiplier(
-                            target,
-                            move,
-                            effective_move_type,
-                            type_multiplier,
-                            db,
-                            makes_contact=target_makes_contact,
-                        )
+                    resist_msgs: list[str] = []
+                    def_mult = combat_abilities.defender_damage_multiplier(
+                        target,
+                        move,
+                        effective_move_type,
+                        type_multiplier,
+                        db,
+                        makes_contact=target_makes_contact,
+                        trigger_messages=resist_msgs,
+                        unit_name=get_unit_display_name(target, db),
                     )
+                    damage = int(damage * def_mult)
+                    for msg in resist_msgs:
+                        publish_system_log_event(game.link, msg, state, db)
                 if unit_has_glaive_rush(target):
                     damage *= 2
                 # Apply side-wide screen reductions: Reflect halves physical damage,
@@ -8263,9 +8859,17 @@ def execute_move(
                         for ice_msg in ice_msgs:
                             publish_system_log_event(game.link, ice_msg, state, db)
 
-                target.current_hp = max(0, (target.current_hp or 0) - damage)
-                total_damage += damage
-                record_last_damage_received(target, gu, damage, db)
+                real_damage = absorb_damage_with_substitute(
+                    target,
+                    damage,
+                    gu,
+                    db,
+                    game=game,
+                    game_state=state,
+                )
+                target.current_hp = max(0, (target.current_hp or 0) - real_damage)
+                total_damage += real_damage
+                record_last_damage_received(target, gu, real_damage, db)
                 first_hit = False
 
             if move_has_effect_token(move, "destroy_terrain:target") and map_state is not None:
@@ -9170,10 +9774,10 @@ def move_unit(
     if is_movement_locked(game.link, gu.id):
         raise HTTPException(status_code=400, detail="Unit has already moved")
 
-    # Prevent movement if Immobilized state is active (does not affect using moves)
+    # Prevent movement if Immobilized / Ingrain / Trap is active (does not affect using moves)
     try:
         gu_state = normalize_states(gu.states)
-        if gu_state and gu_state[0] == "immobilized" and int(gu_state[1]) > 0:
+        if gu_state and gu_state[0] in {"immobilized", "ingrain", "trap"} and int(gu_state[1]) > 0:
             raise HTTPException(status_code=400, detail="Unit is immobilized and cannot move")
     except HTTPException:
         raise
