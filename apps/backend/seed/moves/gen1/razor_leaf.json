@@ -1,0 +1,23 @@
+{
+  "id": 75,
+  "name": "Razor Leaf",
+  "description": "Sharp-edged leaves are launched to slash at the opposing team. Critical hits land more easily.",
+  "type": "Grass",
+  "category": "Physical",
+  "power": 55,
+  "accuracy": 95,
+  "pp": 25,
+  "range": "sweep:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "move_trait": 3,
+  "effects": [
+    "high_crit_rate"
+  ]
+}

@@ -122,9 +122,9 @@ def test_punk_rock_boosts_and_resists_sound(db, user):
     db.commit()
 
     sound = models.Move(
-        name="Hyper Voice", type="Normal", category="Special", power=90, sound_based=True
+        name="Hyper Voice", type="Normal", category="Special", power=90, move_trait=1
     )
-    quiet = models.Move(name="Tackle", type="Normal", category="Physical", power=40, sound_based=False)
+    quiet = models.Move(name="Tackle", type="Normal", category="Physical", power=40, move_trait=0)
     assert ca.attacker_power_multiplier(unit, sound, db) == pytest.approx(1.3)
     assert ca.attacker_power_multiplier(unit, quiet, db) == 1.0
     assert ca.defender_damage_multiplier(unit, sound, "normal", 1.0, db) == 0.5

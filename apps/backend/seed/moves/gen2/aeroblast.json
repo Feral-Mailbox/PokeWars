@@ -1,0 +1,23 @@
+{
+  "id": 177,
+  "name": "Aeroblast",
+  "description": "A vortex of air is shot at the target to inflict damage. Critical hits land more easily.",
+  "type": "Flying",
+  "category": "Special",
+  "power": 100,
+  "accuracy": 95,
+  "pp": 5,
+  "range": "cone:4",
+  "targeting": "enemy",
+  "cooldown": 2,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "move_trait": 2,
+  "effects": [
+    "high_crit_rate"
+  ]
+}

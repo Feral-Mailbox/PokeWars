@@ -1,0 +1,23 @@
+{
+  "id": 311,
+  "name": "Weather Ball",
+  "description": "This attack move varies in power and type depending on the weather.",
+  "type": "Normal",
+  "category": "Special",
+  "power": 50,
+  "accuracy": 100,
+  "pp": 10,
+  "range": "ranged:1",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": false,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": true,
+  "move_trait": 8,
+  "effects": [
+    "weather_ball"
+  ]
+}

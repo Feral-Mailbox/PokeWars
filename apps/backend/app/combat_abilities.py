@@ -35,7 +35,8 @@ Gen 8 notes (tactics approximations):
 
 Gen 9 notes (tactics approximations):
 - Armor Tail / Piercing Drill need priority + Protect systems (helpers only).
-- Wind / slicing moves use slug sets (no DB columns yet).
+- Move traits (sound/wind/slicing/biting/punching/pulse/powder/ball_bomb) use
+  ``Move.move_trait`` with slug-set fallbacks.
 - Protosynthesis / Quark Drive boost highest stat; Booster Energy sets a flag.
 - Tera Shift / Zero to Hero / Commander are forme/adjacency stubs.
 - Charge state doubles next Electric move when wired in games.
@@ -49,6 +50,17 @@ from typing import Any, Callable
 from sqlalchemy.orm import Session
 
 from app.db.models import Ability, GameUnit
+from app.move_traits import (
+    MOVE_TRAIT_BALL_BOMB,
+    MOVE_TRAIT_BITING,
+    MOVE_TRAIT_POWDER,
+    MOVE_TRAIT_PULSE,
+    MOVE_TRAIT_PUNCHING,
+    MOVE_TRAIT_SLICING,
+    MOVE_TRAIT_SOUND,
+    MOVE_TRAIT_WIND,
+    move_has_trait,
+)
 
 # ---------------------------------------------------------------------------
 # Constants (duplicated lightly so this module never imports games.py)
@@ -119,29 +131,32 @@ EXPLOSION_MOVE_SLUGS: frozenset[str] = frozenset(
 
 PUNCH_MOVE_SLUGS: frozenset[str] = frozenset(
     {
-        "mach_punch",
+        "comet_punch",
+        "mega_punch",
         "fire_punch",
         "ice_punch",
         "thunder_punch",
-        "mega_punch",
-        "focus_punch",
-        "bullet_punch",
-        "drain_punch",
-        "hammer_arm",
-        "sky_uppercut",
-        "comet_punch",
         "dizzy_punch",
+        "mach_punch",
+        "dynamic_punch",
+        "focus_punch",
+        "meteor_mash",
+        "shadow_punch",
+        "sky_uppercut",
+        "hammer_arm",
+        "drain_punch",
+        "bullet_punch",
         "power_up_punch",
         "poweruppunch",
-        "shadow_punch",
+        "ice_hammer",
         "plasma_fists",
         "double_iron_bash",
-        "jet_punch",
-        "surge_strikes",
         "wicked_blow",
-        "crashing_cleave",
-        "dynamic_punch",
-        "meteor_mash",
+        "surging_strikes",
+        "surge_strikes",
+        "headlong_rush",
+        "jet_punch",
+        "rage_fist",
     }
 )
 
@@ -189,48 +204,56 @@ PULSE_MOVE_SLUGS: frozenset[str] = frozenset(
 
 BALL_BOMB_MOVE_SLUGS: frozenset[str] = frozenset(
     {
-        "acid_spray",
-        "acidspray",
-        "aura_sphere",
-        "aurasphere",
-        "barrage",
-        "bullet_seed",
-        "bulletseed",
         "egg_bomb",
         "eggbomb",
-        "electro_ball",
-        "electroball",
-        "energy_ball",
-        "energyball",
-        "focus_blast",
-        "focusblast",
-        "gyro_ball",
-        "gyroball",
-        "ice_ball",
-        "iceball",
-        "magnet_bomb",
-        "magnetbomb",
-        "mist_ball",
-        "mistball",
-        "mud_bomb",
-        "mudbomb",
-        "octazooka",
-        "pollen_puff",
-        "pollenpuff",
-        "pyro_ball",
-        "pyroball",
-        "rock_wrecker",
-        "rockwrecker",
-        "seed_bomb",
-        "seedbomb",
-        "shadow_ball",
-        "shadowball",
+        "barrage",
         "sludge_bomb",
         "sludgebomb",
-        "weather_ball",
-        "weatherball",
+        "octazooka",
         "zap_cannon",
         "zapcannon",
+        "shadow_ball",
+        "shadowball",
+        "mist_ball",
+        "mistball",
+        "ice_ball",
+        "iceball",
+        "weather_ball",
+        "weatherball",
+        "bullet_seed",
+        "bulletseed",
+        "rock_blast",
+        "rockblast",
+        "gyro_ball",
+        "gyroball",
+        "aura_sphere",
+        "aurasphere",
+        "seed_bomb",
+        "seedbomb",
+        "focus_blast",
+        "focusblast",
+        "energy_ball",
+        "energyball",
+        "mud_bomb",
+        "mudbomb",
+        "rock_wrecker",
+        "rockwrecker",
+        "magnet_bomb",
+        "magnetbomb",
+        "electro_ball",
+        "electroball",
+        "acid_spray",
+        "acidspray",
+        "searing_shot",
+        "searingshot",
+        "pollen_puff",
+        "pollenpuff",
+        "beak_blast",
+        "beakblast",
+        "pyro_ball",
+        "pyroball",
+        "syrup_bomb",
+        "syrupbomb",
     }
 )
 
@@ -688,27 +711,34 @@ POWDER_MOVE_SLUGS: frozenset[str] = frozenset(
 SLICING_MOVE_SLUGS: frozenset[str] = frozenset(
     {
         "cut",
+        "razor_leaf",
         "slash",
         "fury_cutter",
-        "false_swipe",
+        "metal_claw",
+        "crush_claw",
+        "air_cutter",
         "aerial_ace",
+        "dragon_claw",
         "leaf_blade",
         "night_slash",
-        "psycho_cut",
+        "air_slash",
         "x_scissor",
+        "shadow_claw",
+        "psycho_cut",
+        "cross_poison",
         "sacred_sword",
         "razor_shell",
         "secret_sword",
         "solar_blade",
         "behemoth_blade",
+        "dire_claw",
         "stone_axe",
+        "ceaseless_edge",
         "population_bomb",
         "kowtow_cleave",
         "psyblade",
-        "aqua_cutter",
         "bitter_blade",
-        "ceaseless_edge",
-        "migitation",
+        "aqua_cutter",
         "mighty_cleave",
         "tachyon_cutter",
     }
@@ -718,19 +748,17 @@ WIND_MOVE_SLUGS: frozenset[str] = frozenset(
     {
         "gust",
         "whirlwind",
-        "razor_wind",
-        "air_cutter",
-        "aerial_ace",
-        "twister",
         "blizzard",
-        "heat_wave",
-        "air_slash",
-        "hurricane",
-        "tailwind",
+        "aeroblast",
         "icy_wind",
-        "fairy_wind",
-        "petal_blizzard",
         "sandstorm",
+        "twister",
+        "heat_wave",
+        "air_cutter",
+        "tailwind",
+        "hurricane",
+        "petal_blizzard",
+        "fairy_wind",
         "springtide_storm",
         "bleakwind_storm",
         "wildbolt_storm",
@@ -1447,6 +1475,8 @@ def _move_has_recoil_or_crash(move: Any, flag: str) -> bool:
 
 
 def _move_is_punch(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_PUNCHING):
+        return True
     slug = _move_slug(move)
     if slug in PUNCH_MOVE_SLUGS:
         return True
@@ -1458,6 +1488,8 @@ def _move_is_punch(move: Any) -> bool:
 
 
 def _move_is_bite(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_BITING):
+        return True
     slug = _move_slug(move).replace("-", "_")
     if slug in BITE_MOVE_SLUGS:
         return True
@@ -1466,6 +1498,8 @@ def _move_is_bite(move: Any) -> bool:
 
 
 def _move_is_pulse(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_PULSE):
+        return True
     slug = _move_slug(move).replace("-", "_")
     if slug in PULSE_MOVE_SLUGS:
         return True
@@ -1474,6 +1508,8 @@ def _move_is_pulse(move: Any) -> bool:
 
 
 def _move_is_ball_bomb(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_BALL_BOMB):
+        return True
     slug = _move_slug(move).replace("-", "_")
     if slug in BALL_BOMB_MOVE_SLUGS:
         return True
@@ -1482,6 +1518,8 @@ def _move_is_ball_bomb(move: Any) -> bool:
 
 
 def _move_is_slicing(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_SLICING):
+        return True
     slug = _move_slug(move).replace("-", "_")
     if slug in SLICING_MOVE_SLUGS:
         return True
@@ -1490,11 +1528,27 @@ def _move_is_slicing(move: Any) -> bool:
 
 
 def _move_is_wind(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_WIND):
+        return True
     slug = _move_slug(move).replace("-", "_")
     if slug in WIND_MOVE_SLUGS:
         return True
     name = str(getattr(move, "name", "") or "").lower().replace(" ", "_").replace("-", "_")
     return name in WIND_MOVE_SLUGS
+
+
+def _move_is_sound(move: Any) -> bool:
+    return move_has_trait(move, MOVE_TRAIT_SOUND)
+
+
+def _move_is_powder(move: Any) -> bool:
+    if move_has_trait(move, MOVE_TRAIT_POWDER):
+        return True
+    slug = _move_slug(move).replace("-", "_")
+    if slug in POWDER_MOVE_SLUGS:
+        return True
+    name = str(getattr(move, "name", "") or "").lower().replace(" ", "_").replace("-", "_")
+    return name in POWDER_MOVE_SLUGS
 
 
 def _lookup_unit_weather_tiles(unit: GameUnit, db: Session, weather_tiles: list | None = None) -> list | None:
@@ -1769,7 +1823,7 @@ def attacker_power_multiplier(
                 continue
             cat = parts[1]
             if cat == "sound":
-                if bool(getattr(move, "sound_based", False)):
+                if _move_is_sound(move):
                     mult *= boost
             elif category == cat:
                 mult *= boost
@@ -2028,7 +2082,7 @@ def defender_damage_multiplier(
             cat = parts[1]
             matched = False
             if cat == "sound":
-                matched = bool(getattr(move, "sound_based", False))
+                matched = _move_is_sound(move)
             else:
                 matched = _move_category(move) == cat
             if matched:
@@ -2048,7 +2102,7 @@ def defender_damage_multiplier(
             cat = parts[1]
             matched = False
             if cat == "sound":
-                matched = bool(getattr(move, "sound_based", False))
+                matched = _move_is_sound(move)
             elif cat == "physical":
                 matched = _move_category(move) == "physical"
             elif cat == "special":
@@ -2209,8 +2263,7 @@ def blocks_powder_move(defender: GameUnit, move: Any, db: Session) -> bool:
     """Overcoat: immune to powder moves (spore, sleep powder, etc.)."""
     if not ability_has_token(defender, db, "immune_category:powder", "overcoat"):
         return False
-    slug = _move_slug(move)
-    if slug in POWDER_MOVE_SLUGS or slug.replace("-", "_") in POWDER_MOVE_SLUGS:
+    if _move_is_powder(move):
         return True
     effects = getattr(move, "effects", None)
     if isinstance(effects, list):
@@ -2218,8 +2271,7 @@ def blocks_powder_move(defender: GameUnit, move: Any, db: Session) -> bool:
             token = str(eff or "").lower()
             if "powder" in token or token.startswith("category:powder"):
                 return True
-    name = str(getattr(move, "name", "") or "").lower().replace(" ", "_").replace("-", "_")
-    return name in POWDER_MOVE_SLUGS
+    return False
 
 
 def should_ignore_poison_damage(unit: GameUnit, db: Session) -> bool:
@@ -2286,7 +2338,7 @@ def convert_move_type(attacker: GameUnit, move: Any, db: Session) -> str | None:
         if len(parts) >= 4 and parts[0] == "convert_move_category" and parts[2] == "to_type":
             category = parts[1]
             to_type = parts[3].split("|")[0]
-            if category == "sound" and bool(getattr(move, "sound_based", False)):
+            if category == "sound" and _move_is_sound(move):
                 return to_type
             continue
         if len(parts) >= 4 and parts[0] == "convert_move_type" and parts[2] == "to":
@@ -2847,7 +2899,7 @@ def blocks_ohko(defender: GameUnit, db: Session) -> bool:
 
 
 def blocks_sound_move(defender: GameUnit, db: Session) -> bool:
-    """Soundproof: block moves with ``sound_based`` (or immune_category:sound)."""
+    """Soundproof: block sound moves (``move_trait`` sound / immune_category:sound)."""
     return ability_has_token(defender, db, "immune_category:sound", "soundproof")
 
 
@@ -6539,7 +6591,7 @@ def should_block_move_against(
     db: Session,
 ) -> str | None:
     """Return a reason string if the defender's ability fully blocks the move."""
-    if blocks_sound_move(defender, db) and bool(getattr(move, "sound_based", False)):
+    if blocks_sound_move(defender, db) and _move_is_sound(move):
         return "soundproof"
     if blocks_ball_bomb_move(defender, move, db):
         return "bulletproof"

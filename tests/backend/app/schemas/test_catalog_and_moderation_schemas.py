@@ -54,7 +54,7 @@ def test_move_schema_round_trip():
         affected_by_snatch=False,
         affected_by_mirror_move=True,
         affected_by_kings_rock=True,
-        sound_based=False,
+        move_trait=0,
         range="adjacent",
         targeting="single",
         cooldown=0,

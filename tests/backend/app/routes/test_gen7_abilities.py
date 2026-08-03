@@ -459,9 +459,9 @@ def test_liquid_voice_makes_sound_moves_water(db, user):
     db.commit()
 
     sound = models.Move(
-        name="Hyper Voice", type="Normal", category="Special", power=90, sound_based=True
+        name="Hyper Voice", type="Normal", category="Special", power=90, move_trait=1
     )
-    quiet = models.Move(name="Tackle", type="Normal", category="Physical", power=40, sound_based=False)
+    quiet = models.Move(name="Tackle", type="Normal", category="Physical", power=40, move_trait=0)
     assert ca.convert_move_type(attacker, sound, db) == "water"
     assert ca.convert_move_type(attacker, quiet, db) is None
 

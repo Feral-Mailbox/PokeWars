@@ -1,0 +1,22 @@
+{
+  "id": 178,
+  "name": "Cotton Spore",
+  "description": "The user releases cotton-like spores that cling to the opposing Pok\u00e9mon, which harshly lowers their Speed stats.",
+  "type": "Grass",
+  "category": "Status",
+  "accuracy": 100,
+  "pp": 40,
+  "range": "adjacent",
+  "targeting": "enemy",
+  "cooldown": 0,
+  "makes_contact": false,
+  "affected_by_protect": true,
+  "affected_by_magic_coat": true,
+  "affected_by_snatch": false,
+  "affected_by_mirror_move": true,
+  "affected_by_kings_rock": false,
+  "move_trait": 7,
+  "effects": [
+    "target:lower_stat:speed:2"
+  ]
+}

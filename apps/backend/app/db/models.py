@@ -422,7 +422,8 @@ class Move(Base):
     affected_by_snatch = Column(Boolean, nullable=True, default=False)
     affected_by_mirror_move = Column(Boolean, nullable=True, default=False)
     affected_by_kings_rock = Column(Boolean, nullable=True, default=False)
-    sound_based = Column(Boolean, nullable=True, default=False)
+    # Special category: sound/wind/slicing/biting/punching/pulse/powder/ball_bomb (see move_traits.py)
+    move_trait = Column(Integer, nullable=True, default=0)
 
     # Tactical attributes
     range = Column(String, nullable=True)

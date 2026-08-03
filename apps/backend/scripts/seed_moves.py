@@ -2,11 +2,21 @@ import os
 import json
 from app.db.models import Move
 from app.db.database import get_sessionmaker
+from app.move_traits import parse_move_trait
 from sqlalchemy.exc import IntegrityError
 
 MOVES_DIR = os.path.join(os.path.dirname(__file__), "../seed/moves")
 
 def move_fields_from_data(data: dict) -> dict:
+    # Legacy bool seeds → move_trait (prefer explicit move_trait when present)
+    trait = data.get("move_trait")
+    if trait is None:
+        if data.get("sound_based"):
+            trait = "sound"
+        elif data.get("wind_based"):
+            trait = "wind"
+        elif data.get("slicing_based"):
+            trait = "slicing"
     return {
         "id": data["id"],
         "name": data["name"],
@@ -22,6 +32,7 @@ def move_fields_from_data(data: dict) -> dict:
         "affected_by_snatch": data.get("affected_by_snatch", False),
         "affected_by_mirror_move": data.get("affected_by_mirror_move", False),
         "affected_by_kings_rock": data.get("affected_by_kings_rock", False),
+        "move_trait": parse_move_trait(trait),
         "range": data.get("range"),
         "targeting": data.get("targeting", "enemy"),
         "cooldown": data.get("cooldown", 0),
@@ -29,15 +40,19 @@ def move_fields_from_data(data: dict) -> dict:
     }
 
 
+def _iter_move_seed_files():
+    for root, _, filenames in os.walk(MOVES_DIR):
+        for filename in filenames:
+            if filename.endswith(".json"):
+                yield os.path.join(root, filename)
+
+
 def load_moves(refresh: bool = False):
     SessionLocal = get_sessionmaker()
     db = SessionLocal()
 
-    for filename in os.listdir(MOVES_DIR):
-        if not filename.endswith(".json"):
-            continue
-
-        with open(os.path.join(MOVES_DIR, filename), "r") as f:
+    for filepath in sorted(_iter_move_seed_files()):
+        with open(filepath, "r") as f:
             data = json.load(f)
 
         fields = move_fields_from_data(data)

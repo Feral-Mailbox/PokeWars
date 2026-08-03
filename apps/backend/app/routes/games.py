@@ -7812,7 +7812,7 @@ def execute_move(
             except Exception:
                 t_state = []
 
-            if combat_abilities.blocks_sound_move(target, db) and bool(getattr(move, "sound_based", False)):
+            if combat_abilities.blocks_sound_move(target, db) and combat_abilities._move_is_sound(move):
                 missed_target_ids.append(target.id)
                 continue
 
@@ -7984,7 +7984,7 @@ def execute_move(
             )
             before_hp = int(target.current_hp or 0)
 
-            if not mold_breaker and combat_abilities.blocks_sound_move(target, db) and bool(getattr(move, "sound_based", False)):
+            if not mold_breaker and combat_abilities.blocks_sound_move(target, db) and combat_abilities._move_is_sound(move):
                 damage_results.append({"id": target.id, "damage": 0, "current_hp": target.current_hp})
                 continue
 

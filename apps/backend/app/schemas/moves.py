@@ -17,7 +17,7 @@ class MoveSchema(BaseModel):
     affected_by_snatch: Optional[bool]
     affected_by_mirror_move: Optional[bool]
     affected_by_kings_rock: Optional[bool]
-    sound_based: Optional[bool]
+    move_trait: Optional[int] = 0
     range: Optional[str]
     targeting: Optional[str]
     cooldown: Optional[int]
