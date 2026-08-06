@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   buildBugReportPageUrl,
   buildBugReportTemplate,
+  getExternalBugReportUrl,
   openBugReportWindow,
   parseBugReportSearchParams,
 } from '@/utils/bugReport';
@@ -43,6 +44,33 @@ describe('bugReport utils', () => {
     expect(url).toBe('https://poketactics.net/report-bug?gameLink=abc123&gameName=Test+Game');
   });
 
+  it('includes every populated context value and supports no query', () => {
+    const context = {
+      gameLink: 'abc',
+      gameName: 'Arena',
+      gameMode: 'War',
+      gameStatus: 'complete',
+      username: 'ash',
+      pageUrl: 'https://example.test/game',
+    };
+    const url = buildBugReportPageUrl(context);
+
+    expect(url).toContain('gameMode=War');
+    expect(url).toContain('gameStatus=complete');
+    expect(url).toContain('username=ash');
+    expect(url).toContain('pageUrl=https%3A%2F%2Fexample.test%2Fgame');
+    expect(buildBugReportPageUrl({})).toBe('https://poketactics.net/report-bug');
+    expect(buildBugReportTemplate({})).toContain('Game link: N/A');
+  });
+
+  it('reads an optional external report URL', () => {
+    vi.stubEnv('VITE_BUG_REPORT_URL', '  https://reports.example.test  ');
+    expect(getExternalBugReportUrl()).toBe('https://reports.example.test');
+    vi.stubEnv('VITE_BUG_REPORT_URL', '');
+    expect(getExternalBugReportUrl()).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
   it('opens the report page in a new window', () => {
     openBugReportWindow({ gameLink: 'abc123' });
 
@@ -63,5 +91,24 @@ describe('bugReport utils', () => {
       username: 'player1',
       pageUrl: undefined,
     });
+  });
+
+  it('parses every supported search parameter', () => {
+    const params = new URLSearchParams(
+      'gameLink=id&gameName=Arena&gameMode=War&gameStatus=done&username=ash&pageUrl=https%3A%2F%2Fexample.test'
+    );
+    expect(parseBugReportSearchParams(params)).toEqual({
+      gameLink: 'id',
+      gameName: 'Arena',
+      gameMode: 'War',
+      gameStatus: 'done',
+      username: 'ash',
+      pageUrl: 'https://example.test',
+    });
+  });
+
+  it('uses an unknown browser summary outside a browser', () => {
+    vi.stubGlobal('navigator', undefined);
+    expect(buildBugReportTemplate({})).toContain('Browser: Unknown');
   });
 });

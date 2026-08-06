@@ -29,6 +29,8 @@ def _mock_redis(monkeypatch):
     fake.incr.return_value = 1
     fake.decr.return_value = 0
     fake.expire.return_value = True
+    fake.hgetall.return_value = {}
+    fake.hset.return_value = 1
     pubsub = MagicMock()
     pubsub.get_message.return_value = None
     fake.pubsub.return_value = pubsub

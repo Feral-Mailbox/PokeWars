@@ -206,6 +206,11 @@ vi.mock("@/pages/games/components/ChatPanel", () => ({
       <button type="button" onClick={() => props.onSendChat()}>
         Send chat
       </button>
+      {props.canInvitePlayers && (
+        <button type="button" onClick={() => props.onInvitePlayers?.()}>
+          Invite players
+        </button>
+      )}
       <div>{props.chatEntries?.map((e: any) => e.text).join(" | ")}</div>
     </div>
   ),
@@ -256,7 +261,9 @@ vi.mock("@/pages/games/components/unit-menus/PreparationPlacedUnitMenu", () => (
 }));
 
 vi.mock("@/pages/games/components/unit-menus/InProgressUnitMenu", () => ({
-  default: (props: any) => (
+  default: (props: any) => {
+    props.getStatColor?.(props.activeUnit, "attack");
+    return (
     <div data-testid="in-progress-menu" data-unit-info>
       <button
         type="button"
@@ -306,6 +313,21 @@ vi.mock("@/pages/games/components/unit-menus/InProgressUnitMenu", () => ({
       >
         Select self move
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          props.onMoveSelect({
+            id: 2,
+            name: "Volt Tackle",
+            range_type: "dash_attack",
+            pp: 5,
+            type: "Electric",
+            power: 120,
+          })
+        }
+      >
+        Select dash move
+      </button>
       <button type="button" onClick={() => props.onExecuteMove()}>
         Execute move
       </button>
@@ -326,7 +348,8 @@ vi.mock("@/pages/games/components/unit-menus/InProgressUnitMenu", () => ({
         </button>
       )}
     </div>
-  ),
+    );
+  },
 }));
 
 vi.mock("@/pages/games/modes/ConquestGame", () => ({
@@ -530,7 +553,7 @@ function installFetch(fixture: Fixture = {}) {
         ok: true,
         json: async () => [
           { id: 1, name: "Thunderbolt", range_type: "adjacent", pp: 10, type: "Electric", power: 90 },
-          { id: 2, name: "Blast Burn", range_type: "blast:1", pp: 5, type: "Fire", power: 120 },
+          { id: 2, name: "Volt Tackle", range_type: "dash_attack", pp: 5, type: "Electric", power: 120 },
           { id: 99, name: "Recover", range_type: "self", pp: 5, type: "Normal", power: 0 },
         ],
       } as Response;
@@ -557,7 +580,11 @@ function installFetch(fixture: Fixture = {}) {
     if (url.includes("/items/all")) {
       return {
         ok: true,
-        json: async () => [{ id: 3, name: "Oran Berry", slug: "oran-berry", category: "berry", cost: 50 }],
+        json: async () => [
+          { id: 3, name: "Oran Berry", slug: "oran-berry", category: "berry", cost: 50 },
+          { id: 9, name: "TM01", slug: "tm01", category: "tm", cost: 100, move_id: 1 },
+          { id: 10, name: "TM99", slug: "tm99", category: "tm", cost: 100, move_id: 404 },
+        ],
       } as Response;
     }
     if (url.includes("/units") && url.includes("/games/")) {
@@ -586,13 +613,24 @@ function renderGame(path = "/games/cq-link") {
 describe("GamePage coverage suite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Keep a safe default so in-flight GamePage effects never see undefined.
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as Response);
     wsInstances.length = 0;
     Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(window, "alert").mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.mocked(secureFetch).mockReset();
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } as Response);
   });
 
   it("prep: ready, place, remove, and start", async () => {
@@ -966,6 +1004,7 @@ describe("GamePage coverage suite", () => {
   });
 
   it("handles websocket chat, map, unit, and lifecycle events", async () => {
+    const user = userEvent.setup();
     installFetch({
       game: baseGame({
         status: "in_progress",
@@ -994,6 +1033,9 @@ describe("GamePage coverage suite", () => {
     await screen.findByText("Coverage Match");
     await waitFor(() => expect(wsInstances.length).toBeGreaterThan(0));
     const ws = wsInstances[wsInstances.length - 1];
+
+    await user.click(screen.getByRole("button", { name: /Click unit/i }));
+    expect(await screen.findByTestId("in-progress-menu")).toBeInTheDocument();
 
     await act(async () => {
       ws.onmessage?.({
@@ -1288,5 +1330,204 @@ describe("GamePage coverage suite", () => {
         expect.objectContaining({ method: "POST" })
       );
     });
+  });
+
+  it("computes client movement when turnlock is empty and locks after move", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({
+        status: "in_progress",
+        current_turn: 0,
+        turn_deadline: new Date(Date.now() + 60000).toISOString(),
+        map: {
+          ...miniMap,
+          tile_data: {
+            ...miniMap.tile_data,
+            special_tiles: [
+              ["water", null],
+              [null, null],
+            ],
+          },
+        },
+      }),
+      units: [sampleUnit, enemyUnit],
+      posts: {
+        "/move": { x: 1, y: 0, movement_locked: true },
+      },
+    });
+    const previous = vi.mocked(secureFetch).getMockImplementation()!;
+    vi.mocked(secureFetch).mockImplementation(async (input, init) => {
+      if (String(input).includes("/turnlock")) {
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      return previous(input, init);
+    });
+
+    renderGame();
+    await screen.findByText(/testuser's Turn/i);
+    await waitFor(() => expect(screen.getByTestId("map-stage")).toHaveAttribute("data-unit-count", "2"));
+    await user.click(screen.getByRole("button", { name: /Click unit/i }));
+    expect(await screen.findByTestId("in-progress-menu")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Click overlay tile/i }));
+    await waitFor(() => {
+      expect(secureFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/move"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
+
+  it("recalculates turn timer on visibility change and opens invite modal", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({
+        status: "open",
+        start_with_tms: true,
+        turn_deadline: new Date(Date.now() + 45000).toISOString(),
+      }),
+      posts: {
+        "/api/invitations": { ok: true },
+      },
+    });
+    const previous = vi.mocked(secureFetch).getMockImplementation()!;
+    vi.mocked(secureFetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.includes("/api/players/search")) {
+        return {
+          ok: true,
+          json: async () => [{ id: 9, username: "misty", trainer_id: "T1" }],
+        } as Response;
+      }
+      if (url.includes("/api/invitations") && (init?.method ?? "GET").toUpperCase() === "POST") {
+        return { ok: true, json: async () => ({ ok: true }) } as Response;
+      }
+      return previous(input, init);
+    });
+
+    renderGame();
+    expect(await screen.findByRole("button", { name: /Invite players/i })).toBeInTheDocument();
+
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await user.click(screen.getByRole("button", { name: /Invite players/i }));
+    expect(await screen.findByRole("dialog", { name: /invite player/i })).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText(/username or trainer id/i), "mis");
+    await waitFor(
+      () => {
+        expect(secureFetch).toHaveBeenCalledWith(expect.stringContaining("/api/players/search"));
+      },
+      { timeout: 2000 },
+    );
+    expect(await screen.findByText("misty")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^invite$/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Invitation sent to misty/i)).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /close/i }));
+  });
+
+  it("validates displacement dash moves against landing tiles", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({
+        status: "in_progress",
+        current_turn: 0,
+        turn_deadline: new Date(Date.now() + 60000).toISOString(),
+        map: {
+          ...miniMap,
+          width: 4,
+          height: 4,
+          tile_data: {
+            ...miniMap.tile_data,
+            base: Array.from({ length: 4 }, () =>
+              Array.from({ length: 4 }, () => [0, 0] as [number, number]),
+            ),
+            overlay: Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
+            movement_cost: Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => 1)),
+            spawn_points: Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
+            special_tiles: Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
+            item_id_tiles: Array.from({ length: 4 }, () => Array.from({ length: 4 }, () => null)),
+          },
+        },
+      }),
+      units: [
+        { ...sampleUnit, equipped_move_ids: [1, 2], move_pp: [10, 5] },
+        { ...enemyUnit, current_x: 3, current_y: 3, starting_x: 3, starting_y: 3 },
+      ],
+      posts: {
+        "/execute_move": { ok: false, json: { detail: "This cannot work." } },
+      },
+    });
+    renderGame();
+    await screen.findByText(/testuser's Turn/i);
+    await user.click(screen.getByRole("button", { name: /Click unit/i }));
+    expect(await screen.findByTestId("in-progress-menu")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Select dash move/i }));
+    // Execute without a target first (validation path).
+    await user.click(screen.getByRole("button", { name: /Execute move/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/Select a target tile/i)).toBeInTheDocument();
+    });
+  });
+
+  it("selects conquest spawn tiles in preparation", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({ status: "preparation" }),
+    });
+    renderGame();
+    await screen.findByRole("button", { name: /Select spawn tile/i });
+    await user.click(screen.getByRole("button", { name: /Select spawn tile/i }));
+  });
+
+  it("rejects wait off-turn", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({
+        status: "in_progress",
+        current_turn: 1,
+        turn_deadline: new Date(Date.now() + 60000).toISOString(),
+      }),
+      units: [sampleUnit, enemyUnit],
+    });
+    renderGame();
+    await screen.findByText(/rival's Turn/i);
+    await user.click(screen.getByRole("button", { name: /Click unit/i }));
+    await user.click(screen.getByRole("button", { name: /Wait/i }));
+    expect(await screen.findByText(/only wait on your turn/i)).toBeInTheDocument();
+  });
+
+  it("rejects wait for locked and enemy units", async () => {
+    const user = userEvent.setup();
+    installFetch({
+      game: baseGame({
+        status: "in_progress",
+        current_turn: 0,
+        turn_deadline: new Date(Date.now() + 60000).toISOString(),
+      }),
+      units: [{ ...sampleUnit, can_move: false }, enemyUnit],
+    });
+    const { unmount } = renderGame();
+    await screen.findByText(/testuser's Turn/i);
+    await user.click(screen.getByRole("button", { name: /Click unit/i }));
+    await user.click(screen.getByRole("button", { name: /Wait/i }));
+    expect(await screen.findByText(/locked and cannot act/i)).toBeInTheDocument();
+
+    unmount();
+    installFetch({
+      game: baseGame({
+        status: "in_progress",
+        current_turn: 0,
+        turn_deadline: new Date(Date.now() + 60000).toISOString(),
+      }),
+      units: [sampleUnit, enemyUnit],
+    });
+    renderGame();
+    await screen.findByText(/testuser's Turn/i);
+    await user.click(screen.getByRole("button", { name: /Click second unit/i }));
+    await user.click(screen.getByRole("button", { name: /Wait/i }));
+    expect(await screen.findByText(/only wait with your own unit/i)).toBeInTheDocument();
   });
 });

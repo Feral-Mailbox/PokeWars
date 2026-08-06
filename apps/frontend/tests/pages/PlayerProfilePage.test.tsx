@@ -151,4 +151,80 @@ describe('PlayerProfilePage', () => {
       expect(screen.getByRole('heading', { name: /player not found/i })).toBeInTheDocument();
     });
   });
+
+  it('handles an empty trainer id and failed profile responses', async () => {
+    const empty = renderPlayer('/player/%20%20');
+    expect(await screen.findByText('Player not found.')).toBeInTheDocument();
+    expect(secureFetch).not.toHaveBeenCalled();
+    empty.unmount();
+
+    vi.mocked(secureFetch).mockResolvedValueOnce(undefined).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response);
+    const unavailable = renderPlayer('/player/ABCD');
+    expect(await screen.findByText('Could not load player profile.')).toBeInTheDocument();
+    unavailable.unmount();
+
+    renderPlayer('/player/EFGH');
+    expect(await screen.findByText('Could not load player profile.')).toBeInTheDocument();
+  });
+
+  it('uses the authenticated email when loading it fails', async () => {
+    mockAuth({ user: ownUser });
+    vi.mocked(secureFetch).mockImplementation(async (input) => {
+      if (String(input).startsWith('/api/players/')) {
+        return { ok: true, status: 200, json: async () => publicProfile } as Response;
+      }
+      throw new Error('offline');
+    });
+
+    renderPlayer('/player/214D27D0');
+    expect(await screen.findByText(ownUser.email)).toBeInTheDocument();
+  });
+
+  it('renders a generic error when fetching throws', async () => {
+    vi.mocked(secureFetch).mockRejectedValue(new Error('offline'));
+    renderPlayer('/player/ABCD');
+    expect(await screen.findByText('Could not load player profile.')).toBeInTheDocument();
+  });
+
+  it('applies account settings updates via handleUserUpdated', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const setUser = vi.fn();
+    mockAuth({ user: ownUser, setUser });
+
+    vi.mocked(secureFetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url.startsWith('/api/players/')) {
+        return { ok: true, status: 200, json: async () => publicProfile } as Response;
+      }
+      if (url === '/api/me' && !init?.method) {
+        return { ok: true, status: 200, json: async () => ownUser } as Response;
+      }
+      if (url === '/api/me/email' && init?.method === 'PATCH') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ ...ownUser, email: 'fresh@example.com' }),
+        } as Response;
+      }
+      return { ok: false, status: 500, json: async () => ({}) } as Response;
+    });
+
+    renderPlayer('/player/214D27D0');
+    expect(await screen.findByRole('button', { name: /update email/i })).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/^email$/i));
+    await user.type(screen.getByLabelText(/^email$/i), 'fresh@example.com');
+    await user.type(screen.getByLabelText(/^confirm password$/i), 'secretpw');
+    await user.click(screen.getByRole('button', { name: /update email/i }));
+
+    await waitFor(() => {
+      expect(setUser).toHaveBeenCalledWith(expect.objectContaining({ email: 'fresh@example.com' }));
+      expect(screen.getByText('fresh@example.com')).toBeInTheDocument();
+    });
+  });
 });

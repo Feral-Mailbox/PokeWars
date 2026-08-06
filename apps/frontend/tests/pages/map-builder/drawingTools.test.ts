@@ -134,4 +134,46 @@ describe("drawingTools", () => {
     });
     expect(erased.overlay2[1][1]).toBeNull();
   });
+
+  it("paints and erases overlay2/3 and remaining layer cells", () => {
+    const data = createEmptyTileData(3, 3);
+
+    const o2 = paintCellOnMap(data, 0, 0, { ...paintOptions, layer: "overlay2" });
+    expect(o2.overlay2[0][0]).toEqual([2, 3]);
+    const o3 = paintCellOnMap(data, 1, 1, { ...paintOptions, layer: "overlay3" });
+    expect(o3.overlay3[1][1]).toEqual([2, 3]);
+
+    const erasedO2 = paintCellOnMap(o2, 0, 0, {
+      ...paintOptions,
+      layer: "overlay2",
+      erase: true,
+    });
+    expect(erasedO2.overlay2[0][0]).toBeNull();
+    const erasedO3 = paintCellOnMap(o3, 1, 1, {
+      ...paintOptions,
+      layer: "overlay3",
+      erase: true,
+    });
+    expect(erasedO3.overlay3[1][1]).toBeNull();
+
+    const spawn = paintCellOnMap(data, 2, 0, { ...paintOptions, layer: "spawn_points" });
+    expect(paintCellOnMap(spawn, 2, 0, { ...paintOptions, layer: "spawn_points", erase: true })
+      .spawn_points[0][2]).toBeNull();
+
+    const special = paintCellOnMap(data, 0, 1, { ...paintOptions, layer: "special_tiles" });
+    expect(paintCellOnMap(special, 0, 1, { ...paintOptions, layer: "special_tiles", erase: true })
+      .special_tiles[1][0]).toBeNull();
+
+    const flags = paintCellOnMap(data, 1, 0, { ...paintOptions, layer: "flags" });
+    expect(paintCellOnMap(flags, 1, 0, { ...paintOptions, layer: "flags", erase: true })
+      .flags[0][1]).toBeNull();
+
+    const items = paintCellOnMap(data, 2, 2, { ...paintOptions, layer: "items" });
+    expect(paintCellOnMap(items, 2, 2, { ...paintOptions, layer: "items", erase: true })
+      .item_id_tiles[2][2]).toBeNull();
+
+    // Out-of-bounds fill cells are skipped.
+    const clipped = fillRectOnMap(data, -2, -2, 0, 0, paintOptions);
+    expect(clipped.base[0][0]).toEqual([2, 3]);
+  });
 });

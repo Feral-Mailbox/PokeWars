@@ -3,25 +3,34 @@ import pytest
 from app.map_movement import (
     IMPOSSIBLE_MOVEMENT_COST,
     LEDGE_DOWN,
+    LEDGE_LEFT,
+    LEDGE_RIGHT,
     LEDGE_UP,
     SAND_MOVEMENT_COST,
     STUMP_MOVEMENT_COST,
     build_movement_cost_grid,
     can_enter_tile,
     find_shortest_path,
+    get_displacement_landing_tile,
     get_grass_defense_multiplier,
+    get_special_tile,
     get_stump_defense_multiplier,
     get_tile_defense_multiplier,
     get_grass_incoming_accuracy_multiplier,
+    is_displacement_move_kind,
     is_ice_tile,
+    is_impassable_tile,
+    is_ledge_tile,
     is_rock_tile,
     is_sand_tile,
     is_valid_movement_destination,
     is_water_tile,
     ledge_allows_entry,
     movement_range_with_terrain,
+    normalize_special_tile,
     resolve_movement_destination,
     slide_on_ice_from,
+    target_receives_grass_tile_bonuses,
     unit_can_cross_rock,
     unit_can_cross_water,
     unit_can_occupy_tile,
@@ -444,3 +453,109 @@ def test_can_enter_tile_and_destination_helpers():
     assert is_valid_movement_destination(special, 0, 1, {"flying"}) is True
     assert unit_can_stand_on_ledge({"flying"}) is True
     assert unit_can_stand_on_ledge({"rock"}) is False
+
+
+def test_normalize_and_get_special_tile_edge_cases():
+    assert normalize_special_tile(None) is None
+    assert normalize_special_tile("  ") is None
+    assert normalize_special_tile(" Ice ") == "ice"
+    assert normalize_special_tile(12) is None
+
+    assert get_special_tile(None, 0, 0) is None
+    assert get_special_tile([], 0, 0) is None
+    assert get_special_tile([["water"]], -1, 0) is None
+    assert get_special_tile([["water"]], 0, -1) is None
+    assert get_special_tile([["water"]], 0, 1) is None
+    assert get_special_tile([["water"]], 1, 0) is None
+    assert get_special_tile(["not-a-row"], 0, 0) is None
+    assert get_special_tile([None], 0, 0) is None
+
+
+def test_ledge_and_impassable_helpers():
+    special = [["ledge_left", "impassable"], ["ledge_right", None]]
+    assert is_ledge_tile(special, 0, 0) is True
+    assert is_ledge_tile(special, 1, 1) is False
+    assert is_impassable_tile(special, 1, 0) is True
+    assert is_impassable_tile(special, 0, 0) is False
+
+    assert ledge_allows_entry(LEDGE_LEFT, 1, 0, 0, 0) is True
+    assert ledge_allows_entry(LEDGE_LEFT, 0, 0, 1, 0) is False
+    assert ledge_allows_entry(LEDGE_RIGHT, 0, 0, 1, 0) is True
+    assert ledge_allows_entry(LEDGE_RIGHT, 1, 0, 0, 0) is False
+    assert ledge_allows_entry("not_a_ledge", 0, 0, 1, 0) is False
+
+
+def test_target_receives_grass_tile_bonuses_none_types():
+    assert target_receives_grass_tile_bonuses(None) is True
+    assert target_receives_grass_tile_bonuses({"flying"}) is False
+    assert target_receives_grass_tile_bonuses({"grass"}, {"levitate"}) is False
+
+
+def test_find_shortest_path_same_tile_and_ghost_clears_blocks():
+    costs = [[1, 1, 1]]
+    assert find_shortest_path((0, 0), (0, 0), costs, None, 3, 1, {"grass"}) == [(0, 0)]
+
+    path = find_shortest_path(
+        (0, 0),
+        (2, 0),
+        costs,
+        None,
+        3,
+        1,
+        {"ghost"},
+        blocked_tiles={(1, 0)},
+    )
+    assert path == [(0, 0), (1, 0), (2, 0)]
+
+
+def test_find_shortest_path_skips_impossible_and_blocked_entry():
+    costs = [[1, IMPOSSIBLE_MOVEMENT_COST, 1]]
+    assert (
+        find_shortest_path((0, 0), (2, 0), costs, None, 3, 1, {"grass"}) is None
+    )
+
+    special = [[None, "impassable", None]]
+    assert (
+        find_shortest_path((0, 0), (2, 0), [[1, 1, 1]], special, 3, 1, {"grass"})
+        is None
+    )
+
+
+def test_slide_on_ice_stops_at_bounds_and_blocked_occupy():
+    special = [["ice", "ice", "ice"]]
+    # Slide off the map edge → stay on last ice tile
+    assert slide_on_ice_from(0, 0, -1, 0, special, 3, 1, {"grass"}) == (0, 0)
+    # Occupied next tile stops slide
+    assert slide_on_ice_from(
+        0, 0, 1, 0, special, 3, 1, {"grass"}, occupied_tiles={(1, 0)}
+    ) == (0, 0)
+    # Impassable beyond ice stops slide
+    special2 = [["ice", "impassable"]]
+    assert slide_on_ice_from(0, 0, 1, 0, special2, 2, 1, {"grass"}) == (0, 0)
+
+
+def test_displacement_landing_helpers():
+    assert is_displacement_move_kind("dash_attack") is True
+    assert is_displacement_move_kind("wait") is False
+    assert get_displacement_landing_tile(0, 0, [], "dash_attack") is None
+    assert get_displacement_landing_tile(0, 0, [(1, 1)], "dash_attack") is None
+    assert get_displacement_landing_tile(0, 0, [(3, 0)], "dash_attack") is None
+    assert get_displacement_landing_tile(0, 0, [(1, 0)], "dash_attack") == (1, 0)
+    assert get_displacement_landing_tile(0, 0, [(2, 0)], "jump_attack") == (1, 0)
+    assert get_displacement_landing_tile(0, 0, [(2, 0), (1, 0)], "dash_attack") == (
+        1,
+        0,
+    )
+
+
+def test_movement_range_skips_out_of_bounds_start():
+    tiles = movement_range_with_terrain(
+        start=(-1, 0),
+        rng=2,
+        movement_costs=[[1, 1]],
+        special_tiles=None,
+        width=2,
+        height=1,
+        unit_types={"grass"},
+    )
+    assert tiles == []

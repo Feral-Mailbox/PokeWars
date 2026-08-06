@@ -1,7 +1,7 @@
 {
   "id": 575,
   "name": "Parting Shot",
-  "description": "With a parting threat, the user lowers the target's Attack and Sp. Atk stats. Then it moves back, switching with the Pokémon behind it.",
+  "description": "With a parting threat, the user lowers the target's Attack and Sp. Atk stats. Then it moves back, switching with the Pok\u00e9mon behind it.",
   "type": "Dark",
   "category": "Status",
   "accuracy": 100,
@@ -15,6 +15,7 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
+  "move_trait": 1,
   "effects": [
     "target:lower_stat:attack:1",
     "target:lower_stat:special_attack:1",

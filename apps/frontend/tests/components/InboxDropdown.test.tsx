@@ -77,4 +77,40 @@ describe('InboxDropdown', () => {
       );
     });
   });
+
+  it('displays API details for a failed cancellation and closes outside clicks', async () => {
+    const user = userEvent.setup();
+    vi.mocked(secureFetch).mockImplementation(async (input, init) => {
+      const url = String(input);
+      if (url === '/api/invitations/inbox') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ invitations: [pendingInvite], pending_count: 1 }),
+        } as Response;
+      }
+      if (url === '/api/invitations/11/cancel' && init?.method === 'POST') {
+        return {
+          ok: false,
+          status: 409,
+          json: async () => ({ detail: 'Invitation has expired' }),
+        } as Response;
+      }
+      return { ok: false, status: 500, json: async () => ({}) } as Response;
+    });
+
+    render(
+      <MemoryRouter>
+        <InboxDropdown />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /inbox/i }));
+    await screen.findByText(/hosty invited you/i);
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByText('Invitation has expired')).toBeInTheDocument();
+
+    await user.click(document.body);
+    expect(screen.queryByRole('heading', { name: 'Inbox' })).not.toBeInTheDocument();
+  });
 });

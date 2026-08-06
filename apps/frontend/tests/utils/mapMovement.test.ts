@@ -214,4 +214,39 @@ describe("mapMovement", () => {
       )
     ).toEqual([[1, 0]]);
   });
+
+  it("handles bounds, blocked paths, and terrain edge cases", () => {
+    expect(getSpecialTile([[null]], -1, 0)).toBeNull();
+    expect(getSpecialTile([null as unknown as unknown[]], 0, 0)).toBeNull();
+    expect(buildMovementCostGrid([[3]], null, ["normal"])).toEqual([[3]]);
+    expect(filterMovementTilesForUnit([[0, 0]], null, ["normal"])).toEqual([[0, 0]]);
+
+    expect(
+      findShortestPath(
+        [0, 0],
+        [1, 0],
+        [[1, 1]],
+        [[null, null]],
+        2,
+        1,
+        ["normal"],
+        [],
+        new Set(["1,0"])
+      )
+    ).toBeNull();
+    expect(
+      slideOnIceFrom(0, 0, 1, 0, [[ICE_TILE, null]], 2, 1, ["normal"], [], new Set(["1,0"]))
+    ).toEqual([0, 0]);
+    expect(
+      slideOnIceFrom(0, 0, 1, 0, [[ICE_TILE, WATER_TILE]], 2, 1, ["normal"])
+    ).toEqual([0, 0]);
+    expect(
+      resolveMovementDestination(0, 0, 1, 0, [[1, IMPOSSIBLE_MOVEMENT_COST]], [[null, null]], 2, 1, ["normal"])
+    ).toEqual({ x: 1, y: 0, slid: false });
+    expect(
+      resolveMovementDestination(0, 0, 1, 0, [[1, 1]], [[null, null]], 2, 1, ["normal"])
+    ).toEqual({ x: 1, y: 0, slid: false });
+    expect(unitCanOccupyTile([[LEDGE_UP]], 0, 0, ["flying"], [])).toBe(true);
+    expect(unitCanOccupyTile([[ROCK_TILE]], 0, 0, ["flying"], [])).toBe(true);
+  });
 });

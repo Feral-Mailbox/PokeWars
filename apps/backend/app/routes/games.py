@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import Iterable, List
 from datetime import datetime, timedelta, timezone
 from collections import deque
 import random
@@ -63,6 +63,13 @@ from app.elo import (
     DEFAULT_ELO,
 )
 from app import combat_abilities as combat_abilities
+from app.game_patches import (
+    publish_game_patch as _publish_game_patch,
+    read_turnlock as _read_turnlock,
+    turn_op_from_state,
+    unit_to_patch,
+    players_op,
+)
 
 router = APIRouter(prefix="/games", tags=["games"])
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
@@ -92,18 +99,175 @@ def publish_game_ws_event(game_link: str, payload: dict) -> None:
         return
 
 
-def publish_player_state_updated(game_link: str) -> None:
-    try:
-        redis_client.publish(f"game_updates:{game_link}", "player_state_updated")
-    except Exception:
-        return
+def publish_game_patch(
+    game_link: str,
+    ops: list[dict],
+    *,
+    cause: str | None = None,
+    refetch: list[str] | None = None,
+) -> int:
+    return _publish_game_patch(
+        redis_client,
+        game_link,
+        ops,
+        cause=cause,
+        refetch=refetch,
+    )
 
 
-def publish_map_state_updated(game_link: str) -> None:
-    try:
-        redis_client.publish(f"game_updates:{game_link}", "map_state_updated")
-    except Exception:
-        return
+def _unit_ids_to_patch_ops(game_id: int, unit_ids: Iterable[int], db: Session) -> list[dict]:
+    ids = [int(uid) for uid in unit_ids if uid is not None]
+    if not ids:
+        return []
+    units = (
+        db.query(GameUnit)
+        .options(joinedload(GameUnit.unit))
+        .filter(GameUnit.game_id == game_id, GameUnit.id.in_(ids))
+        .all()
+    )
+    ops: list[dict] = []
+    for unit in units:
+        attach_game_unit_loadout_fields(unit, db)
+        ops.append({"op": "unit_upsert", "unit": unit_to_patch(unit)})
+    return ops
+
+
+def publish_units_updated(
+    game: Game,
+    unit_ids: Iterable[int],
+    db: Session,
+    *,
+    cause: str = "unit_stats_updated",
+) -> None:
+    ops = _unit_ids_to_patch_ops(game.id, unit_ids, db)
+    if ops:
+        publish_game_patch(game.link, ops, cause=cause)
+
+
+def publish_unit_snapshot(
+    game_link: str,
+    unit: GameUnit,
+    *,
+    cause: str = "unit_updated",
+    extra_ops: list[dict] | None = None,
+) -> None:
+    ops: list[dict] = [{"op": "unit_upsert", "unit": unit_to_patch(unit)}]
+    if extra_ops:
+        ops.extend(extra_ops)
+    publish_game_patch(game_link, ops, cause=cause)
+
+
+def publish_unit_moved(game_link: str, unit: GameUnit) -> None:
+    publish_game_patch(
+        game_link,
+        [
+            {
+                "op": "unit_moved",
+                "unit_id": int(unit.id),
+                "user_id": int(unit.user_id),
+                "x": int(unit.current_x),
+                "y": int(unit.current_y),
+            }
+        ],
+        cause="unit_moved",
+    )
+
+
+def publish_units_removed(game_link: str, unit_ids: Iterable[int]) -> None:
+    ops = [{"op": "unit_removed", "unit_id": int(uid)} for uid in unit_ids if uid is not None]
+    if ops:
+        publish_game_patch(game_link, ops, cause="unit_removed")
+
+
+def publish_turn_boundary(
+    game: Game,
+    state: GameState,
+    db: Session,
+    *,
+    modified_unit_ids: Iterable[int] | None = None,
+    removed_unit_ids: Iterable[int] | None = None,
+    cause: str = "turn_advanced",
+) -> None:
+    """Single patch for turn advance: turn meta + changed units + removals + turnlock."""
+    ops: list[dict] = [turn_op_from_state(state), {"op": "sync_start_tiles"}]
+    removed = list(dict.fromkeys(int(uid) for uid in (removed_unit_ids or []) if uid is not None))
+    for uid in removed:
+        ops.append({"op": "unit_removed", "unit_id": uid})
+    modified = {
+        int(uid)
+        for uid in (modified_unit_ids or [])
+        if uid is not None and int(uid) not in removed
+    }
+
+    # Units that had can_move reset (previous player's living units) need can_move in the patch.
+    playable = list(state.players or [])
+    current_player_id = None
+    if playable and state.current_turn is not None:
+        try:
+            current_player_id = int(playable[int(state.current_turn) % len(playable)])
+        except Exception:
+            current_player_id = None
+
+    # Previous player is the one before current in the turn order.
+    prev_player_id = None
+    if playable and state.current_turn is not None and len(playable) > 0:
+        try:
+            prev_idx = (int(state.current_turn) - 1) % len(playable)
+            prev_player_id = int(playable[prev_idx])
+        except Exception:
+            prev_player_id = None
+
+    if prev_player_id is not None:
+        for unit in (
+            db.query(GameUnit)
+            .filter(
+                GameUnit.game_id == game.id,
+                GameUnit.user_id == prev_player_id,
+                GameUnit.is_fainted.is_(False),
+            )
+            .all()
+        ):
+            modified.add(int(unit.id))
+
+    ops.extend(_unit_ids_to_patch_ops(game.id, modified, db))
+
+    if current_player_id is not None:
+        turnlock = _read_turnlock(redis_client, game.link, current_player_id)
+        ops.append(
+            {
+                "op": "turnlock",
+                "player_id": current_player_id,
+                "locks": turnlock,
+            }
+        )
+
+    gp_rows = db.query(GamePlayer).filter(GamePlayer.game_id == game.id).all()
+    players_payload = players_op(gp_rows)
+    if players_payload:
+        ops.append(players_payload)
+
+    publish_game_patch(game.link, ops, cause=cause)
+
+
+def publish_player_state_updated(game_link: str, players: list | None = None) -> None:
+    ops: list[dict] = []
+    if players is not None:
+        payload = players_op(players)
+        if payload:
+            ops.append(payload)
+    # Narrow refetch when we don't have player rows in hand.
+    refetch = None if ops else ["player"]
+    publish_game_patch(game_link, ops, cause="player_state_updated", refetch=refetch)
+
+
+def publish_map_state_updated(game_link: str, *, refetch_map: bool = True) -> None:
+    # Coarse map changes (prep/start) still need a map snapshot; prefer cell ops when possible.
+    publish_game_patch(
+        game_link,
+        [],
+        cause="map_state_updated",
+        refetch=["map_state", "game"] if refetch_map else None,
+    )
 
 
 def publish_objective_cell_updated(game_link: str, x: int, y: int, cell: dict) -> None:
@@ -111,11 +275,20 @@ def publish_objective_cell_updated(game_link: str, x: int, y: int, cell: dict) -
         hp = int(cell.get("hp", 20))
         owner = int(cell.get("owner") or 0)
         kind = str(cell.get("kind", "pokeball"))
-        redis_client.publish(
-            f"game_updates:{game_link}",
-            f"objective_updated:{x}:{y}:{hp}:{owner}:{kind}",
+        publish_game_patch(
+            game_link,
+            [
+                {
+                    "op": "objective_updated",
+                    "x": int(x),
+                    "y": int(y),
+                    "hp": hp,
+                    "owner": owner,
+                    "kind": kind,
+                }
+            ],
+            cause="objective_updated",
         )
-        publish_map_state_updated(game_link)
     except Exception:
         return
 
@@ -286,7 +459,20 @@ def settle_match_elo(game: Game, state: GameState, db: Session) -> None:
 def notify_game_completed(game: Game, state: GameState, db: Session) -> None:
     settle_match_elo(game, state, db)
     db.commit()
-    redis_client.publish(f"game_updates:{game.link}", "game_completed")
+    publish_game_patch(
+        game.link,
+        [
+            {
+                "op": "game_completed",
+                "winner_id": getattr(state, "winner_id", None),
+                "status": getattr(getattr(state, "status", None), "value", None)
+                or str(getattr(state, "status", "completed")),
+            },
+            turn_op_from_state(state),
+        ],
+        cause="game_completed",
+        refetch=["game"],
+    )
 
 
 def publish_turn_remaining_warning_if_needed(
@@ -3092,8 +3278,14 @@ def compute_effective_stats(
 
     # Ability modifiers that need to run before burn attack half (e.g. Guts ignore flag)
     # are applied after status; Guts skip is checked via ability token first.
-    ignore_burn = combat_abilities.ability_has_token(unit, db, "ignore_burn_attack_halve")
-    ignore_para = combat_abilities.should_ignore_paralysis_speed(unit, db)
+    try:
+        ignore_burn = combat_abilities.ability_has_token(unit, db, "ignore_burn_attack_halve")
+    except Exception:
+        ignore_burn = False
+    try:
+        ignore_para = combat_abilities.should_ignore_paralysis_speed(unit, db)
+    except Exception:
+        ignore_para = False
 
     status_effect = normalize_status_effects(unit.status_effects)
     if status_effect:
@@ -3105,15 +3297,18 @@ def compute_effective_stats(
 
     ability_msgs: list[str] = []
     display_name = get_unit_display_name(unit, db) if game is not None else None
-    effective_stats = combat_abilities.modify_effective_stats(
-        unit,
-        effective_stats,
-        db,
-        weather_tiles=weather_tiles,
-        terrain_tiles=terrain_tiles,
-        trigger_messages=ability_msgs if game is not None else None,
-        unit_name=display_name,
-    )
+    try:
+        effective_stats = combat_abilities.modify_effective_stats(
+            unit,
+            effective_stats,
+            db,
+            weather_tiles=weather_tiles,
+            terrain_tiles=terrain_tiles,
+            trigger_messages=ability_msgs if game is not None else None,
+            unit_name=display_name,
+        )
+    except Exception:
+        ability_msgs = []
     if game is not None:
         for msg in ability_msgs:
             publish_system_log_event(game.link, msg, game_state, db)
@@ -5321,8 +5516,15 @@ def decrement_and_expire_status_effects(
     modified_unit_ids = []
 
     for unit in units:
-        # Turn-start baseline: units can act unless an active status blocks movement.
-        if not unit.can_move:
+        # Turn-start baseline: fielded units can act unless an active status blocks
+        # movement. Fainted / off-field units must stay locked so they never block
+        # Conquest auto-advance after living units have waited.
+        if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+            if unit.can_move:
+                unit.can_move = False
+                db.add(unit)
+                modified_unit_ids.append(unit.id)
+        elif not unit.can_move:
             unit.can_move = True
             db.add(unit)
             modified_unit_ids.append(unit.id)
@@ -6127,12 +6329,17 @@ def advance_turn_if_player_has_no_actions(
     If the current player has no units with can_move remaining, advance the turn.
     Returns (removed_ids, turn_advanced, game_completed).
     """
+    # Conquest auto-advance only cares about fielded (living) units. Fainted /
+    # off-field units must not block the turn even if can_move was left True
+    # (e.g. turn-start resets that previously re-enabled them).
     remaining_units = (
         db.query(GameUnit)
         .filter(
             GameUnit.game_id == game.id,
             GameUnit.user_id == current_player_id,
             GameUnit.can_move == True,
+            GameUnit.is_fainted == False,
+            GameUnit.current_hp > 0,
         )
         .count()
     )
@@ -6176,8 +6383,7 @@ def advance_turn_if_player_has_no_actions(
         winner_name = get_username_by_id(state.winner_id, db)
         publish_system_log_event(game.link, f"{winner_name} won", state, db)
         db.commit()
-        for unit_id in removed_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        publish_units_removed(game.link, removed_ids)
         notify_game_completed(game, state, db)
         return removed_ids, False, True
 
@@ -6187,15 +6393,17 @@ def advance_turn_if_player_has_no_actions(
         .all()
     )
     for unit in current_player_units:
-        unit.can_move = True
+        if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+            unit.can_move = False
+        else:
+            unit.can_move = True
 
     playable_players, _, completed_now = set_next_playable_turn_after_current(
         game, state, current_player_id, db
     )
     if completed_now:
         db.commit()
-        for unit_id in removed_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        publish_units_removed(game.link, removed_ids)
         notify_game_completed(game, state, db)
         return removed_ids, False, True
 
@@ -6210,14 +6418,12 @@ def advance_turn_if_player_has_no_actions(
     )
     removed_ids.extend(remove_fainted_units_from_play(game.id, db))
 
-    for unit_id in modified_unit_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+    publish_units_updated(game, modified_unit_ids, db)
 
     if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
         state.status = GameStatus.completed
         db.commit()
-        for unit_id in removed_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        publish_units_removed(game.link, removed_ids)
         notify_game_completed(game, state, db)
         return removed_ids, False, True
 
@@ -6226,10 +6432,12 @@ def advance_turn_if_player_has_no_actions(
     compute_turn_locks(game, state, db)
     publish_turn_start_logs(game, state, db)
     db.commit()
-    for unit_id in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
-    redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    publish_turn_boundary(
+        game, state, db,
+        modified_unit_ids=modified_unit_ids,
+        removed_unit_ids=removed_ids,
+        cause="turn_advanced",
+    )
     return removed_ids, True, False
 
 
@@ -6482,13 +6690,16 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
 
     maybe_restore_war_objectives_at_turn_end(game, db)
 
-    # Reset can_move for the current player's units before advancing turn
+    # Reset can_move for the current player's fielded units before advancing turn
     current_player_units = db.query(GameUnit).filter(
         GameUnit.game_id == game.id,
         GameUnit.user_id == current_player_id
     ).all()
     for unit in current_player_units:
-        unit.can_move = True
+        if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+            unit.can_move = False
+        else:
+            unit.can_move = True
         combat_abilities.update_hp_threshold_formes(unit, db)
 
     # Stakeout: clear opposing just_switched_in flags at end of this player's turn
@@ -6511,13 +6722,7 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     )
     removed_ids.extend(remove_fainted_units_from_play(game.id, db))
     
-    # Broadcast stat updates for units that had boosts expire
-    for unit_id in modified_unit_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
-
-    for unit_id in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-
+    # Unit/removal patches are emitted in publish_turn_boundary after commit.
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
@@ -6541,8 +6746,12 @@ def advance_if_expired(game: Game, state: GameState, db: Session) -> bool:
     compute_turn_locks(game, state, db)
     publish_turn_start_logs(game, state, db)
     db.commit()
-    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
-    redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    publish_turn_boundary(
+        game, state, db,
+        modified_unit_ids=modified_unit_ids,
+        removed_unit_ids=removed_ids,
+        cause="turn_advanced",
+    )
     return True
 
 def movement_range_backend(start, rng, movement_costs, width, height, blocked_tiles: set[tuple[int, int]] | None = None):
@@ -6835,7 +7044,7 @@ def seat_user_in_open_game(game: Game, game_state: GameState, user: User, db: Se
     if len(game_state.players) >= game.max_players:
         game_state.status = GameStatus.closed
 
-    redis_client.publish(f"game_updates:{game.link}", "player_joined")
+    publish_game_patch(game.link, [], cause="player_joined", refetch=["game", "player"])
     publish_system_log_event(game.link, f"{user.username} joined the game", game_state, db)
 
 
@@ -6932,7 +7141,7 @@ def start_game(
             db.commit()
             if is_war_game(game):
                 publish_map_state_updated(game.link)
-            redis_client.publish(f"game_updates:{game.link}", "game_preparation")
+            publish_game_patch(game.link, [], cause="game_preparation", refetch=["game", "units", "map_state"])
             return {"detail": "Game moved to preparation phase"}
         elif game_state.status == GameStatus.preparation:
             game_state.status = GameStatus.in_progress
@@ -6949,8 +7158,12 @@ def start_game(
 
             compute_turn_locks(game, game_state, db)
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "game_started")        
-            redis_client.publish(f"game_updates:{game.link}", "turn_started")
+            publish_game_patch(
+                game.link,
+                [turn_op_from_state(game_state)],
+                cause="game_started",
+                refetch=["game", "units", "turnlock", "player"],
+            )
             publish_system_log_event(game.link, f"{user.username} started the game", game_state, db)
             publish_turn_start_logs(game, game_state, db)
             db.commit()
@@ -7028,8 +7241,7 @@ def get_game_by_link(
     removed_ids = remove_fainted_units_from_play(game.id, db)
     if removed_ids:
         db.commit()
-        for unit_id in removed_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        publish_units_removed(game.link, removed_ids)
 
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
     _, _, completed_now = reconcile_playable_players(game, game_state, db)
@@ -7123,7 +7335,7 @@ def toggle_ready_state(
 
     db.commit()
 
-    redis_client.publish(f"game_updates:{game.link}", "player_ready")
+    publish_game_patch(game.link, [], cause="player_ready", refetch=["game", "player"])
     return {"ready": player_state.is_ready}
 
 @router.get("/{link}/units", response_model=List[GameUnitSchema])
@@ -7138,8 +7350,7 @@ def get_game_units(
     removed_ids = remove_fainted_units_from_play(game.id, db)
     if removed_ids:
         db.commit()
-        for unit_id in removed_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+        publish_units_removed(game.link, removed_ids)
 
     state = db.query(GameState).filter_by(game_id=game.id).first()
     if state and state.status == GameStatus.in_progress:
@@ -7462,10 +7673,22 @@ def place_unit(
     db.refresh(new_unit)
 
     attach_game_unit_loadout_fields(new_unit, db)
-    publish_player_state_updated(game.link)
-    redis_client.publish(f"game_updates:{game.link}", f"unit_placed:{new_unit.id}")
+    gp_rows = db.query(GamePlayer).filter(GamePlayer.game_id == game.id).all()
+    ops: list[dict] = [
+        {"op": "unit_upsert", "unit": unit_to_patch(new_unit, include_unit_summary=True)},
+    ]
+    players_payload = players_op(gp_rows)
+    if players_payload:
+        ops.append(players_payload)
+    publish_game_patch(game.link, ops, cause="unit_placed")
     if war_summon:
-        publish_map_state_updated(game.link)
+        if objective_cell is not None:
+            publish_objective_cell_updated(
+                game.link,
+                int(new_unit.current_x),
+                int(new_unit.current_y),
+                objective_cell,
+            )
         if state is not None:
             removed_ids, _, game_completed = advance_turn_if_player_has_no_actions(
                 game, state, user.id, db
@@ -7473,8 +7696,7 @@ def place_unit(
             if game_completed:
                 notify_game_completed(game, state, db)
             elif removed_ids:
-                for unit_id in removed_ids:
-                    redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+                publish_units_removed(game.link, removed_ids)
     return new_unit
 
 @router.post("/{link}/units/{unit_id}/item", response_model=GameUnitChangeItemResponse)
@@ -7782,13 +8004,16 @@ def end_turn(
 
     maybe_restore_war_objectives_at_turn_end(game, db)
 
-    # Reset can_move for the current player's units before advancing turn
+    # Reset can_move for the current player's fielded units before advancing turn
     current_player_units = db.query(GameUnit).filter(
         GameUnit.game_id == game.id,
         GameUnit.user_id == current_player_id
     ).all()
     for unit in current_player_units:
-        unit.can_move = True
+        if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+            unit.can_move = False
+        else:
+            unit.can_move = True
         combat_abilities.update_hp_threshold_formes(unit, db)
 
     # Stakeout: clear opposing just_switched_in flags at end of this player's turn
@@ -7810,12 +8035,7 @@ def end_turn(
     )
     removed_ids.extend(remove_fainted_units_from_play(game.id, db))
 
-    for unit_id in modified_unit_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
-
-    for unit_id in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-
+    # Unit/removal patches are emitted in publish_turn_boundary after commit.
     playable_players, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
@@ -7840,8 +8060,12 @@ def end_turn(
     compute_turn_locks(game, state, db)
     publish_turn_start_logs(game, state, db)
     db.commit()
-    redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
-    redis_client.publish(f"game_updates:{game.link}", "turn_started")
+    publish_turn_boundary(
+        game, state, db,
+        modified_unit_ids=modified_unit_ids,
+        removed_unit_ids=removed_ids,
+        cause="turn_advanced",
+    )
     return {"detail": "Turn ended"}
 
 @router.post("/{link}/execute_move")
@@ -7900,7 +8124,10 @@ def execute_move(
         raise HTTPException(status_code=400, detail="Unit is locked")
 
     # Recharge: must skip this action
-    gu_state_early = normalize_states(gu.states)
+    try:
+        gu_state_early = normalize_states(gu.states)
+    except Exception:
+        gu_state_early = []
     if gu_state_early and gu_state_early[0] == "recharge" and int(gu_state_early[1]) > 0:
         msg = f"{get_unit_display_name(gu, db)} must recharge!"
         publish_system_log_event(game.link, msg, state, db)
@@ -9088,11 +9315,8 @@ def execute_move(
         removed_ids.extend(recoil_fainted_ids)
         removed_ids = list(set(removed_ids))
     
-    # Broadcast stat updates for units that may have been affected
-    # This includes the attacker (self-buffs) and all targets (debuffs/buffs)
+    # Affected units are patched once at the end (or via turn_boundary / game_completed).
     affected_unit_ids = [gu.id] + [t.id for t in targets]
-    for unit_id in affected_unit_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
 
     if removed_ids:
         removed_units = (
@@ -9139,10 +9363,10 @@ def execute_move(
             publish_system_log_event(game.link, f"{winner_name} won", state, db)
             gu.can_move = False
             db.commit()
-            for unit_id in removed_ids:
-                redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+            publish_units_removed(game.link, removed_ids)
+            attach_game_unit_loadout_fields(gu, db)
+            publish_unit_snapshot(game.link, gu, cause="unit_pp_updated")
             notify_game_completed(game, state, db)
-            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True, 
                 "unit_id": gu.id, 
@@ -9173,7 +9397,9 @@ def execute_move(
     remaining_units = db.query(GameUnit).filter(
         GameUnit.game_id == game.id,
         GameUnit.user_id == current_player_id,
-        GameUnit.can_move == True
+        GameUnit.can_move == True,
+        GameUnit.is_fainted == False,
+        GameUnit.current_hp > 0,
     ).count()
 
     end_turn_removed_ids: List[int] = []
@@ -9240,10 +9466,10 @@ def execute_move(
             winner_name = get_username_by_id(state.winner_id, db)
             publish_system_log_event(game.link, f"{winner_name} won", state, db)
             db.commit()
-            for unit_id in removed_ids:
-                redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
+            publish_units_removed(game.link, removed_ids)
+            attach_game_unit_loadout_fields(gu, db)
+            publish_unit_snapshot(game.link, gu, cause="unit_pp_updated")
             notify_game_completed(game, state, db)
-            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True,
                 "unit_id": gu.id,
@@ -9258,13 +9484,17 @@ def execute_move(
             GameUnit.user_id == current_player_id
         ).all()
         for unit in current_player_units:
-            unit.can_move = True
+            if unit.is_fainted or int(unit.current_hp or 0) <= 0:
+                unit.can_move = False
+            else:
+                unit.can_move = True
 
         playable_players, _, completed_now = set_next_playable_turn_after_current(game, state, current_player_id, db)
         if completed_now:
             db.commit()
+            attach_game_unit_loadout_fields(gu, db)
+            publish_unit_snapshot(game.link, gu, cause="unit_pp_updated")
             notify_game_completed(game, state, db)
-            redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
             return {
                 "ok": True,
                 "unit_id": gu.id,
@@ -9284,10 +9514,7 @@ def execute_move(
             decrement_and_expire_status_effects(new_current_player_id, game.id, db, game, state)
         )
         removed_ids.extend(remove_fainted_units_from_play(game.id, db))
-        
-        # Broadcast stat updates for units that had boosts expire
-        for unit_id in modified_unit_ids:
-            redis_client.publish(f"game_updates:{game.link}", f"unit_stats_updated:{unit_id}")
+        modified_unit_ids.update(affected_unit_ids)
 
         if game.max_turns and state.current_turn >= game.max_turns * len(state.players):
             state.status = GameStatus.completed
@@ -9299,23 +9526,46 @@ def execute_move(
             compute_turn_locks(game, state, db)
             publish_turn_start_logs(game, state, db)
             db.commit()
-            redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
-            redis_client.publish(f"game_updates:{game.link}", "turn_started")
+            publish_turn_boundary(
+                game,
+                state,
+                db,
+                modified_unit_ids=modified_unit_ids,
+                removed_unit_ids=removed_ids,
+                cause="turn_advanced",
+            )
+            return {
+                "ok": True,
+                "unit_id": gu.id,
+                "move_pp": gu.move_pp,
+                "targets": damage_results,
+                "missed_target_ids": missed_target_ids,
+                "removed_ids": removed_ids,
+            }
     else:
         db.commit()
 
-    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    ops: list[dict] = []
+    for unit_id in affected_unit_ids:
+        unit = next((u for u in [gu] + targets if u.id == unit_id), None)
+        if unit is None:
+            continue
+        attach_game_unit_loadout_fields(unit, db)
+        ops.append({"op": "unit_upsert", "unit": unit_to_patch(unit)})
     if displacement_landing is not None and not attacker_removed:
         lx, ly = displacement_landing
-        redis_client.publish(
-            f"game_updates:{game.link}",
-            f"unit_moved:{gu.id}:{gu.user_id}:{lx}:{ly}",
+        ops.append(
+            {
+                "op": "unit_moved",
+                "unit_id": int(gu.id),
+                "user_id": int(gu.user_id),
+                "x": int(lx),
+                "y": int(ly),
+            }
         )
     for unit_id in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{unit_id}")
-    
-    # Broadcast PP update
-    redis_client.publish(f"game_updates:{game.link}", f"unit_pp_updated:{gu.id}")
+        ops.append({"op": "unit_removed", "unit_id": int(unit_id)})
+    publish_game_patch(game.link, ops, cause="execute_move")
     
     return {
         "ok": True, 
@@ -9421,7 +9671,8 @@ def capture_objective(
     if completed_now:
         db.commit()
         publish_objective_cell_updated(game.link, objective_x, objective_y, objective_cell)
-        redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+        attach_game_unit_loadout_fields(gu, db)
+        publish_unit_snapshot(game.link, gu, cause="unit_locked")
         notify_game_completed(game, state, db)
         return {
             "ok": True,
@@ -9440,7 +9691,9 @@ def capture_objective(
         db.commit()
 
     publish_objective_cell_updated(game.link, objective_x, objective_y, objective_cell)
-    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    if not turn_advanced:
+        attach_game_unit_loadout_fields(gu, db)
+        publish_unit_snapshot(game.link, gu, cause="unit_locked")
 
     return {
         "ok": True,
@@ -9502,9 +9755,10 @@ def wait_unit(
     if not turn_advanced and not game_completed:
         db.commit()
 
-    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
-    for rid in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{rid}")
+    if not turn_advanced:
+        attach_game_unit_loadout_fields(gu, db)
+        publish_unit_snapshot(game.link, gu, cause="unit_locked")
+    publish_units_removed(game.link, removed_ids)
 
     return {
         "ok": True,
@@ -9621,20 +9875,30 @@ def pick_up_map_item(
 
     attach_game_unit_loadout_fields(gu, db)
 
-    redis_client.publish(f"game_updates:{game.link}", "unit_locked")
+    ops: list[dict] = [{"op": "unit_upsert", "unit": unit_to_patch(gu)}]
     if swapped and dropped_item_id is not None:
-        redis_client.publish(
-            f"game_updates:{game.link}",
-            f"map_item_swapped:{x}:{y}:{dropped_item_id}",
+        ops.append(
+            {
+                "op": "map_item_swapped",
+                "x": int(x),
+                "y": int(y),
+                "item_id": int(dropped_item_id),
+            }
         )
     else:
-        redis_client.publish(f"game_updates:{game.link}", f"map_item_picked:{x}:{y}")
-    redis_client.publish(f"game_updates:{game.link}", f"unit_item_updated:{gu.id}")
+        ops.append({"op": "map_item_picked", "x": int(x), "y": int(y)})
     for rid in removed_ids:
-        redis_client.publish(f"game_updates:{game.link}", f"unit_removed:{rid}")
-    if turn_advanced:
-        redis_client.publish(f"game_updates:{game.link}", "turn_advanced")
-        redis_client.publish(f"game_updates:{game.link}", "turn_started")
+        ops.append({"op": "unit_removed", "unit_id": int(rid)})
+    # turn_advanced already published a turn_boundary from advance_turn_if_player_has_no_actions
+    if not turn_advanced:
+        publish_game_patch(game.link, ops, cause="pick_up_item")
+    else:
+        # Still need item/map cell ops if turn advanced without including them
+        publish_game_patch(
+            game.link,
+            [op for op in ops if op.get("op") != "unit_upsert"],
+            cause="pick_up_item",
+        )
     if game_completed:
         notify_game_completed(game, state, db)
 
@@ -9713,10 +9977,7 @@ def revert_unit_position(
     clear_movement_locked(game.link, gu.id)
     db.commit()
 
-    redis_client.publish(
-        f"game_updates:{game.link}",
-        f"unit_moved:{gu.id}:{gu.user_id}:{gu.current_x}:{gu.current_y}",
-    )
+    publish_unit_moved(game.link, gu)
 
     return {
         "ok": True,
@@ -9857,10 +10118,7 @@ def move_unit(
         set_movement_locked(game.link, gu.id)
     db.commit()
 
-    redis_client.publish(
-        f"game_updates:{game.link}",
-        f"unit_moved:{gu.id}:{gu.user_id}:{final_x}:{final_y}"
-    )
+    publish_unit_moved(game.link, gu)
 
     return {
         "ok": True,

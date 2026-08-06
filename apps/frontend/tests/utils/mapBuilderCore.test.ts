@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   buildMapExport,
+  canExportMap,
   createEmptyTileData,
   downloadMapJson,
   normalizeTileData,
   parseMapImport,
   resizeTileData,
   slugifyMapName,
+  validateConquestSpawnExport,
+  validateWarMapExport,
 } from "@/utils/mapBuilder";
 
 describe("mapBuilder core helpers", () => {
@@ -99,5 +102,42 @@ describe("mapBuilder core helpers", () => {
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:map");
     createElement.mockRestore();
     vi.unstubAllGlobals();
+  });
+
+  it("validates required spawns, master balls, and export prerequisites", () => {
+    const data = createEmptyTileData(2, 1);
+    expect(validateConquestSpawnExport(data, [])).toMatchObject({ ok: false });
+    expect(validateConquestSpawnExport(data, [2])).toMatchObject({ ok: false, message: expect.stringContaining("Player 1") });
+    data.spawn_points[0][0] = 1;
+    data.spawn_points[0][1] = 2;
+    expect(validateConquestSpawnExport(data, [2])).toEqual({ ok: true, message: null });
+
+    expect(validateWarMapExport(data, [])).toMatchObject({ ok: false });
+    data.special_tiles[0][0] = "master_ball_p1";
+    expect(validateWarMapExport(data, [2])).toMatchObject({ ok: false, message: expect.stringContaining("Player 2") });
+    data.special_tiles[0][1] = "master_ball_p2";
+    expect(validateWarMapExport(data, [2])).toEqual({ ok: true, message: null });
+    expect(canExportMap([], [2], data)).toMatchObject({ ok: false, message: expect.stringContaining("tileset") });
+    expect(canExportMap(["a.png"], [2], data)).toEqual({ ok: true, message: null });
+  });
+
+  it("keeps defaults for invalid imported cells and defaults export names", () => {
+    const normalized = normalizeTileData(
+      { base: [[[1, 1]]], movement_cost: [[0]], item_id_tiles: [[-1]] },
+      1,
+      1
+    );
+    expect(normalized.movement_cost[0][0]).toBe(1);
+    expect(normalized.item_id_tiles[0][0]).toBeNull();
+    const exported = buildMapExport({
+      name: " ",
+      tilesetNames: [],
+      allowedPlayerCounts: [],
+      width: 1,
+      height: 1,
+      tileData: createEmptyTileData(1, 1),
+    });
+    expect(exported.name).toBe("Untitled Map");
+    expect(exported.preview_image).toBe("previews/custom_map.png");
   });
 });

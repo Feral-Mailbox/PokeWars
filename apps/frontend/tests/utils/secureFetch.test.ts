@@ -29,4 +29,34 @@ describe("secureFetch", () => {
       credentials: "omit",
     });
   });
+
+  it("prefixes relative string URLs during server rendering", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", undefined);
+
+    await secureFetch("/api/health");
+
+    expect(fetchMock).toHaveBeenCalledWith("http://poketactics:3000/api/health", {
+      credentials: "include",
+    });
+  });
+
+  it("prefixes relative Request URLs during server rendering", async () => {
+    class RelativeRequest {
+      url: string;
+      constructor(url: string) {
+        this.url = url;
+      }
+    }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("window", undefined);
+    vi.stubGlobal("Request", RelativeRequest);
+    const request = new RelativeRequest("/api/health");
+
+    await secureFetch(request as unknown as Request);
+
+    expect(fetchMock.mock.calls[0][0].url).toBe("http://poketactics:3000/api/health");
+  });
 });

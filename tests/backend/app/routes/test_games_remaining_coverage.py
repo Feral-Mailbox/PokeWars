@@ -661,14 +661,11 @@ def test_apply_state_effect_power_trick_toggle(db):
     unit_def = _make_unit_def(db, "PowerTrick Mon")
     unit = _make_game_unit(db, unit_def, x=0, y=0, hp=40, max_hp=40)
 
-    # power_trick has no dedicated "apply" branch (only a toggle-off branch), so the
-    # first application returns True but leaves states unchanged.
+    # First application enables Power Trick (persistent until toggled off).
     assert apply_state_effect(unit, "power_trick", db) is True
-    assert unit.states == []
+    assert unit.states and unit.states[0] == "power_trick" and int(unit.states[1]) > 0
 
-    # Simulate an already-active power_trick state, then toggle it off.
-    unit.states = ["power_trick", 3]
-    db.commit()
+    # Applying again while active toggles it off.
     assert apply_state_effect(unit, "power_trick", db) is True
     assert unit.states == []
 
@@ -1076,6 +1073,80 @@ def test_advance_turn_if_player_has_no_actions_war_game_never_auto_advances(db):
 
     removed_ids, turn_advanced, completed = advance_turn_if_player_has_no_actions(game, state, user.id, db)
     assert (removed_ids, turn_advanced, completed) == ([], False, False)
+
+
+def test_advance_turn_ignores_fainted_units_with_can_move_true(db, _mock_redis):
+    """Fainted units must not block Conquest auto-advance even if can_move is True
+    (e.g. leftover from a turn-start reset that re-enabled them)."""
+    from app.routes.games import advance_turn_if_player_has_no_actions
+
+    user_a = _make_user(db, "faint-block-a")
+    user_b = _make_user(db, "faint-block-b")
+    map_obj = _make_map(db, user_a.id)
+    game = _make_game(db, map_obj, [user_a.id, user_b.id])
+    state = _make_state(db, game, [user_a.id, user_b.id], current_turn=0)
+    _make_map_state(db, game, map_obj)
+    unit_def = _make_unit_def(db, "FaintBlock Mon")
+    living = _make_game_unit(
+        db, unit_def, x=0, y=0, hp=40, max_hp=40, game=game, user_id=user_a.id, can_move=False,
+    )
+    fainted = _make_game_unit(
+        db,
+        unit_def,
+        x=-1,
+        y=-1,
+        hp=0,
+        max_hp=40,
+        game=game,
+        user_id=user_a.id,
+        is_fainted=True,
+        can_move=True,
+    )
+    _make_game_unit(db, unit_def, x=2, y=0, hp=40, max_hp=40, game=game, user_id=user_b.id, can_move=True)
+
+    removed_ids, turn_advanced, completed = advance_turn_if_player_has_no_actions(
+        game, state, user_a.id, db,
+    )
+    assert completed is False
+    assert turn_advanced is True
+    db.refresh(state)
+    assert state.current_turn == 1
+    db.refresh(fainted)
+    assert fainted.can_move is False
+    db.refresh(living)
+    assert living.can_move is True
+
+
+def test_wait_unit_advances_despite_fainted_sibling_with_can_move(client, db, user, _mock_redis):
+    """Waiting with the last fielded unit advances the turn even when a fainted
+    teammate still has can_move=True."""
+    ctx = _create_battle_game(db, user, link="wait-ignore-fainted")
+    unit = ctx["unit"]
+    unit_def = db.query(models.Unit).filter(models.Unit.id == unit.unit_id).first()
+    fainted = _make_game_unit(
+        db,
+        unit_def,
+        x=-1,
+        y=-1,
+        hp=0,
+        max_hp=40,
+        game=ctx["game"],
+        user_id=user.id,
+        is_fainted=True,
+        can_move=True,
+    )
+    db.commit()
+
+    resp = client.post("/games/wait-ignore-fainted/wait", json={"unit_id": unit.id})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["turn_advanced"] is True
+    assert body["game_completed"] is False
+
+    db.refresh(ctx["state"])
+    assert ctx["state"].current_turn == 1
+    db.refresh(fainted)
+    assert fainted.can_move is False
 
 
 def test_advance_turn_if_player_has_no_actions_remaining_units_short_circuit(db):
@@ -1574,7 +1645,8 @@ def test_advance_if_expired_publishes_removed_ids_from_already_fainted_unit(db, 
     assert advance_if_expired(game, state, db) is True
     db.refresh(dying_unit)
     assert dying_unit.is_fainted is True
-    _mock_redis.publish.assert_any_call(f"game_updates:{game.link}", f"unit_removed:{dying_unit.id}")
+    published = [str(call.args[1]) for call in _mock_redis.publish.call_args_list if call.args]
+    assert any("unit_removed" in msg and str(dying_unit.id) in msg for msg in published)
 
 
 def test_advance_if_expired_max_turns_draw_with_single_leader(db):
@@ -2299,7 +2371,11 @@ def test_end_turn_publishes_removed_ids_from_already_fainted_unit(client, db, us
     assert resp.status_code == 200
     db.refresh(fainted_extra)
     assert fainted_extra.is_fainted is True
-    _mock_redis.publish.assert_any_call(f"game_updates:{ctx['game'].link}", f"unit_removed:{fainted_extra.id}")
+    published = [call.args[1] for call in _mock_redis.publish.call_args_list if call.args]
+    assert any(
+        isinstance(msg, str) and "unit_removed" in msg and str(fainted_extra.id) in msg
+        for msg in published
+    )
 
 
 def test_end_turn_max_turns_draw_with_single_leader(client, db, user):
@@ -3318,19 +3394,65 @@ def test_execute_move_destiny_bond_direct_damage_knocks_out_attacker(client, db,
 def test_execute_move_power_trick_swaps_attack_and_defense_stat(client, db, user):
     ctx = _create_battle_game(db, user, link="move-powertrick")
     attacker = ctx["unit"]
+    opponent = ctx["opponent_unit"]
+    # execute_move recomputes stats from species base_stats. Give the attacker
+    # low Attack / high Defense, and the defender a frail Defense so Power Trick
+    # (Attack uses Defense) clearly boosts damage.
+    attacker_info = db.query(models.Unit).filter(models.Unit.id == attacker.unit_id).first()
+    attacker_info.base_stats = {
+        "hp": 100,
+        "attack": 1,
+        "defense": 200,
+        "sp_attack": 1,
+        "sp_defense": 50,
+        "speed": 100,
+    }
+    frail = models.Unit(
+        species_id=next(_species_counter),
+        name="Frail PowerTrick Foe",
+        species="Frail PowerTrick Foe",
+        asset_folder="frail_pt",
+        types=["Normal"],
+        base_stats={
+            "hp": 100,
+            "attack": 50,
+            "defense": 1,
+            "sp_attack": 50,
+            "sp_defense": 50,
+            "speed": 50,
+        },
+        level_up_moves=[],
+        tm_moves=[],
+        egg_moves=[],
+        equipped_moves=[],
+        ability_ids=[],
+        cost=50,
+    )
+    db.add(frail)
+    db.flush()
+    opponent.unit_id = frail.id
+    opponent.current_stats = {
+        "hp": 100,
+        "attack": 50,
+        "defense": 1,
+        "sp_attack": 50,
+        "sp_defense": 50,
+        "speed": 50,
+        "range": 3,
+    }
     attacker.states = ["power_trick", 3]
-    attacker.current_stats = {**attacker.current_stats, "attack": 1, "defense": 200}
+    db.add(attacker_info)
     db.add(attacker)
+    db.add(opponent)
     db.commit()
 
     resp = client.post(
         "/games/move-powertrick/execute_move",
-        json={"unit_id": attacker.id, "move_id": ctx["move"].id, "target_ids": [ctx["opponent_unit"].id]},
+        json={"unit_id": attacker.id, "move_id": ctx["move"].id, "target_ids": [opponent.id]},
     )
     assert resp.status_code == 200
     body = resp.json()
-    # With power_trick active, the attacker's *defense* stat (200) is used in
-    # place of its (very low) attack stat, so damage should be substantial.
+    # With power_trick active, the attacker's high Defense is used as Attack.
     assert body["targets"][0]["damage"] > 40
 
 

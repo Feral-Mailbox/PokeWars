@@ -102,4 +102,41 @@ describe("mapPlacedUnit", () => {
     expect(isVisibleOnMapUnit(sparse)).toBe(false);
     expect(isVisibleOnMapUnit({ ...sparse, current_hp: 1, tile: [0, -1] })).toBe(false);
   });
+
+  it("treats missing hp as not visible and tolerates sparse move lists", () => {
+    expect(
+      isVisibleOnMapUnit({
+        is_fainted: false,
+        current_hp: undefined as unknown as number,
+        tile: [1, 1],
+      }),
+    ).toBe(false);
+    expect(getUnitMoveIds({ equipped_move_ids: undefined as any, held_tm_move_id: 3 } as any)).toEqual([
+      3,
+    ]);
+    expect(resolveMovePpIndex({ equipped_move_ids: undefined as any, held_tm_move_id: 3 } as any, 3)).toBe(
+      0,
+    );
+  });
+
+  it("uses current coordinates as the start fallback and handles omitted move arrays", () => {
+    const unit = mapPlacedUnitFromBackend({
+      id: 1,
+      game_id: 1,
+      unit_id: 1,
+      user_id: 1,
+      current_x: "3",
+      current_y: "4",
+      current_hp: 1,
+      equipped_move_ids: "not-an-array",
+      move_pp: null,
+      held_tm_move_id: 7,
+    });
+    expect(unit.tile).toEqual([3, 4]);
+    expect(unit.start_tile).toEqual([3, 4]);
+    expect(unit.equipped_move_ids).toEqual([]);
+    expect(unit.move_pp).toEqual([]);
+    expect(getUnitMoveIds(unit)).toEqual([7]);
+    expect(resolveMovePpIndex(unit, 7)).toBe(0);
+  });
 });

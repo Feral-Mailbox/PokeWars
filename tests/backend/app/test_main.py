@@ -99,3 +99,38 @@ def test_lifespan_handles_scheduler_shutdown_failure(monkeypatch):
             pass
 
     asyncio.run(_run())
+
+
+def test_expire_pending_invitations_runs(monkeypatch):
+    session = MagicMock()
+    sessionmaker = MagicMock(return_value=session)
+    expire = MagicMock()
+    monkeypatch.setattr(main_module, "get_sessionmaker", lambda: sessionmaker)
+    monkeypatch.setattr("app.routes.invitations.expire_due_invitations", expire)
+
+    main_module.expire_pending_invitations()
+
+    expire.assert_called_once_with(session)
+    session.close.assert_called_once()
+
+
+def test_expire_pending_invitations_swallows_inner_errors(monkeypatch):
+    session = MagicMock()
+    sessionmaker = MagicMock(return_value=session)
+    monkeypatch.setattr(main_module, "get_sessionmaker", lambda: sessionmaker)
+    monkeypatch.setattr(
+        "app.routes.invitations.expire_due_invitations",
+        MagicMock(side_effect=RuntimeError("boom")),
+    )
+
+    main_module.expire_pending_invitations()
+    session.close.assert_called_once()
+
+
+def test_expire_pending_invitations_swallows_sessionmaker_errors(monkeypatch):
+    monkeypatch.setattr(
+        main_module,
+        "get_sessionmaker",
+        MagicMock(side_effect=RuntimeError("no db")),
+    )
+    main_module.expire_pending_invitations()

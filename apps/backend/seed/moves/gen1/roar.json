@@ -1,7 +1,7 @@
 {
   "id": 46,
   "name": "Roar",
-  "description": "The target is scared off, and a different Pokémon is dragged out. In the wild, this ends a battle against a single Pokémon.",
+  "description": "The target is scared off, and a different Pok\u00e9mon is dragged out. In the wild, this ends a battle against a single Pok\u00e9mon.",
   "type": "Normal",
   "category": "Status",
   "accuracy": 100,
@@ -15,5 +15,8 @@
   "affected_by_snatch": false,
   "affected_by_mirror_move": true,
   "affected_by_kings_rock": false,
-  "effects": ["target:knockback:10"]
+  "move_trait": 1,
+  "effects": [
+    "target:knockback:10"
+  ]
 }

@@ -211,10 +211,13 @@ test-frontend:
 	else \
 		echo "npm not found locally; running frontend tests via Docker..."; \
 		docker run --rm \
+			-u "$(shell id -u):$(shell id -g)" \
+			-e HOME=/tmp \
+			-e npm_config_cache=/tmp/.npm \
 			-v "$(CURDIR)/apps/frontend:/app" \
 			-w /app \
 			node:20-alpine \
-			sh -c "npm ci && npm run test:coverage"; \
+			sh -c 'if [ ! -x node_modules/.bin/vitest ]; then npm ci; fi && npm run test:coverage'; \
 	fi
 
 test-infrastructure: ensure-venv

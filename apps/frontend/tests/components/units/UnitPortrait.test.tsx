@@ -79,4 +79,30 @@ describe("UnitPortrait", () => {
       expect(container.querySelector("img")).toBeNull();
     });
   });
+
+  it("applies frame offsets after image load when the sprite sheet is large enough", async () => {
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        complete = false;
+        naturalWidth = 0;
+        set src(_val: string) {
+          this.complete = true;
+          this.naturalWidth = 200;
+          this.onload?.();
+        }
+      } as any
+    );
+
+    render(<UnitPortrait assetFolder="025_pikachu" size={40} frameX={40} frameY={40} />);
+    const img = await screen.findByAltText("Unit Portrait");
+    Object.defineProperty(img, "naturalWidth", { value: 200 });
+    Object.defineProperty(img, "naturalHeight", { value: 200 });
+    img.dispatchEvent(new Event("load"));
+    await waitFor(() => {
+      expect(img.style.objectPosition).toBe("-40px -40px");
+    });
+  });
 });

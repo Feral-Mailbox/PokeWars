@@ -299,4 +299,31 @@ describe("MapBuilderPage interactions", () => {
     expect(screen.getByDisplayValue("Forest Arena")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Pick tile/i }));
   });
+
+  it("changes TM brush, special brush, and unchecks tilesets", async () => {
+    const user = userEvent.setup();
+    await renderStaffBuilder();
+
+    await user.click(screen.getByRole("button", { name: "Items (TMs)" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^TM$/i)).not.toBeDisabled();
+    });
+    await user.selectOptions(screen.getByLabelText(/^TM$/i), "10");
+    expect(screen.getByAltText(/TM01/i)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(/^TM$/i), "0");
+    expect(screen.getByTitle("Random TM")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Special tiles" }));
+    await user.selectOptions(screen.getByLabelText(/Special tile/i), "ice");
+
+    // Add Beach Houses then remove Brick City while it is active.
+    await user.click(screen.getByLabelText(/Beach Houses.png/i));
+    await user.click(screen.getByLabelText(/Brick City.png/i));
+    expect(screen.getByLabelText(/Beach Houses.png/i)).toBeChecked();
+
+    // Ctrl+Z while focused on an input should be ignored.
+    const nameInput = screen.getByDisplayValue("New Map");
+    nameInput.focus();
+    fireEvent.keyDown(nameInput, { key: "z", ctrlKey: true });
+  });
 });

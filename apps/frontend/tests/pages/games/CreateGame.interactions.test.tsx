@@ -103,4 +103,43 @@ describe("CreateGame", () => {
     fireEvent.blur(maxTurns);
     expect((maxTurns as HTMLInputElement).value).toBe("99");
   });
+
+  it("switches to Capture The Flag and updates player count / cash inputs", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <CreateGame />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue(/Arena/)).toBeInTheDocument();
+    });
+
+    const modeSelect = screen.getByDisplayValue(/Conquest/i);
+    await user.selectOptions(modeSelect, "Capture The Flag");
+
+    const selects = screen.getAllByRole("combobox");
+    const playerCountSelect = selects.find((el) =>
+      Array.from((el as HTMLSelectElement).options).some((o) => o.value === "4"),
+    );
+    expect(playerCountSelect).toBeTruthy();
+    await user.selectOptions(playerCountSelect!, "4");
+
+    const nameInput = screen.getByLabelText(/Game Name/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, "CTF Match");
+
+    // Also exercise turn timer + starting cash changes
+    const timerSelect = screen.getByDisplayValue(/5 minutes/i);
+    await user.selectOptions(timerSelect, "60");
+
+    await user.click(screen.getByRole("button", { name: /Create Game/i }));
+    await waitFor(() => {
+      expect(secureFetch).toHaveBeenCalledWith(
+        "/api/games/create",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+  });
 });

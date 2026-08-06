@@ -94,4 +94,50 @@ describe('ProfileAccountSettings', () => {
     expect(screen.getByText('New passwords do not match.')).toBeInTheDocument();
     expect(secureFetch).not.toHaveBeenCalled();
   });
+
+  it('validates short passwords before making a request', async () => {
+    const user = userEvent.setup();
+    render(<ProfileAccountSettings email={baseUser.email} onUserUpdated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/^current password$/i), 'oldsecret');
+    await user.type(screen.getByLabelText(/^new password$/i), 'short');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'short');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+
+    expect(screen.getByRole('status')).toHaveTextContent(/at least 8 characters/i);
+    expect(secureFetch).not.toHaveBeenCalled();
+  });
+
+  it('shows API and fallback errors for email updates', async () => {
+    const user = userEvent.setup();
+    vi.mocked(secureFetch).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ detail: [{ msg: 'Email already used' }] }),
+    } as Response).mockResolvedValueOnce(undefined);
+    render(<ProfileAccountSettings email={baseUser.email} onUserUpdated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/^confirm password$/i), 'secretpw');
+    await user.click(screen.getByRole('button', { name: /update email/i }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Email already used');
+
+    await user.click(screen.getByRole('button', { name: /update email/i }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Could not update email.');
+  });
+
+  it('handles password API and network failures', async () => {
+    const user = userEvent.setup();
+    vi.mocked(secureFetch)
+      .mockResolvedValueOnce({ ok: false, json: async () => ({ detail: 'Wrong password' }) } as Response)
+      .mockRejectedValueOnce(new Error('offline'));
+    render(<ProfileAccountSettings email={baseUser.email} onUserUpdated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/^current password$/i), 'oldsecret');
+    await user.type(screen.getByLabelText(/^new password$/i), 'newsecret1');
+    await user.type(screen.getByLabelText(/confirm new password/i), 'newsecret1');
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Wrong password');
+
+    await user.click(screen.getByRole('button', { name: /update password/i }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Could not update password.');
+  });
 });

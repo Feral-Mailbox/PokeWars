@@ -273,6 +273,41 @@ describe("Navbar", () => {
     });
   });
 
+  it("alerts string and message-only auth failures", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+    await user.click(screen.getByText(/^Login$/));
+    await user.type(screen.getByPlaceholderText("Username"), "ash");
+    await user.type(screen.getByPlaceholderText("Password"), "bad");
+
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: false,
+      json: async () => ({ detail: "Nope" }),
+    } as Response);
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Nope"));
+
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: false,
+      json: async () => ({ detail: { message: "Invalid credentials" } }),
+    } as Response);
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Invalid credentials"));
+
+    vi.mocked(secureFetch).mockResolvedValue({
+      ok: false,
+      json: async () => {
+        throw new Error("bad json");
+      },
+    } as Response);
+    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await waitFor(() => expect(window.alert).toHaveBeenCalledWith("Login failed"));
+  });
+
   it("opens auth prompt dropdown from homepage prompt", async () => {
     mockAuth({ authPrompt: "register" });
     render(

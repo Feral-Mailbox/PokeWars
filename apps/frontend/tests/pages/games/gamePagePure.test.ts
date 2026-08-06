@@ -57,6 +57,22 @@ describe("gamePagePure stats/status/chat", () => {
     expect(getStatColor({ ...unit, current_stats: { attack: 1 } }, "attack")).toBe("#ef4444");
   });
 
+  it("handles movement and stat helper fallbacks", () => {
+    expect(getCurrentMovementRange({ current_stats: { range: 3.9 } })).toBe(3);
+    expect(getCurrentMovementRange({ current_stats: { range: -3 } })).toBe(0);
+    expect(getCurrentMovementRange({ current_stats: { speed: 124 } })).toBe(4);
+    expect(getCurrentMovementRange({ unit: { base_stats: { speed: 50 } } })).toBe(3);
+    expect(getCurrentMovementRange({})).toBe(0);
+    expect(getBaseBattleStatValue({ unit: { base_stats: { speed: "fast" } } }, "range")).toBeNull();
+    expect(getStatColor({ current_stats: { attack: 10 } }, "attack")).toBe("#ffffff");
+    expect(
+      getStatColor(
+        { level: 50, unit: { base_stats: { attack: 50 } }, current_stats: { attack: 55 } },
+        "attack",
+      ),
+    ).toBe("#ffffff");
+  });
+
   it("maps replay logs and status icons", () => {
     expect(mapReplayLogToChatEntries(null)).toEqual([]);
     expect(
@@ -88,6 +104,29 @@ describe("gamePagePure stats/status/chat", () => {
     expect(getStatusIconSrc(["confused"], "/assets")).toBeNull();
     expect(getWeatherIconSrc(2, "/assets")).toContain("weather_rain.png");
     expect(getWeatherIconSrc(99, "/assets")).toBeNull();
+  });
+
+  it("normalizes malformed effects and ignores malformed replay rows", () => {
+    expect(mapReplayLogToChatEntries([null, "not a row", { event: "chat_message" }])).toEqual([
+      expect.objectContaining({ username: "Unknown", text: "", playerId: NaN }),
+    ]);
+    expect(getActiveStatusName([])).toBeNull();
+    expect(getActiveStatusName({ status: 1 })).toBeNull();
+
+    const normalized = normalizeGameMapState({
+      map: { width: 2, height: 1 },
+      map_state: {
+        weather_tiles: [["bad", [-1, 2]]],
+        hazard_tiles: [["bad", [[0, 1], [2, 0], [3, 2]]]],
+        room_effect_tiles: "bad",
+        terrain_effect_tiles: "bad",
+        field_effect_tiles: "bad",
+        item_id_tiles: [["bad", 0]],
+      },
+    });
+    expect(normalized.weather_tiles).toEqual([[[0, 0], [0, 0]]]);
+    expect(normalized.hazard_tiles[0][1]).toEqual([[3, 2]]);
+    expect(normalized.item_id_tiles).toEqual([[null, RANDOM_TM_ITEM_ID]]);
   });
 
   it("normalizes map state grids", () => {
@@ -224,5 +263,175 @@ describe("gamePagePure attack ranges", () => {
         mapHeight: H,
       })
     ).toEqual([origin]);
+  });
+
+  it("slices x_attack, bomb, sweep, and default directional overlays", () => {
+    const xAttack = computeAttackOverlayForMove(
+      { range_type: "x_attack:2" },
+      origin,
+      W,
+      H,
+      getDisplacementAttackTiles,
+      filterInBoundsTiles,
+    );
+    expect(
+      getDirectionalOverlayTiles({
+        target: [7, 5],
+        origin,
+        activeMove: { range_type: "x_attack:2" },
+        attackOverlay: xAttack,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThan(0);
+
+    // vertical direction
+    expect(
+      getDirectionalOverlayTiles({
+        target: [5, 8],
+        origin,
+        activeMove: { range_type: "x_attack" },
+        attackOverlay: xAttack,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThan(0);
+
+    const bomb = computeAttackOverlayForMove(
+      { range_type: "bomb:2" },
+      origin,
+      W,
+      H,
+      getDisplacementAttackTiles,
+      filterInBoundsTiles,
+    );
+    expect(
+      getDirectionalOverlayTiles({
+        target: [8, 5],
+        origin,
+        activeMove: { range_type: "bomb:2" },
+        attackOverlay: bomb,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      getDirectionalOverlayTiles({
+        target: [5, 2],
+        origin,
+        activeMove: { range_type: "bomb:1" },
+        attackOverlay: bomb,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThanOrEqual(0);
+
+    const blast = computeAttackOverlayForMove(
+      { range_type: "blast:2" },
+      origin,
+      W,
+      H,
+      getDisplacementAttackTiles,
+      filterInBoundsTiles,
+    );
+    expect(
+      getDirectionalOverlayTiles({
+        target: [8, 5],
+        origin,
+        activeMove: { range_type: "blast:2" },
+        attackOverlay: blast,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      getDirectionalOverlayTiles({
+        target: [5, 8],
+        origin,
+        activeMove: { range_type: "blast:1" },
+        attackOverlay: blast,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThanOrEqual(0);
+
+    const sweep = computeAttackOverlayForMove(
+      { range_type: "sweep:2" },
+      origin,
+      W,
+      H,
+      getDisplacementAttackTiles,
+      filterInBoundsTiles,
+    );
+    expect(
+      getDirectionalOverlayTiles({
+        target: [8, 5],
+        origin,
+        activeMove: { range_type: "sweep:2" },
+        attackOverlay: sweep,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThanOrEqual(0);
+    expect(
+      getDirectionalOverlayTiles({
+        target: [5, 8],
+        origin,
+        activeMove: { range_type: "sweep:1" },
+        attackOverlay: sweep,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThanOrEqual(0);
+
+    const line = computeAttackOverlayForMove(
+      { range_type: "line:3" },
+      origin,
+      W,
+      H,
+      getDisplacementAttackTiles,
+      filterInBoundsTiles,
+    );
+    expect(
+      getDirectionalOverlayTiles({
+        target: [8, 5],
+        origin,
+        activeMove: { range_type: "line:3" },
+        attackOverlay: line,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      getDirectionalOverlayTiles({
+        target: [5, 8],
+        origin,
+        activeMove: { range_type: "line:3" },
+        attackOverlay: line,
+        mapWidth: W,
+        mapHeight: H,
+      }).length,
+    ).toBeGreaterThan(0);
+
+    expect(
+      getDirectionalOverlayTiles({
+        target: null,
+        origin,
+        activeMove: { range_type: "line:1" },
+        attackOverlay: line,
+        mapWidth: W,
+        mapHeight: H,
+      }),
+    ).toEqual([]);
+    expect(
+      getDirectionalOverlayTiles({
+        target: [6, 5],
+        origin: null,
+        activeMove: { range_type: "line:1" },
+        attackOverlay: line,
+        mapWidth: W,
+        mapHeight: H,
+      }),
+    ).toEqual([]);
   });
 });

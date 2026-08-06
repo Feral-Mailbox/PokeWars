@@ -588,7 +588,7 @@ def test_place_unit_fallback_stats(client, db, user, monkeypatch):
     db.add(info)
     db.commit()
 
-    def incomplete_stats(unit, db_):
+    def incomplete_stats(unit, db_, *args, **kwargs):
         return {"hp": 100}  # missing attack/defense/etc to force place_unit fallback
 
     monkeypatch.setattr(games_mod, "compute_effective_stats", incomplete_stats)

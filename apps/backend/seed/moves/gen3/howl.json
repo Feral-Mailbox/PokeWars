@@ -14,5 +14,8 @@
   "affected_by_snatch": true,
   "affected_by_mirror_move": false,
   "affected_by_kings_rock": false,
-  "effects": ["target:raise_stat:attack:1"]
+  "move_trait": 1,
+  "effects": [
+    "target:raise_stat:attack:1"
+  ]
 }

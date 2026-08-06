@@ -115,4 +115,20 @@ describe("spriteOverlay", () => {
     expect(fillRect).toHaveBeenCalledWith(3, 4, 1, 1);
     createElement.mockRestore();
   });
+
+  it("keeps the base image when the overlay canvas has no context", () => {
+    const drawImage = vi.fn();
+    const ctx = { drawImage } as unknown as CanvasRenderingContext2D;
+    const createElement = vi.spyOn(document, "createElement").mockImplementation((tag) => {
+      if (tag === "canvas") {
+        return { width: 0, height: 0, getContext: () => null } as unknown as HTMLCanvasElement;
+      }
+      return document.createElementNS("http://www.w3.org/1999/xhtml", tag);
+    });
+
+    drawImageWithPlayerOverlay(ctx, {} as HTMLImageElement, 0, 0, 8, 8, 1, 2, 8, 8, "#00ff00");
+
+    expect(drawImage).toHaveBeenCalledTimes(1);
+    createElement.mockRestore();
+  });
 });

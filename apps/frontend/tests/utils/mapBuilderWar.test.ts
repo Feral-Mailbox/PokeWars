@@ -13,7 +13,20 @@ describe("war map builder helpers", () => {
     expect(isWarObjectiveTile("pokeball")).toBe(true);
     expect(isWarObjectiveTile("master_ball_p3")).toBe(true);
     expect(isWarObjectiveTile("grass")).toBe(false);
+    expect(isWarObjectiveTile(null)).toBe(false);
+    expect(isWarObjectiveTile(undefined)).toBe(false);
+    expect(isWarObjectiveTile("")).toBe(false);
+    expect(parseWarObjectiveTile("pokeball")).toEqual({ kind: "pokeball", owner: null });
     expect(parseWarObjectiveTile("pokeball_p4")).toEqual({ kind: "pokeball", owner: 4 });
+    expect(parseWarObjectiveTile("master_ball_p8")).toEqual({ kind: "master_ball", owner: 8 });
+    expect(parseWarObjectiveTile("not_an_objective")).toBeNull();
+  });
+
+  it("rejects invalid master-ball owners when encoding", () => {
+    expect(() => encodeWarObjective("master_ball", null)).toThrow(/Master balls/);
+    expect(() => encodeWarObjective("master_ball", 0)).toThrow(/Master balls/);
+    expect(() => encodeWarObjective("master_ball", 9)).toThrow(/Master balls/);
+    expect(encodeWarObjective("pokeball", 0)).toBe("pokeball");
   });
 
   it("requires exactly one master ball per player up to max count", () => {

@@ -878,11 +878,11 @@ def test_embargo_is_item_suppressed_exception_branch(db, monkeypatch):
     original_is_item_suppressed = games_module.is_item_suppressed
     call_count = {"n": 0}
 
-    def raising_once(unit):
+    def raising_once(unit, db=None):
         call_count["n"] += 1
         if call_count["n"] == 1:
             raise RuntimeError("boom")
-        return original_is_item_suppressed(unit)
+        return original_is_item_suppressed(unit, db)
 
     monkeypatch.setattr(games_module, "is_item_suppressed", raising_once)
     # Exception inside the embargo try/except should be swallowed, and processing
@@ -3300,14 +3300,26 @@ def test_execute_move_ally_targeting_query_exception_is_swallowed(client, db, ht
     _equip_extra_move(db, ctx, ally_move)
 
     original_query = db.query
-    call_state = {"gu_count": 0}
+    raised = {"done": False}
 
     def fake_query(model, *a, **kw):
-        if model is models.GameUnit:
-            call_state["gu_count"] += 1
-            if call_state["gu_count"] == 2:
+        q = original_query(model, *a, **kw)
+        if model is not models.GameUnit:
+            return q
+        # Ally expansion filters by user_id; raise once there so the try/except swallows it.
+        # (Ability checks may query GameUnit earlier without user_id; later turn-advance
+        # paths also filter by user_id and must not be broken by this monkeypatch.)
+        original_filter = q.filter
+
+        def filter_proxy(*fa, **fkw):
+            exprs = " ".join(str(arg) for arg in fa)
+            if "user_id" in exprs and not raised["done"]:
+                raised["done"] = True
                 raise RuntimeError("boom")
-        return original_query(model, *a, **kw)
+            return original_filter(*fa, **fkw)
+
+        q.filter = filter_proxy  # type: ignore[method-assign]
+        return q
 
     monkeypatch.setattr(db, "query", fake_query)
 
@@ -3321,6 +3333,7 @@ def test_execute_move_ally_targeting_query_exception_is_swallowed(client, db, ht
         },
     )
     assert resp.status_code == 200
+    assert raised["done"] is True
 
 
 def test_execute_move_ally_targeting_skip_known_fainted_and_revive_branches(client, db, http_user):

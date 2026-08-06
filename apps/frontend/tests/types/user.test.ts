@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isAdmin, isStaff, type User } from "@/types/user";
+import { isAdmin, isModerator, isStaff, type User } from "@/types/user";
 
 const baseUser: User = {
   id: 1,
@@ -22,5 +22,9 @@ describe("user role helpers", () => {
     expect(isAdmin(baseUser)).toBe(false);
     expect(isAdmin({ ...baseUser, role: "moderator" })).toBe(false);
     expect(isAdmin({ ...baseUser, role: "admin" })).toBe(true);
+    expect(isModerator(null)).toBe(false);
+    expect(isModerator(baseUser)).toBe(false);
+    expect(isModerator({ ...baseUser, role: "moderator" })).toBe(true);
+    expect(isModerator({ ...baseUser, role: "admin" })).toBe(false);
   });
 });

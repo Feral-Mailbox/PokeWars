@@ -176,4 +176,40 @@ describe("GameMapStage", () => {
     await user.unhover(itemHits[0]);
     expect(handlers.onMapItemLeave).toHaveBeenCalled();
   });
+
+  it("disables item and unit interactions while targeting moves", () => {
+    renderStage({
+      moveTargeting: true,
+      placedUnits: [
+        {
+          id: 3,
+          unit: { asset_folder: "001_bulbasaur" },
+          tile: [1, 1],
+          current_hp: undefined,
+          user_id: 7,
+        },
+      ],
+      itemIdTiles: [[null, 5]],
+    });
+
+    expect(screen.getByText("?")).toBeInTheDocument();
+    expect(document.querySelector("[data-unit]")).toHaveStyle({ pointerEvents: "none", cursor: "default" });
+    const itemHit = Array.from(document.querySelectorAll("div")).find(
+      (element) => (element as HTMLElement).style.cursor === "help",
+    );
+    expect(itemHit).toHaveStyle({ pointerEvents: "none" });
+  });
+
+  it("renders without optional item and objective canvases", () => {
+    renderStage({
+      mapWidth: 0,
+      mapHeight: 0,
+      itemsCanvasRef: undefined,
+      objectivesCanvasRef: undefined,
+      showMapItemTooltips: false,
+      placedUnits: [],
+    });
+    expect(document.getElementById("itemsCanvas")).toBeNull();
+    expect(document.getElementById("objectivesCanvas")).toBeNull();
+  });
 });

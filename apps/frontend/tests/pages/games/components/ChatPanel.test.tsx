@@ -51,6 +51,29 @@ describe("ChatPanel", () => {
     expect(screen.getByText("No players yet.")).toBeInTheDocument();
   });
 
+  it("invites from waiting slots and uses fallback player colors", async () => {
+    const user = userEvent.setup();
+    const onInvitePlayers = vi.fn();
+    render(
+      <ChatPanel
+        {...baseProps}
+        playerColorMap={{}}
+        playerSlots={[
+          { kind: "waiting", slotIndex: 0 },
+          { kind: "joined", slotIndex: 1, playerId: 5, username: "Brock", cash: 0, unitCount: 0 },
+        ]}
+        currentUserId={5}
+        canInvitePlayers
+        onInvitePlayers={onInvitePlayers}
+        chatEntries={[]}
+      />,
+    );
+
+    expect(screen.getByText("Brock")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Invite player" }));
+    expect(onInvitePlayers).toHaveBeenCalledOnce();
+  });
+
   it("switches to chat, groups move effects, mentions, and sends", async () => {
     const user = userEvent.setup();
     const onChatInputChange = vi.fn();
@@ -128,5 +151,22 @@ describe("ChatPanel", () => {
     const name = screen.getByText("Viewer");
     expect(name).toHaveStyle({ color: "#9ca3af" });
     expect(screen.getByText("nice play Misty")).toHaveClass("text-slate-400");
+  });
+
+  it("renders empty messages and invalid mention colors safely", async () => {
+    const user = userEvent.setup();
+    render(
+      <ChatPanel
+        {...baseProps}
+        usernameColorMap={{ Ash: "" }}
+        chatEntries={[
+          { id: "empty", kind: "chat", text: "", username: "Ash", playerId: 1 },
+          { id: "mention", kind: "system", text: "Ash used Tackle" },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Chat" }));
+    expect(document.querySelector(".text-slate-300")).toHaveTextContent("used Tackle");
   });
 });

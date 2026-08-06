@@ -20,6 +20,7 @@ import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
 import InvitePlayerModal from "../../components/InvitePlayerModal";
 import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
+import { applyGamePatch, type GamePatchMessage } from "./applyGamePatch";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
 import { useMapDisplayScale } from "@/hooks/useMapDisplayScale";
@@ -168,6 +169,8 @@ export default function GamePage() {
 
   const placedUnitsRef = useRef(placedUnits);
   const gameDataRef = useRef(gameData);
+  const lastEventSeqRef = useRef(0);
+  const cashRef = useRef(cash);
   const lockedUnitRef = useRef<any | null>(null);
   const activeUnit = lockedUnit ?? hoveredUnit;
   const frozenMovesRef = useRef<Record<number, MovementLockCache>>({});
@@ -1676,7 +1679,7 @@ export default function GamePage() {
 
     const fetchUnits = async () => {
       const res = await secureFetch("/api/units/summary");
-      if (!res.ok) return;
+      if (!res?.ok) return;
       const units = await res.json();
 
       const EXCEPTION_SPECIES = new Set([17, 42, 78, 103]);
@@ -1709,7 +1712,7 @@ export default function GamePage() {
 
     const fetchAbilities = async () => {
       const res = await secureFetch("/api/abilities/all");
-      if (!res.ok) return;
+      if (!res?.ok) return;
       const abilities = await res.json();
       setAvailableAbilities(Array.isArray(abilities) ? abilities : []);
     };
@@ -1724,11 +1727,11 @@ export default function GamePage() {
         secureFetch("/api/items/all"),
         secureFetch("/api/moves/all"),
       ]);
-      if (itemsRes.ok) {
+      if (itemsRes?.ok) {
         const items = await itemsRes.json();
         setAvailableItems(Array.isArray(items) ? items : []);
       }
-      if (movesRes.ok) {
+      if (movesRes?.ok) {
         const moves = await movesRes.json();
         const mapped: Record<number, any> = {};
         for (const move of moves) {
@@ -1794,7 +1797,7 @@ export default function GamePage() {
   useEffect(() => {
     const fetchMoves = async () => {
       const res = await secureFetch("/api/moves/all");
-      if (res.ok) {
+      if (res?.ok) {
         const moves = await res.json();
         const mapped: Record<number, any> = {};
         for (const move of moves) {
@@ -2158,6 +2161,138 @@ export default function GamePage() {
       if (typeof event.data === "string" && event.data.startsWith("{")) {
         try {
           const payload = JSON.parse(event.data);
+          if (payload?.event === "game_patch") {
+            const patch = payload as GamePatchMessage;
+            const seq = Number(patch.event_seq || 0);
+            const last = lastEventSeqRef.current;
+            if (seq > 0 && last > 0 && seq > last + 1) {
+              // Gap in sequence — recover with a full snapshot.
+              void (async () => {
+                const link = gameDataRef.current?.link;
+                if (!link) return;
+                const res = await secureFetch(`/api/games/${link}`);
+                if (!res.ok) return;
+                const updatedGame = normalizeGameData(await res.json());
+                setGameData(updatedGame);
+                const unitsRes = await secureFetch(`/api/games/${link}/units`);
+                if (unitsRes.ok) {
+                  const backendUnits = await unitsRes.json();
+                  const mapped = mapVisiblePlacedUnitsFromBackend(backendUnits);
+                  placedUnitsRef.current = mapped;
+                  setPlacedUnits(mapped);
+                }
+                await fetchAndApplyTurnlock(link);
+                lastEventSeqRef.current = seq;
+              })();
+              return;
+            }
+            if (seq > 0) {
+              lastEventSeqRef.current = seq;
+            }
+
+            const applied = applyGamePatch({
+              patch,
+              gameData: gameDataRef.current,
+              placedUnits: placedUnitsRef.current,
+              cash: cashRef.current,
+              viewerUserId: userId,
+            });
+
+            if (applied.clearUiForTurn) {
+              clearMovementLocks();
+              setLockedUnit(null);
+              setHoveredUnit(null);
+              setHighlightedTiles([]);
+              setUnitOriginalTile(null);
+              setMoveTargeting(false);
+              setSelectedMove(null);
+              setSelectedMoveTarget(null);
+              setHoveredOverlayTile(null);
+              setAttackOverlay({ normal: [], invert: [] });
+              preMoveStateRef.current = null;
+              setSelectedTile(null);
+            }
+
+            if (applied.gameData) {
+              setGameData(applied.gameData);
+              gameDataRef.current = applied.gameData;
+            }
+            placedUnitsRef.current = applied.placedUnits;
+            setPlacedUnits(applied.placedUnits);
+
+            if (applied.cash != null) {
+              setCash(applied.cash);
+            }
+
+            for (const unitId of applied.removedUnitIds) {
+              setLockedUnit((prev) => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? null : prev;
+              });
+              setHoveredUnit((prev) => {
+                if (!prev) return prev;
+                const id = prev.instanceId ?? prev.id;
+                return id === unitId ? null : prev;
+              });
+            }
+
+            if (applied.turnlock) {
+              ingestTurnlock(applied.turnlock, applied.placedUnits);
+              requestAnimationFrame(() => refreshMovementLockOccupancy());
+            } else if (applied.clearUiForTurn === false) {
+              requestAnimationFrame(() => refreshMovementLockOccupancy());
+            }
+
+            // Narrow refetch escape hatch for prep/lobby-style events.
+            const needs = new Set(applied.refetch || []);
+            if (needs.size > 0) {
+              void (async () => {
+                const link = gameDataRef.current?.link || gameData?.link;
+                if (!link) return;
+                if (needs.has("game") || needs.has("map_state")) {
+                  const res = await secureFetch(`/api/games/${link}`);
+                  if (res.ok) {
+                    const updatedGame = normalizeGameData(await res.json());
+                    setGameData(updatedGame);
+                    gameDataRef.current = updatedGame;
+                  }
+                }
+                if (needs.has("units")) {
+                  const unitsRes = await secureFetch(`/api/games/${link}/units`);
+                  if (unitsRes.ok) {
+                    const backendUnits = await unitsRes.json();
+                    let visibleUnits = backendUnits;
+                    if (gameDataRef.current?.status === "preparation") {
+                      const playerRes = await secureFetch(`/api/games/${link}/player`);
+                      if (playerRes.ok) {
+                        const player = await playerRes.json();
+                        setCash(player.cash_remaining);
+                        const ids: number[] = player.game_units ?? [];
+                        visibleUnits = backendUnits.filter((u: any) => ids.includes(u.id));
+                      }
+                    }
+                    const mapped = mapVisiblePlacedUnitsFromBackend(visibleUnits);
+                    placedUnitsRef.current = mapped;
+                    setPlacedUnits(mapped);
+                  }
+                }
+                if (needs.has("player")) {
+                  const playerRes = await secureFetch(`/api/games/${link}/player`);
+                  if (playerRes.ok) {
+                    const player = await playerRes.json();
+                    setCash(player.cash_remaining);
+                    if (typeof player.is_ready === "boolean") setIsReady(player.is_ready);
+                  }
+                }
+                if (needs.has("turnlock")) {
+                  await fetchAndApplyTurnlock(link, placedUnitsRef.current);
+                  requestAnimationFrame(() => refreshMovementLockOccupancy());
+                }
+              })();
+            }
+            return;
+          }
           if (payload?.event === "chat_message") {
             setChatEntries((prev) => [
               ...prev,
@@ -2449,72 +2584,41 @@ export default function GamePage() {
         return;
       }
       
+      // Legacy bare-string invalidate signals (kept as a recovery fallback only).
       if (["player_joined", "game_started", "player_ready", "player_state_updated", "map_state_updated", "game_preparation", "turn_started", "turn_advanced", "unit_locked", "game_completed"].includes(event.data)) {
-        if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
-          clearMovementLocks();
-          setLockedUnit(null);
-          setHoveredUnit(null);
-          setHighlightedTiles([]);
-          setUnitOriginalTile(null);
-          setMoveTargeting(false);
-          setSelectedMove(null);
-          setSelectedMoveTarget(null);
-          setHoveredOverlayTile(null);
-          setAttackOverlay({ normal: [], invert: [] });
-          preMoveStateRef.current = null;
-          setSelectedTile(null);
-        }
-        (async () => {
-          const res = await secureFetch(`/api/games/${gameData.link}`);
+        // Prefer game_patch path; if a legacy string still arrives, do a narrow recovery fetch.
+        void (async () => {
+          const link = gameDataRef.current?.link || gameData?.link;
+          if (!link) return;
+          if (event.data === "turn_started" || event.data === "turn_advanced" || event.data === "game_completed") {
+            clearMovementLocks();
+            setLockedUnit(null);
+            setHoveredUnit(null);
+            setHighlightedTiles([]);
+            setUnitOriginalTile(null);
+            setMoveTargeting(false);
+            setSelectedMove(null);
+            setSelectedMoveTarget(null);
+            setHoveredOverlayTile(null);
+            setAttackOverlay({ normal: [], invert: [] });
+            preMoveStateRef.current = null;
+            setSelectedTile(null);
+          }
+          const res = await secureFetch(`/api/games/${link}`);
           if (!res.ok) return;
           const updatedGame = normalizeGameData(await res.json());
           setGameData(updatedGame);
-
-          const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
-          if (!unitsRes.ok) return;
-          const backendUnits = await unitsRes.json();
-
-          let visibleUnits;
-          const playerRes = await secureFetch(`/api/games/${updatedGame.link}/player`);
-          let playerUnitIds: number[] = [];
-          if (playerRes.ok) {
-            const player = await playerRes.json();
-            setCash(player.cash_remaining);
-            playerUnitIds = player.game_units ?? [];
-          }
-
-          if (updatedGame.status === "preparation") {
-            visibleUnits = playerRes.ok
-              ? backendUnits.filter((u: any) => playerUnitIds.includes(u.id))
-              : backendUnits;
-          } else {
-            visibleUnits = backendUnits;
-          }
-
-          const mapped = mapVisiblePlacedUnitsFromBackend(visibleUnits);
-
-          setPlacedUnits(mapped);
-
-          // Update lockedUnit and hoveredUnit if they're affected by the update
-          setLockedUnit((prev) => {
-            if (!prev) return prev;
-            const updated = mapped.find((u: PlacedUnitState) => u.id === prev.instanceId);
-            return updated ? toActiveUnitView(updated) : prev;
-          });
-          setHoveredUnit((prev) => {
-            if (!prev) return prev;
-            const updated = mapped.find((u: PlacedUnitState) => u.id === prev.instanceId);
-            return updated ? toActiveUnitView(updated) : prev;
-          });
-
-          try {
-            const lockRes = await secureFetch(`/api/games/${updatedGame.link}/turnlock`);
-            if (lockRes.ok) {
-              const locks = (await lockRes.json()) as Record<string, MovementLock>;
-              ingestTurnlock(locks, mapped);
+          const unitsRes = await secureFetch(`/api/games/${link}/units`);
+          if (unitsRes.ok) {
+            const backendUnits = await unitsRes.json();
+            const mapped = mapVisiblePlacedUnitsFromBackend(backendUnits);
+            placedUnitsRef.current = mapped;
+            setPlacedUnits(mapped);
+            try {
+              await fetchAndApplyTurnlock(link, mapped);
               requestAnimationFrame(() => refreshMovementLockOccupancy());
-            }
-          } catch {}
+            } catch {}
+          }
         })();
       }
     };
@@ -2530,6 +2634,10 @@ export default function GamePage() {
   useEffect(() => {
     gameDataRef.current = gameData;
   }, [gameData]);
+
+  useEffect(() => {
+    cashRef.current = cash;
+  }, [cash]);
 
   useEffect(() => {
     lockedUnitRef.current = lockedUnit;

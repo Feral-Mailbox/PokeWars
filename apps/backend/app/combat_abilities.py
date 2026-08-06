@@ -160,6 +160,45 @@ PUNCH_MOVE_SLUGS: frozenset[str] = frozenset(
     }
 )
 
+SOUND_MOVE_SLUGS: frozenset[str] = frozenset(
+    {
+        "growl",
+        "roar",
+        "sing",
+        "supersonic",
+        "screech",
+        "snore",
+        "perish_song",
+        "heal_bell",
+        "metal_sound",
+        "grass_whistle",
+        "grasswhistle",
+        "howl",
+        "hyper_voice",
+        "bug_buzz",
+        "chatter",
+        "round",
+        "echoed_voice",
+        "relic_song",
+        "snarl",
+        "disarming_voice",
+        "parting_shot",
+        "boomburst",
+        "confide",
+        "sparkling_aria",
+        "clanging_scales",
+        "clangorous_soul",
+        "overdrive",
+        "eerie_spell",
+        "torch_song",
+        "psychic_noise",
+        "alluring_voice",
+        "dragon_cheer",
+        "uproar",
+        "noble_roar",
+    }
+)
+
 BITE_MOVE_SLUGS: frozenset[str] = frozenset(
     {
         "bite",
@@ -866,11 +905,14 @@ def field_has_neutralizing_gas(game_id: int, db: Session, *, _cache: dict | None
     if not game_id:
         return False
     cache = _cache if _cache is not None else {}
-    units = (
-        db.query(GameUnit)
-        .filter(GameUnit.game_id == game_id, GameUnit.is_fainted.is_(False))
-        .all()
-    )
+    try:
+        units = (
+            db.query(GameUnit)
+            .filter(GameUnit.game_id == game_id, GameUnit.is_fainted.is_(False))
+            .all()
+        )
+    except Exception:
+        return False
     for unit in units:
         if _unit_is_neutralizing_gas_holder(unit, db, _cache=cache):
             return True
@@ -1597,7 +1639,13 @@ def _move_is_wind(move: Any) -> bool:
 
 
 def _move_is_sound(move: Any) -> bool:
-    return move_has_trait(move, MOVE_TRAIT_SOUND)
+    if move_has_trait(move, MOVE_TRAIT_SOUND):
+        return True
+    slug = _move_slug(move).replace("-", "_")
+    if slug in SOUND_MOVE_SLUGS:
+        return True
+    name = str(getattr(move, "name", "") or "").lower().replace(" ", "_").replace("-", "_")
+    return name in SOUND_MOVE_SLUGS
 
 
 def _move_is_powder(move: Any) -> bool:
@@ -4661,16 +4709,16 @@ def process_defender_hit_reactions(
 
         # on_hit_category:physical:field_hazard:toxic_spikes:opponent_side (Toxic Debris)
         if (
-            len(parts) >= 5
+            len(parts) >= 4
             and parts[0] == "on_hit_category"
-            and parts[3] == "field_hazard"
+            and parts[2] == "field_hazard"
         ):
             cat = parts[1]
             if cat == "physical" and not is_physical:
                 continue
             if cat == "special" and is_physical:
                 continue
-            hazard_name = parts[4]
+            hazard_name = parts[3]
             place_hazard = helpers.get("place_field_hazard")
             if callable(place_hazard):
                 try:

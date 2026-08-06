@@ -333,3 +333,49 @@ def test_shadow_tag_traps_adjacent_opponent(db, user):
 
     assert ca.unit_traps_opponent(trapper, victim, db, get_types=get_unit_types) is True
     assert ca.is_trapped_by_adjacent_opponent(victim, db, get_types=get_unit_types) is True
+
+
+def test_soundproof_blocks_sparkling_aria_even_without_move_trait(db, user):
+    """Soundproof must block sound moves; slug fallback covers untagged DB rows."""
+    ctx = _create_battle_game(db, user, link="soundproof-aria")
+    soundproof = _ability(
+        db,
+        name="Soundproof",
+        slug="soundproof",
+        effects=["immune_category:sound"],
+    )
+    target = ctx["opponent_unit"]
+    _attach_ability(target, soundproof, db)
+    db.commit()
+
+    # Untagged row (move_trait missing/0) — still sound via slug/name fallback.
+    aria = models.Move(
+        name="Sparkling Aria",
+        type="Water",
+        category="Special",
+        power=90,
+        accuracy=100,
+        move_trait=0,
+    )
+    tackle = models.Move(
+        name="Tackle",
+        type="Normal",
+        category="Physical",
+        power=40,
+        move_trait=0,
+    )
+    tagged = models.Move(
+        name="Hyper Voice",
+        type="Normal",
+        category="Special",
+        power=90,
+        move_trait=1,
+    )
+
+    assert ca._move_is_sound(aria) is True
+    assert ca.blocks_sound_move(target, db) is True
+    assert ca.should_block_move_against(target, aria, db) == "soundproof"
+    assert ca.should_block_move_against(target, tagged, db) == "soundproof"
+    assert ca.should_block_move_against(target, tackle, db) is None
+    msg = ca.ability_protect_message(target, aria, db, unit_name="tester's Bastiodon")
+    assert msg == "tester's Bastiodon is protected by Soundproof!"

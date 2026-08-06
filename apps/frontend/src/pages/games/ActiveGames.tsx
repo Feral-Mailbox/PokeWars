@@ -52,6 +52,21 @@ export default function ActiveGames() {
   const totalPages = Math.ceil(filteredGames.length / 10);
   const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
 
+  const goFirstPage = () => setPage(1);
+  const goPrevPage = () => setPage(page - 1);
+  const goNextPage = () => setPage(page + 1);
+  const goLastPage = () => setPage(totalPages);
+
+  const paginationControls = displayedGames.length > 0 && (
+    <div className="flex justify-center items-center gap-4 mb-4">
+      <button onClick={goFirstPage} disabled={page === 1}>&lt;&lt;</button>
+      <button onClick={goPrevPage} disabled={page === 1}>&lt;</button>
+      <span>Page {page}</span>
+      <button onClick={goNextPage} disabled={page >= totalPages}>&gt;</button>
+      <button onClick={goLastPage} disabled={page >= totalPages}>&gt;&gt;</button>
+    </div>
+  );
+
   return (
     <div className="pt-20 px-4 pb-8 text-white">
       <h1 className="text-3xl font-bold mb-6">In-Progress Games</h1>
@@ -85,15 +100,7 @@ export default function ActiveGames() {
           Reload
         </button>
       </div>
-      {displayedGames.length > 0 && (
-        <div className="flex justify-center items-center gap-4 mb-4">
-          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
-          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
-          <span>Page {page}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
-          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
-        </div>
-      )}
+      {paginationControls}
       <ul className="space-y-4">
         {displayedGames.map((game: any) => (
           <li key={game.id} className="border p-4 rounded shadow">
@@ -119,15 +126,7 @@ export default function ActiveGames() {
           </li>
         ))}
       </ul>
-      {displayedGames.length > 0 && (
-        <div className="flex justify-center items-center gap-4 mb-4">
-          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
-          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
-          <span>Page {page}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
-          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
-        </div>
-      )}
+      {paginationControls}
     </div>
   );
 }

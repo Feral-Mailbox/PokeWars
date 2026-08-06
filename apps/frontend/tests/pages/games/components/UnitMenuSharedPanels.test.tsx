@@ -119,4 +119,117 @@ describe("UnitMenuShared panels", () => {
     );
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("skips missing moves, colors low PP, and blocks locked/unusable TM selection", async () => {
+    const user = userEvent.setup();
+    const onMoveSelect = vi.fn();
+    const onMoveHoverStart = vi.fn();
+
+    render(
+      <UnitMoveList
+        unitState={{
+          equipped_move_ids: [1, 99, 3],
+          held_tm_move_id: 4,
+          move_pp: [1, 0, 3, 2],
+          can_move: false,
+          unit: { tm_moves: [] },
+        }}
+        moveMap={{
+          1: { id: 1, name: "Scratch", type: "Normal", power: 40, pp: 35 },
+          3: { id: 3, name: "Growl", type: "Normal", power: null, pp: 40 },
+          4: { id: 4, name: "Hyper Beam", type: "Normal", power: 150, pp: 5 },
+        }}
+        typeColors={{}}
+        moveTargeting
+        selectEnabled
+        onMoveHoverStart={onMoveHoverStart}
+        onMoveHoverEnd={() => {}}
+        onMoveSelect={onMoveSelect}
+      />,
+    );
+
+    expect(screen.getByText("Scratch")).toBeInTheDocument();
+    expect(screen.getByText("Growl")).toBeInTheDocument();
+    expect(screen.getByText(/Hyper Beam \(TM\)/)).toBeInTheDocument();
+    expect(screen.queryByText("99")).not.toBeInTheDocument();
+
+    const scratch = screen.getByRole("button", { name: /Scratch/i });
+    expect(scratch).toBeDisabled();
+    await user.hover(scratch);
+    expect(onMoveHoverStart).not.toHaveBeenCalled();
+    await user.click(scratch);
+    expect(onMoveSelect).not.toHaveBeenCalled();
+
+    const tm = screen.getByRole("button", { name: /Hyper Beam/i });
+    expect(tm).toBeDisabled();
+    expect(tm).toHaveAttribute("title", expect.stringMatching(/cannot learn/i));
+  });
+
+  it("renders header without types/status and non-removable item label", () => {
+    render(
+      <UnitInfoHeader
+        unit={{ name: "Ditto", asset_folder: "132_ditto", types: [] }}
+        currentHp={10}
+        maxHp={10}
+        statusIconSrc={null}
+        typeColors={{}}
+        ability={null}
+        item={null}
+      />,
+    );
+    expect(screen.getByText("Ditto")).toBeInTheDocument();
+    expect(screen.getByText(/Ability:/)).toBeInTheDocument();
+    expect(screen.getByText(/Item:/)).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("shows equipped item text when removal is unavailable", () => {
+    render(
+      <UnitInfoHeader
+        unit={{ name: "Eevee", asset_folder: "133_eevee", types: ["Normal", "Fairy"] }}
+        currentHp={12}
+        maxHp={20}
+        statusIconSrc={null}
+        typeColors={{ Normal: "#aaa", Fairy: "#faf" }}
+        ability="Run Away"
+        item="Oran Berry"
+      />,
+    );
+    expect(screen.getByText(/Oran Berry/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Oran Berry" })).not.toBeInTheDocument();
+    expect(screen.getByText("Normal")).toBeInTheDocument();
+    expect(screen.getByText("Fairy")).toBeInTheDocument();
+  });
+
+  it("renders stats with missing current_stats as question marks", () => {
+    render(<UnitInfoStats unitState={{ level: 1 }} getStatColor={() => "#fff"} />);
+    expect(screen.getAllByText("?").length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("colors mid-range PP yellow and allows selecting a usable move", async () => {
+    const user = userEvent.setup();
+    const onMoveSelect = vi.fn();
+    render(
+      <UnitMoveList
+        unitState={{
+          equipped_move_ids: [1],
+          move_pp: [8],
+          can_move: true,
+        }}
+        moveMap={{
+          1: { id: 1, name: "Tackle", type: "Normal", power: 40, pp: 20 },
+        }}
+        typeColors={{}}
+        moveTargeting={false}
+        selectEnabled
+        onMoveHoverStart={() => {}}
+        onMoveHoverEnd={() => {}}
+        onMoveSelect={onMoveSelect}
+      />,
+    );
+    const pp = screen.getByText("PP: 8/20");
+    expect(pp).toHaveStyle({ color: "#eab308" });
+    await user.click(screen.getByRole("button", { name: /Tackle/i }));
+    expect(onMoveSelect).toHaveBeenCalled();
+  });
 });

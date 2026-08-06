@@ -20,8 +20,8 @@ export default function JoinGame() {
     } catch (err) {
       console.error("Failed to fetch games:", err);
     }
-  };  
-  
+  };
+
   useEffect(() => {
     fetchGames();
   }, []);
@@ -57,22 +57,35 @@ export default function JoinGame() {
       console.error("Error joining game:", err);
       alert("An error occurred while trying to join the game.");
     }
-  };  
+  };
 
   const filteredGames = games
-  .filter((game: any) => {
-    const playerMatch =
-      playerFilter === "All" || game.max_players.toString() === playerFilter;
-    const mapMatch =
-      mapFilter === "All" || game.map_name.toLowerCase() === mapFilter.toLowerCase();
-    return playerMatch && mapMatch;
-  })
-  .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  
+    .filter((game: any) => {
+      const playerMatch =
+        playerFilter === "All" || game.max_players.toString() === playerFilter;
+      const mapMatch =
+        mapFilter === "All" || game.map_name.toLowerCase() === mapFilter.toLowerCase();
+      return playerMatch && mapMatch;
+    })
+    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
   const totalPages = Math.ceil(filteredGames.length / 10);
   const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
 
-  console.log(games)
+  const goFirstPage = () => setPage(1);
+  const goPrevPage = () => setPage(page - 1);
+  const goNextPage = () => setPage(page + 1);
+  const goLastPage = () => setPage(totalPages);
+
+  const paginationControls = displayedGames.length > 0 && (
+    <div className="flex justify-center items-center gap-4 mb-4">
+      <button onClick={goFirstPage} disabled={page === 1}>&lt;&lt;</button>
+      <button onClick={goPrevPage} disabled={page === 1}>&lt;</button>
+      <span>Page {page}</span>
+      <button onClick={goNextPage} disabled={page >= totalPages}>&gt;</button>
+      <button onClick={goLastPage} disabled={page >= totalPages}>&gt;&gt;</button>
+    </div>
+  );
 
   return (
     <div className="pt-20 px-4 pb-8 text-white">
@@ -107,23 +120,14 @@ export default function JoinGame() {
           Reload
         </button>
       </div>
-      {displayedGames.length > 0 && (
-        <div className="flex justify-center items-center gap-4 mb-4">
-          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
-          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
-          <span>Page {page}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
-          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
-        </div>
-      )}
+      {paginationControls}
       <ul className="space-y-4">
-        {filteredGames.map((game: any) => (
+        {displayedGames.map((game: any) => (
           <li key={game.id} className="border p-4 rounded shadow">
             <p className="text-lg font-bold mb-2">{game.game_name || "Untitled Game"}</p>
             <p>
-              <strong>Host:</strong> {
-                game.players.find((p: any) => p.player_id === game.host_id)?.username ?? "Unknown"
-              }
+              <strong>Host:</strong>{" "}
+              {game.players.find((p: any) => p.player_id === game.host_id)?.username ?? "Unknown"}
             </p>
             <p>
               <strong>Game Mode:</strong> {game.gamemode}
@@ -150,15 +154,7 @@ export default function JoinGame() {
           </li>
         ))}
       </ul>
-      {displayedGames.length > 0 && (
-        <div className="flex justify-center items-center gap-4 mb-4">
-          <button onClick={() => setPage(1)} disabled={page === 1}>&lt;&lt;</button>
-          <button onClick={() => setPage(page - 1)} disabled={page === 1}>&lt;</button>
-          <span>Page {page}</span>
-          <button onClick={() => setPage(page + 1)} disabled={page >= totalPages}>&gt;</button>
-          <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}>&gt;&gt;</button>
-        </div>
-      )}
+      {paginationControls}
     </div>
   );
 }
