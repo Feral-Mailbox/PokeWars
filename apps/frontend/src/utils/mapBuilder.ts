@@ -1,6 +1,10 @@
 import type { MapExport, MapTileData, TileRef } from "@/types/mapData";
-import { DEFAULT_MAP_ALLOWED_MODES } from "@/types/mapData";
-import { DEFAULT_MOVEMENT_COST } from "@/types/mapData";
+import {
+  CTF_JAIL_TILE,
+  CTF_UNLOCK_TILE,
+  DEFAULT_MAP_ALLOWED_MODES,
+  DEFAULT_MOVEMENT_COST,
+} from "@/types/mapData";
 
 export function createEmptyTileData(width: number, height: number): MapTileData {
   const base: TileRef[][] = [];
@@ -194,6 +198,66 @@ export function validateWarMapExport(
   return { ok: true, message: null };
 }
 
+/** CTF content is optional; if any CTF piece exists, require flags + jail + unlock. */
+export function validateCtfMapExport(tileData: MapTileData): WarExportValidation {
+  let flagCount = 0;
+  let jailCount = 0;
+  let unlockCount = 0;
+
+  for (const row of tileData.flags) {
+    for (const cell of row) {
+      if (cell != null && cell >= 0) flagCount += 1;
+    }
+  }
+
+  for (const row of tileData.special_tiles) {
+    for (const cell of row) {
+      if (!cell) continue;
+      const key = cell.trim().toLowerCase();
+      if (key === CTF_JAIL_TILE) jailCount += 1;
+      if (key === CTF_UNLOCK_TILE) unlockCount += 1;
+    }
+  }
+
+  const hasAny = flagCount > 0 || jailCount > 0 || unlockCount > 0;
+  if (!hasAny) return { ok: true, message: null };
+
+  if (flagCount === 0) {
+    return { ok: false, message: "Capture The Flag maps need at least one flag." };
+  }
+  if (jailCount === 0) {
+    return { ok: false, message: "Capture The Flag maps need at least one jail tile." };
+  }
+  if (unlockCount === 0) {
+    return { ok: false, message: "Capture The Flag maps need at least one unlock tile." };
+  }
+  return { ok: true, message: null };
+}
+
+export function mapHasValidCtfSetup(tileData: MapTileData): boolean {
+  return validateCtfMapExport(tileData).ok && countCtfPieces(tileData).flags > 0;
+}
+
+function countCtfPieces(tileData: MapTileData): { flags: number; jails: number; unlocks: number } {
+  let flags = 0;
+  let jails = 0;
+  let unlocks = 0;
+  for (const row of tileData.flags) {
+    for (const cell of row) {
+      if (cell != null && cell >= 0) flags += 1;
+    }
+  }
+  for (const row of tileData.special_tiles) {
+    for (const cell of row) {
+      if (!cell) continue;
+      const key = cell.trim().toLowerCase();
+      if (key === CTF_JAIL_TILE) jails += 1;
+      if (key === CTF_UNLOCK_TILE) unlocks += 1;
+    }
+  }
+  return { flags, jails, unlocks };
+}
+
 export function canExportMap(
   tilesetNames: string[],
   allowedPlayerCounts: number[],
@@ -204,7 +268,9 @@ export function canExportMap(
   }
   const conquest = validateConquestSpawnExport(tileData, allowedPlayerCounts);
   if (!conquest.ok) return conquest;
-  return validateWarMapExport(tileData, allowedPlayerCounts);
+  const war = validateWarMapExport(tileData, allowedPlayerCounts);
+  if (!war.ok) return war;
+  return validateCtfMapExport(tileData);
 }
 
 export function buildMapExport(input: {
@@ -216,11 +282,15 @@ export function buildMapExport(input: {
   tileData: MapTileData;
 }): MapExport {
   const slug = slugifyMapName(input.name) || "custom_map";
+  const allowedModes = [...DEFAULT_MAP_ALLOWED_MODES] as string[];
+  if (mapHasValidCtfSetup(input.tileData)) {
+    allowedModes.push("Capture The Flag");
+  }
   return {
     name: input.name.trim() || "Untitled Map",
     is_official: false,
     tileset_names: input.tilesetNames,
-    allowed_modes: [...DEFAULT_MAP_ALLOWED_MODES],
+    allowed_modes: allowedModes,
     allowed_player_counts: input.allowedPlayerCounts,
     width: input.width,
     height: input.height,

@@ -1,4 +1,14 @@
-import { DEFAULT_MOVEMENT_COST, type MapLayer, type MapTileData, type TileRef, isWarObjectiveTile } from "@/types/mapData";
+import {
+  DEFAULT_MOVEMENT_COST,
+  type MapLayer,
+  type MapTileData,
+  type TileRef,
+  isCtfSpecialTile,
+  isWarObjectiveTile,
+  CTF_JAIL_TILE,
+  CTF_UNLOCK_TILE,
+  type CtfBrushKind,
+} from "@/types/mapData";
 
 export type DrawingTool = "pencil" | "box" | "eraser";
 
@@ -29,6 +39,7 @@ type FillRectOptions = {
   spawnBrush: number | null;
   specialBrush: string;
   flagBrush: number | null;
+  ctfBrushKind?: CtfBrushKind;
   movementCostBrush: number;
   itemBrush: number | null;
   warBrush: string;
@@ -54,9 +65,22 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
     case "special_tiles":
       data.special_tiles[y][x] = options.specialBrush;
       break;
-    case "flags":
-      data.flags[y][x] = options.flagBrush;
+    case "flags": {
+      const kind = options.ctfBrushKind ?? "flag";
+      if (kind === "jail") {
+        data.special_tiles[y][x] = CTF_JAIL_TILE;
+        data.flags[y][x] = null;
+      } else if (kind === "unlock") {
+        data.special_tiles[y][x] = CTF_UNLOCK_TILE;
+        data.flags[y][x] = null;
+      } else {
+        data.flags[y][x] = options.flagBrush;
+        if (isCtfSpecialTile(data.special_tiles[y][x])) {
+          data.special_tiles[y][x] = null;
+        }
+      }
       break;
+    }
     case "movement_cost":
       data.movement_cost[y][x] = options.movementCostBrush;
       break;
@@ -91,6 +115,9 @@ function applyEraseCell(data: MapTileData, x: number, y: number, layer: MapLayer
       break;
     case "flags":
       data.flags[y][x] = null;
+      if (isCtfSpecialTile(data.special_tiles[y][x])) {
+        data.special_tiles[y][x] = null;
+      }
       break;
     case "movement_cost":
       data.movement_cost[y][x] = DEFAULT_MOVEMENT_COST;

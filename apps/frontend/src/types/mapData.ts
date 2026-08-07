@@ -69,6 +69,11 @@ export const SPECIAL_TILE_TYPES = [
 
 export type SpecialTileType = (typeof SPECIAL_TILE_TYPES)[number];
 
+export const CTF_JAIL_TILE = "ctf_jail";
+export const CTF_UNLOCK_TILE = "ctf_unlock";
+
+export type CtfBrushKind = "flag" | "jail" | "unlock";
+
 export type WarObjectiveKind = "pokeball" | "master_ball";
 
 const WAR_OBJECTIVE_PATTERN =
@@ -91,6 +96,12 @@ export function encodeWarObjective(kind: WarObjectiveKind, owner: number | null)
 export function isWarObjectiveTile(value: string | null | undefined): boolean {
   if (!value) return false;
   return WAR_OBJECTIVE_PATTERN.test(value);
+}
+
+export function isCtfSpecialTile(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const key = value.trim().toLowerCase();
+  return key === CTF_JAIL_TILE || key === CTF_UNLOCK_TILE;
 }
 
 export function parseWarObjectiveTile(value: string): {

@@ -13,6 +13,7 @@ import {
   PLAYER_COUNTS,
   PLAYER_IDS,
   SPECIAL_TILE_TYPES,
+  type CtfBrushKind,
   type MapLayer,
   type MapTileData,
   type WarObjectiveKind,
@@ -38,7 +39,7 @@ const LAYER_LABELS: Record<MapLayer, string> = {
   spawn_points: "Conquest",
   special_tiles: "Special tiles",
   war: "War",
-  flags: "Flags (CTF)",
+  flags: "Capture The Flag",
   movement_cost: "Movement cost",
   items: "Items (TMs)",
 };
@@ -81,6 +82,7 @@ export default function MapBuilderPage() {
   const [selectedTile, setSelectedTile] = useState<TileRef>([0, 0]);
   const [spawnBrush, setSpawnBrush] = useState<number | null>(1);
   const [flagBrush, setFlagBrush] = useState<number | null>(1);
+  const [ctfBrushKind, setCtfBrushKind] = useState<CtfBrushKind>("flag");
   const [specialBrush, setSpecialBrush] = useState<string>("grass");
   const [warObjectiveKind, setWarObjectiveKind] = useState<WarObjectiveKind>("pokeball");
   const [warOwnerBrush, setWarOwnerBrush] = useState<number | null>(null);
@@ -559,29 +561,73 @@ export default function MapBuilderPage() {
             </div>
           )}
           {activeLayer === "flags" && (
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-300">
-              Flag owner:
-              {PLAYER_IDS.map((player) => (
-                <button
-                  key={player}
-                  type="button"
-                  onClick={() => setFlagBrush(player)}
-                  className={`rounded px-2 py-1 ${
-                    flagBrush === player ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
-                  }`}
-                >
-                  P{player}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setFlagBrush(null)}
-                className={`rounded px-2 py-1 ${
-                  flagBrush === null ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
-                }`}
-              >
-                Clear
-              </button>
+            <div className="flex flex-col gap-2 text-sm text-gray-300">
+              <div className="flex flex-wrap items-center gap-2">
+                <span>CTF brush:</span>
+                {(
+                  [
+                    ["flag", "Flag"],
+                    ["jail", "Jail"],
+                    ["unlock", "Unlock"],
+                  ] as const
+                ).map(([kind, label]) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => setCtfBrushKind(kind)}
+                    className={`rounded px-2 py-1 ${
+                      ctfBrushKind === kind ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {ctfBrushKind === "flag" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>Flag owner:</span>
+                  <button
+                    type="button"
+                    onClick={() => setFlagBrush(0)}
+                    className={`rounded px-2 py-1 ${
+                      flagBrush === 0 ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    Neutral
+                  </button>
+                  {PLAYER_IDS.map((player) => (
+                    <button
+                      key={player}
+                      type="button"
+                      onClick={() => setFlagBrush(player)}
+                      className={`rounded px-2 py-1 ${
+                        flagBrush === player ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                      }`}
+                    >
+                      P{player}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setFlagBrush(null)}
+                    className={`rounded px-2 py-1 ${
+                      flagBrush === null ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+              {ctfBrushKind === "jail" && (
+                <span className="text-gray-500">
+                  Paint jail zone tiles · Eraser clears CTF flags/jail/unlock on a cell
+                </span>
+              )}
+              {ctfBrushKind === "unlock" && (
+                <span className="text-gray-500">
+                  Paint unlock tiles (War-style multi-turn unlock) · Eraser clears CTF content
+                </span>
+              )}
             </div>
           )}
           {activeLayer === "movement_cost" && (
@@ -661,6 +707,7 @@ export default function MapBuilderPage() {
               spawnBrush={spawnBrush}
               specialBrush={specialBrush}
               flagBrush={flagBrush}
+              ctfBrushKind={ctfBrushKind}
               movementCostBrush={movementCostBrush}
               itemBrush={itemBrush}
               itemMoveTypeById={itemMoveTypeById}

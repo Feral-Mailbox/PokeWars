@@ -11,15 +11,15 @@ import {
 const GAME_MODES = [
   {
     name: 'Conquest',
-    goal: 'Capture objectives and outlast opponents.',
-  },
-  {
-    name: 'War',
     goal: 'Eliminate enemy forces.',
   },
   {
+    name: 'War',
+    goal: 'Capture objectives and outlast opponents.',
+  },
+  {
     name: 'Capture the Flag',
-    goal: 'Bring the flag to your base.',
+    goal: 'Control all checkpoints on the map.',
   },
 ] as const;
 

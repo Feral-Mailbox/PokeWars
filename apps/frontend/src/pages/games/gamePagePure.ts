@@ -248,6 +248,8 @@ export function normalizeGameMapState(game: any) {
     field_effect_tiles: normalizeNumberGrid(raw.field_effect_tiles),
     item_id_tiles: normalizeItemIdGrid(raw.item_id_tiles),
     objective_tiles: Array.isArray(raw.objective_tiles) ? raw.objective_tiles : [],
+    flag_tiles: Array.isArray(raw.flag_tiles) ? raw.flag_tiles : [],
+    unlock_tiles: Array.isArray(raw.unlock_tiles) ? raw.unlock_tiles : [],
   };
 }
 

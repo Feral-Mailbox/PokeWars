@@ -378,7 +378,7 @@ vi.mock("@/pages/games/modes/WarGame", async () => {
 });
 
 vi.mock("@/pages/games/modes/CaptureTheFlagGame", () => ({
-  default: () => <p>CTF Mode stub</p>,
+  default: () => <p>Capture The Flag mode</p>,
 }));
 
 import { secureFetch } from "@/utils/secureFetch";
@@ -817,7 +817,7 @@ describe("GamePage coverage suite", () => {
       player: { cash_remaining: 100, is_ready: true, game_units: [11] },
     });
     renderGame("/games/ctf-link");
-    expect(await screen.findByText(/CTF Mode stub/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Capture The Flag mode/i)).toBeInTheDocument();
   });
 
   it("in-progress: end turn, wait, hover/select/execute move", async () => {

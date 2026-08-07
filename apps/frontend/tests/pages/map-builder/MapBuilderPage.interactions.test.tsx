@@ -148,7 +148,7 @@ describe("MapBuilderPage interactions", () => {
     // Owner row has many P* buttons; pick one that is now master-ball owner brush
     await user.click(screen.getAllByRole("button", { name: "P2" })[0]);
 
-    await user.click(screen.getByRole("button", { name: "Flags (CTF)" }));
+    await user.click(screen.getByRole("button", { name: "Capture The Flag" }));
     expect(screen.getByText(/Flag owner/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Movement cost" }));

@@ -31,5 +31,7 @@ class GameMapStateSchema(BaseModel):
     item_id_tiles: List[List[Optional[int]]]
 
     objective_tiles: List[List[Optional[dict]]] = []
+    flag_tiles: List[List[Optional[dict]]] = []
+    unlock_tiles: List[List[Optional[dict]]] = []
 
     model_config = ConfigDict(from_attributes=True)

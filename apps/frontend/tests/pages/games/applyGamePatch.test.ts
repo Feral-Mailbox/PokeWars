@@ -111,4 +111,28 @@ describe("applyGamePatch", () => {
     expect(result.gameData.map_state.objective_tiles[0][0].hp).toBe(8);
     expect(result.gameData.map_state.objective_tiles[0][0].owner).toBe(2);
   });
+
+  it("applies flag_updated and unlock_updated patches", () => {
+    const gameData = {
+      map_state: {
+        flag_tiles: [[{ owner: 0 }, null]],
+        unlock_tiles: [[{ hp: 20, max_hp: 20 }, null]],
+      },
+    };
+    const result = applyGamePatch({
+      patch: {
+        event: "game_patch",
+        event_seq: 1,
+        ops: [
+          { op: "flag_updated", x: 0, y: 0, owner: 2 },
+          { op: "unlock_updated", x: 0, y: 0, hp: 7, max_hp: 20 },
+        ],
+      },
+      gameData,
+      placedUnits: [],
+      cash: 0,
+    });
+    expect(result.gameData.map_state.flag_tiles[0][0].owner).toBe(2);
+    expect(result.gameData.map_state.unlock_tiles[0][0].hp).toBe(7);
+  });
 });

@@ -10,13 +10,17 @@ import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
 import { formatTmDisplayName, UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
+import CaptureTheFlagGame, {
+  getCtfActionTarget,
+  patchFlagTile,
+  patchUnlockTile,
+} from "./modes/CaptureTheFlagGame";
 import ConquestGame from "./modes/ConquestGame";
 import WarGame, {
   canSelectWarObjectiveTile,
   getWarCaptureTarget,
   patchObjectiveTile,
 } from "./modes/WarGame";
-import CaptureTheFlagGame from "./modes/CaptureTheFlagGame";
 import ChatPanel from "./components/ChatPanel";
 import InvitePlayerModal from "../../components/InvitePlayerModal";
 import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
@@ -183,6 +187,7 @@ export default function GamePage() {
   } | null>(null);
   const isPreparationPhase = gameData?.status === "preparation";
   const isWarMode = gameData?.gamemode === "War";
+  const isCtfMode = gameData?.gamemode === "Capture The Flag";
   const isLobbyPhase =
     gameData?.status === "open" || gameData?.status === "closed";
   const showMapItemTooltips = Boolean(gameData?.map);
@@ -223,6 +228,10 @@ export default function GamePage() {
     myPlacedUnitCount < unitLimit;
   const warCaptureTarget = useMemo(
     () => getWarCaptureTarget(activeUnit, gameData, userId ?? -1),
+    [activeUnit, gameData, userId]
+  );
+  const ctfActionTarget = useMemo(
+    () => getCtfActionTarget(activeUnit, gameData, userId ?? -1),
     [activeUnit, gameData, userId]
   );
 
@@ -3033,6 +3042,67 @@ export default function GamePage() {
     }
   };
 
+  const handleCtfAction = async () => {
+    if (!activeUnit || !ctfActionTarget || !gameData?.link) return;
+
+    const activeId = activeUnit.instanceId ?? activeUnit.id;
+    const endpoint =
+      ctfActionTarget.kind === "flag"
+        ? `/api/games/${gameData.link}/ctf/capture-flag`
+        : `/api/games/${gameData.link}/ctf/unlock`;
+    const res = await secureFetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ unit_id: activeId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setToastMessage(
+        err?.detail ??
+          (ctfActionTarget.kind === "flag" ? "Flag capture failed." : "Jail unlock failed.")
+      );
+      return;
+    }
+
+    const data = await res.json().catch(() => ({}));
+    setPlacedUnits((prev) =>
+      prev.map((u) => (u.id === activeId ? { ...u, can_move: false } : u))
+    );
+    setLockedUnit((prev) =>
+      prev && (prev.instanceId ?? prev.id) === activeId ? { ...prev, can_move: false } : prev
+    );
+
+    if (ctfActionTarget.kind === "flag" && data?.flag) {
+      setGameData((prev) =>
+        patchFlagTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
+          owner: Number(data.flag.owner ?? 0),
+        })
+      );
+    } else if (ctfActionTarget.kind === "unlock" && data?.unlock) {
+      setGameData((prev) =>
+        patchUnlockTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
+          hp: Number(data.unlock.hp ?? ctfActionTarget.max_hp),
+          max_hp: Number(data.unlock.max_hp ?? ctfActionTarget.max_hp),
+        })
+      );
+      if (data?.unlocked || Array.isArray(data?.freed_unit_ids)) {
+        const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
+        if (unitsRes.ok) {
+          const units = await unitsRes.json();
+          if (Array.isArray(units)) {
+            setPlacedUnits(mapVisiblePlacedUnitsFromBackend(units));
+          }
+        }
+      }
+    } else {
+      const gameRes = await secureFetch(`/api/games/${gameData.link}`);
+      if (gameRes.ok) {
+        setGameData(normalizeGameData(await gameRes.json()));
+      }
+    }
+  };
+
   const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
     setHoveredMapItem(null);
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
@@ -3337,7 +3407,16 @@ export default function GamePage() {
             placedUnits={placedUnits}
           />
         )}
-        {gameData?.gamemode === "Capture The Flag" && <CaptureTheFlagGame gameData={gameData} userId={userId!} />}
+        {gameData?.gamemode === "Capture The Flag" && (
+          <CaptureTheFlagGame
+            gameData={gameData}
+            userId={userId!}
+            onTileSelect={isReady ? () => {} : handleTileSelect}
+            occupiedTile={null}
+            isReady={isReady}
+            getPlayerColor={getPlayerColor}
+          />
+        )}
       </div>
 
       <ChatPanel
@@ -3448,12 +3527,21 @@ export default function GamePage() {
               onExecuteMove={handleExecuteMove}
               onCancelMove={handleMoveCancel}
               onWait={handleWait}
-              onCapture={handleWarCapture}
-              showCaptureButton={Boolean(warCaptureTarget)}
+              onCapture={ctfActionTarget ? handleCtfAction : handleWarCapture}
+              showCaptureButton={Boolean(warCaptureTarget || ctfActionTarget)}
+              captureButtonLabel={
+                ctfActionTarget?.kind === "unlock"
+                  ? "Unlock Jail"
+                  : ctfActionTarget?.kind === "flag"
+                    ? "Capture Flag"
+                    : "Capture Objective"
+              }
               captureHpLabel={
                 warCaptureTarget
                   ? `HP ${warCaptureTarget.hp}/${warCaptureTarget.max_hp}`
-                  : null
+                  : ctfActionTarget?.kind === "unlock"
+                    ? `HP ${ctfActionTarget.hp}/${ctfActionTarget.max_hp}`
+                    : null
               }
               onPickUpItem={handlePickUpItem}
               showPickUpButton={

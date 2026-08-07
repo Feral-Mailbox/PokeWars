@@ -168,6 +168,21 @@ describe("drawingTools", () => {
     expect(paintCellOnMap(flags, 1, 0, { ...paintOptions, layer: "flags", erase: true })
       .flags[0][1]).toBeNull();
 
+    const jail = paintCellOnMap(data, 0, 2, {
+      ...paintOptions,
+      layer: "flags",
+      ctfBrushKind: "jail",
+    });
+    expect(jail.special_tiles[2][0]).toBe("ctf_jail");
+    expect(jail.flags[2][0]).toBeNull();
+
+    const unlock = paintCellOnMap(data, 1, 2, {
+      ...paintOptions,
+      layer: "flags",
+      ctfBrushKind: "unlock",
+    });
+    expect(unlock.special_tiles[2][1]).toBe("ctf_unlock");
+
     const items = paintCellOnMap(data, 2, 2, { ...paintOptions, layer: "items" });
     expect(paintCellOnMap(items, 2, 2, { ...paintOptions, layer: "items", erase: true })
       .item_id_tiles[2][2]).toBeNull();

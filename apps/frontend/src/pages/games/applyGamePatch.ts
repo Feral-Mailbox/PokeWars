@@ -24,6 +24,8 @@ export type GamePatchOp =
       }>;
     }
   | { op: "objective_updated"; x: number; y: number; hp: number; owner: number; kind?: string }
+  | { op: "flag_updated"; x: number; y: number; owner: number }
+  | { op: "unlock_updated"; x: number; y: number; hp: number; max_hp: number }
   | { op: "map_item_picked"; x: number; y: number }
   | { op: "map_item_swapped"; x: number; y: number; item_id: number }
   | { op: "game_completed"; winner_id?: number | null; status?: string };
@@ -207,6 +209,45 @@ export function applyGamePatch(args: {
         gameData = {
           ...gameData,
           map_state: { ...gameData.map_state, objective_tiles: tiles },
+        };
+        break;
+      }
+      case "flag_updated": {
+        if (!gameData?.map_state?.flag_tiles) break;
+        const tiles = gameData.map_state.flag_tiles.map((row: any[]) =>
+          Array.isArray(row) ? [...row] : row,
+        );
+        if (Array.isArray(tiles[op.y])) {
+          tiles[op.y] = [...tiles[op.y]];
+          const prev = tiles[op.y][op.x] || {};
+          tiles[op.y][op.x] = {
+            ...prev,
+            owner: op.owner,
+          };
+        }
+        gameData = {
+          ...gameData,
+          map_state: { ...gameData.map_state, flag_tiles: tiles },
+        };
+        break;
+      }
+      case "unlock_updated": {
+        if (!gameData?.map_state?.unlock_tiles) break;
+        const tiles = gameData.map_state.unlock_tiles.map((row: any[]) =>
+          Array.isArray(row) ? [...row] : row,
+        );
+        if (Array.isArray(tiles[op.y])) {
+          tiles[op.y] = [...tiles[op.y]];
+          const prev = tiles[op.y][op.x] || {};
+          tiles[op.y][op.x] = {
+            ...prev,
+            hp: op.hp,
+            max_hp: op.max_hp,
+          };
+        }
+        gameData = {
+          ...gameData,
+          map_state: { ...gameData.map_state, unlock_tiles: tiles },
         };
         break;
       }

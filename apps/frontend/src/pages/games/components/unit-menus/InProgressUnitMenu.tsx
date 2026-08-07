@@ -24,6 +24,7 @@ type InProgressUnitMenuProps = {
   onCapture?: () => void;
   showCaptureButton?: boolean;
   captureHpLabel?: string | null;
+  captureButtonLabel?: string;
   onPickUpItem?: () => void;
   showPickUpButton?: boolean;
   pickUpItemLabel?: string | null;
@@ -49,6 +50,7 @@ export default function InProgressUnitMenu({
   onCapture,
   showCaptureButton = false,
   captureHpLabel = null,
+  captureButtonLabel = "Capture Objective",
   onPickUpItem,
   showPickUpButton = false,
   pickUpItemLabel = null,
@@ -119,7 +121,8 @@ export default function InProgressUnitMenu({
           }}
           className="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded"
         >
-          Capture Objective{captureHpLabel ? ` (${captureHpLabel})` : ""}
+          {captureButtonLabel}
+          {captureHpLabel ? ` (${captureHpLabel})` : ""}
         </button>
       )}
 

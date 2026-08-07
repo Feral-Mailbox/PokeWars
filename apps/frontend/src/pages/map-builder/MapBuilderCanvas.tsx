@@ -6,8 +6,16 @@ import {
   setupPixelCanvas,
 } from "@/utils/pixelCanvas";
 import { getTilesetUrl, getTmMachineUrl, getPokeballUrl, getMasterBallUrl, TM_SOURCE_SIZE, POKEBALL_SOURCE_SIZE } from "@/utils/gameAssets";
-import type { MapLayer, MapTileData, TileRef } from "@/types/mapData";
-import { DEFAULT_MOVEMENT_COST, RANDOM_TM_ITEM_ID, isWarObjectiveTile, parseWarObjectiveTile } from "@/types/mapData";
+import type { CtfBrushKind, MapLayer, MapTileData, TileRef } from "@/types/mapData";
+import {
+  CTF_JAIL_TILE,
+  CTF_UNLOCK_TILE,
+  DEFAULT_MOVEMENT_COST,
+  RANDOM_TM_ITEM_ID,
+  isCtfSpecialTile,
+  isWarObjectiveTile,
+  parseWarObjectiveTile,
+} from "@/types/mapData";
 import type { DrawingTool } from "./drawingTools";
 import { fillRectOnMap, normalizeRect, paintCellOnMap } from "./drawingTools";
 
@@ -22,6 +30,7 @@ type MapBuilderCanvasProps = {
   spawnBrush: number | null;
   specialBrush: string;
   flagBrush: number | null;
+  ctfBrushKind?: CtfBrushKind;
   movementCostBrush: number;
   itemBrush: number | null;
   itemMoveTypeById: Record<number, string>;
@@ -44,6 +53,8 @@ const SPECIAL_COLORS: Record<string, string> = {
   ledge_down: "#fb7185",
   ledge_left: "#a855f7",
   ledge_right: "#ec4899",
+  [CTF_JAIL_TILE]: "#7c3aed",
+  [CTF_UNLOCK_TILE]: "#fb923c",
 };
 
 const SPAWN_COLORS = [
@@ -97,6 +108,7 @@ export default function MapBuilderCanvas({
   spawnBrush,
   specialBrush,
   flagBrush,
+  ctfBrushKind = "flag",
   movementCostBrush,
   itemBrush,
   itemMoveTypeById,
@@ -127,6 +139,7 @@ export default function MapBuilderCanvas({
       spawnBrush,
       specialBrush,
       flagBrush,
+      ctfBrushKind,
       movementCostBrush,
       itemBrush,
       warBrush,
@@ -137,6 +150,7 @@ export default function MapBuilderCanvas({
       spawnBrush,
       specialBrush,
       flagBrush,
+      ctfBrushKind,
       movementCostBrush,
       itemBrush,
       warBrush,
@@ -197,7 +211,7 @@ export default function MapBuilderCanvas({
         }
 
         const special = tileData.special_tiles[y]?.[x];
-        if (showSpecial && special && !isWarObjectiveTile(special)) {
+        if (showSpecial && special && !isWarObjectiveTile(special) && !isCtfSpecialTile(special)) {
           ctx.fillStyle = `${SPECIAL_COLORS[special] ?? "#fff"}99`;
           ctx.fillRect(x * MAP_TILE_DRAW_SIZE + 2, y * MAP_TILE_DRAW_SIZE + 2, MAP_TILE_DRAW_SIZE - 4, 8);
         }
@@ -252,11 +266,26 @@ export default function MapBuilderCanvas({
 
         const flag = tileData.flags[y]?.[x];
         if (showFlags && flag != null) {
-          ctx.fillStyle = "#facc1588";
+          ctx.fillStyle = flag === 0 ? "#9ca3af88" : "#facc1588";
           ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
           ctx.fillStyle = "#000";
           ctx.font = "bold 10px sans-serif";
-          ctx.fillText(`F${flag}`, px, py);
+          ctx.fillText(flag === 0 ? "F" : `F${flag}`, px, py);
+        }
+
+        if (showFlags && special === CTF_JAIL_TILE) {
+          ctx.fillStyle = `${SPECIAL_COLORS[CTF_JAIL_TILE]}99`;
+          ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 9px sans-serif";
+          ctx.fillText("J", px, py);
+        }
+        if (showFlags && special === CTF_UNLOCK_TILE) {
+          ctx.fillStyle = `${SPECIAL_COLORS[CTF_UNLOCK_TILE]}99`;
+          ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 9px sans-serif";
+          ctx.fillText("U", px, py);
         }
 
         const cost = tileData.movement_cost[y]?.[x] ?? DEFAULT_MOVEMENT_COST;
