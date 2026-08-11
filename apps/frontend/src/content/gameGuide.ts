@@ -177,10 +177,124 @@ export const TYPE_CHART_NOTES: GuideSection = {
   ],
 };
 
+export type CreditPerson = {
+  name: string;
+  url?: string;
+};
+
+export type CreditsGroup = {
+  title: string;
+  /** Plain note when there are no people to list (e.g. testers). */
+  note?: string;
+  people?: CreditPerson[];
+};
+
+export type GuideCredits = {
+  id: string;
+  title: string;
+  intro?: string;
+  groups: CreditsGroup[];
+};
+
+/** Portrait + sprite artists credited in unit seeds (excludes Anonymous placeholders). */
+export const POKEMON_SPRITE_CREDITS: CreditPerson[] = [
+  { name: '0palite', url: 'https://zeropalart.tumblr.com/' },
+  { name: 'A_Lettuce' },
+  { name: 'AlexGroeger' },
+  { name: 'baronessfaron' },
+  { name: 'Blanky' },
+  { name: 'C_Pariah' },
+  { name: 'Caitemis', url: 'https://caitemis-art.tumblr.com/' },
+  { name: 'CamusZekeSirius' },
+  { name: 'chikorene' },
+  { name: 'CHUNSOFT', url: 'https://www.spike-chunsoft.com/' },
+  { name: 'cosmosully', url: 'https://twitter.com/cosmosully' },
+  { name: 'Deeshura', url: 'https://github.com/Deeshura' },
+  { name: 'Dejais' },
+  { name: 'Deleca7755' },
+  { name: 'dmDash' },
+  { name: 'Emboarger' },
+  { name: 'Emmuffin', url: 'https://twitter.com/Ernmuffin' },
+  { name: 'estelstarlight' },
+  { name: 'Fable' },
+  { name: 'Fearless-Quit' },
+  { name: 'felis_licht', url: 'https://www.deviantart.com/felis-licht' },
+  { name: 'Frostdrop1' },
+  { name: 'Garbage', url: 'https://twitter.com/Just_Tr4sh' },
+  { name: 'Ginnie' },
+  { name: 'gromchurch', url: 'https://twitter.com/poongis2' },
+  { name: 'Gust', url: 'https://twitter.com/Estelaris__' },
+  { name: 'jackolanternjackalope', url: 'https://www.instagram.com/jackolanternjackalope/' },
+  { name: 'JemDragons' },
+  { name: 'JFain' },
+  { name: 'Jhony-Rex', url: 'https://www.deviantart.com/jhony-rex' },
+  { name: 'Magu' },
+  { name: 'Mojo' },
+  { name: 'MonochromeKirby' },
+  { name: 'Mooncaller' },
+  { name: 'mucrush', url: 'https://www.deviantart.com/mucrush' },
+  { name: 'Murpi', url: 'https://bsky.app/profile/murpia57.bsky.social' },
+  { name: 'NeonCityRain', url: 'https://neoncityrain.tumblr.com/' },
+  { name: 'NeroIntruder', url: 'https://twitter.com/NeroIntruder' },
+  { name: 'Noivern', url: 'https://twitter.com/notarealnoivern' },
+  { name: 'NOLASMOR' },
+  { name: 'Noo' },
+  { name: 'Novie' },
+  { name: 'PhillipsYoung', url: 'https://twitter.com/PhilliYoung196' },
+  { name: 'powercristal', url: 'https://www.deviantart.com/powercristal' },
+  { name: 'Reimu_needs_$$$' },
+  { name: 'RoyalRust' },
+  { name: 'Sceptile' },
+  { name: 'ShyStarryRain' },
+  { name: 'silverfox88', url: 'https://twitter.com/realsilverfox88' },
+  { name: 'skygummi', url: 'https://twitter.com/skygummi' },
+  { name: 'Sloulja', url: 'https://twitter.com/OlSoulja' },
+  { name: 'Smalusion', url: 'https://twitter.com/Smalusion' },
+  {
+    name: 'Spikey-Valentine',
+    url: 'https://twitter.com/spikeyvalentine?s=21&t=KmiqQo0hvuT6bxZFEGAKbA',
+  },
+  { name: 'Tainted#3886' },
+  { name: 'TawnySoup', url: 'https://linktr.ee/tawnysoup' },
+  { name: 'Top_Kec' },
+  { name: 'Uni', url: 'https://github.com/ArianaCastro01' },
+  { name: 'Yynnyal' },
+];
+
+export const GUIDE_CREDITS: GuideCredits = {
+  id: 'credits',
+  title: 'Credits',
+  intro: 'People and communities who made PokéTactics possible.',
+  groups: [
+    {
+      title: 'Developers',
+      people: [{ name: 'Organdroid', url: 'https://github.com/ryganzk' }],
+    },
+    {
+      title: 'Testers',
+      note: 'None yet.',
+    },
+    {
+      title: 'Tileset spriters',
+      people: [{ name: 'Ekat', url: 'https://x.com/Ekat_99' }],
+    },
+    {
+      title: 'Pokémon spriters',
+      people: POKEMON_SPRITE_CREDITS,
+    },
+  ],
+};
+
 export const GUIDE_SECTIONS = [
   HOW_TO_PLAY,
   GAME_MODES,
   RULE_CHANGES,
   TILE_EFFECTS,
   TYPE_CHART_NOTES,
+];
+
+/** Content sections plus credits, for the guide table of contents. */
+export const GUIDE_NAV_SECTIONS = [
+  ...GUIDE_SECTIONS.map(({ id, title }) => ({ id, title })),
+  { id: GUIDE_CREDITS.id, title: GUIDE_CREDITS.title },
 ];
