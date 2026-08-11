@@ -103,14 +103,60 @@ Frontend coverage uses Vitest (`npm run test:coverage`), or Docker Node if `npm`
 
 ---
 
+## 🔁 CI (GitHub Actions)
+
+Continuous integration lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). There is **no automated deploy workflow** yet — production updates are still done on the host (`git pull`, `make upgrade`, `make up`).
+
+### When it runs
+
+The **CI** workflow starts on:
+
+- every push to `main`
+- every pull request
+
+### What the `test` job does
+
+Runs on `ubuntu-latest` as a single job named **`test`** (this is the status check to require in branch protection):
+
+1. **Backend** — Python 3.12, `pip install -r apps/backend/requirements.dev.txt`, then pytest with coverage (`tests/backend`)
+2. **Infrastructure** — pytest for Docker Compose / nginx / committed env *example* files (`tests/infrastructure`)
+3. **Frontend** — Node 20, `npm ci` and `npm run test:coverage` in `apps/frontend`
+4. **Artifacts** — uploads `apps/backend/coverage` and `apps/frontend/coverage` as `coverage-reports` (14-day retention), even if a later step fails
+
+Live `.env` files are gitignored. Infra tests assert `infrastructure/.env.db.example` (and, locally, compare keys to `.env.db` if that file exists).
+
+Runs and logs: **Actions** tab on the GitHub repo. Download coverage from a run’s **Artifacts**.
+
+### Local vs CI
+
+| | Local | GitHub Actions |
+|---|---|---|
+| Command | `make test` / `make coverage` | workflow `test` job |
+| Backend | project `.venv`, `tests/backend` | same pytest + coverage |
+| Frontend | `npm run test:coverage` (or Node Docker) | `npm ci && npm run test:coverage` |
+| Infra | `make test-infrastructure` | same `tests/infrastructure` suite |
+
+### Branch protection
+
+Protect `main` in GitHub (**Settings → Rules → Rulesets**, or **Settings → Branches**):
+
+- Require the **`test`** status check to pass before merge
+- Block force pushes and branch deletion
+- Optionally require a pull request (skip required reviewers if you work alone)
+
+Do not merge or deploy a commit unless this check is green.
+
+---
+
 ## 🗂 Project Structure
 
 ```bash
+.github/workflows/  ← GitHub Actions (ci.yml)
 apps/
-  backend/        ← FastAPI backend + Alembic + models
-  frontend/       ← React + Vite frontend
-
-infrastructure/   ← Docker config + .env files + Compose files
+  backend/          ← FastAPI backend + Alembic + models
+  frontend/         ← React + Vite frontend
+tests/              ← Backend, frontend, and infrastructure tests
+infrastructure/     ← Docker config + .env examples + Compose files
 ```
 
 ---
