@@ -377,9 +377,22 @@ vi.mock("@/pages/games/modes/WarGame", async () => {
   };
 });
 
-vi.mock("@/pages/games/modes/CaptureTheFlagGame", () => ({
-  default: () => <p>Capture The Flag mode</p>,
-}));
+vi.mock("@/pages/games/modes/CaptureTheFlagGame", async () => {
+  const actual = await vi.importActual<typeof import("@/pages/games/modes/CaptureTheFlagGame")>(
+    "@/pages/games/modes/CaptureTheFlagGame"
+  );
+  return {
+    ...actual,
+    default: (props: any) => (
+      <div>
+        <p>Capture The Flag mode</p>
+        <button type="button" onClick={() => props.onTileSelect?.([0, 0])}>
+          Select CTF spawn tile
+        </button>
+      </div>
+    ),
+  };
+});
 
 import { secureFetch } from "@/utils/secureFetch";
 import GamePage from "@/pages/games/GamePage";
