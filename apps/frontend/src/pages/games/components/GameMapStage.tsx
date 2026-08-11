@@ -60,6 +60,13 @@ type GameMapStageProps = {
   showMapItemTooltips?: boolean;
   onMapItemHover?: (itemId: number, clientX: number, clientY: number) => void;
   onMapItemLeave?: () => void;
+  jailTiles?: { x: number; y: number; owner: number }[];
+  onJailHover?: (
+    jail: { x: number; y: number; owner: number },
+    clientX: number,
+    clientY: number
+  ) => void;
+  onJailLeave?: () => void;
 };
 
 const pixelatedCanvasStyle = { imageRendering: "pixelated" as const };
@@ -93,6 +100,9 @@ export default function GameMapStage({
   showMapItemTooltips = false,
   onMapItemHover,
   onMapItemLeave,
+  jailTiles = [],
+  onJailHover,
+  onJailLeave,
 }: GameMapStageProps) {
   const overlay2TileSet = useMemo(
     () => buildOverlay2TileSet(mapRenderData?.tile_data.overlay2),
@@ -295,6 +305,25 @@ export default function GameMapStage({
               );
             })
           )}
+
+        {jailTiles.map((jail) => (
+          <div
+            key={`jail-hit-${jail.x}-${jail.y}`}
+            style={{
+              position: "absolute",
+              left: jail.x * tileDrawSize,
+              top: jail.y * tileDrawSize,
+              width: tileDrawSize,
+              height: tileDrawSize,
+              zIndex: 4,
+              pointerEvents: moveTargeting ? "none" : "auto",
+              cursor: "help",
+            }}
+            onMouseEnter={(e) => onJailHover?.(jail, e.clientX, e.clientY)}
+            onMouseMove={(e) => onJailHover?.(jail, e.clientX, e.clientY)}
+            onMouseLeave={() => onJailLeave?.()}
+          />
+        ))}
 
         <canvas
           ref={overlay2Ref}

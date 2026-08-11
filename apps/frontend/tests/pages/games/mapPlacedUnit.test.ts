@@ -139,4 +139,21 @@ describe("mapPlacedUnit", () => {
     expect(getUnitMoveIds(unit)).toEqual([7]);
     expect(resolveMovePpIndex(unit, 7)).toBe(0);
   });
+
+  it("maps jail fields from schema or flags", () => {
+    const jailed = mapPlacedUnitFromBackend({
+      ...backendUnit,
+      jailed: true,
+      jailed_by: 2,
+    });
+    expect(jailed.jailed).toBe(true);
+    expect(jailed.jailed_by).toBe(2);
+
+    const fromFlags = mapPlacedUnitFromBackend({
+      ...backendUnit,
+      flags: { jailed: true, jailed_by: 3 },
+    });
+    expect(fromFlags.jailed).toBe(true);
+    expect(fromFlags.jailed_by).toBe(3);
+  });
 });

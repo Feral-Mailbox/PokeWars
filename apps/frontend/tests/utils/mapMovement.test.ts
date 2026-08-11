@@ -12,6 +12,7 @@ import {
   isLedgeTile,
   isRockTile,
   isSandTile,
+  isSkyTile,
   isValidMovementDestination,
   isWaterTile,
   LEDGE_DOWN,
@@ -26,6 +27,7 @@ import {
   SAND_TILE,
   slideOnIceFrom,
   unitCanCrossRock,
+  unitCanCrossSky,
   unitCanCrossWater,
   unitCanOccupyTile,
   unitCanPassThroughUnits,
@@ -34,6 +36,7 @@ import {
   unitIgnoresIceSlide,
   unitIgnoresSandSlow,
   WATER_TILE,
+  SKY_TILE,
   ICE_TILE,
 } from "@/utils/mapMovement";
 
@@ -62,6 +65,10 @@ describe("mapMovement", () => {
     expect(unitCanCrossWater(["Water"], [])).toBe(true);
     expect(unitCanCrossWater(["normal"], ["levitate"])).toBe(true);
     expect(unitCanCrossWater(["fire"], [])).toBe(false);
+    expect(unitCanCrossSky(["Flying"], [])).toBe(true);
+    expect(unitCanCrossSky(["normal"], ["levitate"])).toBe(true);
+    expect(unitCanCrossSky(["water"], [])).toBe(false);
+    expect(unitCanCrossSky(["normal"], [])).toBe(false);
     expect(unitCanCrossRock(["Flying"], [])).toBe(true);
     expect(unitCanCrossRock(["rock"], [])).toBe(true);
     expect(unitCanStandOnLedge(["flying"], [])).toBe(true);
@@ -248,5 +255,46 @@ describe("mapMovement", () => {
     ).toEqual({ x: 1, y: 0, slid: false });
     expect(unitCanOccupyTile([[LEDGE_UP]], 0, 0, ["flying"], [])).toBe(true);
     expect(unitCanOccupyTile([[ROCK_TILE]], 0, 0, ["flying"], [])).toBe(true);
+  });
+
+  it("restricts sky tiles to flying and levitating units", () => {
+    const special = [[null, SKY_TILE]];
+    const base = [[1, 1]];
+    expect(isSkyTile(special, 1, 0)).toBe(true);
+    expect(isSkyTile(special, 0, 0)).toBe(false);
+    expect(buildMovementCostGrid(base, special, ["normal"], [])[0][1]).toBe(IMPOSSIBLE_MOVEMENT_COST);
+    expect(buildMovementCostGrid(base, special, ["water"], [])[0][1]).toBe(IMPOSSIBLE_MOVEMENT_COST);
+    expect(buildMovementCostGrid(base, special, ["flying"], [])[0][1]).toBe(1);
+    expect(buildMovementCostGrid(base, special, ["normal"], ["levitate"])[0][1]).toBe(1);
+    expect(unitCanOccupyTile(special, 1, 0, ["normal"], [])).toBe(false);
+    expect(unitCanOccupyTile(special, 1, 0, ["flying"], [])).toBe(true);
+    expect(unitCanOccupyTile(special, 1, 0, ["normal"], ["levitate"])).toBe(true);
+    expect(
+      getMovementRangeWithTerrain(
+        [0, 0],
+        2,
+        buildMovementCostGrid(base, special, ["normal"], []),
+        special,
+        2,
+        1,
+        ["normal"],
+        []
+      )
+    ).toEqual([[0, 0]]);
+    expect(
+      getMovementRangeWithTerrain(
+        [0, 0],
+        2,
+        buildMovementCostGrid(base, special, ["flying"], []),
+        special,
+        2,
+        1,
+        ["flying"],
+        []
+      )
+    ).toEqual([
+      [0, 0],
+      [1, 0],
+    ]);
   });
 });

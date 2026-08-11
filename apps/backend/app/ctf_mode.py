@@ -1,8 +1,9 @@
-"""Capture The Flag mode: flags, jail, unlock tiles, and win conditions."""
+"""Capture The Flag mode: flags, per-player jails, and win conditions."""
 
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -13,6 +14,7 @@ from app.db.models import Game, GameMapState, GameState, GameUnit
 UNLOCK_MAX_HP = 20
 CTF_JAIL_TILE = "ctf_jail"
 CTF_UNLOCK_TILE = "ctf_unlock"
+CTF_JAIL_PATTERN = re.compile(r"^ctf_jail(?:_p([1-8]))?$", re.IGNORECASE)
 OMNIBOOST_EXPIRES_TURNS = 3
 OMNIBOOST_STATS = ("attack", "defense", "sp_attack", "sp_defense", "speed")
 
@@ -35,6 +37,29 @@ def _empty_grid(height: int, width: int, fill=None):
 
 def make_flag_cell(owner: int) -> dict:
     return {"owner": int(owner)}
+
+
+def encode_jail_tile(owner: int) -> str:
+    return f"{CTF_JAIL_TILE}_p{int(owner)}"
+
+
+def parse_jail_tile(value: Any) -> int | None:
+    """Return the jail owner player number, or None if the cell is not an owned jail."""
+    if not isinstance(value, str):
+        return None
+    match = CTF_JAIL_PATTERN.match(value.strip())
+    if not match:
+        return None
+    owner_raw = match.group(1)
+    if owner_raw is None:
+        return None
+    return int(owner_raw)
+
+
+def is_jail_tile(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    return CTF_JAIL_PATTERN.match(value.strip()) is not None
 
 
 def make_unlock_cell() -> dict:
@@ -76,38 +101,55 @@ def build_flag_tiles_from_map(map_obj, existing: list | None = None) -> list[lis
 
 
 def build_unlock_tiles_from_map(map_obj, existing: list | None = None) -> list[list[dict | None]]:
-    height = int(map_obj.height)
-    width = int(map_obj.width)
-    grid = _empty_grid(height, width, None)
+    """Unlock tiles are retired; keep an empty grid for leftover map-state rows."""
+    height = int(getattr(map_obj, "height", 0) or 0)
+    width = int(getattr(map_obj, "width", 0) or 0)
+    if height <= 0 or width <= 0:
+        return existing if isinstance(existing, list) and existing else []
+    return _empty_grid(height, width, None)
+
+
+def list_jails(map_obj) -> list[tuple[int, int, int]]:
+    """Return (x, y, owner_player_number) for each owned jail tile."""
     tile_data = map_obj.tile_data if isinstance(map_obj.tile_data, dict) else {}
     special = tile_data.get("special_tiles")
-    if not isinstance(special, list):
-        return existing if isinstance(existing, list) and existing else grid
-
-    for y in range(min(height, len(special))):
-        row = special[y]
-        if not isinstance(row, list):
-            continue
-        for x in range(min(width, len(row))):
-            cell = row[x]
-            if isinstance(cell, str) and cell.strip().lower() == CTF_UNLOCK_TILE:
-                grid[y][x] = make_unlock_cell()
-    return grid
-
-
-def list_jail_tiles(map_obj) -> list[tuple[int, int]]:
-    tile_data = map_obj.tile_data if isinstance(map_obj.tile_data, dict) else {}
-    special = tile_data.get("special_tiles")
-    out: list[tuple[int, int]] = []
+    out: list[tuple[int, int, int]] = []
     if not isinstance(special, list):
         return out
     for y, row in enumerate(special):
         if not isinstance(row, list):
             continue
         for x, cell in enumerate(row):
-            if isinstance(cell, str) and cell.strip().lower() == CTF_JAIL_TILE:
-                out.append((x, y))
+            owner = parse_jail_tile(cell)
+            if owner is not None:
+                out.append((x, y, owner))
     return out
+
+
+def list_jail_tiles(map_obj) -> list[tuple[int, int]]:
+    """Legacy helper: jail coordinates only (owned jails)."""
+    return [(x, y) for x, y, _owner in list_jails(map_obj)]
+
+
+def get_jail_at(map_obj, x: int, y: int) -> dict | None:
+    tile_data = map_obj.tile_data if isinstance(getattr(map_obj, "tile_data", None), dict) else {}
+    special = tile_data.get("special_tiles")
+    if not isinstance(special, list) or y < 0 or y >= len(special):
+        return None
+    row = special[y]
+    if not isinstance(row, list) or x < 0 or x >= len(row):
+        return None
+    owner = parse_jail_tile(row[x])
+    if owner is None:
+        return None
+    return {"x": int(x), "y": int(y), "owner": owner}
+
+
+def get_jail_tile_for_player(map_obj, player_number: int) -> tuple[int, int] | None:
+    for x, y, owner in list_jails(map_obj):
+        if owner == int(player_number):
+            return (x, y)
+    return None
 
 
 def mark_flag_tiles_dirty(map_state: GameMapState) -> None:
@@ -145,7 +187,7 @@ def capture_damage(capturer_current_hp: int, capturer_max_hp: int) -> int:
 
 
 def apply_unlock_damage(cell: dict, capturer_current_hp: int, capturer_max_hp: int) -> bool:
-    """Apply war-style HP damage to an unlock tile. Returns True if unlock completed."""
+    """Legacy HP-unlock helper kept for existing unit tests."""
     damage = capture_damage(capturer_current_hp, capturer_max_hp)
     max_hp = int(cell.get("max_hp") or UNLOCK_MAX_HP)
     hp = int(cell.get("hp") or max_hp)
@@ -202,15 +244,50 @@ def is_unit_jailed(unit: GameUnit) -> bool:
     return bool(flags.get("jailed"))
 
 
-def set_unit_jailed(unit: GameUnit, jailed: bool, db: Session) -> None:
+def get_unit_jailed_by(unit: GameUnit) -> int | None:
+    flags = getattr(unit, "flags", None)
+    if not isinstance(flags, dict):
+        return None
+    raw = flags.get("jailed_by")
+    if raw is None:
+        return None
+    try:
+        owner = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return owner if 1 <= owner <= 8 else None
+
+
+def set_unit_jailed(
+    unit: GameUnit,
+    jailed: bool,
+    db: Session,
+    *,
+    jailed_by: int | None = None,
+) -> None:
     flags = dict(getattr(unit, "flags", None) or {})
     if jailed:
         flags["jailed"] = True
+        if jailed_by is not None:
+            flags["jailed_by"] = int(jailed_by)
     else:
         flags.pop("jailed", None)
+        flags.pop("jailed_by", None)
     unit.flags = flags
     flag_modified(unit, "flags")
     db.add(unit)
+
+
+def unit_blocks_occupation(unit: GameUnit) -> bool:
+    if int(getattr(unit, "current_hp", 0) or 0) <= 0:
+        return False
+    if int(getattr(unit, "current_x", -1) or -1) < 0:
+        return False
+    if int(getattr(unit, "current_y", -1) or -1) < 0:
+        return False
+    if is_unit_jailed(unit):
+        return False
+    return True
 
 
 def pick_jail_tile(
@@ -223,6 +300,57 @@ def pick_jail_tile(
         if tile not in occupied:
             return tile
     return jail_tiles[0]
+
+
+def get_match_start(unit: GameUnit) -> tuple[int, int]:
+    start_x = getattr(unit, "match_start_x", None)
+    start_y = getattr(unit, "match_start_y", None)
+    if start_x is not None and start_y is not None:
+        return (int(start_x), int(start_y))
+    return (int(unit.starting_x), int(unit.starting_y))
+
+
+def set_match_start(unit: GameUnit, x: int, y: int) -> None:
+    unit.match_start_x = int(x)
+    unit.match_start_y = int(y)
+
+
+def nearest_open_tile(
+    origin: tuple[int, int],
+    occupied: set[tuple[int, int]],
+    width: int,
+    height: int,
+) -> tuple[int, int]:
+    ox, oy = origin
+    if 0 <= ox < width and 0 <= oy < height and origin not in occupied:
+        return origin
+    max_radius = max(width, height) + 1
+    for radius in range(1, max_radius):
+        for dy in range(-radius, radius + 1):
+            for dx in range(-radius, radius + 1):
+                if max(abs(dx), abs(dy)) != radius:
+                    continue
+                x, y = ox + dx, oy + dy
+                if 0 <= x < width and 0 <= y < height and (x, y) not in occupied:
+                    return (x, y)
+    return origin
+
+
+def resolve_jailer_user_id(fainted: GameUnit, db: Session, game_state: GameState | None) -> int | None:
+    """Player who should receive this unit in their jail."""
+    flags = getattr(fainted, "flags", None) or {}
+    attacker_id = flags.get("last_damage_attacker_id") if isinstance(flags, dict) else None
+    if attacker_id is not None:
+        attacker = db.query(GameUnit).filter(GameUnit.id == int(attacker_id)).first()
+        if attacker is not None and int(attacker.user_id) != int(fainted.user_id):
+            return int(attacker.user_id)
+    if game_state and game_state.players and game_state.current_turn is not None:
+        players = list(game_state.players)
+        if players:
+            current = int(players[int(game_state.current_turn) % len(players)])
+            if current != int(fainted.user_id):
+                return current
+    return None
 
 
 def apply_omniboost(unit: GameUnit, db: Session) -> None:
@@ -240,6 +368,48 @@ def apply_omniboost(unit: GameUnit, db: Session) -> None:
     db.add(unit)
 
 
+def free_units_held_in_jail(
+    game_id: int,
+    jail_owner: int,
+    map_obj,
+    db: Session,
+) -> list[GameUnit]:
+    """Free every unit held in a player's jail and return them to match-start tiles."""
+    units = db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+    jail_tile = get_jail_tile_for_player(map_obj, jail_owner)
+    occupied = {
+        (int(unit.current_x), int(unit.current_y))
+        for unit in units
+        if unit_blocks_occupation(unit)
+    }
+    width = int(getattr(map_obj, "width", 0) or 0)
+    height = int(getattr(map_obj, "height", 0) or 0)
+    freed: list[GameUnit] = []
+    for unit in units:
+        if not is_unit_jailed(unit):
+            continue
+        held_by = get_unit_jailed_by(unit)
+        on_this_jail = (
+            jail_tile is not None
+            and (int(unit.current_x), int(unit.current_y)) == jail_tile
+        )
+        if held_by != int(jail_owner) and not on_this_jail:
+            continue
+        set_unit_jailed(unit, False, db)
+        unit.can_move = True
+        unit.is_fainted = False
+        if int(unit.current_hp or 0) <= 0:
+            max_hp = int((unit.current_stats or {}).get("hp") or 1)
+            unit.current_hp = max_hp
+        dest = nearest_open_tile(get_match_start(unit), occupied, width, height)
+        unit.current_x, unit.current_y = dest
+        unit.starting_x, unit.starting_y = dest
+        occupied.add(dest)
+        apply_omniboost(unit, db)
+        freed.append(unit)
+    return freed
+
+
 def free_jailed_units_for_player(
     game_id: int,
     user_id: int,
@@ -247,7 +417,7 @@ def free_jailed_units_for_player(
     *,
     spawn_tiles: list[tuple[int, int]] | None = None,
 ) -> list[GameUnit]:
-    """Clear jail flag, restore can_move, apply omniboost. Optionally move to spawn tiles."""
+    """Legacy helper: free one owner's jailed units. Prefer free_units_held_in_jail."""
     units = (
         db.query(GameUnit)
         .filter(GameUnit.game_id == game_id, GameUnit.user_id == user_id)

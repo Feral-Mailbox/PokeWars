@@ -57,7 +57,7 @@ export const GAME_MODES: GuideSection = {
     },
     {
       title: 'Capture the Flag',
-      body: 'Bring the flag to your base while defending your own. Coordination and board control matter more than all-out elimination.',
+      body: 'Claim every banner on the map. Defeated units are sent to the victor’s jail. Stand on a jail to free everyone held there — they return to the tiles they started the match on with a three-turn omniboost.',
     },
   ],
 };
@@ -114,6 +114,10 @@ export const TILE_EFFECTS: GuideSection = {
       body: 'Most units cannot enter water. Water-type, Flying-type, and Levitate units can move through and stand on water tiles.',
     },
     {
+      title: 'Sky tiles',
+      body: 'Sky tiles are only passable by Flying-type and Levitate units. Grounded units cannot enter or stand on them.',
+    },
+    {
       title: 'Rock tiles',
       body: 'Most units cannot cross rock. Flying-type, Rock-type, and Levitate units can.',
     },
@@ -143,7 +147,7 @@ export const TILE_EFFECTS: GuideSection = {
     },
     {
       title: 'Levitate (ability)',
-      body: 'When implemented on a unit, Levitate grants the same terrain exemptions as Flying for water, rock, ledges, sand slow, and ice slide.',
+      body: 'When implemented on a unit, Levitate grants the same terrain exemptions as Flying for water, sky, rock, ledges, sand slow, and ice slide.',
     },
   ],
 };

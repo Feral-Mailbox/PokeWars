@@ -67,6 +67,12 @@ describe("war map builder helpers", () => {
 
     expect(canExportMap([], [2], tileData).ok).toBe(false);
     expect(canExportMap(["Brick City.png"], [2], tileData).ok).toBe(true);
+
+    const conquestOnly = createEmptyTileData(2, 2);
+    conquestOnly.spawn_points[0][0] = 1;
+    conquestOnly.spawn_points[1][1] = 2;
+    expect(canExportMap(["Brick City.png"], [2], conquestOnly, ["Conquest"]).ok).toBe(true);
+    expect(canExportMap(["Brick City.png"], [2], conquestOnly).ok).toBe(false);
   });
 
   it("requires at least one conquest spawn per player", () => {

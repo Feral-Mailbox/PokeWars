@@ -17,6 +17,8 @@ function unit(partial: Partial<PlacedUnitState> & { id: number }): PlacedUnitSta
     status_effects: [],
     states: [],
     is_fainted: false,
+    jailed: false,
+    jailed_by: null,
     can_move: true,
     move_pp: [],
     held_item: null,

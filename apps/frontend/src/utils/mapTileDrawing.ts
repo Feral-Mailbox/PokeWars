@@ -4,7 +4,11 @@ import {
   MAP_TILE_SIZE,
   setupPixelCanvas,
 } from "@/utils/pixelCanvas";
-import type { TileRef } from "@/types/mapData";
+import {
+  isValidTileRef,
+  normalizeBackgroundColor,
+  type TileRef,
+} from "@/types/mapData";
 
 export type DrawableMapLayer = "base" | "overlay" | "overlay2" | "overlay3";
 
@@ -17,9 +21,33 @@ function resolveTilesetBase(): string {
 }
 
 export function isTileRefPresent(tile: TileRef | null | undefined): boolean {
-  if (!tile || !Array.isArray(tile)) return false;
-  const [tileIndex, tilesetIndex] = tile;
-  return tileIndex != null && tileIndex >= 0 && tilesetIndex != null;
+  return isValidTileRef(tile);
+}
+
+export function getTileDrawSource(
+  tile: TileRef | null | undefined,
+  tilesets: HTMLImageElement[]
+): { image: HTMLImageElement; sx: number; sy: number } | null {
+  if (!isValidTileRef(tile)) return null;
+  const tileIndex = Number(tile[0]);
+  const tilesetIndex = Number(tile[1]);
+  const image = tilesets[tilesetIndex];
+  if (!image?.width) return null;
+
+  const tilesPerRow = Math.floor(image.width / MAP_TILE_SIZE);
+  if (tilesPerRow <= 0) return null;
+
+  const imageHeight = image.naturalHeight || image.height || 0;
+  if (imageHeight >= MAP_TILE_SIZE) {
+    const tileCount = tilesPerRow * Math.floor(imageHeight / MAP_TILE_SIZE);
+    if (tileIndex >= tileCount) return null;
+  }
+
+  return {
+    image,
+    sx: (tileIndex % tilesPerRow) * MAP_TILE_SIZE,
+    sy: Math.floor(tileIndex / tilesPerRow) * MAP_TILE_SIZE,
+  };
 }
 
 export function buildOverlay2TileSet(
@@ -44,10 +72,11 @@ type MapRenderInput = {
   height: number;
   tileset_names: string[];
   tile_data: {
-    base: TileRef[][];
+    base: (TileRef | null)[][];
     overlay: (TileRef | null)[][];
     overlay2?: (TileRef | null)[][];
     overlay3?: (TileRef | null)[][];
+    background_color?: string;
   };
 };
 
@@ -80,19 +109,13 @@ export function installMapTileRenderer(
     x: number,
     y: number
   ) => {
-    if (!isTileRefPresent(tile)) return;
-    const [tileIndex, tilesetIndex] = tile!;
-    const tileset = tilesets[tilesetIndex];
-    if (!tileset?.width) return;
-
-    const tilesPerRow = Math.floor(tileset.width / MAP_TILE_SIZE);
-    const sx = (tileIndex % tilesPerRow) * MAP_TILE_SIZE;
-    const sy = Math.floor(tileIndex / tilesPerRow) * MAP_TILE_SIZE;
+    const source = getTileDrawSource(tile, tilesets);
+    if (!source) return;
 
     ctx.drawImage(
-      tileset,
-      sx,
-      sy,
+      source.image,
+      source.sx,
+      source.sy,
       MAP_TILE_SIZE,
       MAP_TILE_SIZE,
       x * MAP_TILE_SIZE,
@@ -114,13 +137,22 @@ export function installMapTileRenderer(
 
     ctx.setTransform(dpr * MAP_TILE_SCALE, 0, 0, dpr * MAP_TILE_SCALE, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    const background = normalizeBackgroundColor(map.tile_data.background_color);
 
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
-        if (layers.includes("base")) drawTile(ctx, base[y][x], x, y);
-        if (layers.includes("overlay")) drawTile(ctx, overlay[y][x], x, y);
-        if (layers.includes("overlay2") && overlay2) drawTile(ctx, overlay2[y][x], x, y);
-        if (layers.includes("overlay3") && overlay3) drawTile(ctx, overlay3[y][x], x, y);
+        if (layers.includes("base")) {
+          const baseTile = base[y]?.[x];
+          if (getTileDrawSource(baseTile, tilesets)) {
+            drawTile(ctx, baseTile, x, y);
+          } else {
+            ctx.fillStyle = background;
+            ctx.fillRect(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+          }
+        }
+        if (layers.includes("overlay")) drawTile(ctx, overlay[y]?.[x], x, y);
+        if (layers.includes("overlay2") && overlay2) drawTile(ctx, overlay2[y]?.[x], x, y);
+        if (layers.includes("overlay3") && overlay3) drawTile(ctx, overlay3[y]?.[x], x, y);
       }
     }
 

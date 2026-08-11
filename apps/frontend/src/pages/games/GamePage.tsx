@@ -6,14 +6,16 @@ import { openBugReportWindow } from "@/utils/bugReport";
 import { useAuth } from "@/state/auth";
 import GameMapStage from "./components/GameMapStage";
 import MapItemTooltip from "./components/MapItemTooltip";
+import JailTooltip from "./components/JailTooltip";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
 import { formatTmDisplayName, UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
 import CaptureTheFlagGame, {
   getCtfActionTarget,
+  getCtfJailAt,
+  listCtfJails,
   patchFlagTile,
-  patchUnlockTile,
 } from "./modes/CaptureTheFlagGame";
 import ConquestGame from "./modes/ConquestGame";
 import WarGame, {
@@ -75,7 +77,7 @@ export function getBlockedTilesByEnemy(
   const blocked = new Set<string>();
   for (const u of placedUnits) {
     // Only living enemy units block pathfinding; allied units do not
-    if (u.user_id !== unitUserId && isActivePlacedUnit(u)) {
+    if (u.user_id !== unitUserId && isActivePlacedUnit(u) && !u.jailed) {
       blocked.add(`${u.tile[0]},${u.tile[1]}`);
     }
   }
@@ -92,6 +94,11 @@ export const PLAYER_COLORS: string[] = [
   "#FF00FF80", // Magenta
   "#00FFFF80", // Cyan
 ];
+
+export function solidPlayerColor(color: string): string {
+  if (color.startsWith("#") && color.length === 9) return color.slice(0, 7);
+  return color || "#ffffff";
+}
 
 export function buildPlayerColorMap(players: unknown): Record<number, string> {
   if (!Array.isArray(players)) return {};
@@ -135,6 +142,13 @@ export default function GamePage() {
   const [hoveredOverlayTile, setHoveredOverlayTile] = useState<[number, number] | null>(null);
   const [hoveredMapItem, setHoveredMapItem] = useState<{
     itemId: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+  const [hoveredJail, setHoveredJail] = useState<{
+    x: number;
+    y: number;
+    owner: number;
     clientX: number;
     clientY: number;
   } | null>(null);
@@ -310,6 +324,35 @@ export default function GamePage() {
     }
     return mapItemLabelsById[hoveredMapItem.itemId] ?? null;
   }, [hoveredMapItem, mapItemLabelsById, isLobbyPhase]);
+
+  const hoveredJailOwnerLabel = useMemo(() => {
+    if (!hoveredJail || !gameData) return "Jail";
+    const userIdForOwner = Array.isArray(gameData.player_order)
+      ? gameData.player_order[hoveredJail.owner - 1]
+      : null;
+    const player = Array.isArray(gameData.players)
+      ? gameData.players.find(
+          (entry: any) =>
+            Number(entry?.player_id ?? entry?.id) === Number(userIdForOwner)
+        )
+      : null;
+    const name = player?.username ?? `Player ${hoveredJail.owner}`;
+    return `${name}'s jail`;
+  }, [hoveredJail, gameData]);
+
+  const hoveredJailOccupants = useMemo(() => {
+    if (!hoveredJail) return [];
+    return placedUnits
+      .filter((unit) => {
+        if (!unit.jailed) return false;
+        if (unit.jailed_by === hoveredJail.owner) return true;
+        return unit.tile[0] === hoveredJail.x && unit.tile[1] === hoveredJail.y;
+      })
+      .map((unit) => ({
+        name: unit.unit?.name ?? "Unit",
+        color: solidPlayerColor(getPlayerColor(unit.user_id)),
+      }));
+  }, [hoveredJail, placedUnits, playerColorMap]);
 
   function getMapItemIdAtTile(x: number, y: number): number | null {
     if (!mapItemIdTiles) return null;
@@ -528,7 +571,7 @@ export default function GamePage() {
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId != null && u.id === ignoreUnitId) return false;
-      if (!isActivePlacedUnit(u)) return false;
+      if (!isActivePlacedUnit(u) || u.jailed) return false;
       return u.tile[0] === x && u.tile[1] === y;
     });
   }
@@ -537,7 +580,7 @@ export default function GamePage() {
     const occupied = new Set<string>();
     for (const u of placedUnitsRef.current) {
       if (ignoreUnitId != null && u.id === ignoreUnitId) continue;
-      if (!isActivePlacedUnit(u)) continue;
+      if (!isActivePlacedUnit(u) || u.jailed) continue;
       occupied.add(`${u.tile[0]},${u.tile[1]}`);
     }
     return occupied;
@@ -3083,20 +3126,12 @@ export default function GamePage() {
           owner: Number(data.flag.owner ?? 0),
         })
       );
-    } else if (ctfActionTarget.kind === "unlock" && data?.unlock) {
-      setGameData((prev) =>
-        patchUnlockTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
-          hp: Number(data.unlock.hp ?? ctfActionTarget.max_hp),
-          max_hp: Number(data.unlock.max_hp ?? ctfActionTarget.max_hp),
-        })
-      );
-      if (data?.unlocked || Array.isArray(data?.freed_unit_ids)) {
-        const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
-        if (unitsRes.ok) {
-          const units = await unitsRes.json();
-          if (Array.isArray(units)) {
-            setPlacedUnits(mapVisiblePlacedUnitsFromBackend(units));
-          }
+    } else if (ctfActionTarget.kind === "unlock") {
+      const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
+      if (unitsRes.ok) {
+        const units = await unitsRes.json();
+        if (Array.isArray(units)) {
+          setPlacedUnits(mapVisiblePlacedUnitsFromBackend(units));
         }
       }
     } else {
@@ -3109,13 +3144,32 @@ export default function GamePage() {
 
   const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
     setHoveredMapItem(null);
+    const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
+    if (live.jailed && gameData) {
+      const jail =
+        (live.jailed_by != null
+          ? listCtfJails(gameData).find((entry) => entry.owner === live.jailed_by)
+          : null) ?? getCtfJailAt(gameData, live.tile[0], live.tile[1]);
+      if (jail) {
+        const stage = mapStageRef.current as HTMLElement | null;
+        const rect = stage?.getBoundingClientRect();
+        setHoveredJail({
+          ...jail,
+          clientX: rect ? rect.left + jail.x * TILE_DRAW_SIZE * displayScale + TILE_DRAW_SIZE / 2 : 0,
+          clientY: rect ? rect.top + jail.y * TILE_DRAW_SIZE * displayScale : 0,
+        });
+        setHoveredUnit(null);
+        return;
+      }
+    }
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
-      const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
+      setHoveredJail(null);
       setHoveredUnit(toActiveUnitView(live));
     }
   };
 
   const handleMapUnitMouseLeave = () => {
+    setHoveredJail(null);
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
       setHoveredUnit(null);
     }
@@ -3358,6 +3412,12 @@ export default function GamePage() {
             setHoveredMapItem({ itemId, clientX, clientY })
           }
           onMapItemLeave={() => setHoveredMapItem(null)}
+          jailTiles={gameData?.gamemode === "Capture The Flag" ? listCtfJails(gameData) : []}
+          onJailHover={(jail, clientX, clientY) => {
+            setHoveredMapItem(null);
+            setHoveredJail({ ...jail, clientX, clientY });
+          }}
+          onJailLeave={() => setHoveredJail(null)}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
           placedUnits={placedUnits.filter(isVisibleOnMapUnit)}
@@ -3379,6 +3439,14 @@ export default function GamePage() {
             hoveredMapItem != null &&
             hoveredMapItemLabel != null
           }
+        />
+
+        <JailTooltip
+          ownerLabel={hoveredJailOwnerLabel}
+          occupants={hoveredJailOccupants}
+          x={hoveredJail?.clientX ?? 0}
+          y={hoveredJail?.clientY ?? 0}
+          visible={hoveredJail != null}
         />
 
         {gameData && (
@@ -3543,9 +3611,7 @@ export default function GamePage() {
               captureHpLabel={
                 warCaptureTarget
                   ? `HP ${warCaptureTarget.hp}/${warCaptureTarget.max_hp}`
-                  : ctfActionTarget?.kind === "unlock"
-                    ? `HP ${ctfActionTarget.hp}/${ctfActionTarget.max_hp}`
-                    : null
+                  : null
               }
               onPickUpItem={handlePickUpItem}
               showPickUpButton={

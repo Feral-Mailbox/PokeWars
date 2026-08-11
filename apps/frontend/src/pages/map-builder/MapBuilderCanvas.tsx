@@ -5,18 +5,31 @@ import {
   MAP_TILE_SIZE,
   setupPixelCanvas,
 } from "@/utils/pixelCanvas";
-import { getTilesetUrl, getTmMachineUrl, getPokeballUrl, getMasterBallUrl, TM_SOURCE_SIZE, POKEBALL_SOURCE_SIZE } from "@/utils/gameAssets";
+import {
+  getCtfFlagUrl,
+  getCtfJailUrl,
+  getTilesetUrl,
+  getTmMachineUrl,
+  getPokeballUrl,
+  getMasterBallUrl,
+  TM_SOURCE_SIZE,
+  POKEBALL_SOURCE_SIZE,
+} from "@/utils/gameAssets";
+import { drawCtfMapIcon } from "@/utils/ctfIcons";
+import { resolvePlayerSlotOverlayColor } from "@/utils/playerOverlayColor";
 import type { CtfBrushKind, MapLayer, MapTileData, TileRef } from "@/types/mapData";
 import {
   CTF_JAIL_TILE,
-  CTF_UNLOCK_TILE,
   DEFAULT_MOVEMENT_COST,
   RANDOM_TM_ITEM_ID,
   isCtfSpecialTile,
   isWarObjectiveTile,
+  normalizeBackgroundColor,
+  parseCtfJailTile,
   parseWarObjectiveTile,
 } from "@/types/mapData";
 import type { DrawingTool } from "./drawingTools";
+import { getTileDrawSource } from "@/utils/mapTileDrawing";
 import { fillRectOnMap, normalizeRect, paintCellOnMap } from "./drawingTools";
 
 type MapBuilderCanvasProps = {
@@ -44,6 +57,7 @@ type MapBuilderCanvasProps = {
 const SPECIAL_COLORS: Record<string, string> = {
   impassable: "#1f2937",
   water: "#3b82f6",
+  sky: "#38bdf8",
   grass: "#22c55e",
   stump: "#92400e",
   rock: "#78716c",
@@ -54,7 +68,6 @@ const SPECIAL_COLORS: Record<string, string> = {
   ledge_left: "#a855f7",
   ledge_right: "#ec4899",
   [CTF_JAIL_TILE]: "#7c3aed",
-  [CTF_UNLOCK_TILE]: "#fb923c",
 };
 
 const SPAWN_COLORS = [
@@ -75,19 +88,13 @@ function drawTile(
   x: number,
   y: number
 ) {
-  if (!tile) return;
-  const [tileIndex, tilesetIndex] = tile;
-  const tileset = tilesets[tilesetIndex];
-  if (!tileset?.width) return;
-
-  const tilesPerRow = Math.floor(tileset.width / MAP_TILE_SIZE);
-  const sx = (tileIndex % tilesPerRow) * MAP_TILE_SIZE;
-  const sy = Math.floor(tileIndex / tilesPerRow) * MAP_TILE_SIZE;
+  const source = getTileDrawSource(tile, tilesets);
+  if (!source) return;
 
   ctx.drawImage(
-    tileset,
-    sx,
-    sy,
+    source.image,
+    source.sx,
+    source.sy,
     MAP_TILE_SIZE,
     MAP_TILE_SIZE,
     x * MAP_TILE_SIZE,
@@ -130,6 +137,8 @@ export default function MapBuilderCanvas({
   const tmLoadedTypesRef = useRef<Set<string>>(new Set());
   const pokeballImageRef = useRef<HTMLImageElement | null>(null);
   const masterBallImageRef = useRef<HTMLImageElement | null>(null);
+  const ctfFlagImageRef = useRef<HTMLImageElement | null>(null);
+  const ctfJailImageRef = useRef<HTMLImageElement | null>(null);
 
   const fillOptions = useCallback(
     (erase: boolean) => ({
@@ -170,13 +179,20 @@ export default function MapBuilderCanvas({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(dpr * MAP_TILE_SCALE, 0, 0, dpr * MAP_TILE_SCALE, 0, 0);
     ctx.imageSmoothingEnabled = false;
+    const background = normalizeBackgroundColor(tileData.background_color);
 
     const mapHeight = Math.min(height, tileData.base.length);
     const mapWidth = Math.min(width, tileData.base[0]?.length ?? 0);
 
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
-        drawTile(ctx, tilesetsRef.current, tileData.base[y]?.[x] ?? null, x, y);
+        const baseTile = tileData.base[y]?.[x] ?? null;
+        if (getTileDrawSource(baseTile, tilesetsRef.current)) {
+          drawTile(ctx, tilesetsRef.current, baseTile, x, y);
+        } else {
+          ctx.fillStyle = background;
+          ctx.fillRect(x * MAP_TILE_SIZE, y * MAP_TILE_SIZE, MAP_TILE_SIZE, MAP_TILE_SIZE);
+        }
         drawTile(ctx, tilesetsRef.current, tileData.overlay[y]?.[x] ?? null, x, y);
         drawTile(ctx, tilesetsRef.current, tileData.overlay2[y]?.[x] ?? null, x, y);
         drawTile(ctx, tilesetsRef.current, tileData.overlay3[y]?.[x] ?? null, x, y);
@@ -266,26 +282,24 @@ export default function MapBuilderCanvas({
 
         const flag = tileData.flags[y]?.[x];
         if (showFlags && flag != null) {
-          ctx.fillStyle = flag === 0 ? "#9ca3af88" : "#facc1588";
-          ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
-          ctx.fillStyle = "#000";
-          ctx.font = "bold 10px sans-serif";
-          ctx.fillText(flag === 0 ? "F" : `F${flag}`, px, py);
+          drawCtfMapIcon(
+            ctx,
+            ctfFlagImageRef.current,
+            x,
+            y,
+            resolvePlayerSlotOverlayColor(flag)
+          );
         }
 
-        if (showFlags && special === CTF_JAIL_TILE) {
-          ctx.fillStyle = `${SPECIAL_COLORS[CTF_JAIL_TILE]}99`;
-          ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 9px sans-serif";
-          ctx.fillText("J", px, py);
-        }
-        if (showFlags && special === CTF_UNLOCK_TILE) {
-          ctx.fillStyle = `${SPECIAL_COLORS[CTF_UNLOCK_TILE]}99`;
-          ctx.fillRect(x * MAP_TILE_DRAW_SIZE, y * MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE, MAP_TILE_DRAW_SIZE);
-          ctx.fillStyle = "#fff";
-          ctx.font = "bold 9px sans-serif";
-          ctx.fillText("U", px, py);
+        const jail = parseCtfJailTile(special);
+        if (showFlags && (jail || special === CTF_JAIL_TILE)) {
+          drawCtfMapIcon(
+            ctx,
+            ctfJailImageRef.current,
+            x,
+            y,
+            resolvePlayerSlotOverlayColor(jail?.owner ?? 0)
+          );
         }
 
         const cost = tileData.movement_cost[y]?.[x] ?? DEFAULT_MOVEMENT_COST;
@@ -383,6 +397,20 @@ export default function MapBuilderCanvas({
       img.onload = () => redraw();
       img.onerror = () => redraw();
       masterBallImageRef.current = img;
+    }
+    if (!ctfFlagImageRef.current) {
+      const img = new Image();
+      img.src = getCtfFlagUrl();
+      img.onload = () => redraw();
+      img.onerror = () => redraw();
+      ctfFlagImageRef.current = img;
+    }
+    if (!ctfJailImageRef.current) {
+      const img = new Image();
+      img.src = getCtfJailUrl();
+      img.onload = () => redraw();
+      img.onerror = () => redraw();
+      ctfJailImageRef.current = img;
     }
   }, [redraw]);
 

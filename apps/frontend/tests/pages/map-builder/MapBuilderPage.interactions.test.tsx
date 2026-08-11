@@ -29,7 +29,7 @@ vi.mock("@/pages/map-builder/MapBuilderCanvas", () => ({
         onClick={() => {
           props.onStrokeStart();
           const next = structuredClone(props.tileData);
-          if (next.base?.[0]?.[0]) next.base[0][0] = [3, 0];
+          if (next.base?.[0]) next.base[0][0] = [3, 0];
           props.onTileDataChange(next);
           props.onStrokeEnd();
         }}
@@ -130,6 +130,15 @@ describe("MapBuilderPage interactions", () => {
     vi.resetAllMocks();
   });
 
+  it("lets staff set the map background color", async () => {
+    const user = userEvent.setup();
+    await renderStaffBuilder();
+    const picker = screen.getByLabelText(/Map background color/i);
+    await user.click(picker);
+    fireEvent.change(picker, { target: { value: "#aabbcc" } });
+    expect((picker as HTMLInputElement).value).toBe("#aabbcc");
+  });
+
   it("switches layers and tools, paints via canvas callbacks, undo/redo", async () => {
     const user = userEvent.setup();
     await renderStaffBuilder();
@@ -150,6 +159,8 @@ describe("MapBuilderPage interactions", () => {
 
     await user.click(screen.getByRole("button", { name: "Capture The Flag" }));
     expect(screen.getByText(/Flag owner/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Jail" }));
+    expect(screen.getByText(/Jail owner/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Movement cost" }));
     expect(screen.getByText(/Cost brush/i)).toBeInTheDocument();
@@ -236,6 +247,58 @@ describe("MapBuilderPage interactions", () => {
     await user.click(exportBtn);
     expect(downloadMapJson).toHaveBeenCalled();
     expect(screen.getByText(/Map exported/i)).toBeInTheDocument();
+  });
+
+  it("lets creators pick extra modes and exports Conquest-only maps without War pieces", async () => {
+    const user = userEvent.setup();
+    await renderStaffBuilder();
+
+    const conquest = screen.getByRole("checkbox", { name: /^Conquest$/i });
+    const war = screen.getByRole("checkbox", { name: /^War$/i });
+    const ctf = screen.getByRole("checkbox", { name: /^Capture The Flag$/i });
+    expect(conquest).toBeChecked();
+    expect(conquest).toBeDisabled();
+    expect(war).toBeChecked();
+    expect(ctf).not.toBeChecked();
+
+    const tileData = createEmptyTileData(2, 2);
+    tileData.spawn_points[0][0] = 1;
+    tileData.spawn_points[1][1] = 2;
+    const map = {
+      name: "Spawns Only",
+      is_official: false,
+      tileset_names: ["Brick City.png"],
+      allowed_modes: ["Conquest"],
+      allowed_player_counts: [2],
+      width: 2,
+      height: 2,
+      tile_data: tileData,
+      preview_image: "previews/spawns_only.png",
+    };
+    const file = new File([JSON.stringify(map)], "map.json", { type: "application/json" });
+    Object.defineProperty(file, "text", {
+      value: async () => JSON.stringify(map),
+    });
+    await user.upload(document.querySelector('input[type="file"]') as HTMLInputElement, file);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Imported .*Spawns Only/i)).toBeInTheDocument();
+    });
+    expect(war).not.toBeChecked();
+    expect(ctf).not.toBeChecked();
+
+    const exportBtn = screen.getByRole("button", { name: /Export JSON/i });
+    await waitFor(() => expect(exportBtn).toBeEnabled());
+
+    await user.click(ctf);
+    await waitFor(() => expect(exportBtn).toBeDisabled());
+    await user.click(ctf);
+    await waitFor(() => expect(exportBtn).toBeEnabled());
+
+    await user.click(exportBtn);
+    expect(downloadMapJson).toHaveBeenCalled();
+    const exported = vi.mocked(downloadMapJson).mock.calls.at(-1)?.[0];
+    expect(exported?.allowed_modes).toEqual(["Conquest"]);
   });
 
   it("reports import failures and supports undo hotkeys", async () => {

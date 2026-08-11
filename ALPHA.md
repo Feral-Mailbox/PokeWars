@@ -53,7 +53,7 @@ Focus feedback on:
 |------|------|
 | **Conquest** | Capture objectives and outlast opponents |
 | **War** | Eliminate enemy forces |
-| **Capture the Flag** | Bring the flag to your base |
+| **Capture the Flag** | Claim every banner; free allies by standing on a jail |
 
 Only **4 official maps** are available in alpha — you'll see the same ones often.
 

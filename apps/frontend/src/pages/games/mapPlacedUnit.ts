@@ -15,6 +15,8 @@ export type PlacedUnitState = {
   status_effects: unknown;
   states: unknown;
   is_fainted: boolean;
+  jailed: boolean;
+  jailed_by: number | null;
   can_move: boolean;
   move_pp: number[];
   held_item: string | null;
@@ -59,6 +61,13 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     status_effects: backendUnit.status_effects ?? [],
     states: backendUnit.states ?? [],
     is_fainted: Boolean(backendUnit.is_fainted),
+    jailed: Boolean(backendUnit.jailed ?? backendUnit.flags?.jailed),
+    jailed_by:
+      backendUnit.jailed_by != null
+        ? Number(backendUnit.jailed_by)
+        : backendUnit.flags?.jailed_by != null
+          ? Number(backendUnit.flags.jailed_by)
+          : null,
     can_move: backendUnit.can_move !== false,
     move_pp: Array.isArray(backendUnit.move_pp) ? backendUnit.move_pp.map(Number) : [],
     held_item: backendUnit.held_item ?? null,

@@ -19,7 +19,7 @@ const GAME_MODES = [
   },
   {
     name: 'Capture the Flag',
-    goal: 'Control all checkpoints on the map.',
+    goal: 'Claim every banner and raid enemy jails.',
   },
 ] as const;
 

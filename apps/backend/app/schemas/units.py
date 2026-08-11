@@ -95,8 +95,12 @@ class GameUnitSchema(BaseModel):
     user_id: int
     starting_x: int
     starting_y: int
+    match_start_x: Optional[int] = None
+    match_start_y: Optional[int] = None
     current_x: int
     current_y: int
+    jailed: bool = False
+    jailed_by: Optional[int] = None
     level: int
     current_hp: int
     current_stats: Dict[str, int]

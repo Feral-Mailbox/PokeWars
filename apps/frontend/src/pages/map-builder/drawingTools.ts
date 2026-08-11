@@ -5,8 +5,7 @@ import {
   type TileRef,
   isCtfSpecialTile,
   isWarObjectiveTile,
-  CTF_JAIL_TILE,
-  CTF_UNLOCK_TILE,
+  encodeCtfJail,
   type CtfBrushKind,
 } from "@/types/mapData";
 
@@ -68,10 +67,8 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
     case "flags": {
       const kind = options.ctfBrushKind ?? "flag";
       if (kind === "jail") {
-        data.special_tiles[y][x] = CTF_JAIL_TILE;
-        data.flags[y][x] = null;
-      } else if (kind === "unlock") {
-        data.special_tiles[y][x] = CTF_UNLOCK_TILE;
+        const owner = options.flagBrush != null && options.flagBrush >= 1 ? options.flagBrush : 1;
+        data.special_tiles[y][x] = encodeCtfJail(owner);
         data.flags[y][x] = null;
       } else {
         data.flags[y][x] = options.flagBrush;
@@ -96,7 +93,7 @@ function applyPaintCell(data: MapTileData, x: number, y: number, options: FillRe
 function applyEraseCell(data: MapTileData, x: number, y: number, layer: MapLayer) {
   switch (layer) {
     case "base":
-      data.base[y][x] = [0, 0];
+      data.base[y][x] = null;
       break;
     case "overlay":
       data.overlay[y][x] = null;

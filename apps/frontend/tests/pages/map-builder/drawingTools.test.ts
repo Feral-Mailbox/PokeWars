@@ -36,6 +36,9 @@ describe("drawingTools", () => {
 
     const paintedBase = paintCellOnMap(data, 1, 1, paintOptions);
     expect(paintedBase.base[1][1]).toEqual([2, 3]);
+    expect(
+      paintCellOnMap(data, 0, 0, { ...paintOptions, selectedTile: [0, 0] }).base[0][0]
+    ).toEqual([0, 0]);
 
     const paintedOverlay = paintCellOnMap(data, 0, 0, {
       ...paintOptions,
@@ -99,7 +102,7 @@ describe("drawingTools", () => {
       ...paintOptions,
       erase: true,
     });
-    expect(erasedBase.base[1][1]).toEqual([0, 0]);
+    expect(erasedBase.base[1][1]).toBeNull();
 
     const erasedOverlay = paintCellOnMap(paintedOverlay, 0, 0, {
       ...paintOptions,
@@ -173,15 +176,8 @@ describe("drawingTools", () => {
       layer: "flags",
       ctfBrushKind: "jail",
     });
-    expect(jail.special_tiles[2][0]).toBe("ctf_jail");
+    expect(jail.special_tiles[2][0]).toBe("ctf_jail_p2");
     expect(jail.flags[2][0]).toBeNull();
-
-    const unlock = paintCellOnMap(data, 1, 2, {
-      ...paintOptions,
-      layer: "flags",
-      ctfBrushKind: "unlock",
-    });
-    expect(unlock.special_tiles[2][1]).toBe("ctf_unlock");
 
     const items = paintCellOnMap(data, 2, 2, { ...paintOptions, layer: "items" });
     expect(paintCellOnMap(items, 2, 2, { ...paintOptions, layer: "items", erase: true })

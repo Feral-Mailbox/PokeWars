@@ -5,33 +5,8 @@ import {
   POKEBALL_SOURCE_SIZE,
 } from "@/utils/gameAssets";
 import { MAP_TILE_DRAW_SIZE, setupPixelCanvas } from "@/utils/pixelCanvas";
+import { resolvePlayerSlotOverlayColor } from "@/utils/playerOverlayColor";
 import { drawImageWithPlayerOverlay } from "@/utils/spriteOverlay";
-
-/** Same palette as GamePage PLAYER_COLORS — used when owner slot has no joined user yet. */
-const PLAYER_COLORS = [
-  "#0000FF80",
-  "#FF000080",
-  "#FFFF0080",
-  "#00FF0080",
-  "#88888880",
-  "#80008080",
-  "#FF00FF80",
-  "#00FFFF80",
-];
-
-function resolveObjectiveOverlayColor(
-  owner: number,
-  playerOrder: number[],
-  getPlayerColor?: (playerId: number) => string
-): string | null {
-  if (owner <= 0) return null;
-  const ownerId = playerOrder[owner - 1];
-  if (ownerId != null && getPlayerColor) {
-    const color = getPlayerColor(ownerId);
-    if (color && color !== "#00000000") return color;
-  }
-  return PLAYER_COLORS[(owner - 1) % PLAYER_COLORS.length] ?? null;
-}
 
 export type ObjectiveTileState = {
   kind: "pokeball" | "master_ball";
@@ -90,7 +65,7 @@ export function useMapObjectiveRenderer(
           const py = y * MAP_TILE_DRAW_SIZE;
           const size = MAP_TILE_DRAW_SIZE;
 
-          const overlayColor = resolveObjectiveOverlayColor(cell.owner, playerOrder, getPlayerColor);
+          const overlayColor = resolvePlayerSlotOverlayColor(cell.owner, playerOrder, getPlayerColor);
 
           const imageKey = cell.kind === "master_ball" ? "master_ball" : "pokeball";
           const img = imagesRef.current[imageKey];

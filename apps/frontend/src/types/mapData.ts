@@ -1,7 +1,7 @@
 export type TileRef = [number, number];
 
 export type MapTileData = {
-  base: TileRef[][];
+  base: (TileRef | null)[][];
   overlay: (TileRef | null)[][];
   overlay2: (TileRef | null)[][];
   overlay3: (TileRef | null)[][];
@@ -10,7 +10,34 @@ export type MapTileData = {
   flags: (number | null)[][];
   movement_cost: number[][];
   item_id_tiles: (number | null)[][];
+  /** Solid fill used for cells whose base is null or does not map to a tileset tile. */
+  background_color?: string;
 };
+
+export const DEFAULT_MAP_BACKGROUND_COLOR = "#000000";
+
+export function isValidTileRef(tile: TileRef | null | undefined): tile is TileRef {
+  if (tile == null || !Array.isArray(tile) || tile.length < 2) return false;
+  const [rawIndex, rawTileset] = tile;
+  if (rawIndex == null || rawTileset == null) return false;
+  const tileIndex = Number(rawIndex);
+  const tilesetIndex = Number(rawTileset);
+  return Number.isFinite(tileIndex) && Number.isFinite(tilesetIndex) && tileIndex >= 0 && tilesetIndex >= 0;
+}
+
+/** True when the cell has no tile id to draw (null / invalid). */
+export function isVoidTileRef(tile: TileRef | null | undefined): boolean {
+  return !isValidTileRef(tile);
+}
+
+export function normalizeBackgroundColor(value: unknown): string {
+  if (typeof value !== "string") return DEFAULT_MAP_BACKGROUND_COLOR;
+  const trimmed = value.trim();
+  if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    return trimmed;
+  }
+  return DEFAULT_MAP_BACKGROUND_COLOR;
+}
 
 export type MapExport = {
   name: string;
@@ -36,10 +63,24 @@ export type MapLayer =
   | "movement_cost"
   | "items";
 
-/** Maps are playable in Conquest; War objectives are placed via the War layer. */
+/** Conquest is always playable. War is selected by default; CTF is opt-in. */
 export const DEFAULT_MAP_ALLOWED_MODES = ["Conquest", "War"] as const;
 
 export const GAME_MODES = ["Conquest", "War", "Capture The Flag"] as const;
+
+export type GameModeName = (typeof GAME_MODES)[number];
+
+export function normalizeAllowedModes(modes: unknown): GameModeName[] {
+  const selected = new Set<GameModeName>(["Conquest"]);
+  if (Array.isArray(modes)) {
+    for (const mode of modes) {
+      if (mode === "War" || mode === "Capture The Flag") {
+        selected.add(mode);
+      }
+    }
+  }
+  return GAME_MODES.filter((mode) => selected.has(mode));
+}
 
 export const MAX_PLAYERS = 8;
 
@@ -56,6 +97,7 @@ export const MOVEMENT_COST_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 export const SPECIAL_TILE_TYPES = [
   "impassable",
   "water",
+  "sky",
   "grass",
   "stump",
   "rock",
@@ -72,7 +114,26 @@ export type SpecialTileType = (typeof SPECIAL_TILE_TYPES)[number];
 export const CTF_JAIL_TILE = "ctf_jail";
 export const CTF_UNLOCK_TILE = "ctf_unlock";
 
-export type CtfBrushKind = "flag" | "jail" | "unlock";
+export type CtfBrushKind = "flag" | "jail";
+
+const CTF_JAIL_PATTERN = /^ctf_jail(?:_p([1-8]))?$/i;
+
+export function encodeCtfJail(owner: number): string {
+  return `${CTF_JAIL_TILE}_p${owner}`;
+}
+
+export function parseCtfJailTile(value: string | null | undefined): { owner: number } | null {
+  if (!value) return null;
+  const match = value.trim().match(CTF_JAIL_PATTERN);
+  if (!match) return null;
+  if (match[1] == null) return null;
+  return { owner: Number(match[1]) };
+}
+
+export function isCtfJailTile(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return CTF_JAIL_PATTERN.test(value.trim());
+}
 
 export type WarObjectiveKind = "pokeball" | "master_ball";
 
@@ -101,7 +162,7 @@ export function isWarObjectiveTile(value: string | null | undefined): boolean {
 export function isCtfSpecialTile(value: string | null | undefined): boolean {
   if (!value) return false;
   const key = value.trim().toLowerCase();
-  return key === CTF_JAIL_TILE || key === CTF_UNLOCK_TILE;
+  return isCtfJailTile(key) || key === CTF_UNLOCK_TILE;
 }
 
 export function parseWarObjectiveTile(value: string): {

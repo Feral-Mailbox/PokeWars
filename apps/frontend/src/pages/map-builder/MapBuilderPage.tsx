@@ -7,18 +7,23 @@ import TilePalette from "./TilePalette";
 import { useMapBuilderHistory } from "./useMapBuilderHistory";
 import { DRAWING_TOOL_LABELS, type DrawingTool } from "./drawingTools";
 import {
+  DEFAULT_MAP_ALLOWED_MODES,
   DEFAULT_MOVEMENT_COST,
   encodeWarObjective,
+  GAME_MODES,
   MOVEMENT_COST_VALUES,
   PLAYER_COUNTS,
   PLAYER_IDS,
   SPECIAL_TILE_TYPES,
   type CtfBrushKind,
+  type GameModeName,
   type MapLayer,
   type MapTileData,
   type WarObjectiveKind,
   RANDOM_TM_ITEM_ID,
   type TileRef,
+  normalizeAllowedModes,
+  normalizeBackgroundColor,
 } from "@/types/mapData";
 import {
   buildMapExport,
@@ -28,7 +33,14 @@ import {
   parseMapImport,
   resizeTileData,
 } from "@/utils/mapBuilder";
-import { getTilesetManifestUrl, getTmMachineUrl, getPokeballUrl, getMasterBallUrl } from "@/utils/gameAssets";
+import {
+  getTilesetManifestUrl,
+  getTmMachineUrl,
+  getPokeballUrl,
+  getMasterBallUrl,
+  getCtfFlagUrl,
+  getCtfJailUrl,
+} from "@/utils/gameAssets";
 import { secureFetch } from "@/utils/secureFetch";
 
 const LAYER_LABELS: Record<MapLayer, string> = {
@@ -76,6 +88,7 @@ export default function MapBuilderPage() {
   const [activeTileset, setActiveTileset] = useState("Brick City.png");
   const [availableTilesets, setAvailableTilesets] = useState<string[]>([]);
   const [allowedPlayerCounts, setAllowedPlayerCounts] = useState<number[]>([2, 3, 4]);
+  const [allowedModes, setAllowedModes] = useState<GameModeName[]>([...DEFAULT_MAP_ALLOWED_MODES]);
   const [showAllOverlays, setShowAllOverlays] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>("base");
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("pencil");
@@ -200,9 +213,12 @@ export default function MapBuilderPage() {
   }, [warObjectiveKind, warOwnerBrush]);
 
   const exportValidation = useMemo(
-    () => canExportMap(tilesetNames, allowedPlayerCounts, tileData),
-    [tilesetNames, allowedPlayerCounts, tileData]
+    () => canExportMap(tilesetNames, allowedPlayerCounts, tileData, allowedModes),
+    [tilesetNames, allowedPlayerCounts, tileData, allowedModes]
   );
+
+  const warSelected = allowedModes.includes("War");
+  const ctfSelected = allowedModes.includes("Capture The Flag");
 
   const applyResize = useCallback(() => {
     const nextWidth = Math.max(1, Math.min(64, draftWidth));
@@ -266,6 +282,7 @@ export default function MapBuilderPage() {
       width: mapWidth,
       height: mapHeight,
       tileData,
+      allowedModes,
     });
     downloadMapJson(map);
     setStatusMessage("Map exported.");
@@ -287,6 +304,7 @@ export default function MapBuilderPage() {
       setTilesetNames(map.tileset_names);
       setActiveTileset(map.tileset_names[0] ?? "Brick City.png");
       setAllowedPlayerCounts(map.allowed_player_counts);
+      setAllowedModes(normalizeAllowedModes(map.allowed_modes));
       setStatusMessage(`Imported "${map.name}".`);
     } catch (err) {
       setStatusMessage(err instanceof Error ? err.message : "Failed to import map.");
@@ -351,6 +369,22 @@ export default function MapBuilderPage() {
                 className="w-20 rounded bg-gray-800 px-2 py-1 text-white"
                 value={draftHeight}
                 onChange={(e) => setDraftHeight(Number(e.target.value))}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-gray-300">
+              Background
+              <input
+                type="color"
+                aria-label="Map background color"
+                className="h-8 w-12 cursor-pointer rounded bg-gray-800 p-0.5"
+                value={normalizeBackgroundColor(tileData.background_color)}
+                onChange={(e) => {
+                  pushHistory(tileDataRef.current);
+                  setTileData((prev) => ({
+                    ...prev,
+                    background_color: e.target.value,
+                  }));
+                }}
               />
             </label>
             <button
@@ -556,7 +590,10 @@ export default function MapBuilderPage() {
                 style={{ imageRendering: "pixelated" }}
               />
               <span className="text-gray-500">
-                · Eraser removes objectives only · Each player needs exactly one master ball to export
+                · Eraser removes objectives only
+                {warSelected
+                  ? " · Each player needs exactly one master ball to export"
+                  : " · Enable War under Playable modes to require master balls on export"}
               </span>
             </div>
           )}
@@ -566,19 +603,29 @@ export default function MapBuilderPage() {
                 <span>CTF brush:</span>
                 {(
                   [
-                    ["flag", "Flag"],
-                    ["jail", "Jail"],
-                    ["unlock", "Unlock"],
+                    ["flag", "Flag", getCtfFlagUrl()],
+                    ["jail", "Jail", getCtfJailUrl()],
                   ] as const
-                ).map(([kind, label]) => (
+                ).map(([kind, label, iconUrl]) => (
                   <button
                     key={kind}
                     type="button"
-                    onClick={() => setCtfBrushKind(kind)}
-                    className={`rounded px-2 py-1 ${
+                    onClick={() => {
+                      setCtfBrushKind(kind);
+                      if (kind === "jail" && (flagBrush == null || flagBrush < 1)) {
+                        setFlagBrush(1);
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
                       ctfBrushKind === kind ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
                     }`}
                   >
+                    <img
+                      src={iconUrl}
+                      alt=""
+                      className="h-5 w-5"
+                      style={{ imageRendering: "pixelated" }}
+                    />
                     {label}
                   </button>
                 ))}
@@ -619,14 +666,27 @@ export default function MapBuilderPage() {
                 </div>
               )}
               {ctfBrushKind === "jail" && (
-                <span className="text-gray-500">
-                  Paint jail zone tiles · Eraser clears CTF flags/jail/unlock on a cell
-                </span>
-              )}
-              {ctfBrushKind === "unlock" && (
-                <span className="text-gray-500">
-                  Paint unlock tiles (War-style multi-turn unlock) · Eraser clears CTF content
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>Jail owner:</span>
+                  {PLAYER_IDS.map((player) => (
+                    <button
+                      key={player}
+                      type="button"
+                      onClick={() => setFlagBrush(player)}
+                      className={`rounded px-2 py-1 ${
+                        flagBrush === player ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-200"
+                      }`}
+                    >
+                      P{player}
+                    </button>
+                  ))}
+                  <span className="text-gray-500">
+                    One jail per player · Standing on a jail unlocks it · Eraser clears CTF content
+                    {ctfSelected
+                      ? ""
+                      : " · Enable Capture The Flag under Playable modes to require this on export"}
+                  </span>
+                </div>
               )}
             </div>
           )}
@@ -761,10 +821,38 @@ export default function MapBuilderPage() {
           </section>
 
           <section className="rounded-lg border border-gray-700 bg-gray-900/70 p-4">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-300">Player counts</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-300">Playable modes</h2>
             <p className="mb-3 text-xs text-gray-500">
-              Maps export for Conquest and War. Each player up to the highest count selected needs at least one
-              Conquest spawn point and exactly one master ball on the War layer.
+              Conquest is always allowed. Only selected modes are validated on export.
+            </p>
+            <div className="mb-4 space-y-2 text-sm">
+              {GAME_MODES.map((mode) => (
+                <label key={mode} className="flex items-center gap-2 text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={allowedModes.includes(mode)}
+                    disabled={mode === "Conquest"}
+                    onChange={() => {
+                      if (mode === "Conquest") return;
+                      setAllowedModes((prev) =>
+                        normalizeAllowedModes(
+                          prev.includes(mode) ? prev.filter((entry) => entry !== mode) : [...prev, mode]
+                        )
+                      );
+                    }}
+                  />
+                  {mode}
+                </label>
+              ))}
+            </div>
+            <h2 className="mb-3 border-t border-gray-700 pt-4 text-sm font-semibold uppercase tracking-wide text-gray-300">
+              Player counts
+            </h2>
+            <p className="mb-3 text-xs text-gray-500">
+              Each player up to the highest count selected needs at least one Conquest spawn point
+              {warSelected ? " and exactly one master ball on the War layer" : ""}
+              {ctfSelected ? ". Capture The Flag also needs flags and one jail per spawn player" : ""}
+              .
             </p>
             <div className="space-y-2 text-sm">
               {PLAYER_COUNTS.map((count) => (

@@ -1,6 +1,10 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMapRenderer } from "@/hooks/useMapRenderer";
 import { pointerToTileCoords } from "@/utils/mapPointer";
+import { parseCtfJailTile } from "@/types/mapData";
+import { getCtfFlagUrl, getCtfJailUrl } from "@/utils/gameAssets";
+import { drawCtfMapIcon } from "@/utils/ctfIcons";
+import { resolvePlayerSlotOverlayColor } from "@/utils/playerOverlayColor";
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -14,18 +18,6 @@ const DEFAULT_SPAWN_COLORS = [
   "#80008080",
   "#FF00FF80",
   "#00FFFF80",
-];
-
-const FLAG_OWNER_COLORS = [
-  "rgba(180, 180, 180, 0.55)", // neutral
-  "rgba(239, 68, 68, 0.55)",
-  "rgba(59, 130, 246, 0.55)",
-  "rgba(34, 197, 94, 0.55)",
-  "rgba(234, 179, 8, 0.55)",
-  "rgba(168, 85, 247, 0.55)",
-  "rgba(249, 115, 22, 0.55)",
-  "rgba(6, 182, 212, 0.55)",
-  "rgba(244, 63, 94, 0.55)",
 ];
 
 export function getCtfPlayerNumber(gameData: any, userId: number): number {
@@ -54,36 +46,31 @@ export function patchFlagTile(gameData: any, x: number, y: number, patch: { owne
   };
 }
 
-export function patchUnlockTile(
-  gameData: any,
-  x: number,
-  y: number,
-  patch: { hp: number; max_hp: number }
-) {
-  if (!gameData?.map_state?.unlock_tiles?.[y]?.[x]) return gameData;
+export type CtfJailInfo = { x: number; y: number; owner: number };
 
-  const nextTiles = gameData.map_state.unlock_tiles.map((row: any[], rowY: number) =>
-    Array.isArray(row)
-      ? row.map((cell, colX) =>
-          rowY === y && colX === x && cell
-            ? { ...cell, hp: patch.hp, max_hp: patch.max_hp }
-            : cell
-        )
-      : row
-  );
+export function listCtfJails(gameData: any): CtfJailInfo[] {
+  const specialTiles = gameData?.map?.tile_data?.special_tiles;
+  if (!Array.isArray(specialTiles)) return [];
+  const jails: CtfJailInfo[] = [];
+  for (let y = 0; y < specialTiles.length; y++) {
+    const row = specialTiles[y];
+    if (!Array.isArray(row)) continue;
+    for (let x = 0; x < row.length; x++) {
+      const parsed = parseCtfJailTile(row[x]);
+      if (parsed) jails.push({ x, y, owner: parsed.owner });
+    }
+  }
+  return jails;
+}
 
-  return {
-    ...gameData,
-    map_state: {
-      ...gameData.map_state,
-      unlock_tiles: nextTiles,
-    },
-  };
+export function getCtfJailAt(gameData: any, x: number, y: number): CtfJailInfo | null {
+  const parsed = parseCtfJailTile(gameData?.map?.tile_data?.special_tiles?.[y]?.[x]);
+  return parsed ? { x, y, owner: parsed.owner } : null;
 }
 
 export type CtfActionTarget =
   | { kind: "flag"; x: number; y: number }
-  | { kind: "unlock"; x: number; y: number; hp: number; max_hp: number };
+  | { kind: "unlock"; x: number; y: number; owner: number };
 
 export function getCtfActionTarget(
   activeUnit: any,
@@ -98,7 +85,7 @@ export function getCtfActionTarget(
     return null;
   }
   if (activeUnit.user_id !== userId || activeUnit.can_move === false) return null;
-  if (activeUnit.flags?.jailed) return null;
+  if (activeUnit.jailed || activeUnit.flags?.jailed) return null;
 
   const playerNumber = getCtfPlayerNumber(gameData, userId);
   if (playerNumber <= 0) return null;
@@ -109,15 +96,9 @@ export function getCtfActionTarget(
     return { kind: "flag", x, y };
   }
 
-  const unlockCell = gameData.map_state?.unlock_tiles?.[y]?.[x];
-  if (unlockCell) {
-    return {
-      kind: "unlock",
-      x,
-      y,
-      hp: Number(unlockCell.hp ?? unlockCell.max_hp ?? 20),
-      max_hp: Number(unlockCell.max_hp ?? 20),
-    };
+  const jail = getCtfJailAt(gameData, x, y);
+  if (jail) {
+    return { kind: "unlock", x, y, owner: jail.owner };
   }
 
   return null;
@@ -144,8 +125,28 @@ export default function CaptureTheFlagGame({
   const playerNumber = getCtfPlayerNumber(gameData, userId);
   const spawnGrid = gameData.map?.tile_data?.spawn_points;
   const flagTiles = gameData.map_state?.flag_tiles ?? [];
-  const unlockTiles = gameData.map_state?.unlock_tiles ?? [];
   const specialTiles = gameData.map?.tile_data?.special_tiles ?? [];
+  const flagImageRef = useRef<HTMLImageElement | null>(null);
+  const jailImageRef = useRef<HTMLImageElement | null>(null);
+  const [ctfIconsReady, setCtfIconsReady] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setCtfIconsReady((count) => count + 1);
+    if (!flagImageRef.current) {
+      const img = new Image();
+      img.src = getCtfFlagUrl();
+      img.onload = bump;
+      img.onerror = bump;
+      flagImageRef.current = img;
+    }
+    if (!jailImageRef.current) {
+      const img = new Image();
+      img.src = getCtfJailUrl();
+      img.onload = bump;
+      img.onerror = bump;
+      jailImageRef.current = img;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isPreparationPhase || isReady) return;
@@ -218,19 +219,13 @@ export default function CaptureTheFlagGame({
           const cell = row[x];
           if (!cell) continue;
           const owner = Number(cell.owner ?? 0);
-          ctx.fillStyle = FLAG_OWNER_COLORS[Math.min(owner, FLAG_OWNER_COLORS.length - 1)];
-          ctx.fillRect(
-            x * TILE_SIZE * TILE_SCALE,
-            y * TILE_SIZE * TILE_SCALE,
-            TILE_SIZE * TILE_SCALE,
+          drawCtfMapIcon(
+            ctx,
+            flagImageRef.current,
+            x,
+            y,
+            resolvePlayerSlotOverlayColor(owner, playerOrder, getPlayerColor),
             TILE_SIZE * TILE_SCALE
-          );
-          ctx.fillStyle = "#ffffff";
-          ctx.font = "bold 12px sans-serif";
-          ctx.fillText(
-            owner > 0 ? `F${owner}` : "F",
-            x * TILE_SIZE * TILE_SCALE + 4,
-            y * TILE_SIZE * TILE_SCALE + 14
           );
         }
       }
@@ -239,45 +234,15 @@ export default function CaptureTheFlagGame({
         const row = specialTiles[y];
         if (!Array.isArray(row)) continue;
         for (let x = 0; x < row.length; x++) {
-          const special = row[x];
-          if (typeof special !== "string") continue;
-          const key = special.trim().toLowerCase();
-          if (key === "ctf_jail") {
-            ctx.fillStyle = "rgba(88, 28, 135, 0.45)";
-            ctx.fillRect(
-              x * TILE_SIZE * TILE_SCALE,
-              y * TILE_SIZE * TILE_SCALE,
-              TILE_SIZE * TILE_SCALE,
-              TILE_SIZE * TILE_SCALE
-            );
-            ctx.fillStyle = "#e9d5ff";
-            ctx.font = "bold 10px sans-serif";
-            ctx.fillText("J", x * TILE_SIZE * TILE_SCALE + 8, y * TILE_SIZE * TILE_SCALE + 14);
-          }
-        }
-      }
-
-      for (let y = 0; y < unlockTiles.length; y++) {
-        const row = unlockTiles[y];
-        if (!Array.isArray(row)) continue;
-        for (let x = 0; x < row.length; x++) {
-          const cell = row[x];
-          if (!cell) continue;
-          ctx.fillStyle = "rgba(251, 146, 60, 0.5)";
-          ctx.fillRect(
-            x * TILE_SIZE * TILE_SCALE,
-            y * TILE_SIZE * TILE_SCALE,
-            TILE_SIZE * TILE_SCALE,
+          const jail = parseCtfJailTile(row[x]);
+          if (!jail) continue;
+          drawCtfMapIcon(
+            ctx,
+            jailImageRef.current,
+            x,
+            y,
+            resolvePlayerSlotOverlayColor(jail.owner, playerOrder, getPlayerColor),
             TILE_SIZE * TILE_SCALE
-          );
-          const hp = Number(cell.hp ?? 0);
-          const maxHp = Number(cell.max_hp ?? 20);
-          ctx.fillStyle = "#fff7ed";
-          ctx.font = "bold 9px sans-serif";
-          ctx.fillText(
-            `U${hp}/${maxHp}`,
-            x * TILE_SIZE * TILE_SCALE + 2,
-            y * TILE_SIZE * TILE_SCALE + 14
           );
         }
       }
@@ -291,8 +256,8 @@ export default function CaptureTheFlagGame({
       playerOrder,
       getPlayerColor,
       flagTiles,
-      unlockTiles,
       specialTiles,
+      ctfIconsReady,
     ]
   );
 
@@ -305,7 +270,7 @@ export default function CaptureTheFlagGame({
   return (
     <div className="mt-2 text-white text-sm space-y-1">
       <p className="italic text-cyan-300">
-        Capture The Flag: Claim every banner, free allies from jail, and outlast the turn limit.
+        Capture The Flag: Claim every banner, stand on a jail to free its prisoners, and outlast the turn limit.
       </p>
       {isPreparationPhase && !isReady && (
         <p className="text-yellow-300 text-xs">

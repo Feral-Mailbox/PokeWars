@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getAssetBase,
+  getCtfFlagUrl,
+  getCtfJailUrl,
   getMasterBallUrl,
   getPokeballUrl,
   getTilesetManifestUrl,
@@ -42,5 +44,7 @@ describe("gameAssets", () => {
     expect(getTmMachineUrl("water")).toBe(`${base}/objects/tms/machine_WATER.png`);
     expect(getPokeballUrl()).toBe(`${base}/objects/pokeballs/POKEBALL.png`);
     expect(getMasterBallUrl()).toBe(`${base}/objects/pokeballs/MASTERBALL.png`);
+    expect(getCtfFlagUrl()).toBe(`${base}/objects/ctf/SILKSCARF.png`);
+    expect(getCtfJailUrl()).toBe(`${base}/objects/ctf/PRISONBOTTLE.png`);
   });
 });
