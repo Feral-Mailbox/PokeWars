@@ -1579,6 +1579,7 @@ export default function GamePage() {
       }
       if (movesRes.ok) {
         const moves = await movesRes.json();
+        if (!Array.isArray(moves)) return;
         const mapped: Record<number, any> = {};
         for (const move of moves) {
           mapped[move.id] = move;
@@ -1690,6 +1691,7 @@ export default function GamePage() {
       const res = await secureFetch("/api/units/summary");
       if (!res?.ok) return;
       const units = await res.json();
+      if (!Array.isArray(units)) return;
 
       const EXCEPTION_SPECIES = new Set([17, 42, 78, 103]);
       const speciesGroups: { [speciesId: number]: any[] } = {};
@@ -1742,6 +1744,7 @@ export default function GamePage() {
       }
       if (movesRes?.ok) {
         const moves = await movesRes.json();
+        if (!Array.isArray(moves)) return;
         const mapped: Record<number, any> = {};
         for (const move of moves) {
           mapped[move.id] = move;
@@ -1808,6 +1811,7 @@ export default function GamePage() {
       const res = await secureFetch("/api/moves/all");
       if (res?.ok) {
         const moves = await res.json();
+        if (!Array.isArray(moves)) return;
         const mapped: Record<number, any> = {};
         for (const move of moves) {
           mapped[move.id] = move;

@@ -105,7 +105,7 @@ Frontend coverage uses Vitest (`npm run test:coverage`), or Docker Node if `npm`
 
 ## 🔁 CI (GitHub Actions)
 
-Continuous integration lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). There is **no automated deploy workflow** yet — production updates are still done on the host (`git pull`, `make upgrade`, `make up`).
+Continuous integration lives in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Production deploys are **manual** via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (not on every push to `main`).
 
 ### When it runs
 
@@ -146,12 +146,28 @@ Protect `main` in GitHub (**Settings → Rules → Rulesets**, or **Settings →
 
 Do not merge or deploy a commit unless this check is green.
 
+### Deploy (manual)
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) SSHs to the VPS and updates the running app. It only runs when you click **Actions → Deploy → Run workflow**.
+
+Required repository secrets:
+
+| Secret | Purpose |
+|--------|---------|
+| `DEPLOY_HOST` | VPS hostname |
+| `DEPLOY_USER` | SSH user on the VPS |
+| `DEPLOY_SSH_KEY` | Private key for that user (deploy-only; not your GitHub login key) |
+
+On the host it checks out `main`, fast-forwards, then runs `make update` (`make upgrade` + `make up`). It never runs `make reset-db` or `make nuke`.
+
+Only run Deploy when **CI is green** on the commit you want live. Two deploys cannot overlap (`concurrency: production-deploy`).
+
 ---
 
 ## 🗂 Project Structure
 
 ```bash
-.github/workflows/  ← GitHub Actions (ci.yml)
+.github/workflows/  ← GitHub Actions (ci.yml, deploy.yml)
 apps/
   backend/          ← FastAPI backend + Alembic + models
   frontend/         ← React + Vite frontend

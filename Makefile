@@ -109,6 +109,10 @@ migrate:
 upgrade:
 	$(DC_USED) run --rm backend alembic upgrade head
 
+# Fast-forward main, apply migrations, rebuild/restart prod containers.
+# Does not reset the database or run nuke.
+update: upgrade up
+
 reset-db: down nuke first-launch
 
 wait-for-postgres:
@@ -227,4 +231,4 @@ coverage: test-backend test-frontend
 	@echo "Backend HTML: apps/backend/coverage/lcov-report/index.html"
 	@echo "Frontend HTML: apps/frontend/coverage/lcov-report/index.html"
 
-.PHONY: first-launch up down rebuild migrate upgrade logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities ensure-venv test test-backend test-frontend test-infrastructure coverage backend-coverage-html
+.PHONY: first-launch up down rebuild migrate upgrade update logs nuke psql status shell dev-shell reset-db wait-for-postgres refresh-seed bootstrap-admin reset-bootstrap-password seed-maps seed-units seed-moves seed-items seed-abilities ensure-venv test test-backend test-frontend test-infrastructure coverage backend-coverage-html
