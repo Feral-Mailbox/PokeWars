@@ -1838,9 +1838,8 @@ def test_get_critical_hit_chance_negative_stage():
     chance_low = get_critical_hit_chance(-6)
     assert chance_low == 0.0
 
-def test_attempt_critical_hit_no_crit_stage(db):
-    """Test that attacker with no crit stages has low crit chance."""
-    attacker = models.GameUnit(stat_boosts={
+def _crit_attacker(crit_boosts):
+    return models.GameUnit(stat_boosts={
         "attack": [],
         "defense": [],
         "sp_attack": [],
@@ -1848,43 +1847,31 @@ def test_attempt_critical_hit_no_crit_stage(db):
         "speed": [],
         "accuracy": [],
         "evasion": [],
-        "crit": []
+        "crit": crit_boosts,
     })
-    
-    # Run many times to check that crits are rare (1/16 chance)
-    crit_count = 0
-    trials = 1000
-    for _ in range(trials):
-        if attempt_critical_hit(attacker):
-            crit_count += 1
-    
-    # Should average around 62-63 crits (1000/16 = 62.5)
-    # Allow some variance: 40-90 crits out of 1000
-    assert 40 <= crit_count <= 90, f"Expected ~62 crits out of {trials}, got {crit_count}"
 
-def test_attempt_critical_hit_with_crit_stage(db):
-    """Test that attacker with +1 crit stage has increased crit chance."""
-    attacker = models.GameUnit(stat_boosts={
-        "attack": [],
-        "defense": [],
-        "sp_attack": [],
-        "sp_defense": [],
-        "speed": [],
-        "accuracy": [],
-        "evasion": [],
-        "crit": [{"magnitude": 1, "expires_turn": 100}]
-    })
-    
-    # Run many times to check that crits are more common (1/8 chance)
-    crit_count = 0
-    trials = 1000
-    for _ in range(trials):
-        if attempt_critical_hit(attacker):
-            crit_count += 1
-    
-    # Should average around 125 crits (1000/8 = 125)
-    # Allow some variance: 100-150 crits out of 1000
-    assert 100 <= crit_count <= 150, f"Expected ~125 crits out of {trials}, got {crit_count}"
+
+def test_attempt_critical_hit_no_crit_stage(db, monkeypatch):
+    """Stage 0 uses a 1/16 chance; do not sample random in CI."""
+    attacker = _crit_attacker([])
+    assert get_critical_hit_chance(0) == pytest.approx(1 / 16)
+
+    monkeypatch.setattr("app.routes.games.random.random", lambda: (1 / 16) - 1e-9)
+    assert attempt_critical_hit(attacker) is True
+    monkeypatch.setattr("app.routes.games.random.random", lambda: 1 / 16)
+    assert attempt_critical_hit(attacker) is False
+
+
+def test_attempt_critical_hit_with_crit_stage(db, monkeypatch):
+    """+1 crit stage uses a 1/8 chance; do not sample random in CI."""
+    attacker = _crit_attacker([{"magnitude": 1, "expires_turn": 100}])
+    assert get_critical_hit_chance(1) == pytest.approx(1 / 8)
+    assert get_critical_hit_chance(1) > get_critical_hit_chance(0)
+
+    monkeypatch.setattr("app.routes.games.random.random", lambda: (1 / 8) - 1e-9)
+    assert attempt_critical_hit(attacker) is True
+    monkeypatch.setattr("app.routes.games.random.random", lambda: 1 / 8)
+    assert attempt_critical_hit(attacker) is False
 
 def test_process_move_effects_high_crit_ratio(db):
     """Test that high_crit_ratio effect raises crit stat."""
