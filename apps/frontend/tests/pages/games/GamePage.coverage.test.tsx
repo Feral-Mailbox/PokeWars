@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { useEffect } from "react";
@@ -623,27 +623,37 @@ function renderGame(path = "/games/cq-link") {
   );
 }
 
+function installIdleFetch() {
+  // Catalog endpoints iterate the JSON body. A leftover `{}` from a reset mock
+  // becomes an unhandled "X is not iterable" after the test finishes.
+  vi.mocked(secureFetch).mockImplementation(async (input: any) => {
+    const url = String(input);
+    if (
+      url.includes("/units/summary") ||
+      url.includes("/units/all") ||
+      url.includes("/moves/all") ||
+      url.includes("/items/all") ||
+      url.includes("/abilities/all")
+    ) {
+      return { ok: true, status: 200, json: async () => [] } as Response;
+    }
+    return { ok: true, status: 200, json: async () => ({}) } as Response;
+  });
+}
+
 describe("GamePage coverage suite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Keep a safe default so in-flight GamePage effects never see undefined.
-    vi.mocked(secureFetch).mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({}),
-    } as Response);
+    installIdleFetch();
     wsInstances.length = 0;
     Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(window, "alert").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    cleanup();
     vi.mocked(secureFetch).mockReset();
-    vi.mocked(secureFetch).mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({}),
-    } as Response);
+    installIdleFetch();
   });
 
   it("prep: ready, place, remove, and start", async () => {
