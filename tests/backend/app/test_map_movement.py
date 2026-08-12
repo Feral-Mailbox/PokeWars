@@ -23,6 +23,7 @@ from app.map_movement import (
     is_ledge_tile,
     is_rock_tile,
     is_sand_tile,
+    is_sky_tile,
     is_valid_movement_destination,
     is_water_tile,
     ledge_allows_entry,
@@ -32,6 +33,7 @@ from app.map_movement import (
     slide_on_ice_from,
     target_receives_grass_tile_bonuses,
     unit_can_cross_rock,
+    unit_can_cross_sky,
     unit_can_cross_water,
     unit_can_occupy_tile,
     unit_can_pass_through_units,
@@ -53,6 +55,65 @@ def test_unit_can_cross_water_for_levitate_ability():
     assert unit_can_cross_water({"grass"}, {"levitate"}) is True
     assert unit_can_cross_water({"grass"}, {"Levitate"}) is True
     assert unit_can_cross_water({"grass"}, {"intimidate"}) is False
+
+
+def test_unit_can_cross_sky_for_flying_and_levitate_only():
+    assert unit_can_cross_sky({"flying"}) is True
+    assert unit_can_cross_sky({"flying", "normal"}) is True
+    assert unit_can_cross_sky({"grass"}, {"levitate"}) is True
+    assert unit_can_cross_sky({"grass"}, {"Levitate"}) is True
+    assert unit_can_cross_sky({"water"}) is False
+    assert unit_can_cross_sky({"grass"}) is False
+    assert unit_can_cross_sky({"ghost"}) is False
+    assert unit_can_cross_sky({"grass"}, {"intimidate"}) is False
+
+
+def test_build_movement_cost_grid_blocks_sky_for_grounded_units():
+    base = [[1, 1, 1]]
+    special = [[None, "sky", None]]
+
+    grounded = build_movement_cost_grid(base, special, {"grass"})
+    assert grounded[0][1] == IMPOSSIBLE_MOVEMENT_COST
+
+    water_type = build_movement_cost_grid(base, special, {"water"})
+    assert water_type[0][1] == IMPOSSIBLE_MOVEMENT_COST
+
+    flying = build_movement_cost_grid(base, special, {"flying"})
+    assert flying[0][1] == 1
+
+    levitate = build_movement_cost_grid(base, special, {"grass"}, {"levitate"})
+    assert levitate[0][1] == 1
+
+
+def test_sky_blocks_movement_range_and_occupation_for_grounded_units():
+    special = [[None, "sky"]]
+    grounded_costs = build_movement_cost_grid([[1, 1]], special, {"normal"})
+    tiles = movement_range_with_terrain(
+        start=(0, 0),
+        rng=2,
+        movement_costs=grounded_costs,
+        special_tiles=special,
+        width=2,
+        height=1,
+        unit_types={"normal"},
+    )
+    assert {(t[0], t[1]) for t in tiles} == {(0, 0)}
+    assert unit_can_occupy_tile(special, 1, 0, {"normal"}) is False
+    assert unit_can_occupy_tile(special, 1, 0, {"flying"}) is True
+    assert unit_can_occupy_tile(special, 1, 0, {"normal"}, {"levitate"}) is True
+    assert is_sky_tile(special, 1, 0) is True
+    assert is_sky_tile(special, 0, 0) is False
+
+    flying_tiles = movement_range_with_terrain(
+        start=(0, 0),
+        rng=2,
+        movement_costs=build_movement_cost_grid([[1, 1]], special, {"flying"}),
+        special_tiles=special,
+        width=2,
+        height=1,
+        unit_types={"flying"},
+    )
+    assert (1, 0) in {(t[0], t[1]) for t in flying_tiles}
 
 
 def test_unit_can_cross_rock_for_flying_rock_and_levitate():

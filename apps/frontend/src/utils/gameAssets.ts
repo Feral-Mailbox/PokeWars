@@ -37,3 +37,11 @@ export function getPokeballUrl(): string {
 export function getMasterBallUrl(): string {
   return `${getAssetBase()}/objects/pokeballs/MASTERBALL.png`;
 }
+
+export function getCtfFlagUrl(): string {
+  return `${getAssetBase()}/objects/ctf/SILKSCARF.png`;
+}
+
+export function getCtfJailUrl(): string {
+  return `${getAssetBase()}/objects/ctf/PRISONBOTTLE.png`;
+}

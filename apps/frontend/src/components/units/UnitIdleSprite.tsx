@@ -147,6 +147,7 @@ export default function UnitIdleSprite({
       setSpriteImage(null);
       setShadowImage(null);
       setDurations([]);
+      if (!assetFolder) return;
 
       const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
       const normalizedBase = assetBase.startsWith("http")

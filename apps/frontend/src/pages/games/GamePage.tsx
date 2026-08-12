@@ -6,12 +6,15 @@ import { openBugReportWindow } from "@/utils/bugReport";
 import { useAuth } from "@/state/auth";
 import GameMapStage from "./components/GameMapStage";
 import MapItemTooltip from "./components/MapItemTooltip";
+import JailTooltip from "./components/JailTooltip";
 import InProgressUnitMenu from "./components/unit-menus/InProgressUnitMenu";
 import PreparationPlacedUnitMenu from "./components/unit-menus/PreparationPlacedUnitMenu";
 import { formatTmDisplayName, UNIT_MENU_WIDTH_PX } from "./components/unit-menus/UnitMenuShared";
 import PreparationUnitSelectMenu from "./components/unit-menus/PreparationUnitSelectMenu";
 import CaptureTheFlagGame, {
   getCtfActionTarget,
+  getCtfJailAt,
+  listCtfJails,
   patchFlagTile,
   patchUnlockTile,
 } from "./modes/CaptureTheFlagGame";
@@ -23,7 +26,7 @@ import WarGame, {
 } from "./modes/WarGame";
 import ChatPanel from "./components/ChatPanel";
 import InvitePlayerModal from "../../components/InvitePlayerModal";
-import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, type PlacedUnitState } from "./mapPlacedUnit";
+import { mapPlacedUnitFromBackend, mapVisiblePlacedUnitsFromBackend, mapViewerVisiblePlacedUnitsFromBackend, resolveMovePpIndex, toActiveUnitView, isVisibleOnMapUnit, isRenderedOnMapUnit, upsertPlacedUnit, type PlacedUnitState } from "./mapPlacedUnit";
 import { applyGamePatch, type GamePatchMessage } from "./applyGamePatch";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
 import { MAP_DISPLAY_LAYOUT, pointerToTileCoords } from "@/utils/mapPointer";
@@ -75,7 +78,7 @@ export function getBlockedTilesByEnemy(
   const blocked = new Set<string>();
   for (const u of placedUnits) {
     // Only living enemy units block pathfinding; allied units do not
-    if (u.user_id !== unitUserId && isActivePlacedUnit(u)) {
+    if (u.user_id !== unitUserId && isActivePlacedUnit(u) && !u.jailed) {
       blocked.add(`${u.tile[0]},${u.tile[1]}`);
     }
   }
@@ -93,14 +96,23 @@ export const PLAYER_COLORS: string[] = [
   "#00FFFF80", // Cyan
 ];
 
+export function solidPlayerColor(color: string): string {
+  if (color.startsWith("#") && color.length === 9) return color.slice(0, 7);
+  return color || "#ffffff";
+}
+
 export function buildPlayerColorMap(players: unknown): Record<number, string> {
   if (!Array.isArray(players)) return {};
 
-  const sorted = [...players].sort(
-    (a: { id?: number }, b: { id?: number }) => Number(a?.id ?? 0) - Number(b?.id ?? 0),
+  const roster = players.filter(
+    (player): player is { id?: number; player_id?: number } =>
+      player != null && typeof player === "object"
+  );
+  const sorted = [...roster].sort(
+    (a, b) => Number(a?.id ?? a?.player_id ?? 0) - Number(b?.id ?? b?.player_id ?? 0),
   );
   const colorMap: Record<number, string> = {};
-  sorted.forEach((player: { player_id?: number }, index: number) => {
+  sorted.forEach((player, index) => {
     const playerId = Number(player?.player_id);
     if (!Number.isFinite(playerId)) return;
     colorMap[playerId] = PLAYER_COLORS[index] ?? "#00000000";
@@ -135,6 +147,13 @@ export default function GamePage() {
   const [hoveredOverlayTile, setHoveredOverlayTile] = useState<[number, number] | null>(null);
   const [hoveredMapItem, setHoveredMapItem] = useState<{
     itemId: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+  const [hoveredJail, setHoveredJail] = useState<{
+    x: number;
+    y: number;
+    owner: number;
     clientX: number;
     clientY: number;
   } | null>(null);
@@ -175,6 +194,7 @@ export default function GamePage() {
   const gameDataRef = useRef(gameData);
   const lastEventSeqRef = useRef(0);
   const cashRef = useRef(cash);
+  const userIdRef = useRef(userId);
   const lockedUnitRef = useRef<any | null>(null);
   const activeUnit = lockedUnit ?? hoveredUnit;
   const frozenMovesRef = useRef<Record<number, MovementLockCache>>({});
@@ -205,7 +225,7 @@ export default function GamePage() {
     !placedUnits.some(
       (u) => u.tile[0] === selectedTile[0] && u.tile[1] === selectedTile[1]
     ) &&
-    placedUnits.length < unitLimit;
+    myPlacedUnitCount < unitLimit;
   
   // Derive current player from turn counter
   const currentPlayerId = 
@@ -310,6 +330,35 @@ export default function GamePage() {
     }
     return mapItemLabelsById[hoveredMapItem.itemId] ?? null;
   }, [hoveredMapItem, mapItemLabelsById, isLobbyPhase]);
+
+  const hoveredJailOwnerLabel = useMemo(() => {
+    if (!hoveredJail || !gameData) return "Jail";
+    const userIdForOwner = Array.isArray(gameData.player_order)
+      ? gameData.player_order[hoveredJail.owner - 1]
+      : null;
+    const player = Array.isArray(gameData.players)
+      ? gameData.players.find(
+          (entry: any) =>
+            Number(entry?.player_id ?? entry?.id) === Number(userIdForOwner)
+        )
+      : null;
+    const name = player?.username ?? `Player ${hoveredJail.owner}`;
+    return `${name}'s jail`;
+  }, [hoveredJail, gameData]);
+
+  const hoveredJailOccupants = useMemo(() => {
+    if (!hoveredJail) return [];
+    return placedUnits
+      .filter((unit) => {
+        if (!unit.jailed) return false;
+        if (unit.jailed_by === hoveredJail.owner) return true;
+        return unit.tile[0] === hoveredJail.x && unit.tile[1] === hoveredJail.y;
+      })
+      .map((unit) => ({
+        name: unit.unit?.name ?? "Unit",
+        color: solidPlayerColor(getPlayerColor(unit.user_id)),
+      }));
+  }, [hoveredJail, placedUnits, playerColorMap]);
 
   function getMapItemIdAtTile(x: number, y: number): number | null {
     if (!mapItemIdTiles) return null;
@@ -528,7 +577,7 @@ export default function GamePage() {
   function isTileOccupied(x: number, y: number, ignoreUnitId?: number) {
     return placedUnitsRef.current.some(u => {
       if (ignoreUnitId != null && u.id === ignoreUnitId) return false;
-      if (!isActivePlacedUnit(u)) return false;
+      if (!isActivePlacedUnit(u) || u.jailed) return false;
       return u.tile[0] === x && u.tile[1] === y;
     });
   }
@@ -537,7 +586,7 @@ export default function GamePage() {
     const occupied = new Set<string>();
     for (const u of placedUnitsRef.current) {
       if (ignoreUnitId != null && u.id === ignoreUnitId) continue;
-      if (!isActivePlacedUnit(u)) continue;
+      if (!isActivePlacedUnit(u) || u.jailed) continue;
       occupied.add(`${u.tile[0]},${u.tile[1]}`);
     }
     return occupied;
@@ -1158,7 +1207,7 @@ export default function GamePage() {
   function getOccupiedTileKeySet(ignoreUnitId?: number): Set<string> {
     const occupied = new Set<string>();
     for (const u of placedUnitsRef.current) {
-      if (!isActivePlacedUnit(u)) continue;
+      if (!isActivePlacedUnit(u) || u.jailed) continue;
       if (ignoreUnitId != null && u.id === ignoreUnitId) continue;
       occupied.add(`${u.tile[0]},${u.tile[1]}`);
     }
@@ -1350,7 +1399,8 @@ export default function GamePage() {
 
       if (isPreparationPhase) {
         const liveUnits = placedUnitsRef.current;
-        if (liveUnits.length >= unitLimit) {
+        const myCount = liveUnits.filter((u) => u.user_id === userId).length;
+        if (myCount >= unitLimit) {
           setSelectedTile(null);
           setToastMessage("You've reached the maximum number of units!");
           return;
@@ -1635,12 +1685,11 @@ export default function GamePage() {
             }
           }
 
-          const visibleUnits = data.status === "preparation"
-          ? backendUnits.filter((u: any) => playerUnitIds.includes(u.id))
-          : backendUnits;
-
-
-          const mappedUnits = mapVisiblePlacedUnitsFromBackend(visibleUnits);
+          const mappedUnits = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
+            status: data.status,
+            playerUnitIds: data.status === "preparation" ? playerUnitIds : null,
+            viewerUserId: userIdRef.current,
+          });
           setPlacedUnits(mappedUnits);
           placedUnitsRef.current = mappedUnits;
 
@@ -2190,7 +2239,10 @@ export default function GamePage() {
                 const unitsRes = await secureFetch(`/api/games/${link}/units`);
                 if (unitsRes.ok) {
                   const backendUnits = await unitsRes.json();
-                  const mapped = mapVisiblePlacedUnitsFromBackend(backendUnits);
+                  const mapped = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
+                    status: gameDataRef.current?.status ?? updatedGame.status,
+                    viewerUserId: userIdRef.current,
+                  });
                   placedUnitsRef.current = mapped;
                   setPlacedUnits(mapped);
                 }
@@ -2208,7 +2260,7 @@ export default function GamePage() {
               gameData: gameDataRef.current,
               placedUnits: placedUnitsRef.current,
               cash: cashRef.current,
-              viewerUserId: userId,
+              viewerUserId: userIdRef.current,
             });
 
             if (applied.clearUiForTurn) {
@@ -2275,17 +2327,20 @@ export default function GamePage() {
                   const unitsRes = await secureFetch(`/api/games/${link}/units`);
                   if (unitsRes.ok) {
                     const backendUnits = await unitsRes.json();
-                    let visibleUnits = backendUnits;
+                    let playerUnitIds: number[] | null = null;
                     if (gameDataRef.current?.status === "preparation") {
                       const playerRes = await secureFetch(`/api/games/${link}/player`);
                       if (playerRes.ok) {
                         const player = await playerRes.json();
                         setCash(player.cash_remaining);
-                        const ids: number[] = player.game_units ?? [];
-                        visibleUnits = backendUnits.filter((u: any) => ids.includes(u.id));
+                        playerUnitIds = player.game_units ?? [];
                       }
                     }
-                    const mapped = mapVisiblePlacedUnitsFromBackend(visibleUnits);
+                    const mapped = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
+                      status: gameDataRef.current?.status,
+                      playerUnitIds,
+                      viewerUserId: userIdRef.current,
+                    });
                     placedUnitsRef.current = mapped;
                     setPlacedUnits(mapped);
                   }
@@ -2624,7 +2679,10 @@ export default function GamePage() {
           const unitsRes = await secureFetch(`/api/games/${link}/units`);
           if (unitsRes.ok) {
             const backendUnits = await unitsRes.json();
-            const mapped = mapVisiblePlacedUnitsFromBackend(backendUnits);
+            const mapped = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
+              status: updatedGame.status,
+              viewerUserId: userIdRef.current,
+            });
             placedUnitsRef.current = mapped;
             setPlacedUnits(mapped);
             try {
@@ -2651,6 +2709,10 @@ export default function GamePage() {
   useEffect(() => {
     cashRef.current = cash;
   }, [cash]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   useEffect(() => {
     lockedUnitRef.current = lockedUnit;
@@ -2736,7 +2798,10 @@ export default function GamePage() {
 
   const handleTileSelect = (tile: [number, number] | null) => {
     const liveUnits = placedUnitsRef.current;
-    const liveUnitCount = liveUnits.length;
+    const liveUnitCount =
+      userId != null
+        ? liveUnits.filter((u) => u.user_id === userId).length
+        : liveUnits.length;
 
     if (tile && liveUnitCount >= unitLimit) {
       setSelectedTile(null);
@@ -2812,6 +2877,15 @@ export default function GamePage() {
     )
   : null;
 
+  const syncPlayerCash = async (link: string) => {
+    const playerRes = await secureFetch(`/api/games/${link}/player`);
+    if (!playerRes.ok) return;
+    const player = await playerRes.json();
+    if (player.cash_remaining != null) {
+      setCash(Number(player.cash_remaining));
+    }
+  };
+
   const handleRemovePlacedUnit = async () => {
     if (!placedUnitAtTile?.id || !gameData?.link) return;
 
@@ -2824,23 +2898,13 @@ export default function GamePage() {
       return;
     }
 
-    setCash((prev) => {
-      const equippedItem = availableItems.find(
-        (item) => item.slug === placedUnitAtTile.held_item_slug
-      );
-      const hiddenAbilityId = placedUnitAtTile.unit?.hidden_ability ?? null;
-      const hasHiddenAbilityEquipped =
-        hiddenAbilityId != null && placedUnitAtTile.ability_id === hiddenAbilityId;
-      const hiddenAbilityRefund = hasHiddenAbilityEquipped ? 250 : 0;
-      return (
-        prev +
-        (placedUnitAtTile.unit?.cost ?? 0) +
-        (equippedItem?.cost ?? 0) +
-        hiddenAbilityRefund
-      );
+    setPlacedUnits((prev) => {
+      const next = prev.filter((u) => u.id !== placedUnitAtTile.id);
+      placedUnitsRef.current = next;
+      return next;
     });
-    setPlacedUnits((prev) => prev.filter((u) => u.id !== placedUnitAtTile.id));
     setSelectedTile(null);
+    await syncPlayerCash(gameData.link);
   };
 
   const handleChangeUnitAbility = async (abilityId: number) => {
@@ -2955,10 +3019,20 @@ export default function GamePage() {
     }
 
     const placedUnit = await res.json();
-
-    setPlacedUnits((prev) => [...prev, mapPlacedUnitFromBackend(placedUnit)]);
-    setCash((prev) => prev - unit.cost);
+    const mapped = mapPlacedUnitFromBackend({
+      ...placedUnit,
+      // Catalog row from the select menu always has asset_folder; place patches may not.
+      unit: { ...unit, ...(placedUnit.unit || {}) },
+    });
+    setPlacedUnits((prev) => {
+      const next = upsertPlacedUnit(prev, mapped);
+      placedUnitsRef.current = next;
+      return next;
+    });
     setSelectedTile(null);
+    // Cash is deducted server-side and broadcast via game_patch; never subtract locally
+    // or a late HTTP response can double-charge after the WS players update.
+    await syncPlayerCash(gameData.link);
   };
 
   const handleWarSummonUnit = async (unit: any) => {
@@ -2991,19 +3065,22 @@ export default function GamePage() {
     }
 
     const placedUnit = await res.json();
-    setPlacedUnits((prev) => [...prev, mapPlacedUnitFromBackend(placedUnit)]);
-    setCash((prev) => prev - unit.cost);
+    const mapped = mapPlacedUnitFromBackend({
+      ...placedUnit,
+      unit: { ...unit, ...(placedUnit.unit || {}) },
+    });
+    setPlacedUnits((prev) => {
+      const next = upsertPlacedUnit(prev, mapped);
+      placedUnitsRef.current = next;
+      return next;
+    });
     setSelectedTile(null);
 
     const gameRes = await secureFetch(`/api/games/${gameData.link}`);
     if (gameRes.ok) {
       setGameData(normalizeGameData(await gameRes.json()));
     }
-    const playerRes = await secureFetch(`/api/games/${gameData.link}/player`);
-    if (playerRes.ok) {
-      const player = await playerRes.json();
-      setCash(player.cash_remaining);
-    }
+    await syncPlayerCash(gameData.link);
   };
 
   const handleWarCapture = async () => {
@@ -3081,16 +3158,21 @@ export default function GamePage() {
       setGameData((prev) =>
         patchFlagTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
           owner: Number(data.flag.owner ?? 0),
+          hp: Number(data.flag.hp ?? ctfActionTarget.hp),
+          max_hp: Number(data.flag.max_hp ?? ctfActionTarget.max_hp),
         })
       );
-    } else if (ctfActionTarget.kind === "unlock" && data?.unlock) {
-      setGameData((prev) =>
-        patchUnlockTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
-          hp: Number(data.unlock.hp ?? ctfActionTarget.max_hp),
-          max_hp: Number(data.unlock.max_hp ?? ctfActionTarget.max_hp),
-        })
-      );
-      if (data?.unlocked || Array.isArray(data?.freed_unit_ids)) {
+    } else if (ctfActionTarget.kind === "unlock") {
+      const jailCell = data?.jail_cell ?? data?.jail;
+      if (jailCell && (jailCell.hp != null || jailCell.max_hp != null)) {
+        setGameData((prev) =>
+          patchUnlockTile(prev, ctfActionTarget.x, ctfActionTarget.y, {
+            hp: Number(jailCell.hp ?? ctfActionTarget.hp),
+            max_hp: Number(jailCell.max_hp ?? ctfActionTarget.max_hp),
+          })
+        );
+      }
+      if (data?.unlocked) {
         const unitsRes = await secureFetch(`/api/games/${gameData.link}/units`);
         if (unitsRes.ok) {
           const units = await unitsRes.json();
@@ -3109,13 +3191,32 @@ export default function GamePage() {
 
   const handleMapUnitMouseEnter = (unitState: PlacedUnitState) => {
     setHoveredMapItem(null);
+    const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
+    if (live.jailed && gameData) {
+      const jail =
+        (live.jailed_by != null
+          ? listCtfJails(gameData).find((entry) => entry.owner === live.jailed_by)
+          : null) ?? getCtfJailAt(gameData, live.tile[0], live.tile[1]);
+      if (jail) {
+        const stage = mapStageRef.current as HTMLElement | null;
+        const rect = stage?.getBoundingClientRect();
+        setHoveredJail({
+          ...jail,
+          clientX: rect ? rect.left + jail.x * TILE_DRAW_SIZE * displayScale + TILE_DRAW_SIZE / 2 : 0,
+          clientY: rect ? rect.top + jail.y * TILE_DRAW_SIZE * displayScale : 0,
+        });
+        setHoveredUnit(null);
+        return;
+      }
+    }
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
-      const live = placedUnits.find((p) => p.id === unitState.id) ?? unitState;
+      setHoveredJail(null);
       setHoveredUnit(toActiveUnitView(live));
     }
   };
 
   const handleMapUnitMouseLeave = () => {
+    setHoveredJail(null);
     if (gameData?.status === "in_progress" && !lockedUnit && !moveTargeting) {
       setHoveredUnit(null);
     }
@@ -3234,8 +3335,9 @@ export default function GamePage() {
         <p className="text-lg font-semibold mb-2 text-yellow-400">
           {gameData?.status === "in_progress" ? (
             (() => {
-              const current = gameData.players.find(
-                (p: any) => p.player_id === currentPlayerId
+              const roster = Array.isArray(gameData.players) ? gameData.players : [];
+              const current = roster.find(
+                (p: any) => p && typeof p === "object" && p.player_id === currentPlayerId
               );
               const name = current?.username ?? "Player";
               return (
@@ -3308,14 +3410,14 @@ export default function GamePage() {
               Cash: <span className="text-green-400">${cash}</span>
             </div>
             <div className="flex items-center gap-4 text-white font-semibold">
-              Units: <span className={placedUnits.length >= unitLimit ? "text-red-400" : "text-yellow-300"}>
-                {placedUnits.length}/{unitLimit}
+              Units: <span className={myPlacedUnitCount >= unitLimit ? "text-red-400" : "text-yellow-300"}>
+                {myPlacedUnitCount}/{unitLimit}
               </span>
               <button
                 onClick={handleToggleReady}
-                disabled={placedUnits.length === 0}
+                disabled={myPlacedUnitCount === 0}
                 className={`px-3 py-1 text-sm rounded ${
-                  placedUnits.length === 0 ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                  myPlacedUnitCount === 0 ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
                 Ready
@@ -3358,9 +3460,15 @@ export default function GamePage() {
             setHoveredMapItem({ itemId, clientX, clientY })
           }
           onMapItemLeave={() => setHoveredMapItem(null)}
+          jailTiles={gameData?.gamemode === "Capture The Flag" ? listCtfJails(gameData) : []}
+          onJailHover={(jail, clientX, clientY) => {
+            setHoveredMapItem(null);
+            setHoveredJail({ ...jail, clientX, clientY });
+          }}
+          onJailLeave={() => setHoveredJail(null)}
           mapStageRef={mapStageRef}
           overlayPointerEventsEnabled={(lockedUnit && lockedUnit.can_move !== false && isMyTurn) || moveTargeting}
-          placedUnits={placedUnits.filter(isVisibleOnMapUnit)}
+          placedUnits={placedUnits.filter(isRenderedOnMapUnit)}
           tileDrawSize={TILE_DRAW_SIZE}
           moveTargeting={moveTargeting}
           getPlayerColor={getPlayerColor}
@@ -3379,6 +3487,14 @@ export default function GamePage() {
             hoveredMapItem != null &&
             hoveredMapItemLabel != null
           }
+        />
+
+        <JailTooltip
+          ownerLabel={hoveredJailOwnerLabel}
+          occupants={hoveredJailOccupants}
+          x={hoveredJail?.clientX ?? 0}
+          y={hoveredJail?.clientY ?? 0}
+          visible={hoveredJail != null}
         />
 
         {gameData && (
@@ -3473,7 +3589,7 @@ export default function GamePage() {
             />
           );
         }
-        else if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && placedUnits.length < unitLimit) {
+        else if (isPreparationPhase && selectedTile && placedUnitAtTile === undefined && myPlacedUnitCount < unitLimit) {
           panel = (
             <PreparationUnitSelectMenu
               availableUnits={availableUnits}
@@ -3543,7 +3659,7 @@ export default function GamePage() {
               captureHpLabel={
                 warCaptureTarget
                   ? `HP ${warCaptureTarget.hp}/${warCaptureTarget.max_hp}`
-                  : ctfActionTarget?.kind === "unlock"
+                  : ctfActionTarget
                     ? `HP ${ctfActionTarget.hp}/${ctfActionTarget.max_hp}`
                     : null
               }

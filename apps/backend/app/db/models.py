@@ -344,6 +344,8 @@ class GameUnit(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     starting_x = Column(Integer, nullable=False)
     starting_y = Column(Integer, nullable=False)
+    match_start_x = Column(Integer, nullable=True)
+    match_start_y = Column(Integer, nullable=True)
     current_x = Column(Integer, nullable=False)
     current_y = Column(Integer, nullable=False)
     level = Column(Integer, default=50)

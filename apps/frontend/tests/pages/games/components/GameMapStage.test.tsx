@@ -140,6 +140,42 @@ describe("GameMapStage", () => {
     };
   }
 
+  it("does not draw jailed units on the map", () => {
+    renderStage({
+      placedUnits: [
+        {
+          id: 4,
+          unit: { asset_folder: "098_lanturn" },
+          tile: [0, 0],
+          current_hp: 155,
+          user_id: 7,
+          can_move: false,
+          jailed: true,
+        },
+      ],
+    });
+    expect(screen.queryAllByTestId("unit-sprite")).toHaveLength(0);
+    expect(screen.queryByText("155")).not.toBeInTheDocument();
+  });
+
+  it("keeps rendering when a placed unit has no catalog object", () => {
+    renderStage({
+      placedUnits: [
+        {
+          id: 3,
+          unit: undefined,
+          tile: [0, 1],
+          current_hp: 40,
+          user_id: 7,
+          can_move: true,
+        },
+      ],
+    });
+    expect(document.getElementById("mapCanvas")).toBeTruthy();
+    expect(screen.queryAllByTestId("unit-sprite")).toHaveLength(0);
+    expect(screen.getByText("40")).toBeInTheDocument();
+  });
+
   it("renders map canvases, units, and health", () => {
     renderStage();
     expect(document.getElementById("mapCanvas")).toBeTruthy();

@@ -1,4 +1,5 @@
 export const WATER_TILE = "water";
+export const SKY_TILE = "sky";
 export const ROCK_TILE = "rock";
 export const GRASS_TILE = "grass";
 export const SAND_TILE = "sand";
@@ -43,6 +44,14 @@ export function isWaterTile(
   y: number
 ): boolean {
   return getSpecialTile(specialTiles, x, y) === WATER_TILE;
+}
+
+export function isSkyTile(
+  specialTiles: unknown[][] | null | undefined,
+  x: number,
+  y: number
+): boolean {
+  return getSpecialTile(specialTiles, x, y) === SKY_TILE;
 }
 
 export function isRockTile(
@@ -103,6 +112,14 @@ export function unitCanCrossWater(
 ): boolean {
   const normalized = normalizedTypes(types);
   if (normalized.has("water") || normalized.has("flying")) return true;
+  return unitHasLevitate(types, abilityNames);
+}
+
+export function unitCanCrossSky(
+  types: string[] | null | undefined,
+  abilityNames?: string[] | null
+): boolean {
+  if (normalizedTypes(types).has("flying")) return true;
   return unitHasLevitate(types, abilityNames);
 }
 
@@ -353,6 +370,7 @@ export function buildMovementCostGrid(
   if (!specialTiles?.length) return baseCosts;
 
   const canWater = unitCanCrossWater(unitTypes, abilityNames);
+  const canSky = unitCanCrossSky(unitTypes, abilityNames);
   const canRock = unitCanCrossRock(unitTypes, abilityNames);
   const canStandOnLedge = unitCanStandOnLedge(unitTypes, abilityNames);
   const ignoresSandSlow = unitIgnoresSandSlow(unitTypes, abilityNames);
@@ -362,6 +380,7 @@ export function buildMovementCostGrid(
       const tile = getSpecialTile(specialTiles, x, y);
       if (tile === IMPASSABLE_TILE) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile === WATER_TILE && !canWater) return IMPOSSIBLE_MOVEMENT_COST;
+      if (tile === SKY_TILE && !canSky) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile === ROCK_TILE && !canRock) return IMPOSSIBLE_MOVEMENT_COST;
       if (tile != null && LEDGE_TILES.has(tile) && !canStandOnLedge) return 0;
       if (tile === SAND_TILE && !ignoresSandSlow) return SAND_MOVEMENT_COST;
@@ -437,6 +456,7 @@ export function unitCanOccupyTile(
   const tile = getSpecialTile(specialTiles, x, y);
   if (tile === IMPASSABLE_TILE) return false;
   if (tile === WATER_TILE) return unitCanCrossWater(unitTypes, abilityNames);
+  if (tile === SKY_TILE) return unitCanCrossSky(unitTypes, abilityNames);
   if (tile === ROCK_TILE) return unitCanCrossRock(unitTypes, abilityNames);
   if (tile != null && LEDGE_TILES.has(tile)) {
     return unitCanStandOnLedge(unitTypes, abilityNames);

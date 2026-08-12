@@ -24,7 +24,7 @@ export type GamePatchOp =
       }>;
     }
   | { op: "objective_updated"; x: number; y: number; hp: number; owner: number; kind?: string }
-  | { op: "flag_updated"; x: number; y: number; owner: number }
+  | { op: "flag_updated"; x: number; y: number; owner: number; hp?: number; max_hp?: number }
   | { op: "unlock_updated"; x: number; y: number; hp: number; max_hp: number }
   | { op: "map_item_picked"; x: number; y: number }
   | { op: "map_item_swapped"; x: number; y: number; item_id: number }
@@ -68,6 +68,8 @@ function mergeUnitPatch(existing: PlacedUnitState | undefined, raw: Record<strin
           status_effects: existing.status_effects,
           states: existing.states,
           is_fainted: existing.is_fainted,
+          jailed: existing.jailed,
+          jailed_by: existing.jailed_by,
           can_move: existing.can_move,
           move_pp: existing.move_pp,
           held_item: existing.held_item,
@@ -80,9 +82,13 @@ function mergeUnitPatch(existing: PlacedUnitState | undefined, raw: Record<strin
       : {}),
     ...raw,
   });
-  // Preserve nested unit catalog object when patch omits it.
-  if (existing?.unit && (raw.unit == null)) {
-    mapped.unit = existing.unit;
+  // Preserve nested unit catalog fields when patches send a sparse summary.
+  if (existing?.unit) {
+    if (raw.unit == null) {
+      mapped.unit = existing.unit;
+    } else if (typeof raw.unit === "object") {
+      mapped.unit = { ...existing.unit, ...(raw.unit as Record<string, unknown>) };
+    }
   }
   return mapped;
 }
@@ -112,6 +118,14 @@ export function applyGamePatch(args: {
         const idx = placedUnits.findIndex((u) => u.id === id);
         const existing = idx >= 0 ? placedUnits[idx] : undefined;
         const merged = mergeUnitPatch(existing, raw);
+        // Prep fog-of-war: never add opponents' placements into local state.
+        if (
+          gameData?.status === "preparation" &&
+          viewerUserId != null &&
+          Number(merged.user_id) !== Number(viewerUserId)
+        ) {
+          break;
+        }
         if (!isVisibleOnMapUnit(merged)) {
           if (idx >= 0) {
             placedUnits = placedUnits.filter((u) => u.id !== id);
@@ -153,13 +167,16 @@ export function applyGamePatch(args: {
       }
       case "turn": {
         if (!gameData) break;
+        // Backend turn.players is the playable turn-order id list (same as player_order),
+        // not the PlayerInfo roster on gameData.players.
+        const nextOrder = Array.isArray(op.players) ? op.players.map(Number) : null;
         gameData = {
           ...gameData,
           current_turn: op.current_turn ?? gameData.current_turn,
           turn_deadline: op.turn_deadline ?? gameData.turn_deadline,
           status: op.status ?? gameData.status,
           winner_id: op.winner_id !== undefined ? op.winner_id : gameData.winner_id,
-          players: Array.isArray(op.players) ? op.players : gameData.players,
+          ...(nextOrder ? { player_order: nextOrder } : {}),
         };
         clearUiForTurn = true;
         break;
@@ -170,19 +187,25 @@ export function applyGamePatch(args: {
       }
       case "players": {
         if (!gameData) break;
-        const nextPlayers = Array.isArray(gameData.players_info)
-          ? gameData.players_info.map((p: any) => {
-              const row = op.players.find((r) => Number(r.player_id) === Number(p.player_id ?? p.id));
-              if (!row) return p;
-              return {
-                ...p,
-                cash_remaining: row.cash_remaining ?? p.cash_remaining,
-                is_ready: row.is_ready ?? p.is_ready,
-                game_units: row.game_units ?? p.game_units,
-              };
-            })
-          : gameData.players_info;
-        gameData = { ...gameData, players_info: nextPlayers };
+        const rosterKey = Array.isArray(gameData.players)
+          ? "players"
+          : Array.isArray(gameData.players_info)
+            ? "players_info"
+            : null;
+        if (rosterKey) {
+          const prevRoster = gameData[rosterKey];
+          const nextPlayers = prevRoster.map((p: any) => {
+            const row = op.players.find((r) => Number(r.player_id) === Number(p.player_id ?? p.id));
+            if (!row) return p;
+            return {
+              ...p,
+              cash_remaining: row.cash_remaining ?? p.cash_remaining,
+              is_ready: row.is_ready ?? p.is_ready,
+              game_units: row.game_units ?? p.game_units,
+            };
+          });
+          gameData = { ...gameData, [rosterKey]: nextPlayers };
+        }
         if (viewerUserId != null) {
           const mine = op.players.find((r) => Number(r.player_id) === Number(viewerUserId));
           if (mine && mine.cash_remaining != null) {
@@ -223,6 +246,8 @@ export function applyGamePatch(args: {
           tiles[op.y][op.x] = {
             ...prev,
             owner: op.owner,
+            ...(op.hp != null ? { hp: op.hp } : {}),
+            ...(op.max_hp != null ? { max_hp: op.max_hp } : {}),
           };
         }
         gameData = {
@@ -232,19 +257,27 @@ export function applyGamePatch(args: {
         break;
       }
       case "unlock_updated": {
-        if (!gameData?.map_state?.unlock_tiles) break;
-        const tiles = gameData.map_state.unlock_tiles.map((row: any[]) =>
-          Array.isArray(row) ? [...row] : row,
+        if (!gameData?.map_state) break;
+        const prevGrid = Array.isArray(gameData.map_state.unlock_tiles)
+          ? gameData.map_state.unlock_tiles
+          : [];
+        const height = Math.max(prevGrid.length, op.y + 1);
+        const width = Math.max(
+          ...prevGrid.map((row: any) => (Array.isArray(row) ? row.length : 0)),
+          op.x + 1,
         );
-        if (Array.isArray(tiles[op.y])) {
-          tiles[op.y] = [...tiles[op.y]];
-          const prev = tiles[op.y][op.x] || {};
-          tiles[op.y][op.x] = {
-            ...prev,
-            hp: op.hp,
-            max_hp: op.max_hp,
-          };
-        }
+        const tiles = Array.from({ length: height }, (_, rowY) => {
+          const src = Array.isArray(prevGrid[rowY]) ? prevGrid[rowY] : [];
+          const row = Array.from({ length: width }, (_, colX) => src[colX] ?? null);
+          if (rowY === op.y) {
+            row[op.x] = {
+              ...(row[op.x] || {}),
+              hp: op.hp,
+              max_hp: op.max_hp,
+            };
+          }
+          return row;
+        });
         gameData = {
           ...gameData,
           map_state: { ...gameData.map_state, unlock_tiles: tiles },

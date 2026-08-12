@@ -19,6 +19,7 @@ describe("GamePage helpers", () => {
       { user_id: 2, tile: [1, 1], current_hp: 5 },
       { user_id: 2, tile: [2, 2], current_hp: 0 },
       { user_id: 2, tile: [3, 3], is_fainted: true, current_hp: 10 },
+      { user_id: 2, tile: [4, 4], current_hp: 10, jailed: true },
     ];
     expect([...getBlockedTilesByEnemy(units, 1)]).toEqual(["1,1"]);
     expect(getBlockedTilesByEnemy(units, 1, ["Ghost"]).size).toBe(0);
@@ -26,6 +27,7 @@ describe("GamePage helpers", () => {
 
   it("maps players to palette colors by id order", () => {
     expect(buildPlayerColorMap(null)).toEqual({});
+    expect(buildPlayerColorMap([10, 20])).toEqual({});
     expect(
       buildPlayerColorMap([
         { id: 2, player_id: 20 },

@@ -34,6 +34,7 @@ function makeTileData() {
   data.special_tiles[2][0] = "pokeball";
   data.special_tiles[2][1] = "master_ball_p2";
   data.flags[1][2] = 3;
+  data.special_tiles[1][0] = "ctf_jail_p1";
   data.movement_cost[2][2] = 3;
   data.item_id_tiles[0][0] = RANDOM_TM_ITEM_ID;
   data.item_id_tiles[1][1] = 10;

@@ -17,6 +17,7 @@ type PlacedUnit = {
   current_hp: number;
   user_id: number;
   can_move?: boolean;
+  jailed?: boolean;
 };
 
 type MapRenderData = {
@@ -60,6 +61,13 @@ type GameMapStageProps = {
   showMapItemTooltips?: boolean;
   onMapItemHover?: (itemId: number, clientX: number, clientY: number) => void;
   onMapItemLeave?: () => void;
+  jailTiles?: { x: number; y: number; owner: number }[];
+  onJailHover?: (
+    jail: { x: number; y: number; owner: number },
+    clientX: number,
+    clientY: number
+  ) => void;
+  onJailLeave?: () => void;
 };
 
 const pixelatedCanvasStyle = { imageRendering: "pixelated" as const };
@@ -93,19 +101,27 @@ export default function GameMapStage({
   showMapItemTooltips = false,
   onMapItemHover,
   onMapItemLeave,
+  jailTiles = [],
+  onJailHover,
+  onJailLeave,
 }: GameMapStageProps) {
   const overlay2TileSet = useMemo(
     () => buildOverlay2TileSet(mapRenderData?.tile_data.overlay2),
     [mapRenderData?.tile_data.overlay2]
   );
 
+  const mapUnits = useMemo(
+    () => placedUnits.filter((unit) => !unit.jailed),
+    [placedUnits]
+  );
+
   const occupiedTileKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const unit of placedUnits) {
+    for (const unit of mapUnits) {
       keys.add(`${unit.tile[0]},${unit.tile[1]}`);
     }
     return keys;
-  }, [placedUnits]);
+  }, [mapUnits]);
 
   useLayoutEffect(() => {
     if (!mapWidth || !mapHeight) return;
@@ -172,14 +188,16 @@ export default function GameMapStage({
         }}
       >
         <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
-          <UnitIdleSprite
-            key={behindOverlay2 ? "outline" : "sprite"}
-            assetFolder={unit.asset_folder}
-            onFrameSize={onSpriteFrameSize}
-            isMapPlacement
-            overlayColor={playerColor}
-            outlineOnly={behindOverlay2}
-          />
+          {unit?.asset_folder ? (
+            <UnitIdleSprite
+              key={behindOverlay2 ? "outline" : "sprite"}
+              assetFolder={unit.asset_folder}
+              onFrameSize={onSpriteFrameSize}
+              isMapPlacement
+              overlayColor={playerColor}
+              outlineOnly={behindOverlay2}
+            />
+          ) : null}
         </div>
       </div>
     );
@@ -268,7 +286,7 @@ export default function GameMapStage({
           />
         )}
 
-        {placedUnits.map((unitState) => renderUnit(unitState))}
+        {mapUnits.map((unitState) => renderUnit(unitState))}
 
         {showMapItemTooltips &&
           itemIdTiles?.map((row, y) =>
@@ -296,6 +314,25 @@ export default function GameMapStage({
             })
           )}
 
+        {jailTiles.map((jail) => (
+          <div
+            key={`jail-hit-${jail.x}-${jail.y}`}
+            style={{
+              position: "absolute",
+              left: jail.x * tileDrawSize,
+              top: jail.y * tileDrawSize,
+              width: tileDrawSize,
+              height: tileDrawSize,
+              zIndex: 4,
+              pointerEvents: moveTargeting ? "none" : "auto",
+              cursor: "help",
+            }}
+            onMouseEnter={(e) => onJailHover?.(jail, e.clientX, e.clientY)}
+            onMouseMove={(e) => onJailHover?.(jail, e.clientX, e.clientY)}
+            onMouseLeave={() => onJailLeave?.()}
+          />
+        ))}
+
         <canvas
           ref={overlay2Ref}
           id="overlay2Canvas"
@@ -322,7 +359,7 @@ export default function GameMapStage({
           }}
         />
 
-        {placedUnits.map((unitState) => renderUnitHealth(unitState))}
+        {mapUnits.map((unitState) => renderUnitHealth(unitState))}
 
         <canvas
           ref={overlayRef}

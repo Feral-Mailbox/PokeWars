@@ -25,7 +25,7 @@ describe("useMapBuilderHistory", () => {
     act(() => {
       result.current.undo();
     });
-    expect(result.current.tileData.base[0][0]).toEqual([0, 0]);
+    expect(result.current.tileData.base[0][0]).toBeNull();
     expect(result.current.canRedo).toBe(true);
 
     act(() => {

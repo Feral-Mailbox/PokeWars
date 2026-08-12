@@ -1265,6 +1265,55 @@ def test_remove_fainted_units_from_play_war_restores_objectives(db, _mock_redis)
     assert removed_ids == [fainted.id]
 
 
+def test_remove_fainted_units_from_play_ctf_jails_instead_of_removing(db, _mock_redis):
+    victor = _make_user(db, "ctf-jail-victor")
+    victim = _make_user(db, "ctf-jail-victim")
+    map_obj = _make_map(
+        db,
+        victor.id,
+        width=3,
+        height=3,
+        allowed_modes=["Capture The Flag"],
+    )
+    special = [[None] * 3 for _ in range(3)]
+    special[0][0] = "ctf_jail_p1"
+    special[2][2] = "ctf_jail_p2"
+    map_obj.tile_data = {
+        **(map_obj.tile_data or {}),
+        "special_tiles": special,
+        "flags": [[0, None, None], [None, 1, None], [None, None, None]],
+    }
+    flag_modified(map_obj, "tile_data")
+    db.commit()
+
+    game = _make_game(db, map_obj, [victor.id, victim.id], gamemode="Capture The Flag")
+    _make_state(db, game, [victor.id, victim.id])
+    unit_def = _make_unit_def(db, "CtfJail Mon")
+    attacker = _make_game_unit(db, unit_def, x=1, y=0, hp=40, max_hp=40, game=game, user_id=victor.id)
+    fainted = _make_game_unit(
+        db,
+        unit_def,
+        x=1,
+        y=1,
+        hp=0,
+        max_hp=40,
+        game=game,
+        user_id=victim.id,
+        flags={"last_damage_attacker_id": attacker.id},
+    )
+
+    removed_ids = remove_fainted_units_from_play(game.id, db)
+    db.commit()
+    db.refresh(fainted)
+
+    assert removed_ids == []
+    assert fainted.is_fainted is False
+    assert fainted.current_hp == 40
+    assert (fainted.current_x, fainted.current_y) == (0, 0)
+    assert fainted.flags.get("jailed") is True
+    assert fainted.flags.get("jailed_by") == 1
+
+
 # ---------------------------------------------------------------------------
 # Section A.12 -- decrement_and_expire_status_effects / apply_end_of_turn_status_damage
 # ---------------------------------------------------------------------------

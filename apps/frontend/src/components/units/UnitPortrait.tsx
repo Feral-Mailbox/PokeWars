@@ -13,6 +13,10 @@ export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frame
   const [naturalHeight, setNaturalHeight] = useState(0);
 
   useEffect(() => {
+    if (!assetFolder) {
+      setSrc("");
+      return;
+    }
     const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
     const normalizedBase = assetBase.startsWith("http")
       ? assetBase

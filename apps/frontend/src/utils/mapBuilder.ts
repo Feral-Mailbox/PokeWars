@@ -1,13 +1,16 @@
 import type { MapExport, MapTileData, TileRef } from "@/types/mapData";
 import {
-  CTF_JAIL_TILE,
-  CTF_UNLOCK_TILE,
   DEFAULT_MAP_ALLOWED_MODES,
+  DEFAULT_MAP_BACKGROUND_COLOR,
   DEFAULT_MOVEMENT_COST,
+  isValidTileRef,
+  normalizeAllowedModes,
+  normalizeBackgroundColor,
+  parseCtfJailTile,
 } from "@/types/mapData";
 
 export function createEmptyTileData(width: number, height: number): MapTileData {
-  const base: TileRef[][] = [];
+  const base: (TileRef | null)[][] = [];
   const overlay: (TileRef | null)[][] = [];
   const overlay2: (TileRef | null)[][] = [];
   const overlay3: (TileRef | null)[][] = [];
@@ -18,7 +21,7 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
   const item_id_tiles: (number | null)[][] = [];
 
   for (let y = 0; y < height; y++) {
-    base.push(Array.from({ length: width }, () => [0, 0] as TileRef));
+    base.push(Array.from({ length: width }, () => null));
     overlay.push(Array.from({ length: width }, () => null));
     overlay2.push(Array.from({ length: width }, () => null));
     overlay3.push(Array.from({ length: width }, () => null));
@@ -39,6 +42,7 @@ export function createEmptyTileData(width: number, height: number): MapTileData 
     flags,
     movement_cost,
     item_id_tiles,
+    background_color: DEFAULT_MAP_BACKGROUND_COLOR,
   };
 }
 
@@ -51,8 +55,9 @@ export function normalizeTileData(raw: Partial<MapTileData>, width: number, heig
 
   for (let y = 0; y < mapHeight; y++) {
     for (let x = 0; x < mapWidth; x++) {
-      if (raw.base[y]?.[x]) {
-        empty.base[y][x] = [...raw.base[y][x]] as TileRef;
+      const baseTile = raw.base[y]?.[x];
+      if (isValidTileRef(baseTile)) {
+        empty.base[y][x] = [Number(baseTile[0]), Number(baseTile[1])];
       }
       if (raw.overlay?.[y]?.[x]) {
         empty.overlay[y][x] = [...raw.overlay[y][x]!] as TileRef;
@@ -83,6 +88,7 @@ export function normalizeTileData(raw: Partial<MapTileData>, width: number, heig
     }
   }
 
+  empty.background_color = normalizeBackgroundColor(raw.background_color);
   return empty;
 }
 
@@ -97,7 +103,9 @@ export function resizeTileData(
 
   for (let y = 0; y < Math.min(oldHeight, newHeight); y++) {
     for (let x = 0; x < Math.min(oldWidth, newWidth); x++) {
-      next.base[y][x] = [...tileData.base[y][x]] as TileRef;
+      next.base[y][x] = isValidTileRef(tileData.base[y][x])
+        ? ([...tileData.base[y][x]!] as TileRef)
+        : null;
       next.overlay[y][x] = tileData.overlay[y][x]
         ? ([...tileData.overlay[y][x]!] as TileRef)
         : null;
@@ -115,6 +123,7 @@ export function resizeTileData(
     }
   }
 
+  next.background_color = normalizeBackgroundColor(tileData.background_color);
   return next;
 }
 
@@ -198,38 +207,35 @@ export function validateWarMapExport(
   return { ok: true, message: null };
 }
 
-/** CTF content is optional; if any CTF piece exists, require flags + jail + unlock. */
-export function validateCtfMapExport(tileData: MapTileData): WarExportValidation {
-  let flagCount = 0;
-  let jailCount = 0;
-  let unlockCount = 0;
-
-  for (const row of tileData.flags) {
+/** If CTF is selected, require flags and a jail per spawn player. Otherwise only validate when CTF pieces exist. */
+export function validateCtfMapExport(
+  tileData: MapTileData,
+  required = false
+): WarExportValidation {
+  const pieces = countCtfPieces(tileData);
+  const spawnPlayers = new Set<number>();
+  for (const row of tileData.spawn_points) {
     for (const cell of row) {
-      if (cell != null && cell >= 0) flagCount += 1;
+      if (cell != null && cell >= 1) spawnPlayers.add(cell);
     }
   }
 
-  for (const row of tileData.special_tiles) {
-    for (const cell of row) {
-      if (!cell) continue;
-      const key = cell.trim().toLowerCase();
-      if (key === CTF_JAIL_TILE) jailCount += 1;
-      if (key === CTF_UNLOCK_TILE) unlockCount += 1;
-    }
-  }
+  const hasAny = pieces.flags > 0 || pieces.jails > 0;
+  if (!hasAny && !required) return { ok: true, message: null };
 
-  const hasAny = flagCount > 0 || jailCount > 0 || unlockCount > 0;
-  if (!hasAny) return { ok: true, message: null };
-
-  if (flagCount === 0) {
+  if (pieces.flags === 0) {
     return { ok: false, message: "Capture The Flag maps need at least one flag." };
   }
-  if (jailCount === 0) {
+  if (pieces.jails === 0) {
     return { ok: false, message: "Capture The Flag maps need at least one jail tile." };
   }
-  if (unlockCount === 0) {
-    return { ok: false, message: "Capture The Flag maps need at least one unlock tile." };
+
+  const missing = [...spawnPlayers].filter((player) => !pieces.jailOwners.has(player)).sort((a, b) => a - b);
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      message: `Each spawn player needs a jail (missing ${missing.map((n) => `P${n}`).join(", ")}).`,
+    };
   }
   return { ok: true, message: null };
 }
@@ -238,10 +244,14 @@ export function mapHasValidCtfSetup(tileData: MapTileData): boolean {
   return validateCtfMapExport(tileData).ok && countCtfPieces(tileData).flags > 0;
 }
 
-function countCtfPieces(tileData: MapTileData): { flags: number; jails: number; unlocks: number } {
+function countCtfPieces(tileData: MapTileData): {
+  flags: number;
+  jails: number;
+  jailOwners: Set<number>;
+} {
   let flags = 0;
   let jails = 0;
-  let unlocks = 0;
+  const jailOwners = new Set<number>();
   for (const row of tileData.flags) {
     for (const cell of row) {
       if (cell != null && cell >= 0) flags += 1;
@@ -249,28 +259,35 @@ function countCtfPieces(tileData: MapTileData): { flags: number; jails: number; 
   }
   for (const row of tileData.special_tiles) {
     for (const cell of row) {
-      if (!cell) continue;
-      const key = cell.trim().toLowerCase();
-      if (key === CTF_JAIL_TILE) jails += 1;
-      if (key === CTF_UNLOCK_TILE) unlocks += 1;
+      const parsed = parseCtfJailTile(cell);
+      if (!parsed) continue;
+      jails += 1;
+      jailOwners.add(parsed.owner);
     }
   }
-  return { flags, jails, unlocks };
+  return { flags, jails, jailOwners };
 }
 
 export function canExportMap(
   tilesetNames: string[],
   allowedPlayerCounts: number[],
-  tileData: MapTileData
+  tileData: MapTileData,
+  allowedModes: readonly string[] = DEFAULT_MAP_ALLOWED_MODES
 ): WarExportValidation {
   if (tilesetNames.length === 0) {
     return { ok: false, message: "Select at least one tileset." };
   }
+  const modes = normalizeAllowedModes(allowedModes);
   const conquest = validateConquestSpawnExport(tileData, allowedPlayerCounts);
   if (!conquest.ok) return conquest;
-  const war = validateWarMapExport(tileData, allowedPlayerCounts);
-  if (!war.ok) return war;
-  return validateCtfMapExport(tileData);
+  if (modes.includes("War")) {
+    const war = validateWarMapExport(tileData, allowedPlayerCounts);
+    if (!war.ok) return war;
+  }
+  if (modes.includes("Capture The Flag")) {
+    return validateCtfMapExport(tileData, true);
+  }
+  return { ok: true, message: null };
 }
 
 export function buildMapExport(input: {
@@ -280,12 +297,12 @@ export function buildMapExport(input: {
   width: number;
   height: number;
   tileData: MapTileData;
+  allowedModes?: readonly string[];
 }): MapExport {
   const slug = slugifyMapName(input.name) || "custom_map";
-  const allowedModes = [...DEFAULT_MAP_ALLOWED_MODES] as string[];
-  if (mapHasValidCtfSetup(input.tileData)) {
-    allowedModes.push("Capture The Flag");
-  }
+  const allowedModes = normalizeAllowedModes(
+    input.allowedModes ?? DEFAULT_MAP_ALLOWED_MODES
+  );
   return {
     name: input.name.trim() || "Untitled Map",
     is_official: false,
@@ -327,6 +344,7 @@ export function parseMapImport(raw: unknown): MapExport {
   }
   return {
     ...(map as MapExport),
+    allowed_modes: normalizeAllowedModes(map.allowed_modes),
     tile_data: normalizeTileData(map.tile_data as Partial<MapTileData>, map.width!, map.height!),
   };
 }

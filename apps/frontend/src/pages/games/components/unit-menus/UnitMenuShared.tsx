@@ -88,13 +88,13 @@ export function UnitInfoHeader({
     <>
       <div className="flex items-start gap-2 mb-2">
         <UnitPortrait
-          assetFolder={unit.asset_folder}
+          assetFolder={unit?.asset_folder ?? ""}
           frameX={portraitFrameX}
           frameY={portraitFrameY}
         />
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-lg font-semibold leading-tight">{unit.name}</span>
+            <span className="text-lg font-semibold leading-tight">{unit?.name ?? "Unit"}</span>
             <UnitStateIndicator states={states} />
             {statusIconSrc && (
               <img
@@ -111,7 +111,7 @@ export function UnitInfoHeader({
       </div>
 
       <div className="text-sm mb-2 flex flex-wrap items-center gap-x-1 gap-y-1">
-        {unit.types?.length > 0 && (
+        {unit?.types?.length > 0 && (
           <>
             {unit.types.map((type: string, idx: number) => (
               <span key={idx} className="font-medium" style={{ color: typeColors[type] || "#fff" }}>

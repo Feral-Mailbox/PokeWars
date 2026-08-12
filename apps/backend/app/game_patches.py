@@ -20,7 +20,7 @@ def next_event_seq(redis_client: redis.Redis, game_link: str) -> int:
         return 0
 
 
-def unit_to_patch(unit: Any, *, include_unit_summary: bool = False) -> dict[str, Any]:
+def unit_to_patch(unit: Any, *, include_unit_summary: bool = True) -> dict[str, Any]:
     """Lightweight unit snapshot for client-side merge."""
     patch: dict[str, Any] = {
         "id": int(getattr(unit, "id", 0) or 0),
@@ -47,6 +47,15 @@ def unit_to_patch(unit: Any, *, include_unit_summary: bool = False) -> dict[str,
         "ability": getattr(unit, "ability", None),
         "ability_id": getattr(unit, "ability_id", None),
     }
+    flags = getattr(unit, "flags", None)
+    jailed = getattr(unit, "jailed", None)
+    jailed_by = getattr(unit, "jailed_by", None)
+    if jailed is None and isinstance(flags, dict):
+        jailed = bool(flags.get("jailed"))
+    if jailed_by is None and isinstance(flags, dict) and flags.get("jailed_by") is not None:
+        jailed_by = flags.get("jailed_by")
+    patch["jailed"] = bool(jailed)
+    patch["jailed_by"] = int(jailed_by) if jailed_by is not None else None
     if include_unit_summary and getattr(unit, "unit", None) is not None:
         u = unit.unit
         patch["unit"] = {
@@ -55,6 +64,8 @@ def unit_to_patch(unit: Any, *, include_unit_summary: bool = False) -> dict[str,
             "types": getattr(u, "types", None),
             "base_stats": getattr(u, "base_stats", None),
             "sprite_url": getattr(u, "sprite_url", None),
+            "asset_folder": getattr(u, "asset_folder", None),
+            "cost": getattr(u, "cost", None),
         }
     return patch
 

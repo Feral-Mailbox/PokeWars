@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 WATER_TILE = "water"
+SKY_TILE = "sky"
 ROCK_TILE = "rock"
 GRASS_TILE = "grass"
 SAND_TILE = "sand"
@@ -75,6 +76,10 @@ def is_ice_tile(special_tiles: list | None, x: int, y: int) -> bool:
 
 def is_impassable_tile(special_tiles: list | None, x: int, y: int) -> bool:
     return get_special_tile(special_tiles, x, y) == IMPASSABLE_TILE
+
+
+def is_sky_tile(special_tiles: list | None, x: int, y: int) -> bool:
+    return get_special_tile(special_tiles, x, y) == SKY_TILE
 
 
 def target_receives_grass_tile_bonuses(
@@ -196,6 +201,16 @@ def unit_can_cross_water(
 ) -> bool:
     normalized_types = _normalized_types(unit_types)
     if normalized_types.intersection({"water", "flying"}):
+        return True
+    return unit_has_levitate(unit_types, ability_names)
+
+
+def unit_can_cross_sky(
+    unit_types: set[str],
+    ability_names: set[str] | None = None,
+) -> bool:
+    """Only Flying types and Levitate can enter sky tiles."""
+    if "flying" in _normalized_types(unit_types):
         return True
     return unit_has_levitate(unit_types, ability_names)
 
@@ -467,6 +482,7 @@ def build_movement_cost_grid(
         return base_costs
 
     can_water = unit_can_cross_water(unit_types, ability_names)
+    can_sky = unit_can_cross_sky(unit_types, ability_names)
     can_rock = unit_can_cross_rock(unit_types, ability_names)
     can_stand_on_ledge = unit_can_stand_on_ledge(unit_types, ability_names)
     ignores_sand_slow = unit_ignores_sand_slow(unit_types, ability_names)
@@ -482,6 +498,8 @@ def build_movement_cost_grid(
             if tile == IMPASSABLE_TILE:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
             elif tile == WATER_TILE and not can_water:
+                new_row.append(IMPOSSIBLE_MOVEMENT_COST)
+            elif tile == SKY_TILE and not can_sky:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
             elif tile == ROCK_TILE and not can_rock:
                 new_row.append(IMPOSSIBLE_MOVEMENT_COST)
@@ -568,6 +586,8 @@ def unit_can_occupy_tile(
         return False
     if tile == WATER_TILE:
         return unit_can_cross_water(unit_types, ability_names)
+    if tile == SKY_TILE:
+        return unit_can_cross_sky(unit_types, ability_names)
     if tile == ROCK_TILE:
         return unit_can_cross_rock(unit_types, ability_names)
     if tile in LEDGE_TILES:

@@ -39,12 +39,27 @@ def test_unit_to_patch_and_turn_op():
         equipped_move_ids=[1],
         ability="Static",
         ability_id=2,
-        unit=SimpleNamespace(id=3, name="Pikachu", types=["Electric"], base_stats={}, sprite_url=None),
+        unit=SimpleNamespace(
+            id=3,
+            name="Pikachu",
+            types=["Electric"],
+            base_stats={},
+            sprite_url=None,
+            asset_folder="025_pikachu",
+            cost=100,
+        ),
+        flags={"jailed": True, "jailed_by": 2},
+        jailed=True,
+        jailed_by=2,
     )
-    patch = unit_to_patch(unit, include_unit_summary=True)
+    patch = unit_to_patch(unit)
     assert patch["id"] == 7
     assert patch["can_move"] is False
     assert patch["unit"]["name"] == "Pikachu"
+    assert patch["unit"]["asset_folder"] == "025_pikachu"
+    assert patch["unit"]["cost"] == 100
+    assert patch["jailed"] is True
+    assert patch["jailed_by"] == 2
 
     state = SimpleNamespace(
         current_turn=3,
