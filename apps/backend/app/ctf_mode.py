@@ -11,7 +11,9 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.db.models import Game, GameMapState, GameState, GameUnit
 
-UNLOCK_MAX_HP = 20
+FLAG_MAX_HP = 10
+JAIL_MAX_HP = 20
+UNLOCK_MAX_HP = JAIL_MAX_HP
 CTF_JAIL_TILE = "ctf_jail"
 CTF_UNLOCK_TILE = "ctf_unlock"
 CTF_JAIL_PATTERN = re.compile(r"^ctf_jail(?:_p([1-8]))?$", re.IGNORECASE)
@@ -36,7 +38,28 @@ def _empty_grid(height: int, width: int, fill=None):
 
 
 def make_flag_cell(owner: int) -> dict:
-    return {"owner": int(owner)}
+    return {
+        "owner": int(owner),
+        "hp": FLAG_MAX_HP,
+        "max_hp": FLAG_MAX_HP,
+    }
+
+
+def make_jail_cell(owner: int) -> dict:
+    return {
+        "kind": "jail",
+        "owner": int(owner),
+        "hp": JAIL_MAX_HP,
+        "max_hp": JAIL_MAX_HP,
+    }
+
+
+def ensure_flag_hp(cell: dict) -> dict:
+    max_hp = int(cell.get("max_hp") or FLAG_MAX_HP)
+    cell["max_hp"] = max_hp
+    if cell.get("hp") is None:
+        cell["hp"] = max_hp
+    return cell
 
 
 def encode_jail_tile(owner: int) -> str:
@@ -96,17 +119,34 @@ def build_flag_tiles_from_map(map_obj, existing: list | None = None) -> list[lis
             # 0 = neutral, 1-8 = starting owner
             if owner > 8:
                 continue
-            grid[y][x] = make_flag_cell(owner)
+            cell = make_flag_cell(owner)
+            prev = get_flag_at(existing, x, y)
+            if isinstance(prev, dict):
+                if prev.get("hp") is not None:
+                    cell["hp"] = max(0, int(prev["hp"]))
+                if prev.get("max_hp") is not None:
+                    cell["max_hp"] = max(1, int(prev["max_hp"]))
+            grid[y][x] = cell
     return grid
 
 
 def build_unlock_tiles_from_map(map_obj, existing: list | None = None) -> list[list[dict | None]]:
-    """Unlock tiles are retired; keep an empty grid for leftover map-state rows."""
+    """Jail HP grid: one cell per owned jail, 20 HP like War Poké Balls."""
     height = int(getattr(map_obj, "height", 0) or 0)
     width = int(getattr(map_obj, "width", 0) or 0)
     if height <= 0 or width <= 0:
         return existing if isinstance(existing, list) and existing else []
-    return _empty_grid(height, width, None)
+    grid = _empty_grid(height, width, None)
+    for x, y, owner in list_jails(map_obj):
+        cell = make_jail_cell(owner)
+        prev = get_unlock_at(existing, x, y)
+        if isinstance(prev, dict):
+            if prev.get("hp") is not None:
+                cell["hp"] = max(0, int(prev["hp"]))
+            if prev.get("max_hp") is not None:
+                cell["max_hp"] = max(1, int(prev["max_hp"]))
+        grid[y][x] = cell
+    return grid
 
 
 def list_jails(map_obj) -> list[tuple[int, int, int]]:
@@ -186,17 +226,141 @@ def capture_damage(capturer_current_hp: int, capturer_max_hp: int) -> int:
     return max(1, int(math.ceil((cur / max_hp) * 10)))
 
 
-def apply_unlock_damage(cell: dict, capturer_current_hp: int, capturer_max_hp: int) -> bool:
-    """Legacy HP-unlock helper kept for existing unit tests."""
+def apply_ctf_objective_damage(
+    cell: dict,
+    capturer_current_hp: int,
+    capturer_max_hp: int,
+    *,
+    default_max_hp: int,
+    captured_owner: int | None = None,
+) -> bool:
+    """Apply War-style capture damage. Returns True when HP hits 0 (then restores)."""
     damage = capture_damage(capturer_current_hp, capturer_max_hp)
-    max_hp = int(cell.get("max_hp") or UNLOCK_MAX_HP)
-    hp = int(cell.get("hp") or max_hp)
+    max_hp = int(cell.get("max_hp") or default_max_hp)
+    hp = int(cell["hp"]) if cell.get("hp") is not None else max_hp
+    cell["max_hp"] = max_hp
     new_hp = hp - damage
     if new_hp <= 0:
         cell["hp"] = max_hp
+        if captured_owner is not None:
+            cell["owner"] = int(captured_owner)
         return True
     cell["hp"] = new_hp
     return False
+
+
+def apply_flag_capture_damage(
+    cell: dict,
+    new_owner: int,
+    capturer_current_hp: int,
+    capturer_max_hp: int,
+) -> bool:
+    ensure_flag_hp(cell)
+    return apply_ctf_objective_damage(
+        cell,
+        capturer_current_hp,
+        capturer_max_hp,
+        default_max_hp=FLAG_MAX_HP,
+        captured_owner=new_owner,
+    )
+
+
+def apply_unlock_damage(cell: dict, capturer_current_hp: int, capturer_max_hp: int) -> bool:
+    """Chip a jail until HP hits 0, then restore it and treat the jail as unlocked."""
+    return apply_ctf_objective_damage(
+        cell,
+        capturer_current_hp,
+        capturer_max_hp,
+        default_max_hp=JAIL_MAX_HP,
+    )
+
+
+def _copy_grid(grid: list | None, height: int, width: int) -> list[list]:
+    next_grid = _empty_grid(height, width, None)
+    if not isinstance(grid, list):
+        return next_grid
+    for y, row in enumerate(grid):
+        if y >= height or not isinstance(row, list):
+            continue
+        for x, cell in enumerate(row):
+            if x < width:
+                next_grid[y][x] = cell
+    return next_grid
+
+
+def ensure_jail_hp_cell(map_state: GameMapState, map_obj, x: int, y: int) -> dict | None:
+    jail = get_jail_at(map_obj, x, y)
+    if not jail:
+        return None
+    height = max(int(getattr(map_obj, "height", 0) or 0), y + 1)
+    width = max(int(getattr(map_obj, "width", 0) or 0), x + 1)
+    existing = map_state.unlock_tiles if isinstance(map_state.unlock_tiles, list) else []
+    if existing:
+        width = max(width, max((len(row) for row in existing if isinstance(row, list)), default=0))
+        height = max(height, len(existing))
+    grid = _copy_grid(existing, height, width)
+    cell = grid[y][x]
+    if not isinstance(cell, dict):
+        cell = make_jail_cell(int(jail["owner"]))
+        grid[y][x] = cell
+    else:
+        if cell.get("max_hp") is None:
+            cell["max_hp"] = JAIL_MAX_HP
+        if cell.get("hp") is None:
+            cell["hp"] = int(cell.get("max_hp") or JAIL_MAX_HP)
+        if cell.get("owner") is None:
+            cell["owner"] = int(jail["owner"])
+    map_state.unlock_tiles = grid
+    mark_unlock_tiles_dirty(map_state)
+    return cell
+
+
+def restore_unoccupied_damaged_ctf_tiles(
+    map_state: GameMapState,
+    game_id: int,
+    db: Session,
+) -> list[tuple[int, int, str, dict]]:
+    occupied_tiles = {
+        (int(unit.current_x), int(unit.current_y))
+        for unit in db.query(GameUnit).filter(GameUnit.game_id == game_id).all()
+        if unit_blocks_occupation(unit)
+    }
+    restored: list[tuple[int, int, str, dict]] = []
+    flag_changed = False
+    for y, row in enumerate(map_state.flag_tiles or []):
+        if not isinstance(row, list):
+            continue
+        for x, cell in enumerate(row):
+            if not isinstance(cell, dict):
+                continue
+            ensure_flag_hp(cell)
+            max_hp = int(cell.get("max_hp") or FLAG_MAX_HP)
+            hp = int(cell.get("hp") if cell.get("hp") is not None else max_hp)
+            if hp >= max_hp or (x, y) in occupied_tiles:
+                continue
+            cell["hp"] = max_hp
+            restored.append((x, y, "flag", cell))
+            flag_changed = True
+    if flag_changed:
+        mark_flag_tiles_dirty(map_state)
+
+    jail_changed = False
+    for y, row in enumerate(map_state.unlock_tiles or []):
+        if not isinstance(row, list):
+            continue
+        for x, cell in enumerate(row):
+            if not isinstance(cell, dict):
+                continue
+            max_hp = int(cell.get("max_hp") or JAIL_MAX_HP)
+            hp = int(cell.get("hp") if cell.get("hp") is not None else max_hp)
+            if hp >= max_hp or (x, y) in occupied_tiles:
+                continue
+            cell["hp"] = max_hp
+            restored.append((x, y, "jail", cell))
+            jail_changed = True
+    if jail_changed:
+        mark_unlock_tiles_dirty(map_state)
+    return restored
 
 
 def count_flags_by_owner(flag_tiles: list | None) -> dict[int, int]:

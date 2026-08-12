@@ -4,7 +4,11 @@ import { pointerToTileCoords } from "@/utils/mapPointer";
 import { parseCtfJailTile } from "@/types/mapData";
 import { getCtfFlagUrl, getCtfJailUrl } from "@/utils/gameAssets";
 import { drawCtfMapIcon } from "@/utils/ctfIcons";
+import { drawTileHealthBar } from "@/utils/mapHealthBar";
 import { resolvePlayerSlotOverlayColor } from "@/utils/playerOverlayColor";
+
+export const CTF_FLAG_MAX_HP = 10;
+export const CTF_JAIL_MAX_HP = 20;
 
 const TILE_SIZE = 16;
 const TILE_SCALE = 2;
@@ -26,13 +30,18 @@ export function getCtfPlayerNumber(gameData: any, userId: number): number {
   return playerIndex >= 0 ? playerIndex + 1 : 0;
 }
 
-export function patchFlagTile(gameData: any, x: number, y: number, patch: { owner: number }) {
+export function patchFlagTile(
+  gameData: any,
+  x: number,
+  y: number,
+  patch: { owner: number; hp?: number; max_hp?: number }
+) {
   if (!gameData?.map_state?.flag_tiles?.[y]?.[x]) return gameData;
 
   const nextTiles = gameData.map_state.flag_tiles.map((row: any[], rowY: number) =>
     Array.isArray(row)
       ? row.map((cell, colX) =>
-          rowY === y && colX === x && cell ? { ...cell, owner: patch.owner } : cell
+          rowY === y && colX === x && cell ? { ...cell, ...patch } : cell
         )
       : row
   );
@@ -42,6 +51,38 @@ export function patchFlagTile(gameData: any, x: number, y: number, patch: { owne
     map_state: {
       ...gameData.map_state,
       flag_tiles: nextTiles,
+    },
+  };
+}
+
+export function patchUnlockTile(
+  gameData: any,
+  x: number,
+  y: number,
+  patch: { hp: number; max_hp: number }
+) {
+  const prevGrid = Array.isArray(gameData?.map_state?.unlock_tiles)
+    ? gameData.map_state.unlock_tiles
+    : [];
+  const height = Math.max(prevGrid.length, y + 1);
+  const width = Math.max(
+    ...prevGrid.map((row: any) => (Array.isArray(row) ? row.length : 0)),
+    x + 1
+  );
+  const nextTiles = Array.from({ length: height }, (_, rowY) => {
+    const src = Array.isArray(prevGrid[rowY]) ? prevGrid[rowY] : [];
+    const row = Array.from({ length: width }, (_, colX) => src[colX] ?? null);
+    if (rowY === y) {
+      row[x] = { ...(row[x] || {}), ...patch };
+    }
+    return row;
+  });
+
+  return {
+    ...gameData,
+    map_state: {
+      ...gameData.map_state,
+      unlock_tiles: nextTiles,
     },
   };
 }
@@ -68,9 +109,18 @@ export function getCtfJailAt(gameData: any, x: number, y: number): CtfJailInfo |
   return parsed ? { x, y, owner: parsed.owner } : null;
 }
 
+function readCtfObjectiveHp(
+  cell: { hp?: number; max_hp?: number } | null | undefined,
+  fallbackMax: number
+): { hp: number; max_hp: number } {
+  const max_hp = Number(cell?.max_hp ?? fallbackMax) || fallbackMax;
+  const hp = Number(cell?.hp ?? max_hp);
+  return { hp, max_hp };
+}
+
 export type CtfActionTarget =
-  | { kind: "flag"; x: number; y: number }
-  | { kind: "unlock"; x: number; y: number; owner: number };
+  | { kind: "flag"; x: number; y: number; hp: number; max_hp: number }
+  | { kind: "unlock"; x: number; y: number; owner: number; hp: number; max_hp: number };
 
 export function getCtfActionTarget(
   activeUnit: any,
@@ -93,12 +143,19 @@ export function getCtfActionTarget(
   const [x, y] = activeUnit.tile ?? [activeUnit.current_x, activeUnit.current_y];
   const flagCell = gameData.map_state?.flag_tiles?.[y]?.[x];
   if (flagCell && Number(flagCell.owner ?? 0) !== playerNumber) {
-    return { kind: "flag", x, y };
+    return { kind: "flag", x, y, ...readCtfObjectiveHp(flagCell, CTF_FLAG_MAX_HP) };
   }
 
   const jail = getCtfJailAt(gameData, x, y);
   if (jail) {
-    return { kind: "unlock", x, y, owner: jail.owner };
+    const unlockCell = gameData.map_state?.unlock_tiles?.[y]?.[x];
+    return {
+      kind: "unlock",
+      x,
+      y,
+      owner: jail.owner,
+      ...readCtfObjectiveHp(unlockCell, CTF_JAIL_MAX_HP),
+    };
   }
 
   return null;
@@ -125,6 +182,7 @@ export default function CaptureTheFlagGame({
   const playerNumber = getCtfPlayerNumber(gameData, userId);
   const spawnGrid = gameData.map?.tile_data?.spawn_points;
   const flagTiles = gameData.map_state?.flag_tiles ?? [];
+  const unlockTiles = gameData.map_state?.unlock_tiles ?? [];
   const specialTiles = gameData.map?.tile_data?.special_tiles ?? [];
   const flagImageRef = useRef<HTMLImageElement | null>(null);
   const jailImageRef = useRef<HTMLImageElement | null>(null);
@@ -219,14 +277,17 @@ export default function CaptureTheFlagGame({
           const cell = row[x];
           if (!cell) continue;
           const owner = Number(cell.owner ?? 0);
+          const tileSize = TILE_SIZE * TILE_SCALE;
           drawCtfMapIcon(
             ctx,
             flagImageRef.current,
             x,
             y,
             resolvePlayerSlotOverlayColor(owner, playerOrder, getPlayerColor),
-            TILE_SIZE * TILE_SCALE
+            tileSize
           );
+          const { hp, max_hp } = readCtfObjectiveHp(cell, CTF_FLAG_MAX_HP);
+          drawTileHealthBar(ctx, x, y, hp, max_hp, tileSize);
         }
       }
 
@@ -236,14 +297,17 @@ export default function CaptureTheFlagGame({
         for (let x = 0; x < row.length; x++) {
           const jail = parseCtfJailTile(row[x]);
           if (!jail) continue;
+          const tileSize = TILE_SIZE * TILE_SCALE;
           drawCtfMapIcon(
             ctx,
             jailImageRef.current,
             x,
             y,
             resolvePlayerSlotOverlayColor(jail.owner, playerOrder, getPlayerColor),
-            TILE_SIZE * TILE_SCALE
+            tileSize
           );
+          const { hp, max_hp } = readCtfObjectiveHp(unlockTiles[y]?.[x], CTF_JAIL_MAX_HP);
+          drawTileHealthBar(ctx, x, y, hp, max_hp, tileSize);
         }
       }
     },
@@ -256,6 +320,7 @@ export default function CaptureTheFlagGame({
       playerOrder,
       getPlayerColor,
       flagTiles,
+      unlockTiles,
       specialTiles,
       ctfIconsReady,
     ]

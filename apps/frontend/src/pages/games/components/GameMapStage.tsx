@@ -17,6 +17,7 @@ type PlacedUnit = {
   current_hp: number;
   user_id: number;
   can_move?: boolean;
+  jailed?: boolean;
 };
 
 type MapRenderData = {
@@ -109,13 +110,18 @@ export default function GameMapStage({
     [mapRenderData?.tile_data.overlay2]
   );
 
+  const mapUnits = useMemo(
+    () => placedUnits.filter((unit) => !unit.jailed),
+    [placedUnits]
+  );
+
   const occupiedTileKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const unit of placedUnits) {
+    for (const unit of mapUnits) {
       keys.add(`${unit.tile[0]},${unit.tile[1]}`);
     }
     return keys;
-  }, [placedUnits]);
+  }, [mapUnits]);
 
   useLayoutEffect(() => {
     if (!mapWidth || !mapHeight) return;
@@ -182,14 +188,16 @@ export default function GameMapStage({
         }}
       >
         <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
-          <UnitIdleSprite
-            key={behindOverlay2 ? "outline" : "sprite"}
-            assetFolder={unit.asset_folder}
-            onFrameSize={onSpriteFrameSize}
-            isMapPlacement
-            overlayColor={playerColor}
-            outlineOnly={behindOverlay2}
-          />
+          {unit?.asset_folder ? (
+            <UnitIdleSprite
+              key={behindOverlay2 ? "outline" : "sprite"}
+              assetFolder={unit.asset_folder}
+              onFrameSize={onSpriteFrameSize}
+              isMapPlacement
+              overlayColor={playerColor}
+              outlineOnly={behindOverlay2}
+            />
+          ) : null}
         </div>
       </div>
     );
@@ -278,7 +286,7 @@ export default function GameMapStage({
           />
         )}
 
-        {placedUnits.map((unitState) => renderUnit(unitState))}
+        {mapUnits.map((unitState) => renderUnit(unitState))}
 
         {showMapItemTooltips &&
           itemIdTiles?.map((row, y) =>
@@ -351,7 +359,7 @@ export default function GameMapStage({
           }}
         />
 
-        {placedUnits.map((unitState) => renderUnitHealth(unitState))}
+        {mapUnits.map((unitState) => renderUnitHealth(unitState))}
 
         <canvas
           ref={overlayRef}

@@ -42,7 +42,11 @@ from app.war_mode import (
 )
 from app import ctf_mode
 from app.ctf_mode import (
+    apply_flag_capture_damage,
+    apply_unlock_damage,
     build_flag_tiles_from_map,
+    build_unlock_tiles_from_map,
+    ensure_jail_hp_cell,
     free_units_held_in_jail,
     get_flag_at,
     get_jail_at,
@@ -53,8 +57,10 @@ from app.ctf_mode import (
     is_unit_jailed,
     leading_flag_owners,
     mark_flag_tiles_dirty,
+    mark_unlock_tiles_dirty,
     player_owns_all_flags,
     resolve_jailer_user_id,
+    restore_unoccupied_damaged_ctf_tiles,
     set_unit_jailed,
     unit_blocks_occupation,
     all_units_jailed_for_player,
@@ -314,17 +320,26 @@ def publish_objective_cell_updated(game_link: str, x: int, y: int, cell: dict) -
 
 
 def maybe_restore_war_objectives_at_turn_end(game: Game, db: Session) -> None:
-    if not is_war_game(game):
+    if not is_war_game(game) and not is_ctf_game(game):
         return
     map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
     if not map_state:
         return
-    restored = restore_unoccupied_damaged_objectives(map_state, game.id, db)
-    if not restored:
-        return
-    db.add(map_state)
-    for x, y, cell in restored:
-        publish_objective_cell_updated(game.link, x, y, cell)
+    if is_war_game(game):
+        restored = restore_unoccupied_damaged_objectives(map_state, game.id, db)
+        if restored:
+            db.add(map_state)
+            for x, y, cell in restored:
+                publish_objective_cell_updated(game.link, x, y, cell)
+    if is_ctf_game(game):
+        restored_ctf = restore_unoccupied_damaged_ctf_tiles(map_state, game.id, db)
+        if restored_ctf:
+            db.add(map_state)
+            for x, y, kind, cell in restored_ctf:
+                if kind == "flag":
+                    publish_flag_cell_updated(game.link, x, y, cell)
+                else:
+                    publish_unlock_cell_updated(game.link, x, y, cell)
 
 
 def _initialize_war_objective_tiles(game: Game, state: GameState, map_state: GameMapState, map_obj: Map) -> None:
@@ -343,8 +358,9 @@ def _initialize_ctf_tiles(game: Game, state: GameState, map_state: GameMapState,
     if not is_ctf_game(game):
         return
     map_state.flag_tiles = build_flag_tiles_from_map(map_obj, map_state.flag_tiles or None)
-    map_state.unlock_tiles = []
+    map_state.unlock_tiles = build_unlock_tiles_from_map(map_obj, map_state.unlock_tiles or None)
     mark_flag_tiles_dirty(map_state)
+    mark_unlock_tiles_dirty(map_state)
 
 
 def publish_flag_cell_updated(game_link: str, x: int, y: int, cell: dict) -> None:
@@ -356,6 +372,8 @@ def publish_flag_cell_updated(game_link: str, x: int, y: int, cell: dict) -> Non
                 "x": int(x),
                 "y": int(y),
                 "owner": int(cell.get("owner") or 0),
+                "hp": int(cell.get("hp") if cell.get("hp") is not None else 10),
+                "max_hp": int(cell.get("max_hp") or 10),
             }
         ],
         cause="flag_updated",
@@ -5392,7 +5410,12 @@ def apply_damage_based_move_effects(
                 combat_abilities.process_drain(unit, drain_from, amount, db)
                 if (unit.current_hp or 0) <= 0:
                     fainted_unit_ids.add(unit.id)
-                    if game and game_state and (faint_logged_ids is None or unit.id not in faint_logged_ids):
+                    if (
+                        game
+                        and game_state
+                        and not is_ctf_game(game)
+                        and (faint_logged_ids is None or unit.id not in faint_logged_ids)
+                    ):
                         publish_system_log_event(
                             game.link,
                             f"{get_unit_display_name(unit, db)} fainted!",
@@ -5421,7 +5444,12 @@ def apply_damage_based_move_effects(
                 )
             if unit.current_hp <= 0:
                 fainted_unit_ids.add(unit.id)
-                if game and game_state and (faint_logged_ids is None or unit.id not in faint_logged_ids):
+                if (
+                    game
+                    and game_state
+                    and not is_ctf_game(game)
+                    and (faint_logged_ids is None or unit.id not in faint_logged_ids)
+                ):
                     publish_system_log_event(
                         game.link,
                         f"{get_unit_display_name(unit, db)} fainted!",
@@ -6290,7 +6318,8 @@ def remove_fainted_units_from_play(game_id: int, db: Session) -> list[int]:
                     )
             remaining = [unit for unit in fainted_units if int(unit.id) not in set(jailed_ids)]
             if not remaining:
-                return jailed_ids
+                # Jailed units stay in play; do not report them as removed.
+                return []
             fainted_units = remaining
 
     removed_ids: list[int] = []
@@ -8888,7 +8917,8 @@ def execute_move(
                             if game:
                                 publish_system_log_event(game.link, f"{get_unit_display_name(gu, db)} was taken down by Destiny Bond!", state, db)
                 if target_unit is not None and target_unit.id not in faint_logged_ids:
-                    publish_system_log_event(game.link, f"{get_unit_display_name(target_unit, db)} fainted!", state, db)
+                    if not is_ctf_game(game):
+                        publish_system_log_event(game.link, f"{get_unit_display_name(target_unit, db)} fainted!", state, db)
                     faint_logged_ids.add(target_unit.id)
     elif landed_targets and move_deals_direct_damage(move):
         can_critical_hit = move_can_critical_hit(move)
@@ -9334,7 +9364,9 @@ def execute_move(
                     ):
                         publish_system_log_event(game.link, ap_msg, state, db)
                 if target.current_hp <= 0 and target.id not in faint_logged_ids:
-                    publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} fainted!", state, db)
+                    # CTF jails defeated units instead of eliminating them; log jail later.
+                    if not is_ctf_game(game):
+                        publish_system_log_event(game.link, f"{get_unit_display_name(target, db)} fainted!", state, db)
                     faint_logged_ids.add(target.id)
 
                 if not mold_breaker:
@@ -9501,33 +9533,46 @@ def execute_move(
             .all()
         )
 
-        removed_ids = [unit.id for unit in removed_units]
-        for unit in removed_units:
-            if unit.is_fainted:
-                continue
-            if int(unit.current_hp or 0) > 0:
-                continue
-            if unit.id not in faint_logged_ids:
-                publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", state, db)
+        if is_ctf_game(game):
+            # Keep HP<=0 / is_fainted=False so CTF jailing can claim them mid-turn.
+            # Successfully jailed units are published via unit_jailed snapshots and
+            # must not appear in removed_ids (which become unit_removed patches).
+            permanently_removed = remove_fainted_units_from_play(game.id, db)
+            removed_ids = list(permanently_removed)
+        else:
+            removed_ids = [unit.id for unit in removed_units]
+            for unit in removed_units:
+                if unit.is_fainted:
+                    continue
+                if int(unit.current_hp or 0) > 0:
+                    continue
+                if unit.id not in faint_logged_ids:
+                    publish_system_log_event(game.link, f"{get_unit_display_name(unit, db)} fainted!", state, db)
 
-            player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=unit.user_id).first()
-            if player_state and unit.id in player_state.game_units:
-                player_state.game_units.remove(unit.id)
-                db.add(player_state)
+                player_state = db.query(GamePlayer).filter_by(game_id=game.id, player_id=unit.user_id).first()
+                if player_state and unit.id in player_state.game_units:
+                    player_state.game_units.remove(unit.id)
+                    db.add(player_state)
 
-            faint_unit_in_place(unit, db)
+                faint_unit_in_place(unit, db)
 
-        active_counts = get_remaining_unit_counts(game.id, db)
-        affected_users = {unit.user_id for unit in removed_units}
-        for user_id in affected_users:
-            if active_counts.get(user_id, 0) == 0:
-                username = get_username_by_id(user_id, db)
-                publish_system_log_event(
-                    game.link,
-                    f"{username} has no more units and is unable to battle!",
-                    state,
-                    db,
-                )
+        if removed_ids:
+            active_counts = get_remaining_unit_counts(game.id, db)
+            affected_users = {
+                int(unit.user_id)
+                for unit in db.query(GameUnit)
+                .filter(GameUnit.game_id == game.id, GameUnit.id.in_(removed_ids))
+                .all()
+            }
+            for user_id in affected_users:
+                if active_counts.get(user_id, 0) == 0:
+                    username = get_username_by_id(user_id, db)
+                    publish_system_log_event(
+                        game.link,
+                        f"{username} has no more units and is unable to battle!",
+                        state,
+                        db,
+                    )
 
     if removed_ids:
         db.flush()
@@ -9942,7 +9987,14 @@ def capture_flag(
     if int(flag_cell.get("owner") or 0) == int(player_number):
         raise HTTPException(status_code=400, detail="You already own this flag")
 
-    flag_cell["owner"] = int(player_number)
+    capturer_max_hp = int((gu.current_stats or {}).get("hp", gu.current_hp or 0) or 0)
+    capturer_current_hp = int(gu.current_hp or 0)
+    captured = apply_flag_capture_damage(
+        flag_cell,
+        int(player_number),
+        capturer_current_hp,
+        capturer_max_hp,
+    )
     mark_flag_tiles_dirty(map_state)
     gu.can_move = False
     db.add(map_state)
@@ -9950,14 +10002,23 @@ def capture_flag(
     db.flush()
 
     unit_label = get_unit_display_name(gu, db)
-    publish_system_log_event(
-        game.link,
-        f"{unit_label} captured a flag!",
-        state,
-        db,
-    )
+    if captured:
+        publish_system_log_event(
+            game.link,
+            f"{unit_label} captured a flag!",
+            state,
+            db,
+        )
+    else:
+        remaining_hp = int(flag_cell.get("hp", 0))
+        publish_system_log_event(
+            game.link,
+            f"{unit_label} attempts to claim a flag. It has {remaining_hp} health left.",
+            state,
+            db,
+        )
 
-    flag_victory = check_ctf_flag_victory(game, state, map_state, db)
+    flag_victory = check_ctf_flag_victory(game, state, map_state, db) if captured else False
     if flag_victory:
         db.commit()
         publish_flag_cell_updated(game.link, flag_x, flag_y, flag_cell)
@@ -10061,11 +10122,72 @@ def unlock_jail(
     if not jail:
         raise HTTPException(status_code=400, detail="Unit is not on a jail tile")
 
+    map_state = db.query(GameMapState).filter_by(game_id=game.id).first()
+    if not map_state:
+        raise HTTPException(status_code=500, detail="Map state missing")
+
+    jail_cell = ensure_jail_hp_cell(map_state, map_obj, unlock_x, unlock_y)
+    if not jail_cell:
+        raise HTTPException(status_code=400, detail="Unit is not on a jail tile")
+
+    capturer_max_hp = int((gu.current_stats or {}).get("hp", gu.current_hp or 0) or 0)
+    capturer_current_hp = int(gu.current_hp or 0)
+    unlocked = apply_unlock_damage(jail_cell, capturer_current_hp, capturer_max_hp)
+    mark_unlock_tiles_dirty(map_state)
     gu.can_move = False
+    db.add(map_state)
     db.add(gu)
     db.flush()
 
     unit_label = get_unit_display_name(gu, db)
+    if not unlocked:
+        remaining_hp = int(jail_cell.get("hp", 0))
+        publish_system_log_event(
+            game.link,
+            f"{unit_label} attempts to unlock the jail. It has {remaining_hp} health left.",
+            state,
+            db,
+        )
+        _, _, completed_now = reconcile_playable_players(game, state, db)
+        if completed_now:
+            db.commit()
+            publish_unlock_cell_updated(game.link, unlock_x, unlock_y, jail_cell)
+            attach_game_unit_loadout_fields(gu, db)
+            publish_unit_snapshot(game.link, gu, cause="unit_locked")
+            notify_game_completed(game, state, db)
+            return {
+                "ok": True,
+                "unit_id": gu.id,
+                "unlocked": False,
+                "jail": jail,
+                "jail_cell": jail_cell,
+                "freed_unit_ids": [],
+                "turn_advanced": False,
+                "game_completed": True,
+            }
+
+        _, turn_advanced, game_completed = advance_turn_if_player_has_no_actions(
+            game, state, current_player_id, db, removed_ids=[]
+        )
+        if not turn_advanced and not game_completed:
+            db.commit()
+
+        publish_unlock_cell_updated(game.link, unlock_x, unlock_y, jail_cell)
+        if not turn_advanced:
+            attach_game_unit_loadout_fields(gu, db)
+            publish_unit_snapshot(game.link, gu, cause="unit_locked")
+
+        return {
+            "ok": True,
+            "unit_id": gu.id,
+            "unlocked": False,
+            "jail": jail,
+            "jail_cell": jail_cell,
+            "freed_unit_ids": [],
+            "turn_advanced": turn_advanced,
+            "game_completed": game_completed,
+        }
+
     freed_units = free_units_held_in_jail(game.id, int(jail["owner"]), map_obj, db)
     for freed in freed_units:
         freed.current_stats = compute_effective_stats(freed, db)
@@ -10089,6 +10211,7 @@ def unlock_jail(
     _, _, completed_now = reconcile_playable_players(game, state, db)
     if completed_now:
         db.commit()
+        publish_unlock_cell_updated(game.link, unlock_x, unlock_y, jail_cell)
         attach_game_unit_loadout_fields(gu, db)
         publish_unit_snapshot(game.link, gu, cause="unit_locked")
         for freed in freed_units:
@@ -10099,6 +10222,7 @@ def unlock_jail(
             "unit_id": gu.id,
             "unlocked": True,
             "jail": jail,
+            "jail_cell": jail_cell,
             "freed_unit_ids": [int(u.id) for u in freed_units],
             "turn_advanced": False,
             "game_completed": True,
@@ -10110,6 +10234,7 @@ def unlock_jail(
     if not turn_advanced and not game_completed:
         db.commit()
 
+    publish_unlock_cell_updated(game.link, unlock_x, unlock_y, jail_cell)
     if not turn_advanced:
         attach_game_unit_loadout_fields(gu, db)
         publish_unit_snapshot(game.link, gu, cause="unit_locked")
@@ -10121,6 +10246,7 @@ def unlock_jail(
         "unit_id": gu.id,
         "unlocked": True,
         "jail": jail,
+        "jail_cell": jail_cell,
         "freed_unit_ids": [int(u.id) for u in freed_units],
         "turn_advanced": turn_advanced,
         "game_completed": game_completed,

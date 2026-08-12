@@ -6,6 +6,7 @@ import {
 } from "@/utils/gameAssets";
 import { MAP_TILE_DRAW_SIZE, setupPixelCanvas } from "@/utils/pixelCanvas";
 import { resolvePlayerSlotOverlayColor } from "@/utils/playerOverlayColor";
+import { drawTileHealthBar } from "@/utils/mapHealthBar";
 import { drawImageWithPlayerOverlay } from "@/utils/spriteOverlay";
 
 export type ObjectiveTileState = {
@@ -94,14 +95,7 @@ export function useMapObjectiveRenderer(
 
           const maxHp = cell.max_hp || 20;
           const hp = cell.hp ?? maxHp;
-          const barWidth = size - 4;
-          const barHeight = 4;
-          const barX = px + 2;
-          const barY = py + size - barHeight - 2;
-          ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.fillRect(barX, barY, barWidth, barHeight);
-          ctx.fillStyle = hp < maxHp ? "#f97316" : "#22c55e";
-          ctx.fillRect(barX, barY, barWidth * (hp / maxHp), barHeight);
+          drawTileHealthBar(ctx, x, y, hp, maxHp, size);
         }
       }
     };

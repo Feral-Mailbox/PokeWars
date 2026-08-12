@@ -39,13 +39,16 @@ describe("mapBuilder core helpers", () => {
     expect(normalized.movement_cost[0][0]).toBe(3);
     expect(normalized.item_id_tiles[0][0]).toBe(9);
     expect(normalized.base[1][1]).toBeNull();
-    expect(normalized.background_color).toBe("#000000");
+    expect(normalized.background_color).toBe("#242424");
     expect(normalizeTileData({}, 1, 1).base).toHaveLength(1);
     expect(normalizeTileData({ base: [[[1, 0]]], background_color: "#cde" }, 1, 1).background_color).toBe(
       "#cde"
     );
     expect(normalizeTileData({ base: [[[1, 0]]], background_color: "red" }, 1, 1).background_color).toBe(
-      "#000000"
+      "#242424"
+    );
+    expect(normalizeTileData({ base: [[[1, 0]]], background_color: "#000000" }, 1, 1).background_color).toBe(
+      "#242424"
     );
     expect(normalizeTileData({ base: [[[0, 0], [4, 0]]] }, 2, 1).base[0]).toEqual([[0, 0], [4, 0]]);
     expect(normalizeTileData({ base: [[[0, 0], null]] }, 2, 1).base[0]).toEqual([[0, 0], null]);

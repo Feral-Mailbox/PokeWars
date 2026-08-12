@@ -14,7 +14,8 @@ export type MapTileData = {
   background_color?: string;
 };
 
-export const DEFAULT_MAP_BACKGROUND_COLOR = "#000000";
+/** Matches `:root` background-color in index.css so empty map cells blend with the page. */
+export const DEFAULT_MAP_BACKGROUND_COLOR = "#242424";
 
 export function isValidTileRef(tile: TileRef | null | undefined): tile is TileRef {
   if (tile == null || !Array.isArray(tile) || tile.length < 2) return false;
@@ -34,6 +35,10 @@ export function normalizeBackgroundColor(value: unknown): string {
   if (typeof value !== "string") return DEFAULT_MAP_BACKGROUND_COLOR;
   const trimmed = value.trim();
   if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
+    // Legacy maps used true black as the empty-tile fill; treat it as the page color.
+    if (trimmed.toLowerCase() === "#000" || trimmed.toLowerCase() === "#000000") {
+      return DEFAULT_MAP_BACKGROUND_COLOR;
+    }
     return trimmed;
   }
   return DEFAULT_MAP_BACKGROUND_COLOR;

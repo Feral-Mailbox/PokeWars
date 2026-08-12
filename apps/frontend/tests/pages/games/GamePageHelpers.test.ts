@@ -27,6 +27,7 @@ describe("GamePage helpers", () => {
 
   it("maps players to palette colors by id order", () => {
     expect(buildPlayerColorMap(null)).toEqual({});
+    expect(buildPlayerColorMap([10, 20])).toEqual({});
     expect(
       buildPlayerColorMap([
         { id: 2, player_id: 20 },

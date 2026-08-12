@@ -40,6 +40,14 @@ export function isVisibleOnMapUnit(
   return x >= 0 && y >= 0;
 }
 
+/** Jailed units stay in state for the jail tooltip but must not occupy the map tile. */
+export function isRenderedOnMapUnit(
+  unit: Pick<PlacedUnitState, "is_fainted" | "current_hp" | "tile" | "jailed">,
+): boolean {
+  if (unit.jailed) return false;
+  return isVisibleOnMapUnit(unit);
+}
+
 export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
   const currentX = Number(backendUnit?.current_x ?? backendUnit?.starting_x ?? 0);
   const currentY = Number(backendUnit?.current_y ?? backendUnit?.starting_y ?? 0);
@@ -51,7 +59,7 @@ export function mapPlacedUnitFromBackend(backendUnit: any): PlacedUnitState {
     game_id: Number(backendUnit.game_id),
     unit_id: Number(backendUnit.unit_id),
     user_id: Number(backendUnit.user_id),
-    unit: backendUnit.unit,
+    unit: backendUnit.unit ?? {},
     tile: [currentX, currentY],
     start_tile: [startX, startY],
     level: Number(backendUnit.level ?? 50),
@@ -91,6 +99,50 @@ export function mapVisiblePlacedUnitsFromBackend(backendUnits: any[]): PlacedUni
   return backendUnits
     .map(mapPlacedUnitFromBackend)
     .filter(isVisibleOnMapUnit);
+}
+
+/** During preparation, only the viewer's own units should be visible. */
+export function filterUnitsForPreparationViewer<T extends { user_id?: number | null; id?: number }>(
+  units: T[],
+  options: {
+    status?: string | null;
+    viewerUserId?: number | null;
+    playerUnitIds?: number[] | null;
+  }
+): T[] {
+  if (options.status !== "preparation") return units;
+  if (Array.isArray(options.playerUnitIds)) {
+    const ids = new Set(options.playerUnitIds.map(Number));
+    return units.filter((u) => ids.has(Number(u.id)));
+  }
+  if (options.viewerUserId != null) {
+    return units.filter((u) => Number(u.user_id) === Number(options.viewerUserId));
+  }
+  return units;
+}
+
+export function mapViewerVisiblePlacedUnitsFromBackend(
+  backendUnits: any[],
+  options: {
+    status?: string | null;
+    viewerUserId?: number | null;
+    playerUnitIds?: number[] | null;
+  } = {}
+): PlacedUnitState[] {
+  return mapVisiblePlacedUnitsFromBackend(
+    filterUnitsForPreparationViewer(backendUnits, options)
+  );
+}
+
+export function upsertPlacedUnit(
+  units: PlacedUnitState[],
+  next: PlacedUnitState
+): PlacedUnitState[] {
+  const idx = units.findIndex((u) => u.id === next.id);
+  if (idx >= 0) {
+    return units.map((u, i) => (i === idx ? next : u));
+  }
+  return [...units, next];
 }
 
 export function toActiveUnitView(placed: PlacedUnitState): ActiveUnitView {

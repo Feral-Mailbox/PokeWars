@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   getUnitMoveIds,
   isVisibleOnMapUnit,
+  isRenderedOnMapUnit,
   mapPlacedUnitFromBackend,
   mapVisiblePlacedUnitsFromBackend,
+  mapViewerVisiblePlacedUnitsFromBackend,
   resolveMovePpIndex,
   toActiveUnitView,
+  upsertPlacedUnit,
 } from "@/pages/games/mapPlacedUnit";
 
 describe("mapPlacedUnit", () => {
@@ -53,6 +56,8 @@ describe("mapPlacedUnit", () => {
     expect(isVisibleOnMapUnit({ ...placed, is_fainted: true })).toBe(false);
     expect(isVisibleOnMapUnit({ ...placed, current_hp: 0 })).toBe(false);
     expect(isVisibleOnMapUnit({ ...placed, tile: [-1, 0] })).toBe(false);
+    expect(isRenderedOnMapUnit(placed)).toBe(true);
+    expect(isRenderedOnMapUnit({ ...placed, jailed: true })).toBe(false);
 
     const visible = mapVisiblePlacedUnitsFromBackend([
       backendUnit,
@@ -155,5 +160,38 @@ describe("mapPlacedUnit", () => {
     });
     expect(fromFlags.jailed).toBe(true);
     expect(fromFlags.jailed_by).toBe(3);
+  });
+
+  it("hides opponent units during preparation mapping", () => {
+    const units = [
+      { ...backendUnit, id: 1, user_id: 4 },
+      { ...backendUnit, id: 2, user_id: 9, current_x: 3, current_y: 3 },
+    ];
+    const visible = mapViewerVisiblePlacedUnitsFromBackend(units, {
+      status: "preparation",
+      viewerUserId: 4,
+    });
+    expect(visible).toHaveLength(1);
+    expect(visible[0].id).toBe(1);
+
+    const byIds = mapViewerVisiblePlacedUnitsFromBackend(units, {
+      status: "preparation",
+      playerUnitIds: [2],
+    });
+    expect(byIds).toHaveLength(1);
+    expect(byIds[0].id).toBe(2);
+
+    expect(
+      mapViewerVisiblePlacedUnitsFromBackend(units, { status: "in_progress", viewerUserId: 4 })
+    ).toHaveLength(2);
+  });
+
+  it("upserts placed units by id", () => {
+    const first = mapPlacedUnitFromBackend(backendUnit);
+    const updated = mapPlacedUnitFromBackend({ ...backendUnit, current_hp: 10 });
+    const next = upsertPlacedUnit([first], updated);
+    expect(next).toHaveLength(1);
+    expect(next[0].current_hp).toBe(10);
+    expect(upsertPlacedUnit([], first)).toEqual([first]);
   });
 });

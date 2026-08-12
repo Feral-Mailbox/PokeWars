@@ -4,6 +4,7 @@ import CaptureTheFlagGame, {
   getCtfActionTarget,
   getCtfJailAt,
   patchFlagTile,
+  patchUnlockTile,
 } from "@/pages/games/modes/CaptureTheFlagGame";
 
 const { useMapRenderer, drawCtfMapIcon } = vi.hoisted(() => ({
@@ -64,6 +65,7 @@ describe("CaptureTheFlagGame", () => {
     expect(drawCtfMapIcon).toHaveBeenCalledWith(ctx, expect.anything(), 1, 0, "#abcdef80", 32);
     expect(drawCtfMapIcon).toHaveBeenCalledWith(ctx, expect.anything(), 1, 1, "#FF000080", 32);
     expect(drawCtfMapIcon).toHaveBeenCalledWith(ctx, expect.anything(), 1, 0, "#FF000080", 32);
+    expect(ctx.fillRect).toHaveBeenCalled();
   });
 
   it("getCtfActionTarget returns flag when standing on enemy flag", () => {
@@ -77,7 +79,7 @@ describe("CaptureTheFlagGame", () => {
       },
       1
     );
-    expect(target).toEqual({ kind: "flag", x: 0, y: 0 });
+    expect(target).toEqual({ kind: "flag", x: 0, y: 0, hp: 10, max_hp: 10 });
   });
 
   it("getCtfActionTarget returns unlock when standing on a jail", () => {
@@ -90,11 +92,12 @@ describe("CaptureTheFlagGame", () => {
         map: { tile_data: { special_tiles: [[null, "ctf_jail_p2"]] } },
         map_state: {
           flag_tiles: [[null, null]],
+          unlock_tiles: [[null, { hp: 12, max_hp: 20 }]],
         },
       },
       1
     );
-    expect(target).toEqual({ kind: "unlock", x: 1, y: 0, owner: 2 });
+    expect(target).toEqual({ kind: "unlock", x: 1, y: 0, owner: 2, hp: 12, max_hp: 20 });
     expect(
       getCtfJailAt(
         { map: { tile_data: { special_tiles: [[null, "ctf_jail_p2"]] } } },
@@ -111,5 +114,8 @@ describe("CaptureTheFlagGame", () => {
       },
     };
     expect(patchFlagTile(base, 0, 0, { owner: 2 }).map_state.flag_tiles[0][0].owner).toBe(2);
+    expect(
+      patchUnlockTile(base, 0, 0, { hp: 7, max_hp: 20 }).map_state.unlock_tiles[0][0]
+    ).toEqual({ hp: 7, max_hp: 20 });
   });
 });

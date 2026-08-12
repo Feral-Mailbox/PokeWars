@@ -57,7 +57,7 @@ export const GAME_MODES: GuideSection = {
     },
     {
       title: 'Capture the Flag',
-      body: 'Claim every banner on the map. Defeated units are sent to the victor’s jail. Stand on a jail to free everyone held there — they return to the tiles they started the match on with a three-turn omniboost.',
+      body: 'Claim every banner on the map. Flags have 10 HP and jails have 20 HP; capture and unlock use the same damage as War Poké Balls (based on the acting unit’s current HP over max HP). Defeated units are sent to the victor’s jail. Stand on a jail and deplete its HP to free everyone held there — they return to the tiles they started the match on with a three-turn omniboost.',
     },
   ],
 };

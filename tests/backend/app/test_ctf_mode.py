@@ -1,4 +1,5 @@
 from app.ctf_mode import (
+    apply_flag_capture_damage,
     apply_omniboost,
     apply_unlock_damage,
     build_flag_tiles_from_map,
@@ -15,11 +16,13 @@ from app.ctf_mode import (
     list_jail_tiles,
     list_jails,
     make_flag_cell,
+    make_jail_cell,
     make_unlock_cell,
     nearest_open_tile,
     parse_jail_tile,
     player_owns_all_flags,
     resolve_jailer_user_id,
+    restore_unoccupied_damaged_ctf_tiles,
     total_flag_count,
     unit_blocks_occupation,
 )
@@ -87,6 +90,10 @@ def test_parse_and_list_owned_jails():
     assert flags[0][0] == make_flag_cell(0)
     assert flags[0][1] == make_flag_cell(1)
     assert flags[1][0] == make_flag_cell(2)
+    assert flags[0][0]["hp"] == 10
+    assert flags[0][0]["max_hp"] == 10
+    assert unlocks[0][0] == make_jail_cell(1)
+    assert unlocks[1][2] == make_jail_cell(2)
     assert unlocks[0][2] is None
     assert jails == [(0, 0, 1), (2, 1, 2)]
     assert list_jail_tiles(map_obj) == [(0, 0), (2, 1)]
@@ -103,6 +110,48 @@ def test_capture_damage_and_unlock():
     assert cell["hp"] == 10
     assert apply_unlock_damage(cell, 20, 20) is True
     assert cell["hp"] == 20
+
+
+def test_flag_capture_damage_uses_hp_ratio():
+    cell = make_flag_cell(1)
+    assert cell["hp"] == 10
+    assert apply_flag_capture_damage(cell, 2, 10, 20) is False
+    assert cell["owner"] == 1
+    assert cell["hp"] == 5
+    assert apply_flag_capture_damage(cell, 2, 20, 20) is True
+    assert cell["owner"] == 2
+    assert cell["hp"] == 10
+
+
+def test_restore_unoccupied_damaged_ctf_tiles(monkeypatch):
+    monkeypatch.setattr("app.ctf_mode.flag_modified", lambda *_a, **_k: None)
+
+    class DummyMapState:
+        def __init__(self):
+            flag = make_flag_cell(1)
+            flag["hp"] = 4
+            jail = make_jail_cell(2)
+            jail["hp"] = 8
+            self.flag_tiles = [[flag, None], [None, None]]
+            self.unlock_tiles = [[None, None], [None, jail]]
+
+    class Query:
+        def filter(self, *args, **kwargs):
+            return self
+
+        def all(self):
+            return []
+
+    class DummyDb:
+        def query(self, _model):
+            return Query()
+
+    map_state = DummyMapState()
+    restored = restore_unoccupied_damaged_ctf_tiles(map_state, 1, DummyDb())
+    kinds = {kind for _x, _y, kind, _cell in restored}
+    assert kinds == {"flag", "jail"}
+    assert map_state.flag_tiles[0][0]["hp"] == 10
+    assert map_state.unlock_tiles[1][1]["hp"] == 20
 
 
 def test_flag_ownership_helpers():
