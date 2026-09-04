@@ -7,16 +7,18 @@ interface UnitPortraitProps {
   frameY?: number;
 }
 
-export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frameY = 0 }: UnitPortraitProps) {
-  const [src, setSrc] = useState("");
-  const [naturalWidth, setNaturalWidth] = useState(0);
-  const [naturalHeight, setNaturalHeight] = useState(0);
+const portraitCache = new Map<string, Promise<string>>();
 
-  useEffect(() => {
-    if (!assetFolder) {
-      setSrc("");
-      return;
-    }
+/** Test helper: drop cached portrait URL resolutions between cases. */
+export function clearUnitPortraitCaches(): void {
+  portraitCache.clear();
+}
+
+function resolvePortraitUrl(assetFolder: string): Promise<string> {
+  const cached = portraitCache.get(assetFolder);
+  if (cached) return cached;
+
+  const pending = (async () => {
     const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
     const normalizedBase = assetBase.startsWith("http")
       ? assetBase
@@ -25,8 +27,8 @@ export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frame
     const basePath = `${base}/units/${assetFolder}/portraits/portrait.png`;
     const malePath = `${base}/units/${assetFolder}/portraits/male/portrait.png`;
 
-    const testImage = (url: string): Promise<boolean> => {
-      return new Promise((resolve) => {
+    const testImage = (url: string): Promise<boolean> =>
+      new Promise((resolve) => {
         const img = new Image();
         let settled = false;
         const finish = (ok: boolean) => {
@@ -34,32 +36,40 @@ export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frame
           settled = true;
           resolve(ok);
         };
-
         img.onload = () => finish(true);
         img.onerror = () => finish(false);
         img.src = url;
-
-        if (img.complete) {
-          finish(img.naturalWidth > 0);
-        }
+        if (img.complete) finish(img.naturalWidth > 0);
       });
-    };
 
-    const loadPortrait = async () => {
-      const baseExists = await testImage(basePath);
-      if (baseExists) {
-        setSrc(basePath);
-      } else {
-        const maleExists = await testImage(malePath);
-        if (maleExists) {
-          setSrc(malePath);
-        } else {
-          setSrc("");
-        }
-      }
-    };
+    if (await testImage(basePath)) return basePath;
+    if (await testImage(malePath)) return malePath;
+    return "";
+  })();
 
-    loadPortrait();
+  portraitCache.set(assetFolder, pending);
+  return pending;
+}
+
+export default function UnitPortrait({ assetFolder, size = 40, frameX = 0, frameY = 0 }: UnitPortraitProps) {
+  const [src, setSrc] = useState("");
+  const [naturalWidth, setNaturalWidth] = useState(0);
+  const [naturalHeight, setNaturalHeight] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!assetFolder) {
+      setSrc("");
+      return;
+    }
+
+    void resolvePortraitUrl(assetFolder).then((url) => {
+      if (!cancelled) setSrc(url);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [assetFolder]);
 
   const canUseRequestedFrame =

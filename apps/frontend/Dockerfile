@@ -3,11 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Pin pnpm major so install behavior stays predictable in CI/Docker
+RUN npm install -g pnpm@10
 
-COPY package.json ./
-RUN pnpm install
+COPY package.json pnpm-lock.yaml ./
+# Lockfile can lag package.json on this repo; still allow vite/esbuild native builds
+# via package.json "pnpm.onlyBuiltDependencies".
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 

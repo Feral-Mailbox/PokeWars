@@ -47,7 +47,7 @@ type GameMapStageProps = {
   tileDrawSize: number;
   moveTargeting: boolean;
   getPlayerColor: (playerId: number) => string;
-  onSpriteFrameSize: (frame: [number, number]) => void;
+  onSpriteFrameSize?: (frame: [number, number]) => void;
   onUnitMouseEnter: (unitState: PlacedUnit) => void;
   onUnitMouseLeave: (unitState: PlacedUnit) => void;
   onUnitClick: (unitState: PlacedUnit) => void;

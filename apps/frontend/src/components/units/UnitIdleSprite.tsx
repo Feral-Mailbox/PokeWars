@@ -9,6 +9,15 @@ interface UnitIdleSpriteProps {
   outlineOnly?: boolean;
 }
 
+const imageCache = new Map<string, Promise<HTMLImageElement | null>>();
+const xmlCache = new Map<string, Promise<string | null>>();
+
+/** Test helper: drop cached sprite/XML promises between cases. */
+export function clearUnitSpriteCaches(): void {
+  imageCache.clear();
+  xmlCache.clear();
+}
+
 function loadImageElement(url: string, crossOrigin = true): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -33,8 +42,61 @@ function loadImageElement(url: string, crossOrigin = true): Promise<HTMLImageEle
   });
 }
 
-function imageExists(url: string): Promise<boolean> {
-  return loadImageElement(url).then((img) => img !== null);
+function loadImageCached(url: string): Promise<HTMLImageElement | null> {
+  let pending = imageCache.get(url);
+  if (!pending) {
+    pending = loadImageElement(url).then((img) => {
+      if (!img) imageCache.delete(url);
+      return img;
+    });
+    imageCache.set(url, pending);
+  }
+  return pending;
+}
+
+async function fetchAnimXmlCached(url: string): Promise<string | null> {
+  let pending = xmlCache.get(url);
+  if (!pending) {
+    pending = (async () => {
+      try {
+        const res = await fetch(url, { mode: "cors" });
+        if (!res.ok) {
+          xmlCache.delete(url);
+          return null;
+        }
+        return await res.text();
+      } catch {
+        xmlCache.delete(url);
+        return null;
+      }
+    })();
+    xmlCache.set(url, pending);
+  }
+  return pending;
+}
+
+function computeVerticalShiftFromImage(img: HTMLImageElement, fw: number, fh: number): number {
+  const canvas = document.createElement("canvas");
+  canvas.width = fw;
+  canvas.height = fh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return 0;
+  ctx.drawImage(img, 0, 0, fw, fh, 0, 0, fw, fh);
+  const data = ctx.getImageData(0, 0, fw, fh).data;
+
+  let lastVisibleY = -1;
+  for (let y = fh - 1; y >= 0; y--) {
+    for (let x = 0; x < fw; x++) {
+      if (data[(y * fw + x) * 4 + 3] > 0) {
+        lastVisibleY = y;
+        break;
+      }
+    }
+    if (lastVisibleY >= 0) break;
+  }
+
+  if (lastVisibleY < 0) return 0;
+  return Math.max(0, fh - lastVisibleY - 1);
 }
 
 export default function UnitIdleSprite({
@@ -45,11 +107,15 @@ export default function UnitIdleSprite({
   outlineOnly = false,
 }: UnitIdleSpriteProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onFrameSizeRef = useRef(onFrameSize);
+  onFrameSizeRef.current = onFrameSize;
+
   const [spriteImage, setSpriteImage] = useState<HTMLImageElement | null>(null);
   const [shadowImage, setShadowImage] = useState<HTMLImageElement | null>(null);
   const [durations, setDurations] = useState<number[]>([]);
   const [frameSize, setFrameSize] = useState<[number, number]>([24, 48]);
   const [animName, setAnimName] = useState<"Idle" | "Walk">("Idle");
+  const [assetsReady, setAssetsReady] = useState(false);
   const verticalShiftRef = useRef<number>(0);
 
   const SPRITE_SCALE = 1.33;
@@ -89,57 +155,62 @@ export default function UnitIdleSprite({
   useEffect(() => {
     let cancelled = false;
 
-    const loadAnimFromPath = async (spritePath: string, isFinalAttempt = false) => {
-      const exists = await imageExists(`${spritePath}/Idle-Anim.png`);
-      if (!exists) return false;
+    const loadAnimFromPath = async (spritePath: string) => {
+      const idleImg = await loadImageCached(`${spritePath}/Idle-Anim.png`);
+      const xmlText = await fetchAnimXmlCached(`${spritePath}/AnimData.xml`);
+      if (!xmlText) return false;
 
-      const res = await fetch(`${spritePath}/AnimData.xml`, { mode: "cors" });
-      if (!res.ok) return false;
-
-      const text = await res.text();
       const parser = new DOMParser();
-      const xml = parser.parseFromString(text, "application/xml");
+      const xml = parser.parseFromString(xmlText, "application/xml");
       const anims = xml.getElementsByTagName("Anims")[0];
       if (!anims) return false;
 
       const animElements = Array.from(anims.getElementsByTagName("Anim"));
-      let selected = animElements.find(a => a.querySelector("Name")?.textContent?.trim() === "Idle");
-      let fallback = false;
-
+      let selected = idleImg
+        ? animElements.find((a) => a.querySelector("Name")?.textContent?.trim() === "Idle")
+        : undefined;
+      let useWalk = false;
       if (!selected) {
-        selected = animElements.find(a => a.querySelector("Name")?.textContent?.trim() === "Walk");
-        fallback = true;
+        selected = animElements.find(
+          (a) => a.querySelector("Name")?.textContent?.trim() === "Walk"
+        );
+        useWalk = true;
       }
-
       if (!selected) return false;
 
-      const fw = parseInt(selected.querySelector("FrameWidth")?.textContent || "24");
-      const fh = parseInt(selected.querySelector("FrameHeight")?.textContent || "48");
+      const spriteImg = useWalk
+        ? await loadImageCached(`${spritePath}/Walk-Anim.png`)
+        : idleImg;
+      if (!spriteImg) return false;
+
+      const fw = parseInt(selected.querySelector("FrameWidth")?.textContent || "24", 10);
+      const fh = parseInt(selected.querySelector("FrameHeight")?.textContent || "48", 10);
       const ds = Array.from(selected.getElementsByTagName("Duration")).map((d) =>
-        parseInt(d.textContent || "10")
+        parseInt(d.textContent || "10", 10)
       );
 
       if (cancelled) return false;
 
-      setFrameSize([fw, fh]);
-      if (onFrameSize) onFrameSize([fw, fh]);
-      setDurations(ds);
-      setAnimName(fallback ? "Walk" : "Idle");
-
-      const spriteFile = fallback ? "Walk-Anim.png" : "Idle-Anim.png";
-      const img = await loadImageElement(`${spritePath}/${spriteFile}`);
-      if (!img || cancelled) return false;
-
-      setSpriteImage(img);
-
+      let shadowImg: HTMLImageElement | null = null;
+      let shift = 0;
       if (isMapPlacement) {
-        const shadowImg = await loadImageElement(`${spritePath}/Idle-Shadow.png`);
-        if (shadowImg && !cancelled) {
-          setShadowImage(shadowImg);
-          computeVerticalShift(shadowImg, fw, fh);
+        shadowImg = await loadImageCached(`${spritePath}/Idle-Shadow.png`);
+        if (shadowImg) {
+          shift = computeVerticalShiftFromImage(shadowImg, fw, fh);
         }
       }
 
+      if (cancelled) return false;
+
+      // Apply footprint shift before first paint so sprites don't pop down a few pixels.
+      verticalShiftRef.current = shift;
+      setFrameSize([fw, fh]);
+      onFrameSizeRef.current?.([fw, fh]);
+      setDurations(ds.length > 0 ? ds : [10]);
+      setAnimName(useWalk ? "Walk" : "Idle");
+      setShadowImage(shadowImg);
+      setSpriteImage(spriteImg);
+      setAssetsReady(true);
       return true;
     };
 
@@ -147,6 +218,8 @@ export default function UnitIdleSprite({
       setSpriteImage(null);
       setShadowImage(null);
       setDurations([]);
+      setAssetsReady(false);
+      verticalShiftRef.current = 0;
       if (!assetFolder) return;
 
       const assetBase = (import.meta as any).env?.VITE_ASSET_BASE ?? "/game-assets";
@@ -159,38 +232,16 @@ export default function UnitIdleSprite({
 
       const baseSuccess = await loadAnimFromPath(basePath);
       if (!baseSuccess && !cancelled) {
-        await loadAnimFromPath(malePath, true);
+        await loadAnimFromPath(malePath);
       }
     };
 
-    loadAssets();
+    void loadAssets();
 
     return () => {
       cancelled = true;
     };
-  }, [assetFolder, isMapPlacement, onFrameSize]);
-
-  const computeVerticalShift = (img: HTMLImageElement, fw: number, fh: number) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = fw;
-    canvas.height = fh;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, fw, fh).data;
-
-    let lastVisibleY = 0;
-    for (let y = fh - 1; y >= 0; y--) {
-      for (let x = 0; x < fw; x++) {
-        if (data[(y * fw + x) * 4 + 3] > 0) {
-          lastVisibleY = y;
-          break;
-        }
-      }
-      if (lastVisibleY > 0) break;
-    }
-
-    verticalShiftRef.current = fh - lastVisibleY - 1;
-  };
+  }, [assetFolder, isMapPlacement]);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -199,7 +250,7 @@ export default function UnitIdleSprite({
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || !spriteImage || durations.length === 0) return;
+    if (!canvas || !ctx || !spriteImage || durations.length === 0 || !assetsReady) return;
 
     const [fw, fh] = frameSize;
     canvas.width = fw;
@@ -262,7 +313,16 @@ export default function UnitIdleSprite({
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [spriteImage, shadowImage, durations, frameSize, isMapPlacement, overlayColor, outlineOnly]);
+  }, [
+    spriteImage,
+    shadowImage,
+    durations,
+    frameSize,
+    isMapPlacement,
+    overlayColor,
+    outlineOnly,
+    assetsReady,
+  ]);
 
   const [fw, fh] = frameSize;
 
@@ -274,6 +334,7 @@ export default function UnitIdleSprite({
         position: "relative",
         pointerEvents: "none",
         overflow: "visible",
+        visibility: assetsReady ? "visible" : "hidden",
       }}
     >
       <canvas

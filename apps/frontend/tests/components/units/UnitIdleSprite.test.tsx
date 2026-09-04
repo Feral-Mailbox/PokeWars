@@ -1,12 +1,13 @@
 // tests/components/UnitIdleSprite.test.tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import UnitIdleSprite from '@/components/units/UnitIdleSprite';
+import UnitIdleSprite, { clearUnitSpriteCaches } from '@/components/units/UnitIdleSprite';
 
 describe('UnitIdleSprite', () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
+    clearUnitSpriteCaches();
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(`
