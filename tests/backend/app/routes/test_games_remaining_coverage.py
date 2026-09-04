@@ -4542,19 +4542,19 @@ def test_get_open_closed_in_progress_completed_games_listing(client, db, user):
 
     resp_open = client.get("/games/open")
     assert resp_open.status_code == 200
-    assert {g["id"] for g in resp_open.json()} == {open_game.id}
+    assert {g["id"] for g in resp_open.json()["items"]} == {open_game.id}
 
     resp_closed = client.get("/games/closed")
     assert resp_closed.status_code == 200
-    assert {g["id"] for g in resp_closed.json()} == {closed_game.id}
+    assert {g["id"] for g in resp_closed.json()["items"]} == {closed_game.id}
 
     resp_in_progress = client.get("/games/in_progress")
     assert resp_in_progress.status_code == 200
-    assert {g["id"] for g in resp_in_progress.json()} == {prep_game.id, in_progress_game.id}
+    assert {g["id"] for g in resp_in_progress.json()["items"]} == {prep_game.id, in_progress_game.id}
 
     resp_completed = client.get("/games/completed")
     assert resp_completed.status_code == 200
-    assert {g["id"] for g in resp_completed.json()} == {completed_game.id}
+    assert {g["id"] for g in resp_completed.json()["items"]} == {completed_game.id}
 
 
 def test_create_game_map_not_found(client, db, user):

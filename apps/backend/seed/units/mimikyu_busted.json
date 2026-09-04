@@ -21,7 +21,7 @@
   "ability_ids": [
     209
   ],
-  "cost": null,
+  "cost": 0,
   "evolution_cost": null,
   "evolves_into": null,
   "is_legendary": false,

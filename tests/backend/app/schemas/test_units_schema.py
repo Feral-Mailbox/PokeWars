@@ -28,6 +28,19 @@ def _unit_summary_kwargs(**overrides):
 def test_unit_summary_fields():
     model = UnitSummary(**_unit_summary_kwargs())
     assert model.base_stats["hp"] == 35
+    assert model.is_titanic is False
+    assert model.titanic_footprint is None
+
+
+def test_unit_summary_titanic_fields():
+    model = UnitSummary(
+        **_unit_summary_kwargs(
+            is_titanic=True,
+            titanic_footprint={"north": 3, "west": 1, "east": 1},
+        )
+    )
+    assert model.is_titanic is True
+    assert model.titanic_footprint == {"north": 3, "west": 1, "east": 1}
 
 
 def test_unit_detail_fields():

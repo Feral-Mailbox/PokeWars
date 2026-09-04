@@ -26,6 +26,12 @@
   "evolution_cost": null,
   "evolves_into": null,
   "is_legendary": true,
+  "is_titanic": true,
+  "titanic_footprint": {
+    "north": 3,
+    "west": 1,
+    "east": 1
+  },
   "description": "It sleeps in a deep-sea trench. If it flaps its wings, it is said to cause a 40-day storm.",
   "measurements": {
     "height": 5.2,

@@ -324,6 +324,9 @@ class Unit(Base):
     evolution_cost = Column(JSON, nullable=True, default=0)
     evolves_into = Column(JSON, nullable=True)
     is_legendary = Column(Boolean, default=False)
+    is_titanic = Column(Boolean, default=False, nullable=False)
+    # Optional occlusion footprint for map rendering, e.g. {"north": 3, "west": 1, "east": 1}
+    titanic_footprint = Column(JSON, nullable=True)
     description = Column(String, nullable=True)
     portrait_credits = Column(JSON, nullable=False, default=list)
     sprite_credits = Column(JSON, nullable=False, default=list)

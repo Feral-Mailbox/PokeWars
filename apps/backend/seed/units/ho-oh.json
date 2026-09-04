@@ -26,6 +26,12 @@
   "evolution_cost": null,
   "evolves_into": null,
   "is_legendary": true,
+  "is_titanic": true,
+  "titanic_footprint": {
+    "north": 3,
+    "west": 1,
+    "east": 1
+  },
   "description": "Its feathers are in seven colors. It is said that anyone seeing it is promised eternal happiness.",
   "measurements": {
     "height": 3.8,

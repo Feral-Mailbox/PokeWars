@@ -166,7 +166,6 @@ export default function GamePage() {
   const [unitTypeFilterSecondary, setUnitTypeFilterSecondary] = useState<string>("");
   const [unitSortBy, setUnitSortBy] = useState<"id" | "name" | "cost">("id");
   const [unitSortDirection, setUnitSortDirection] = useState<"asc" | "desc">("asc");
-  const [spriteHeight, setSpriteHeight] = useState<number>(48);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [weatherIconRefresh, setWeatherIconRefresh] = useState<number>(0);
   const [hazardIconRefresh, setHazardIconRefresh] = useState<number>(0);
@@ -1664,27 +1663,25 @@ export default function GamePage() {
         setGameData(data);
         setCash(data.starting_cash ?? 0);
 
-        const playerRes = await secureFetch(`/api/games/${data.link}/player`);
+        // Player + units are independent after the game payload — fetch in parallel.
+        // Catalog (moves/items) is large (~400KB+) and only needed for tooltips/menus,
+        // so it must not gate the loading spinner.
+        const [playerRes, unitsRes] = await Promise.all([
+          secureFetch(`/api/games/${data.link}/player`),
+          secureFetch(`/api/games/${gameId}/units`),
+        ]);
+        if (cancelled) return;
+
+        let playerUnitIds: number[] = [];
         if (playerRes.ok) {
           const player = await playerRes.json();
           setCash(player.cash_remaining);
           setIsReady(player.is_ready);
+          playerUnitIds = player.game_units ?? [];
         }
 
-        const unitsRes = await secureFetch(`/api/games/${gameId}/units`);
         if (unitsRes.ok) {
           const backendUnits = await unitsRes.json();
-
-          let playerUnitIds: number[] = [];
-          if (data.status === "preparation") {
-            const playerRes = await secureFetch(`/api/games/${data.link}/player`);
-            if (playerRes.ok) {
-              const player = await playerRes.json();
-              setCash(player.cash_remaining);
-              playerUnitIds = player.game_units ?? [];
-            }
-          }
-
           const mappedUnits = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
             status: data.status,
             playerUnitIds: data.status === "preparation" ? playerUnitIds : null,
@@ -1698,11 +1695,11 @@ export default function GamePage() {
           }
         }
 
-        if (data.map) {
-          await loadMapItemCatalog();
-        }
-
         if (!cancelled) setGameLoading(false);
+
+        if (data.map) {
+          void loadMapItemCatalog();
+        }
       } catch {
         if (!cancelled) redirectWithToast();
       }
@@ -2991,16 +2988,40 @@ export default function GamePage() {
   };
 
   const handlePlacePreparationUnit = async (unit: any) => {
-    if (!selectedTile || !gameData?.link) return;
+    if (!selectedTile || !gameData?.link || userId == null) return;
     if (unit.cost > cash) {
       setToastMessage("You don't have enough cash to buy this unit!");
       return;
     }
 
+    const [x, y] = selectedTile;
+    const tempId = -Date.now();
+    const optimistic = mapPlacedUnitFromBackend({
+      id: tempId,
+      game_id: gameData.id,
+      unit_id: unit.id,
+      user_id: userId,
+      current_x: x,
+      current_y: y,
+      starting_x: x,
+      starting_y: y,
+      current_hp: Number(unit.base_stats?.hp ?? unit.cost ?? 100),
+      current_stats: unit.base_stats ?? {},
+      unit,
+    });
+
+    // Show the sprite immediately; reconcile when the server responds.
+    setPlacedUnits((prev) => {
+      const next = upsertPlacedUnit(prev, optimistic);
+      placedUnitsRef.current = next;
+      return next;
+    });
+    setSelectedTile(null);
+
     const payload = {
       unit_id: unit.id,
-      x: selectedTile[0],
-      y: selectedTile[1],
+      x,
+      y,
       current_hp: 100,
       stat_boosts: {},
       status_effects: [],
@@ -3014,6 +3035,11 @@ export default function GamePage() {
     });
 
     if (!res.ok) {
+      setPlacedUnits((prev) => {
+        const next = prev.filter((u) => u.id !== tempId);
+        placedUnitsRef.current = next;
+        return next;
+      });
       setToastMessage("Failed to place unit.");
       return;
     }
@@ -3025,27 +3051,49 @@ export default function GamePage() {
       unit: { ...unit, ...(placedUnit.unit || {}) },
     });
     setPlacedUnits((prev) => {
-      const next = upsertPlacedUnit(prev, mapped);
+      const withoutTemp = prev.filter((u) => u.id !== tempId);
+      const next = upsertPlacedUnit(withoutTemp, mapped);
       placedUnitsRef.current = next;
       return next;
     });
-    setSelectedTile(null);
     // Cash is deducted server-side and broadcast via game_patch; never subtract locally
     // or a late HTTP response can double-charge after the WS players update.
     await syncPlayerCash(gameData.link);
   };
 
   const handleWarSummonUnit = async (unit: any) => {
-    if (!selectedTile || !gameData?.link) return;
+    if (!selectedTile || !gameData?.link || userId == null) return;
     if (unit.cost > cash) {
       setToastMessage("You don't have enough cash to buy this unit!");
       return;
     }
 
+    const [x, y] = selectedTile;
+    const tempId = -Date.now();
+    const optimistic = mapPlacedUnitFromBackend({
+      id: tempId,
+      game_id: gameData.id,
+      unit_id: unit.id,
+      user_id: userId,
+      current_x: x,
+      current_y: y,
+      starting_x: x,
+      starting_y: y,
+      current_hp: Number(unit.base_stats?.hp ?? 100),
+      current_stats: unit.base_stats ?? {},
+      unit,
+    });
+    setPlacedUnits((prev) => {
+      const next = upsertPlacedUnit(prev, optimistic);
+      placedUnitsRef.current = next;
+      return next;
+    });
+    setSelectedTile(null);
+
     const payload = {
       unit_id: unit.id,
-      x: selectedTile[0],
-      y: selectedTile[1],
+      x,
+      y,
       current_hp: 100,
       stat_boosts: {},
       status_effects: [],
@@ -3059,6 +3107,11 @@ export default function GamePage() {
     });
 
     if (!res.ok) {
+      setPlacedUnits((prev) => {
+        const next = prev.filter((u) => u.id !== tempId);
+        placedUnitsRef.current = next;
+        return next;
+      });
       const err = await res.json().catch(() => null);
       setToastMessage(typeof err?.detail === "string" ? err.detail : "Failed to summon unit.");
       return;
@@ -3070,11 +3123,11 @@ export default function GamePage() {
       unit: { ...unit, ...(placedUnit.unit || {}) },
     });
     setPlacedUnits((prev) => {
-      const next = upsertPlacedUnit(prev, mapped);
+      const withoutTemp = prev.filter((u) => u.id !== tempId);
+      const next = upsertPlacedUnit(withoutTemp, mapped);
       placedUnitsRef.current = next;
       return next;
     });
-    setSelectedTile(null);
 
     const gameRes = await secureFetch(`/api/games/${gameData.link}`);
     if (gameRes.ok) {
@@ -3472,7 +3525,6 @@ export default function GamePage() {
           tileDrawSize={TILE_DRAW_SIZE}
           moveTargeting={moveTargeting}
           getPlayerColor={getPlayerColor}
-          onSpriteFrameSize={([, h]) => setSpriteHeight(h)}
           onUnitMouseEnter={handleMapUnitMouseEnter}
           onUnitMouseLeave={handleMapUnitMouseLeave}
           onUnitClick={handleMapUnitClick}

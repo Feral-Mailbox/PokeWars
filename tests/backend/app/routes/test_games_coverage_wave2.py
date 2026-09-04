@@ -583,11 +583,11 @@ def test_list_game_status_endpoints(client, db, user):
     _seed_listed_game(db, user, status=models.GameStatus.completed, link="done-1")
     _seed_listed_game(db, user, status=models.GameStatus.closed, link="priv-1", is_private=True)
 
-    assert any(g["link"] == "closed-1" for g in client.get("/games/closed").json())
-    links = {g["link"] for g in client.get("/games/in_progress").json()}
+    assert any(g["link"] == "closed-1" for g in client.get("/games/closed").json()["items"])
+    links = {g["link"] for g in client.get("/games/in_progress").json()["items"]}
     assert "prog-1" in links and "prep-1" in links
-    assert any(g["link"] == "done-1" for g in client.get("/games/completed").json())
-    assert all(g["link"] != "priv-1" for g in client.get("/games/closed").json())
+    assert any(g["link"] == "done-1" for g in client.get("/games/completed").json()["items"])
+    assert all(g["link"] != "priv-1" for g in client.get("/games/closed").json()["items"])
 
 
 def test_player_ready_units_and_join(client, db, user):

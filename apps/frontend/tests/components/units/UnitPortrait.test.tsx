@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import UnitPortrait from "@/components/units/UnitPortrait";
+import UnitPortrait, { clearUnitPortraitCaches } from "@/components/units/UnitPortrait";
 
 describe("UnitPortrait", () => {
   beforeEach(() => {
+    clearUnitPortraitCaches();
     vi.stubGlobal(
       "Image",
       class {
@@ -21,6 +22,7 @@ describe("UnitPortrait", () => {
   });
 
   afterEach(() => {
+    clearUnitPortraitCaches();
     vi.restoreAllMocks();
   });
 

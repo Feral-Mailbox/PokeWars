@@ -292,8 +292,12 @@ def test_get_open_games(client, db, user):
     resp = client.get("/games/open")
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data) == 1
-    assert data[0]["game_name"] == "Game A"
+    assert data["total"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["game_name"] == "Game A"
+    assert "as_of" in data
+    assert "map" not in data["items"][0]
+    assert "map_state" not in data["items"][0]
 
 def test_get_game_by_link(client, db, user):
     # Create everything needed

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
-from typing import Iterable, List
+from typing import Iterable, List, Optional, Sequence
 from datetime import datetime, timedelta, timezone
 from collections import deque
 import random
@@ -10,7 +11,14 @@ import re
 import redis
 
 from app.db.models import Game, User, Map, GameStatus, GameUnit, GameState, GamePlayer, Unit, Move, GameMapState, Ability, Item
-from app.schemas.games import GameResponse, GameCreateRequest, GameStateSchema, PlayerInfo
+from app.schemas.games import (
+    GameResponse,
+    GameCreateRequest,
+    GameStateSchema,
+    PlayerInfo,
+    GameListItem,
+    GameListPage,
+)
 from app.schemas.maps import MapDetail, GameMapStateSchema
 from app.schemas.units import (
     GameUnitSchema,
@@ -6793,6 +6801,86 @@ def _player_info_from_state(ps: GamePlayer, username: str) -> PlayerInfo:
         unit_count=len(ps.game_units or []),
     )
 
+
+def serialize_game_list_item(game: Game, db: Session) -> GameListItem:
+    """List-page serialization: players + host only (skip map tiles / replay)."""
+    game_state = db.query(GameState).filter_by(game_id=game.id).first()
+    if not game_state:
+        raise HTTPException(status_code=500, detail="Game state missing")
+
+    player_states = db.query(GamePlayer).filter_by(game_id=game.id).all()
+    players: list[PlayerInfo] = []
+    host_username: Optional[str] = None
+    for ps in player_states:
+        u = db.query(User).filter_by(id=ps.player_id).first()
+        username = u.username if u else "Unknown"
+        if ps.player_id == game.host_id:
+            host_username = username
+        players.append(_player_info_from_state(ps, username))
+
+    return GameListItem(
+        id=game.id,
+        link=game.link,
+        game_name=game.game_name,
+        map_name=game.map_name,
+        max_players=game.max_players,
+        host_id=game.host_id,
+        host_username=host_username,
+        players=players,
+        gamemode=game.gamemode,
+        status=str(game_state.status.value if hasattr(game_state.status, "value") else game_state.status),
+        timestamp=game.timestamp,
+    )
+
+
+def list_games_page(
+    db: Session,
+    *,
+    statuses: Sequence[GameStatus],
+    page: int = 1,
+    page_size: int = 10,
+    as_of: Optional[datetime] = None,
+    max_players: Optional[int] = None,
+    map_name: Optional[str] = None,
+) -> GameListPage:
+    """Paginated public game list frozen at `as_of` (defaults to now on reload)."""
+    page = max(1, int(page or 1))
+    page_size = min(50, max(1, int(page_size or 10)))
+
+    snapshot = as_of or datetime.now(timezone.utc)
+    if snapshot.tzinfo is None:
+        snapshot = snapshot.replace(tzinfo=timezone.utc)
+
+    query = (
+        db.query(Game)
+        .join(GameState, GameState.game_id == Game.id)
+        .filter(
+            GameState.status.in_(list(statuses)),
+            Game.is_private == False,  # noqa: E712
+            Game.timestamp <= snapshot,
+        )
+    )
+    if max_players is not None:
+        query = query.filter(Game.max_players == max_players)
+    if map_name and map_name.strip() and map_name.strip().lower() != "all":
+        query = query.filter(func.lower(Game.map_name) == map_name.strip().lower())
+
+    total = query.count()
+    games = (
+        query.order_by(Game.timestamp.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return GameListPage(
+        items=[serialize_game_list_item(game, db) for game in games],
+        page=page,
+        page_size=page_size,
+        total=total,
+        as_of=snapshot,
+    )
+
+
 def serialize_game_response(game: Game, db: Session) -> GameResponse:
     game_state = db.query(GameState).filter_by(game_id=game.id).first()
     if not game_state:
@@ -7050,64 +7138,85 @@ def compute_turn_locks(game: Game, state: GameState, db: Session):
             json.dumps({"origin": [gu.starting_x, gu.starting_y], "tiles": tiles})
         )
 
-@router.get("/open", response_model=List[GameResponse])
+@router.get("/open", response_model=GameListPage)
 def get_open_games(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    as_of: Optional[datetime] = Query(None),
+    max_players: Optional[int] = Query(None),
+    map_name: Optional[str] = Query(None),
 ):
-    games = (
-        db.query(Game)
-        .join(GameState, GameState.game_id == Game.id)
-        .filter(GameState.status == GameStatus.open, Game.is_private == False)
-        .order_by(Game.timestamp.desc())
-        .all()
+    return list_games_page(
+        db,
+        statuses=[GameStatus.open],
+        page=page,
+        page_size=page_size,
+        as_of=as_of,
+        max_players=max_players,
+        map_name=map_name,
     )
-    return [serialize_game_response(game, db) for game in games]
 
-@router.get("/closed", response_model=List[GameResponse])
+@router.get("/closed", response_model=GameListPage)
 def get_closed_games(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    as_of: Optional[datetime] = Query(None),
+    max_players: Optional[int] = Query(None),
+    map_name: Optional[str] = Query(None),
 ):
-    games = (
-        db.query(Game)
-        .join(GameState, GameState.game_id == Game.id)
-        .filter(GameState.status == GameStatus.closed, Game.is_private == False)
-        .order_by(Game.timestamp.desc())
-        .all()
+    return list_games_page(
+        db,
+        statuses=[GameStatus.closed],
+        page=page,
+        page_size=page_size,
+        as_of=as_of,
+        max_players=max_players,
+        map_name=map_name,
     )
-    return [serialize_game_response(game, db) for game in games]
 
-@router.get("/in_progress", response_model=List[GameResponse])
+@router.get("/in_progress", response_model=GameListPage)
 def get_in_progress_games(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    as_of: Optional[datetime] = Query(None),
+    max_players: Optional[int] = Query(None),
+    map_name: Optional[str] = Query(None),
 ):
-    games = (
-        db.query(Game)
-        .join(GameState, GameState.game_id == Game.id)
-        .filter(
-            GameState.status.in_([GameStatus.in_progress, GameStatus.preparation]),
-            Game.is_private == False,
-        )
-        .order_by(Game.timestamp.desc())
-        .all()
+    return list_games_page(
+        db,
+        statuses=[GameStatus.in_progress, GameStatus.preparation],
+        page=page,
+        page_size=page_size,
+        as_of=as_of,
+        max_players=max_players,
+        map_name=map_name,
     )
-    return [serialize_game_response(game, db) for game in games]
 
-@router.get("/completed", response_model=List[GameResponse])
+@router.get("/completed", response_model=GameListPage)
 def get_completed_games(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
+    as_of: Optional[datetime] = Query(None),
+    max_players: Optional[int] = Query(None),
+    map_name: Optional[str] = Query(None),
 ):
-    games = (
-        db.query(Game)
-        .join(GameState, GameState.game_id == Game.id)
-        .filter(GameState.status == GameStatus.completed, Game.is_private == False)
-        .order_by(Game.timestamp.desc())
-        .all()
+    return list_games_page(
+        db,
+        statuses=[GameStatus.completed],
+        page=page,
+        page_size=page_size,
+        as_of=as_of,
+        max_players=max_players,
+        map_name=map_name,
     )
-    return [serialize_game_response(game, db) for game in games]
 
 @router.post("/create", response_model=GameResponse)
 def create_game(

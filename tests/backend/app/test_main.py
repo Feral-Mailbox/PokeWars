@@ -69,6 +69,7 @@ def test_check_and_advance_turns_swallows_sessionmaker_errors(monkeypatch):
 
 
 def test_lifespan_handles_scheduler_start_failure(monkeypatch):
+    monkeypatch.setattr(main_module, "acquire_background_leader_lock", lambda: True)
     monkeypatch.setattr(
         main_module.scheduler,
         "add_job",
@@ -85,6 +86,7 @@ def test_lifespan_handles_scheduler_start_failure(monkeypatch):
 
 
 def test_lifespan_handles_scheduler_shutdown_failure(monkeypatch):
+    monkeypatch.setattr(main_module, "acquire_background_leader_lock", lambda: True)
     monkeypatch.setattr(main_module.scheduler, "add_job", MagicMock())
     monkeypatch.setattr(main_module.scheduler, "start", MagicMock())
     monkeypatch.setattr(main_module, "run_startup_tasks", MagicMock())
@@ -99,6 +101,24 @@ def test_lifespan_handles_scheduler_shutdown_failure(monkeypatch):
             pass
 
     asyncio.run(_run())
+
+
+def test_lifespan_follower_worker_skips_scheduler(monkeypatch):
+    startup = MagicMock()
+    add_job = MagicMock()
+    monkeypatch.setattr(main_module, "acquire_background_leader_lock", lambda: False)
+    monkeypatch.setattr(main_module, "run_startup_tasks", startup)
+    monkeypatch.setattr(main_module.scheduler, "add_job", add_job)
+    monkeypatch.setattr(main_module.scheduler, "start", MagicMock())
+    monkeypatch.setattr(main_module.scheduler, "shutdown", MagicMock())
+
+    async def _run():
+        async with main_module.lifespan(MagicMock()):
+            pass
+
+    asyncio.run(_run())
+    startup.assert_not_called()
+    add_job.assert_not_called()
 
 
 def test_expire_pending_invitations_runs(monkeypatch):

@@ -9,4 +9,9 @@ router = APIRouter(prefix="/units", tags=["units"])
 
 @router.get("/summary", response_model=List[UnitSummary])
 def get_units(db: Session = Depends(get_db)):
-    return db.query(Unit).all()
+    units = db.query(Unit).all()
+    # Guard against legacy/seed rows with null cost so one bad row cannot 500 the catalog.
+    for unit in units:
+        if getattr(unit, "cost", None) is None:
+            unit.cost = 0
+    return units

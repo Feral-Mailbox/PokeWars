@@ -1,30 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { secureFetch } from "@/utils/secureFetch";
+import {
+  GameListFilters,
+  GameListPagination,
+  useSnapshotGameList,
+} from "./useSnapshotGameList";
 
 export default function JoinGame() {
   const [userId, setUserId] = useState<number | null>(null);
-  const [games, setGames] = useState([]);
-  const [playerFilter, setPlayerFilter] = useState("All");
-  const [mapFilter, setMapFilter] = useState("All");
-  const [page, setPage] = useState(1);
-
   const navigate = useNavigate();
-
-  const fetchGames = async () => {
-    try {
-      const res = await secureFetch(`/api/games/open`);
-      const data = await res.json();
-      setGames(data);
-      setPage(1);
-    } catch (err) {
-      console.error("Failed to fetch games:", err);
-    }
-  };
-
-  useEffect(() => {
-    fetchGames();
-  }, []);
+  const list = useSnapshotGameList("/games/open");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -36,12 +22,12 @@ export default function JoinGame() {
         console.error("Failed to fetch user:", err);
       }
     };
-    fetchUser();
+    void fetchUser();
   }, []);
 
-  const isUserInGame = (game: any) => {
+  const isUserInGame = (game: (typeof list.games)[number]) => {
     if (!userId || !Array.isArray(game.players)) return false;
-    return game.players.some((p: any) => p.player_id === userId);
+    return game.players.some((p) => p.player_id === userId);
   };
 
   const handleJoinGame = async (gameId: number) => {
@@ -59,75 +45,38 @@ export default function JoinGame() {
     }
   };
 
-  const filteredGames = games
-    .filter((game: any) => {
-      const playerMatch =
-        playerFilter === "All" || game.max_players.toString() === playerFilter;
-      const mapMatch =
-        mapFilter === "All" || game.map_name.toLowerCase() === mapFilter.toLowerCase();
-      return playerMatch && mapMatch;
-    })
-    .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  const totalPages = Math.ceil(filteredGames.length / 10);
-  const displayedGames = filteredGames.slice((page - 1) * 10, page * 10);
-
-  const goFirstPage = () => setPage(1);
-  const goPrevPage = () => setPage(page - 1);
-  const goNextPage = () => setPage(page + 1);
-  const goLastPage = () => setPage(totalPages);
-
-  const paginationControls = displayedGames.length > 0 && (
-    <div className="flex justify-center items-center gap-4 mb-4">
-      <button onClick={goFirstPage} disabled={page === 1}>&lt;&lt;</button>
-      <button onClick={goPrevPage} disabled={page === 1}>&lt;</button>
-      <span>Page {page}</span>
-      <button onClick={goNextPage} disabled={page >= totalPages}>&gt;</button>
-      <button onClick={goLastPage} disabled={page >= totalPages}>&gt;&gt;</button>
-    </div>
-  );
+  const hostName = (game: (typeof list.games)[number]) =>
+    game.host_username ??
+    game.players.find((p) => p.player_id === game.host_id)?.username ??
+    "Unknown";
 
   return (
     <div className="pt-20 px-4 pb-8 text-white">
       <h1 className="text-3xl font-bold mb-6">Join Game</h1>
 
-      <div className="flex gap-4 mb-6">
-        <select
-          value={playerFilter}
-          onChange={(e) => setPlayerFilter(e.target.value)}
-          className="border p-2 rounded"
-        >
-          <option value="All">All Players</option>
-          {[...Array(7)].map((_, i) => (
-            <option key={i + 2} value={i + 2}>
-              {i + 2} Players
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="text"
-          placeholder="Filter by Map"
-          value={mapFilter}
-          onChange={(e) => setMapFilter(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <button
-          onClick={() => fetchGames()}
-          title="Reload games"
-          className="flex items-center gap-1 border p-2 rounded bg-gray-700 hover:bg-gray-600 text-white"
-        >
-          Reload
-        </button>
-      </div>
-      {paginationControls}
+      <GameListFilters
+        playerFilter={list.playerFilter}
+        setPlayerFilter={list.setPlayerFilter}
+        mapFilter={list.mapFilter}
+        setMapFilter={list.setMapFilter}
+        onReload={list.reload}
+        loading={list.loading}
+      />
+      <GameListPagination
+        page={list.page}
+        totalPages={list.totalPages}
+        hasItems={list.games.length > 0}
+        onFirst={list.goFirstPage}
+        onPrev={list.goPrevPage}
+        onNext={list.goNextPage}
+        onLast={list.goLastPage}
+      />
       <ul className="space-y-4">
-        {displayedGames.map((game: any) => (
+        {list.games.map((game) => (
           <li key={game.id} className="border p-4 rounded shadow">
             <p className="text-lg font-bold mb-2">{game.game_name || "Untitled Game"}</p>
             <p>
-              <strong>Host:</strong>{" "}
-              {game.players.find((p: any) => p.player_id === game.host_id)?.username ?? "Unknown"}
+              <strong>Host:</strong> {hostName(game)}
             </p>
             <p>
               <strong>Game Mode:</strong> {game.gamemode}
@@ -154,7 +103,15 @@ export default function JoinGame() {
           </li>
         ))}
       </ul>
-      {paginationControls}
+      <GameListPagination
+        page={list.page}
+        totalPages={list.totalPages}
+        hasItems={list.games.length > 0}
+        onFirst={list.goFirstPage}
+        onPrev={list.goPrevPage}
+        onNext={list.goNextPage}
+        onLast={list.goLastPage}
+      />
     </div>
   );
 }
