@@ -71,6 +71,32 @@ class GameResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class GameListItem(BaseModel):
+    """Lightweight game row for list pages (no map tiles / replay)."""
+    id: int
+    link: str
+    game_name: str
+    map_name: str
+    max_players: int
+    host_id: int
+    host_username: Optional[str] = None
+    players: List[PlayerInfo]
+    gamemode: GameMode
+    status: str
+    timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GameListPage(BaseModel):
+    items: List[GameListItem]
+    page: int
+    page_size: int
+    total: int
+    as_of: datetime
+
+
 class GameStateSchema(BaseModel):
     id: int
     game_id: int
