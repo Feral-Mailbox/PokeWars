@@ -1664,27 +1664,25 @@ export default function GamePage() {
         setGameData(data);
         setCash(data.starting_cash ?? 0);
 
-        const playerRes = await secureFetch(`/api/games/${data.link}/player`);
+        // Player + units are independent after the game payload — fetch in parallel.
+        // Catalog (moves/items) is large (~400KB+) and only needed for tooltips/menus,
+        // so it must not gate the loading spinner.
+        const [playerRes, unitsRes] = await Promise.all([
+          secureFetch(`/api/games/${data.link}/player`),
+          secureFetch(`/api/games/${gameId}/units`),
+        ]);
+        if (cancelled) return;
+
+        let playerUnitIds: number[] = [];
         if (playerRes.ok) {
           const player = await playerRes.json();
           setCash(player.cash_remaining);
           setIsReady(player.is_ready);
+          playerUnitIds = player.game_units ?? [];
         }
 
-        const unitsRes = await secureFetch(`/api/games/${gameId}/units`);
         if (unitsRes.ok) {
           const backendUnits = await unitsRes.json();
-
-          let playerUnitIds: number[] = [];
-          if (data.status === "preparation") {
-            const playerRes = await secureFetch(`/api/games/${data.link}/player`);
-            if (playerRes.ok) {
-              const player = await playerRes.json();
-              setCash(player.cash_remaining);
-              playerUnitIds = player.game_units ?? [];
-            }
-          }
-
           const mappedUnits = mapViewerVisiblePlacedUnitsFromBackend(backendUnits, {
             status: data.status,
             playerUnitIds: data.status === "preparation" ? playerUnitIds : null,
@@ -1698,11 +1696,11 @@ export default function GamePage() {
           }
         }
 
-        if (data.map) {
-          await loadMapItemCatalog();
-        }
-
         if (!cancelled) setGameLoading(false);
+
+        if (data.map) {
+          void loadMapItemCatalog();
+        }
       } catch {
         if (!cancelled) redirectWithToast();
       }
