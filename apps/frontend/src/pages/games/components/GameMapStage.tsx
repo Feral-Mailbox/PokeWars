@@ -9,6 +9,7 @@ import { useOverlay2Renderer } from "@/hooks/useOverlay2Renderer";
 import { useOverlay3Renderer } from "@/hooks/useOverlay3Renderer";
 import { buildOverlay2TileSet } from "@/utils/mapTileDrawing";
 import { setupPixelCanvas } from "@/utils/pixelCanvas";
+import { buildTitanicOcclusionMap } from "@/utils/titanicOcclusion";
 
 type PlacedUnit = {
   id?: number;
@@ -115,6 +116,24 @@ export default function GameMapStage({
     [placedUnits]
   );
 
+  // Titanic sprites spill north/sideways; tiles they cover need outline-on-top.
+  const titanicOcclusion = useMemo(
+    () => buildTitanicOcclusionMap(mapUnits),
+    [mapUnits]
+  );
+
+  // Painter's algorithm: lower tile Y draws first so southern (higher-Y) sprites
+  // cover northern ones when tall sprites spill across tile bounds.
+  const sortedMapUnits = useMemo(() => {
+    return [...mapUnits].sort((a, b) => {
+      const dy = a.tile[1] - b.tile[1];
+      if (dy !== 0) return dy;
+      const dx = a.tile[0] - b.tile[0];
+      if (dx !== 0) return dx;
+      return Number(a.id ?? 0) - Number(b.id ?? 0);
+    });
+  }, [mapUnits]);
+
   const occupiedTileKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const unit of mapUnits) {
@@ -167,12 +186,28 @@ export default function GameMapStage({
   const renderUnit = (unitState: PlacedUnit) => {
     const { id, unit, tile, user_id, can_move } = unitState;
     const behindOverlay2 = isBehindOverlay2(tile);
+    const titanicOccluderY = titanicOcclusion.get(`${tile[0]},${tile[1]}`);
+    const behindTitanic = titanicOccluderY !== undefined;
+    const isTitanic = Boolean(unit?.is_titanic);
+    // Titanic-behind-titanic keeps a full sprite (Y-sort stacks it under the southern one).
+    // Normal units behind a titanic use the team-colored outline on top of the occluder.
+    const outlineOnly = behindOverlay2 || (behindTitanic && !isTitanic);
     const playerColor = can_move === false ? "#777777" : getPlayerColor(user_id);
+    // Overlay2 silhouettes stay under trees (z≈3). Titanic occlusion outlines sit
+    // just above the occluder so they read on top of the large sprite. Otherwise
+    // use Y-based z-index so southern tiles stack above northern ones.
+    let zIndex = 100 + tile[1];
+    if (behindOverlay2) {
+      zIndex = 3;
+    } else if (behindTitanic && !isTitanic) {
+      zIndex = 100 + titanicOccluderY + 1;
+    }
 
     return (
       <div
         key={`${id}-${tile[0]}-${tile[1]}`}
         data-unit
+        data-tile-y={tile[1]}
         onMouseEnter={() => onUnitMouseEnter(unitState)}
         onMouseLeave={() => onUnitMouseLeave(unitState)}
         onClick={() => onUnitClick(unitState)}
@@ -182,7 +217,7 @@ export default function GameMapStage({
           top: tile[1] * tileDrawSize,
           width: tileDrawSize,
           height: tileDrawSize,
-          zIndex: behindOverlay2 ? 3 : 5,
+          zIndex,
           pointerEvents: moveTargeting ? "none" : "auto",
           cursor: moveTargeting ? "default" : "pointer",
         }}
@@ -190,12 +225,12 @@ export default function GameMapStage({
         <div style={{ position: "relative", width: "100%", height: "100%", pointerEvents: "none" }}>
           {unit?.asset_folder ? (
             <UnitIdleSprite
-              key={behindOverlay2 ? "outline" : "sprite"}
+              key={outlineOnly ? "outline" : "sprite"}
               assetFolder={unit.asset_folder}
               onFrameSize={onSpriteFrameSize}
               isMapPlacement
               overlayColor={playerColor}
-              outlineOnly={behindOverlay2}
+              outlineOnly={outlineOnly}
             />
           ) : null}
         </div>
@@ -209,13 +244,15 @@ export default function GameMapStage({
     return (
       <div
         key={`hp-${id}-${tile[0]}-${tile[1]}`}
+        data-unit-hp
         style={{
           position: "absolute",
           left: tile[0] * tileDrawSize,
           top: tile[1] * tileDrawSize,
           width: tileDrawSize,
           height: tileDrawSize,
-          zIndex: 5,
+          // Always above every unit sprite band (100 + y).
+          zIndex: 1000,
           pointerEvents: "none",
         }}
       >
@@ -286,7 +323,7 @@ export default function GameMapStage({
           />
         )}
 
-        {mapUnits.map((unitState) => renderUnit(unitState))}
+        {sortedMapUnits.map((unitState) => renderUnit(unitState))}
 
         {showMapItemTooltips &&
           itemIdTiles?.map((row, y) =>
@@ -359,7 +396,7 @@ export default function GameMapStage({
           }}
         />
 
-        {mapUnits.map((unitState) => renderUnitHealth(unitState))}
+        {sortedMapUnits.map((unitState) => renderUnitHealth(unitState))}
 
         <canvas
           ref={overlayRef}
@@ -369,7 +406,7 @@ export default function GameMapStage({
             position: "absolute",
             top: 0,
             left: 0,
-            zIndex: 6,
+            zIndex: 1100,
             pointerEvents: overlayPointerEventsEnabled ? "auto" : "none",
           }}
         />

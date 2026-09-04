@@ -66,6 +66,8 @@ def unit_to_patch(unit: Any, *, include_unit_summary: bool = True) -> dict[str, 
             "sprite_url": getattr(u, "sprite_url", None),
             "asset_folder": getattr(u, "asset_folder", None),
             "cost": getattr(u, "cost", None),
+            "is_titanic": bool(getattr(u, "is_titanic", False)),
+            "titanic_footprint": getattr(u, "titanic_footprint", None),
         }
     return patch
 

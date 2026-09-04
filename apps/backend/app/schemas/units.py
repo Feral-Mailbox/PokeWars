@@ -32,6 +32,8 @@ class UnitSummary(BaseModel):
     weight: float
     height: float
     archetype: Optional[str] = None
+    is_titanic: bool = False
+    titanic_footprint: Optional[Dict[str, int]] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -54,6 +56,8 @@ class UnitDetail(BaseModel):
     evolution_cost: Optional[int]
     evolves_into: Optional[List[int]]
     is_legendary: bool
+    is_titanic: bool = False
+    titanic_footprint: Optional[Dict[str, int]] = None
     description: Optional[str]
     portrait_credits: List[str]
     sprite_credits: List[str]

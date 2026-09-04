@@ -47,6 +47,8 @@ def test_unit_to_patch_and_turn_op():
             sprite_url=None,
             asset_folder="025_pikachu",
             cost=100,
+            is_titanic=False,
+            titanic_footprint=None,
         ),
         flags={"jailed": True, "jailed_by": 2},
         jailed=True,
@@ -58,6 +60,8 @@ def test_unit_to_patch_and_turn_op():
     assert patch["unit"]["name"] == "Pikachu"
     assert patch["unit"]["asset_folder"] == "025_pikachu"
     assert patch["unit"]["cost"] == 100
+    assert patch["unit"]["is_titanic"] is False
+    assert patch["unit"]["titanic_footprint"] is None
     assert patch["jailed"] is True
     assert patch["jailed_by"] == 2
 

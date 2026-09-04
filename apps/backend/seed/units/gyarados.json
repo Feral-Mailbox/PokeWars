@@ -25,6 +25,12 @@
   "evolution_cost": null,
   "evolves_into": null,
   "is_legendary": false,
+  "is_titanic": true,
+  "titanic_footprint": {
+    "north": 3,
+    "west": 1,
+    "east": 1
+  },
   "archetype": "boss_sweeper",
   "description": "Once it appears, it goes on a rampage. It remains enraged until it demolishes everything around it.",
   "measurements": {

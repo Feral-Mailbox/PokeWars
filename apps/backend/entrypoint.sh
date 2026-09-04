@@ -1,7 +1,13 @@
 #!/bin/sh
 set -eu
 
-# Production: 2-4 uvicorn workers (default 3). Override with UVICORN_WORKERS.
+# One-off commands (alembic, seed scripts, shell) must run instead of the server.
+# `docker compose run backend alembic upgrade head` passes those args here.
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
+# Production default: 2-4 uvicorn workers (default 3). Override with UVICORN_WORKERS.
 workers="${UVICORN_WORKERS:-3}"
 
 # Non-numeric values fall back to 3.

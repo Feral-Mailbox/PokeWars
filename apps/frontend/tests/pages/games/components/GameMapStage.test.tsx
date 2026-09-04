@@ -236,6 +236,193 @@ describe("GameMapStage", () => {
     expect(itemHit).toHaveStyle({ pointerEvents: "none" });
   });
 
+  it("outlines units behind titanic sprites above the occluder", () => {
+    renderStage({
+      mapRenderData: {
+        width: 3,
+        height: 4,
+        tileset_names: ["a.png"],
+        tile_data: {
+          base: [
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+          ],
+          overlay: [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+          ],
+          overlay2: [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+          ],
+        },
+      },
+      placedUnits: [
+        {
+          id: 1,
+          unit: {
+            asset_folder: "025_pikachu",
+            is_titanic: false,
+          },
+          tile: [1, 1],
+          current_hp: 35,
+          user_id: 7,
+          can_move: true,
+        },
+        {
+          id: 2,
+          unit: {
+            asset_folder: "130_gyarados",
+            is_titanic: true,
+            titanic_footprint: { north: 3, west: 1, east: 1 },
+          },
+          tile: [1, 3],
+          current_hp: 95,
+          user_id: 8,
+          can_move: true,
+        },
+      ],
+    });
+
+    const unitNodes = Array.from(document.querySelectorAll("[data-unit]")) as HTMLElement[];
+    expect(unitNodes).toHaveLength(2);
+    const behind = unitNodes.find((node) => node.getAttribute("data-tile-y") === "1")!;
+    const titanic = unitNodes.find((node) => node.getAttribute("data-tile-y") === "3")!;
+    expect(behind.querySelector("[data-testid='unit-sprite']")).toHaveAttribute(
+      "data-outline",
+      "1"
+    );
+    expect(titanic.querySelector("[data-testid='unit-sprite']")).toHaveAttribute(
+      "data-outline",
+      "0"
+    );
+    expect(Number(behind.style.zIndex)).toBeGreaterThan(Number(titanic.style.zIndex));
+  });
+
+  it("keeps full sprites for titanic units behind other titanics", () => {
+    renderStage({
+      mapRenderData: {
+        width: 3,
+        height: 4,
+        tileset_names: ["a.png"],
+        tile_data: {
+          base: [
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+            [[0, 0], [0, 0], [0, 0]],
+          ],
+          overlay: [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+          ],
+          overlay2: [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+            [null, null, null],
+          ],
+        },
+      },
+      placedUnits: [
+        {
+          id: 1,
+          unit: {
+            asset_folder: "130_gyarados",
+            is_titanic: true,
+            titanic_footprint: { north: 3, west: 1, east: 1 },
+          },
+          tile: [1, 1],
+          current_hp: 155,
+          user_id: 7,
+          can_move: true,
+        },
+        {
+          id: 2,
+          unit: {
+            asset_folder: "130_gyarados",
+            is_titanic: true,
+            titanic_footprint: { north: 3, west: 1, east: 1 },
+          },
+          tile: [1, 3],
+          current_hp: 155,
+          user_id: 8,
+          can_move: true,
+        },
+      ],
+    });
+
+    const unitNodes = Array.from(document.querySelectorAll("[data-unit]")) as HTMLElement[];
+    const rear = unitNodes.find((node) => node.getAttribute("data-tile-y") === "1")!;
+    const front = unitNodes.find((node) => node.getAttribute("data-tile-y") === "3")!;
+    expect(rear.querySelector("[data-testid='unit-sprite']")).toHaveAttribute("data-outline", "0");
+    expect(front.querySelector("[data-testid='unit-sprite']")).toHaveAttribute("data-outline", "0");
+    expect(Number(rear.style.zIndex)).toBeLessThan(Number(front.style.zIndex));
+  });
+
+  it("stacks southern units above northern ones and keeps HP above sprites", () => {
+    renderStage({
+      mapRenderData: {
+        width: 2,
+        height: 3,
+        tileset_names: ["a.png"],
+        tile_data: {
+          base: [
+            [[0, 0], [0, 0]],
+            [[0, 0], [0, 0]],
+            [[0, 0], [0, 0]],
+          ],
+          overlay: [
+            [null, null],
+            [null, null],
+            [null, null],
+          ],
+          overlay2: [
+            [null, null],
+            [null, null],
+            [null, null],
+          ],
+        },
+      },
+      // Intentionally reverse of Y order: northern unit listed last (would formerly paint on top).
+      placedUnits: [
+        {
+          id: 20,
+          unit: { asset_folder: "big_tyrantrum" },
+          tile: [0, 2],
+          current_hp: 142,
+          user_id: 7,
+        },
+        {
+          id: 10,
+          unit: { asset_folder: "small_victini" },
+          tile: [0, 0],
+          current_hp: 160,
+          user_id: 8,
+        },
+      ],
+    });
+
+    const unitNodes = Array.from(document.querySelectorAll("[data-unit]")) as HTMLElement[];
+    expect(unitNodes).toHaveLength(2);
+    expect(unitNodes.map((node) => node.getAttribute("data-tile-y"))).toEqual(["0", "2"]);
+    expect(Number(unitNodes[0].style.zIndex)).toBeLessThan(Number(unitNodes[1].style.zIndex));
+
+    const hpNodes = Array.from(document.querySelectorAll("[data-unit-hp]")) as HTMLElement[];
+    expect(hpNodes).toHaveLength(2);
+    for (const hp of hpNodes) {
+      expect(Number(hp.style.zIndex)).toBeGreaterThan(Number(unitNodes[1].style.zIndex));
+    }
+  });
+
   it("renders without optional item and objective canvases", () => {
     renderStage({
       mapWidth: 0,
