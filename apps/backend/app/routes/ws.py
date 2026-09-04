@@ -1,8 +1,9 @@
-import asyncio
 import json
 import logging
+import os
 
 import redis
+import redis.asyncio as aioredis
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.db.database import get_sessionmaker
@@ -13,7 +14,11 @@ from app.utils.session import decode_session_token
 router = APIRouter()
 logger = logging.getLogger("ws")
 
-r = redis.Redis(host="redis", port=6379, decode_responses=True)
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+
+# Sync client: used by request handlers / helpers (publish, INCR spectator keys).
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 SPECTATOR_CONN_TTL_SECONDS = 60 * 60 * 12
 
@@ -30,6 +35,46 @@ def publish_announcement_event(payload: dict) -> None:
         r.publish("announcements", json.dumps(payload))
     except Exception:
         logger.exception("Failed to publish announcement WS event")
+
+
+def _async_redis_client() -> aioredis.Redis:
+    """Factory so tests can swap the async Redis client."""
+    return aioredis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
+
+async def _forward_redis_channels(websocket: WebSocket, *channels: str) -> None:
+    """
+    Subscribe to Redis channels with redis.asyncio and forward messages to the socket.
+
+    Unlike the previous sync pubsub + run_in_executor(get_message) loop, this does not
+    pin a thread-pool worker per WebSocket connection.
+    """
+    client = _async_redis_client()
+    pubsub = client.pubsub()
+    try:
+        await pubsub.subscribe(*channels)
+        async for message in pubsub.listen():
+            if not message or message.get("type") != "message":
+                continue
+            data = message.get("data")
+            if data is None:
+                continue
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            await websocket.send_text(data)
+    finally:
+        try:
+            await pubsub.unsubscribe(*channels)
+        except Exception:
+            pass
+        try:
+            await pubsub.aclose()
+        except Exception:
+            pass
+        try:
+            await client.aclose()
+        except Exception:
+            pass
 
 
 def _resolve_authenticated_user(session_token: str | None) -> User | None:
@@ -144,25 +189,11 @@ async def websocket_endpoint(websocket: WebSocket, link: str):
                 "Failed to register spectator %s for game %s", user.id, link
             )
 
-    pubsub = r.pubsub()
-    pubsub.subscribe(f"game_updates:{link}")
-
-    async def read_redis_messages():
-        loop = asyncio.get_event_loop()
-        while True:
-            message = await loop.run_in_executor(None, pubsub.get_message, True, 1.0)
-            if message and message["type"] == "message":
-                await websocket.send_text(message["data"])
-
     try:
-        await read_redis_messages()
+        await _forward_redis_channels(websocket, f"game_updates:{link}")
     except WebSocketDisconnect:
         logger.info("Client disconnected from game %s", link)
     finally:
-        try:
-            pubsub.close()
-        except Exception:
-            pass
         if spectator_registered:
             try:
                 if _unregister_spectator_connection(link, user.id):
@@ -189,22 +220,9 @@ async def global_ws(websocket: WebSocket):
         logger.exception("Global WebSocket accept failed")
         return
 
-    pubsub = r.pubsub()
-    pubsub.subscribe(f"user_updates:{user.id}", "announcements")
-
-    async def read_redis_messages():
-        loop = asyncio.get_event_loop()
-        while True:
-            message = await loop.run_in_executor(None, pubsub.get_message, True, 1.0)
-            if message and message["type"] == "message":
-                await websocket.send_text(message["data"])
-
     try:
-        await read_redis_messages()
+        await _forward_redis_channels(
+            websocket, f"user_updates:{user.id}", "announcements"
+        )
     except WebSocketDisconnect:
         logger.info("Global WebSocket disconnected for user %s", user.id)
-    finally:
-        try:
-            pubsub.close()
-        except Exception:
-            pass

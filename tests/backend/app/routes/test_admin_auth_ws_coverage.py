@@ -90,6 +90,35 @@ def test_login_user_response_validation_error(client, db, monkeypatch):
     assert resp.json()["detail"] == "User serialization failed"
 
 
+def _async_redis_with_messages(*messages):
+    """Build a fake async Redis client whose pubsub.listen yields the given messages."""
+    from starlette.websockets import WebSocketDisconnect
+
+    class FakePubSub:
+        async def subscribe(self, *_channels):
+            return None
+
+        async def unsubscribe(self, *_channels):
+            return None
+
+        async def aclose(self):
+            return None
+
+        async def listen(self):
+            for message in messages:
+                yield message
+            raise WebSocketDisconnect()
+
+    class FakeAsyncRedis:
+        def pubsub(self):
+            return FakePubSub()
+
+        async def aclose(self):
+            return None
+
+    return FakeAsyncRedis()
+
+
 def test_ws_endpoints_auth_and_global(client, db):
     from starlette.websockets import WebSocketDisconnect
 
@@ -123,69 +152,30 @@ def test_ws_endpoints_auth_and_global(client, db):
     client.cookies.clear()
 
     client.cookies.set("session_user", create_session_token(user.id))
-    global_pubsub = MagicMock()
-    global_calls = {"n": 0}
-
-    def _global_get_message(*_args, **_kwargs):
-        global_calls["n"] += 1
-        if global_calls["n"] == 1:
-            return {"type": "message", "data": '{"ok":true}'}
-        raise WebSocketDisconnect()
-
-    global_pubsub.get_message.side_effect = _global_get_message
-    global_redis = MagicMock()
-    global_redis.pubsub.return_value = global_pubsub
-    with patch("app.routes.ws.r", global_redis):
+    with patch(
+        "app.routes.ws._async_redis_client",
+        return_value=_async_redis_with_messages({"type": "message", "data": '{"ok":true}'}),
+    ):
         with client.websocket_connect("/api/ws/global") as ws:
             assert ws.receive_text() == '{"ok":true}'
 
-    fake_pubsub = MagicMock()
-    calls = {"n": 0}
-
-    def _get_message(*_args, **_kwargs):
-        calls["n"] += 1
-        if calls["n"] == 1:
-            # Non-message pubsub event: covers `if message and type == message` false branch.
-            return {"type": "subscribe", "data": 1}
-        if calls["n"] == 2:
-            return {"type": "message", "data": "hello"}
-        raise WebSocketDisconnect()
-
-    fake_pubsub.get_message.side_effect = _get_message
-    fake_redis = MagicMock()
-    fake_redis.pubsub.return_value = fake_pubsub
-    fake_redis.incr.return_value = 1
-    fake_redis.decr.return_value = 0
-    fake_redis.expire.return_value = True
-    fake_redis.delete.return_value = 1
-
     client.cookies.set("session_user", create_session_token(user.id))
-    with patch("app.routes.ws.r", fake_redis):
+    with patch(
+        "app.routes.ws._async_redis_client",
+        return_value=_async_redis_with_messages(
+            {"type": "subscribe", "data": 1},
+            {"type": "message", "data": "hello"},
+        ),
+    ):
         with client.websocket_connect("/api/ws/game/ws-live-link") as ws:
             assert ws.receive_text() == "hello"
 
     # Authenticated non-participants may spectate.
-    outsider_calls = {"n": 0}
-
-    def _outsider_get_message(*_args, **_kwargs):
-        outsider_calls["n"] += 1
-        if outsider_calls["n"] == 1:
-            return {"type": "message", "data": "spec-hello"}
-        raise WebSocketDisconnect()
-
-    outsider_pubsub = MagicMock()
-    outsider_pubsub.get_message.side_effect = _outsider_get_message
-    outsider_redis = MagicMock()
-    outsider_redis.pubsub.return_value = outsider_pubsub
-    outsider_redis.incr.return_value = 1
-    outsider_redis.decr.return_value = 0
-    outsider_redis.expire.return_value = True
-    outsider_redis.delete.return_value = 1
-
     client.cookies.set("session_user", create_session_token(outsider.id))
-    with patch("app.routes.ws.r", outsider_redis), patch(
-        "app.routes.ws._announce_spectator_system_log"
-    ) as announce:
+    with patch(
+        "app.routes.ws._async_redis_client",
+        return_value=_async_redis_with_messages({"type": "message", "data": "spec-hello"}),
+    ), patch("app.routes.ws._announce_spectator_system_log") as announce:
         with client.websocket_connect("/api/ws/game/ws-live-link") as ws:
             assert ws.receive_text() == "spec-hello"
         assert announce.call_count >= 1
@@ -196,6 +186,7 @@ def test_ws_endpoints_auth_and_global(client, db):
 
 def test_global_ws_accept_failure_and_disconnect(db, monkeypatch):
     import asyncio
+    from unittest.mock import AsyncMock
     from starlette.websockets import WebSocketDisconnect
     from app.routes import ws as ws_routes
 
@@ -222,30 +213,13 @@ def test_global_ws_accept_failure_and_disconnect(db, monkeypatch):
         async def _accept():
             return None
 
-        fake_pubsub = MagicMock()
-        calls = {"n": 0}
-
-        def _get_message(*_args, **_kwargs):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                return {"type": "message", "data": '{"event":"ping"}'}
-            raise WebSocketDisconnect()
-
-        fake_pubsub.get_message.side_effect = _get_message
-        fake_redis = MagicMock()
-        fake_redis.pubsub.return_value = fake_pubsub
-        monkeypatch.setattr(ws_routes, "r", fake_redis)
+        monkeypatch.setattr(
+            ws_routes,
+            "_async_redis_client",
+            lambda: _async_redis_with_messages({"type": "message", "data": '{"event":"ping"}'}),
+        )
 
         ws2.accept = _accept
-        ws2.send_text = MagicMock()
-
-        async def _send_text(data):
-            ws2.send_text(data)
-
-        ws2.send_text = _send_text
-        # Track awaits via AsyncMock
-        from unittest.mock import AsyncMock
-
         ws2.send_text = AsyncMock()
         await ws_routes.global_ws(ws2)
         assert ws2.send_text.await_count == 1
